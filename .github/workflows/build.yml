@@ -1,0 +1,22 @@
+name: Build
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.8'
+    - run: pip install pyinstaller betfairlightweight telethon
+    - run: cd python-app && pyinstaller --onefile --windowed --name Pickfair main.py
+    - name: Upload to public repo
+      uses: softprops/action-gh-release@v1
+      with:
+        files: python-app/dist/Pickfair.exe
+        repository: petiro/Pickfair
+        token: ${{ secrets.RELEASE_TOKEN }}
