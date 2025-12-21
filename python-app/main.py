@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.9.9"
+APP_VERSION = "3.10.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -27,8 +27,36 @@ class PickfairApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title(f"{APP_NAME} v{APP_VERSION}")
-        self.root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
-        self.root.minsize(1000, 700)
+        
+        # Get screen dimensions and adapt window size
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        # Account for taskbar (approx 40-50px on Windows)
+        taskbar_offset = 50
+        available_height = screen_height - taskbar_offset
+        
+        # Calculate optimal window size (90% of screen, max 1400x900)
+        window_width = min(WINDOW_WIDTH, int(screen_width * 0.9))
+        window_height = min(WINDOW_HEIGHT, int(available_height * 0.9))
+        
+        # Center window on screen
+        x = (screen_width - window_width) // 2
+        y = max(0, (available_height - window_height) // 2)
+        
+        self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        
+        # Set reasonable minsize - allow shrinking on small screens
+        min_width = min(900, screen_width - 100)
+        min_height = min(500, available_height - 50)
+        self.root.minsize(min_width, min_height)
+        
+        # Enable window resizing
+        self.root.resizable(True, True)
+        
+        # On small screens, maximize after a delay to avoid minsize conflicts
+        if screen_width <= 1366 or screen_height <= 768:
+            self.root.after(100, lambda: self._try_maximize())
         
         try:
             self.root.iconbitmap("icon.ico")
@@ -61,6 +89,13 @@ class PickfairApp:
         self._start_booking_monitor()
         self._start_auto_cashout_monitor()
         self._check_for_updates_on_startup()
+    
+    def _try_maximize(self):
+        """Try to maximize window on Windows."""
+        try:
+            self.root.state('zoomed')
+        except:
+            pass
     
     def _configure_styles(self):
         """Configure ttk styles with FairBot-like colors."""
@@ -2156,7 +2191,12 @@ class PickfairApp:
             funds = self.account_data
         
         daily_pl = self.db.get_today_profit_loss()
-        active_count = self.db.get_active_bets_count()
+        # Get active bets count from Betfair (matched orders)
+        try:
+            orders = self.client.get_current_orders()
+            active_count = len([o for o in orders.get('matched', []) if o.get('sizeMatched', 0) > 0])
+        except:
+            active_count = self.db.get_active_bets_count()
         
         create_stat_card(stats_frame, "Saldo Disponibile", 
                         f"{funds.get('available', 0):.2f} EUR", 
@@ -2182,7 +2222,12 @@ class PickfairApp:
                     funds = self.client.get_account_funds()
                     self.account_data = funds
                     daily_pl = self.db.get_today_profit_loss()
-                    active_count = self.db.get_active_bets_count()
+                    # Get active bets count from Betfair (matched orders)
+                    try:
+                        orders = self.client.get_current_orders()
+                        active_count = len([o for o in orders.get('matched', []) if o.get('sizeMatched', 0) > 0])
+                    except:
+                        active_count = self.db.get_active_bets_count()
                     
                     # Schedule UI update on main thread
                     f, pl, ac = funds, daily_pl, active_count
