@@ -831,11 +831,116 @@ class BetfairClient:
             'cashout_side': 'LAY' if side == 'BACK' else 'BACK'
         }
     
-    def execute_cashout(self, market_id, selection_id, cashout_side, cashout_stake, cashout_price):
+    def _get_fresh_price(self, market_id, selection_id, side):
         """
-        Execute cashout by placing opposite bet.
+        Get fresh price for a selection.
         
-        Returns placement result.
+        Args:
+            market_id: Market ID
+            selection_id: Selection ID
+            side: 'BACK' or 'LAY' - the side we want to place
+        
+        Returns:
+            Best available price or None
+        """
+        try:
+            price_data = self.client.betting.list_market_book(
+                market_ids=[market_id],
+                price_projection=filters.price_projection(
+                    price_data=['EX_BEST_OFFERS']
+                )
+            )
+            
+            if not price_data or not price_data[0].runners:
+                return None
+            
+            for runner in price_data[0].runners:
+                if runner.selection_id == selection_id:
+                    if side == 'BACK':
+                        if runner.ex and runner.ex.available_to_back:
+                            return runner.ex.available_to_back[0].price
+                    else:  # LAY
+                        if runner.ex and runner.ex.available_to_lay:
+                            return runner.ex.available_to_lay[0].price
+                    break
+            return None
+        except:
+            return None
+    
+    def _adjust_price_with_slippage(self, price, side, slippage_ticks=1):
+        """
+        Adjust price to accept slightly worse odds (slippage).
+        
+        Betfair uses specific price increments (ticks).
+        - For BACK: we accept lower price (worse for us)
+        - For LAY: we accept higher price (worse for us)
+        
+        Args:
+            price: Original price
+            side: 'BACK' or 'LAY'
+            slippage_ticks: Number of ticks to adjust (default 1)
+        
+        Returns:
+            Adjusted price
+        """
+        # Betfair price ladder increments
+        if price < 2:
+            increment = 0.01
+        elif price < 3:
+            increment = 0.02
+        elif price < 4:
+            increment = 0.05
+        elif price < 6:
+            increment = 0.1
+        elif price < 10:
+            increment = 0.2
+        elif price < 20:
+            increment = 0.5
+        elif price < 30:
+            increment = 1.0
+        elif price < 50:
+            increment = 2.0
+        elif price < 100:
+            increment = 5.0
+        else:
+            increment = 10.0
+        
+        # Betfair order matching:
+        # - BACK at price X matches LAY orders at X or HIGHER
+        # - LAY at price X matches BACK orders at X or LOWER
+        #
+        # To increase fill probability with slippage:
+        # - BACK: DECREASE price (willing to accept lower odds = worse for backer)
+        # - LAY: INCREASE price (offering higher odds = worse for layer, attracts backers)
+        if side == 'BACK':
+            adjusted = price - (increment * slippage_ticks)
+            return max(1.01, round(adjusted, 2))
+        else:  # LAY
+            adjusted = price + (increment * slippage_ticks)
+            return min(1000, round(adjusted, 2))
+    
+    def execute_cashout(self, market_id, selection_id, cashout_side, cashout_stake, cashout_price, 
+                        max_retries=3, slippage_ticks=1, use_fresh_price=True):
+        """
+        Execute cashout by placing opposite bet with improved reliability.
+        
+        Features:
+        - Fetches fresh price just before placing order
+        - Automatic retry with updated price on failure
+        - Slippage option to accept slightly worse prices
+        
+        Args:
+            market_id: Market ID
+            selection_id: Selection ID
+            cashout_side: 'BACK' or 'LAY'
+            cashout_stake: Stake amount
+            cashout_price: Original calculated price (used as reference)
+            max_retries: Number of retry attempts (default 3)
+            slippage_ticks: Price ticks to accept as slippage (default 1)
+            use_fresh_price: Whether to fetch fresh price before placing (default True)
+        
+        Returns:
+            Placement result dict
         """
         if not self.client:
             raise Exception("Non connesso a Betfair")
@@ -843,25 +948,91 @@ class BetfairClient:
         # Round stake to 2 decimal places, minimum €1 for Italy
         stake = max(1.0, round(cashout_stake, 2))
         
-        instructions = [
-            betfairlightweight.filters.place_instruction(
-                order_type='LIMIT',
-                selection_id=selection_id,
-                side=cashout_side,
-                limit_order=betfairlightweight.filters.limit_order(
-                    size=stake,
-                    price=cashout_price,
-                    persistence_type='LAPSE'
+        last_error = None
+        last_status = None
+        
+        for attempt in range(max_retries):
+            try:
+                # Get fresh price if enabled
+                if use_fresh_price:
+                    fresh_price = self._get_fresh_price(market_id, selection_id, cashout_side)
+                    if fresh_price:
+                        price_to_use = fresh_price
+                    else:
+                        price_to_use = cashout_price
+                else:
+                    price_to_use = cashout_price
+                
+                # Apply slippage on retry attempts
+                if attempt > 0 and slippage_ticks > 0:
+                    price_to_use = self._adjust_price_with_slippage(
+                        price_to_use, 
+                        cashout_side, 
+                        slippage_ticks * attempt
+                    )
+                
+                instructions = [
+                    betfairlightweight.filters.place_instruction(
+                        order_type='LIMIT',
+                        selection_id=selection_id,
+                        side=cashout_side,
+                        limit_order=betfairlightweight.filters.limit_order(
+                            size=stake,
+                            price=price_to_use,
+                            persistence_type='LAPSE'
+                        )
+                    )
+                ]
+                
+                result = self.client.betting.place_orders(
+                    market_id=market_id,
+                    instructions=instructions
                 )
-            )
-        ]
+                
+                # Parse result
+                parsed = self._parse_cashout_result(result)
+                
+                # Success - return immediately
+                if parsed.get('status') == 'SUCCESS':
+                    parsed['price_used'] = price_to_use
+                    parsed['attempts'] = attempt + 1
+                    return parsed
+                
+                # Check if we should retry
+                last_status = parsed.get('status')
+                error_code = parsed.get('error_code', '')
+                
+                # Don't retry on permanent errors
+                permanent_errors = ['MARKET_SUSPENDED', 'MARKET_NOT_OPEN_FOR_BETTING', 
+                                   'INSUFFICIENT_FUNDS', 'INVALID_ACCOUNT_STATE']
+                if error_code in permanent_errors:
+                    return parsed
+                
+                # Retry on transient errors or unmatched
+                if attempt < max_retries - 1:
+                    time.sleep(0.5 * (attempt + 1))  # Increasing delay
+                    continue
+                
+                return parsed
+                
+            except Exception as e:
+                last_error = str(e)
+                if attempt < max_retries - 1:
+                    time.sleep(0.5 * (attempt + 1))
+                    continue
         
-        result = self.client.betting.place_orders(
-            market_id=market_id,
-            instructions=instructions
-        )
-        
-        # Handle different response structures - API may return object or list
+        # All retries failed
+        return {
+            'status': 'ERROR',
+            'error': last_error or f'Fallito dopo {max_retries} tentativi. Ultimo stato: {last_status}',
+            'betId': None,
+            'sizeMatched': 0,
+            'averagePriceMatched': None,
+            'attempts': max_retries
+        }
+    
+    def _parse_cashout_result(self, result):
+        """Parse cashout placement result into consistent format."""
         try:
             if isinstance(result, list) and len(result) > 0:
                 result = result[0]
@@ -886,7 +1057,15 @@ class BetfairClient:
             bet_id = None
             size_matched = 0
             avg_price = None
+            error_code = None
+            error_msg = None
             status = getattr(result, 'status', None) or 'UNKNOWN'
+            
+            # Try to get error code from result level
+            for ec_attr in ['error_code', 'errorCode']:
+                error_code = getattr(result, ec_attr, None)
+                if error_code:
+                    break
             
             if instruction_reports and len(instruction_reports) > 0:
                 ir = instruction_reports[0]
@@ -903,18 +1082,28 @@ class BetfairClient:
                     avg_price = getattr(ir, ap_attr, None)
                     if avg_price:
                         break
+                
+                # Try to get instruction-level error code
+                if not error_code:
+                    for ec_attr in ['error_code', 'errorCode']:
+                        error_code = getattr(ir, ec_attr, None)
+                        if error_code:
+                            break
             
             return {
                 'status': status,
                 'betId': bet_id,
                 'sizeMatched': size_matched or 0,
-                'averagePriceMatched': avg_price
+                'averagePriceMatched': avg_price,
+                'error_code': error_code,
+                'error': error_msg
             }
         except Exception as e:
             # Return error info but don't crash
             return {
                 'status': 'ERROR',
                 'error': str(e),
+                'error_code': None,
                 'betId': None,
                 'sizeMatched': 0,
                 'averagePriceMatched': None
