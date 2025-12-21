@@ -183,13 +183,24 @@ def install_update(update_path, current_exe_path=None):
             # 4. Delete itself
             batch_content = f'''@echo off
 echo Aggiornamento in corso...
+echo Attendere la chiusura dell'applicazione...
+timeout /t 5 /nobreak > nul
+
+REM Pulisci cartelle temporanee PyInstaller
+for /d %%i in ("%TEMP%\\_MEI*") do rd /s /q "%%i" 2>nul
+
+REM Attendi ancora per sicurezza
 timeout /t 2 /nobreak > nul
+
 if exist "{backup_path}" del /f "{backup_path}"
 if exist "{current_exe_path}" move /y "{current_exe_path}" "{backup_path}"
 move /y "{update_path}" "{current_exe_path}"
+
 if exist "{current_exe_path}" (
     echo Avvio nuova versione...
+    timeout /t 2 /nobreak > nul
     start "" "{current_exe_path}"
+    timeout /t 5 /nobreak > nul
     if exist "{backup_path}" del /f "{backup_path}"
 ) else (
     echo Errore aggiornamento, ripristino backup...
