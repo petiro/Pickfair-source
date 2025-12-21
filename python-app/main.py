@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.10.1"
+APP_VERSION = "3.10.2"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -3506,8 +3506,11 @@ class PickfairApp:
         status_label = ttk.Label(frame, text="")
         status_label.pack(pady=5)
         
+        # Store phone_code_hash for verification step
+        phone_hash_ref = [None]
+        
         def do_send_code():
-            status_label.config(text="Invio codice...")
+            status_label.config(text="Connessione a Telegram...")
             auth_dialog.update()
             
             def auth_thread():
@@ -3520,16 +3523,30 @@ class PickfairApp:
                     asyncio.set_event_loop(loop)
                     
                     api_id = int(settings['api_id'])
-                    api_hash = settings['api_hash']
+                    api_hash = settings['api_hash'].strip()
                     session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+                    
+                    auth_dialog.after(0, lambda: status_label.config(text=f"Connessione API ID {api_id}..."))
                     
                     client = TelegramClient(session_path, api_id, api_hash)
                     client.connect()
-                    client.send_code_request(phone)
+                    
+                    auth_dialog.after(0, lambda: status_label.config(text="Richiesta codice..."))
+                    
+                    result = client.send_code_request(phone)
+                    
+                    # Store phone_code_hash for verification
+                    if hasattr(result, 'phone_code_hash'):
+                        phone_hash_ref[0] = result.phone_code_hash
+                    
+                    # Disconnect - will reconnect in verify with same session
                     client.disconnect()
-                    auth_dialog.after(0, lambda: status_label.config(text="Codice inviato! Inseriscilo sopra."))
+                    
+                    auth_dialog.after(0, lambda: status_label.config(
+                        text=f"Codice inviato! Controlla Telegram."))
                 except Exception as e:
-                    auth_dialog.after(0, lambda: status_label.config(text=f"Errore: {e}"))
+                    err_msg = str(e)
+                    auth_dialog.after(0, lambda msg=err_msg: status_label.config(text=f"Errore: {msg}"))
             
             threading.Thread(target=auth_thread, daemon=True).start()
         
@@ -3552,13 +3569,19 @@ class PickfairApp:
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     
+                    # Always create fresh client with same session file
                     api_id = int(settings['api_id'])
-                    api_hash = settings['api_hash']
+                    api_hash = settings['api_hash'].strip()
                     session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
                     
                     client = TelegramClient(session_path, api_id, api_hash)
                     client.connect()
-                    client.sign_in(phone, code)
+                    
+                    # Use phone_code_hash if we have it
+                    if phone_hash_ref[0]:
+                        client.sign_in(phone, code, phone_code_hash=phone_hash_ref[0])
+                    else:
+                        client.sign_in(phone, code)
                     
                     # Check if 2FA is needed
                     if not client.is_user_authorized():
@@ -3588,21 +3611,34 @@ class PickfairApp:
                                 'type': chat_type
                             })
                         
-                        client.disconnect()
+                        try:
+                            client.disconnect()
+                        except:
+                            pass
                         auth_dialog.after(0, auth_dialog.destroy)
                         auth_dialog.after(100, lambda: callback(chat_list))
                     else:
-                        client.disconnect()
+                        try:
+                            client.disconnect()
+                        except:
+                            pass
                         auth_dialog.after(0, lambda: status_label.config(text="Autenticazione fallita"))
                         
                 except Exception as e:
                     err_msg = str(e)
                     if '2FA' in err_msg.upper() or 'password' in err_msg.lower():
                         auth_dialog.after(0, lambda: status_label.config(text="Inserisci la password 2FA"))
+                    elif 'phone_code_hash' in err_msg.lower() or 'code' in err_msg.lower():
+                        auth_dialog.after(0, lambda: status_label.config(text="Codice errato o scaduto. Riprova."))
                     else:
-                        auth_dialog.after(0, lambda: status_label.config(text=f"Errore: {err_msg[:40]}"))
+                        auth_dialog.after(0, lambda msg=err_msg: status_label.config(text=f"Errore: {msg[:50]}"))
             
             threading.Thread(target=verify_thread, daemon=True).start()
+        
+        def on_dialog_close():
+            """Cleanup when dialog is closed."""
+            phone_hash_ref[0] = None
+            auth_dialog.destroy()
         
         btn_frame = ttk.Frame(frame)
         btn_frame.pack(fill=tk.X, pady=10)
@@ -3610,7 +3646,9 @@ class PickfairApp:
         ttk.Button(btn_frame, text="Invia Codice", command=do_send_code).pack(side=tk.LEFT, padx=5)
         tk.Button(btn_frame, text="Verifica", bg='#28a745', fg='white',
                  font=('Segoe UI', 10, 'bold'), command=submit_code).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Annulla", command=auth_dialog.destroy).pack(side=tk.RIGHT)
+        ttk.Button(btn_frame, text="Annulla", command=on_dialog_close).pack(side=tk.RIGHT)
+        
+        auth_dialog.protocol("WM_DELETE_WINDOW", on_dialog_close)
         
         # Automatically send code
         do_send_code()
