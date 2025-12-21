@@ -13,7 +13,9 @@ jobs:
       with:
         python-version: '3.8'
     - run: pip install pyinstaller betfairlightweight telethon
-    - run: cd python-app && pyinstaller --onefile --windowed --name Pickfair main.py
+    - name: Build executable
+      working-directory: python-app
+      run: pyinstaller --onefile --windowed --name Pickfair main.py
     - name: Upload to public repo
       uses: softprops/action-gh-release@v1
       with:
