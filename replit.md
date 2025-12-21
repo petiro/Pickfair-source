@@ -10,7 +10,7 @@ Preferred communication style: Simple, everyday language.
 
 **Release workflow**: Dopo ogni aggiornamento significativo completato, fornire istruzioni per push e release su GitHub con la versione successiva (comandi shell: git push origin main, git tag vX.X.X, git push origin vX.X.X).
 
-**Current Version**: 3.9.2
+**Current Version**: 3.9.3
 
 ## System Architecture
 
