@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.9.8"
+APP_VERSION = "3.9.9"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -3144,8 +3144,9 @@ class PickfairApp:
                     client.connect()
                     
                     if not client.is_user_authorized():
-                        # Need to authenticate
-                        dialog.after(0, lambda: self._telegram_auth_flow(client, phone, show_chat_selector))
+                        # Need to authenticate - disconnect first, auth flow will create new client
+                        client.disconnect()
+                        dialog.after(0, lambda: self._telegram_auth_flow(settings, phone, show_chat_selector))
                         return
                     
                     # Get all dialogs
@@ -3397,7 +3398,7 @@ class PickfairApp:
         self.telegram_status = 'STOPPED'
         messagebox.showinfo("Telegram", "Listener Telegram fermato")
     
-    def _telegram_auth_flow(self, client, phone, callback):
+    def _telegram_auth_flow(self, settings, phone, callback):
         """Handle Telegram authentication flow for loading chats."""
         auth_dialog = tk.Toplevel(self.root)
         auth_dialog.title("Autenticazione Telegram")
@@ -3430,10 +3431,20 @@ class PickfairApp:
             def auth_thread():
                 try:
                     import asyncio
+                    import os
+                    from telethon.sync import TelegramClient
+                    
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
-                    # Send code request
+                    
+                    api_id = int(settings['api_id'])
+                    api_hash = settings['api_hash']
+                    session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+                    
+                    client = TelegramClient(session_path, api_id, api_hash)
+                    client.connect()
                     client.send_code_request(phone)
+                    client.disconnect()
                     auth_dialog.after(0, lambda: status_label.config(text="Codice inviato! Inseriscilo sopra."))
                 except Exception as e:
                     auth_dialog.after(0, lambda: status_label.config(text=f"Errore: {e}"))
@@ -3452,8 +3463,19 @@ class PickfairApp:
             def verify_thread():
                 try:
                     import asyncio
+                    import os
+                    from telethon.sync import TelegramClient
+                    from telethon.tl.types import Channel, Chat, User
+                    
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
+                    
+                    api_id = int(settings['api_id'])
+                    api_hash = settings['api_hash']
+                    session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+                    
+                    client = TelegramClient(session_path, api_id, api_hash)
+                    client.connect()
                     client.sign_in(phone, code)
                     
                     # Check if 2FA is needed
@@ -3464,7 +3486,6 @@ class PickfairApp:
                     
                     if client.is_user_authorized():
                         # Get dialogs
-                        from telethon.tl.types import Channel, Chat, User
                         dialogs = client.get_dialogs()
                         chat_list = []
                         
@@ -3489,6 +3510,7 @@ class PickfairApp:
                         auth_dialog.after(0, auth_dialog.destroy)
                         auth_dialog.after(100, lambda: callback(chat_list))
                     else:
+                        client.disconnect()
                         auth_dialog.after(0, lambda: status_label.config(text="Autenticazione fallita"))
                         
                 except Exception as e:
