@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.10.0"
+APP_VERSION = "3.10.1"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -371,9 +371,46 @@ class PickfairApp:
         self.runner_context_menu.add_command(label="Seleziona per Dutching", command=lambda: None)
     
     def _create_dutching_panel(self, parent):
-        """Create dutching calculator panel."""
-        dutch_frame = ttk.LabelFrame(parent, text="Calcolo Dutching", padding=10)
-        dutch_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
+        """Create dutching calculator panel with scrollable content."""
+        dutch_outer = ttk.LabelFrame(parent, text="Calcolo Dutching", padding=0)
+        dutch_outer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
+        
+        # Create scrollable canvas
+        canvas = tk.Canvas(dutch_outer, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(dutch_outer, orient=tk.VERTICAL, command=canvas.yview)
+        dutch_frame = ttk.Frame(canvas, padding=10)
+        
+        # Configure canvas scrolling
+        def configure_scroll(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        
+        dutch_frame.bind('<Configure>', configure_scroll)
+        canvas_window = canvas.create_window((0, 0), window=dutch_frame, anchor='nw')
+        
+        # Make canvas resize with window
+        def configure_canvas(event):
+            canvas.itemconfig(canvas_window, width=event.width)
+        canvas.bind('<Configure>', configure_canvas)
+        
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Enable mousewheel scrolling only when mouse is over this panel
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        def bind_mousewheel(event):
+            canvas.bind_all('<MouseWheel>', on_mousewheel)
+        
+        def unbind_mousewheel(event):
+            canvas.unbind_all('<MouseWheel>')
+        
+        canvas.bind('<Enter>', bind_mousewheel)
+        canvas.bind('<Leave>', unbind_mousewheel)
+        dutch_frame.bind('<Enter>', bind_mousewheel)
+        dutch_frame.bind('<Leave>', unbind_mousewheel)
+        
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         type_frame = ttk.Frame(dutch_frame)
         type_frame.pack(fill=tk.X, pady=5)
