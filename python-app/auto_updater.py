@@ -13,8 +13,8 @@ import subprocess
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
-# Default configuration - Can be overridden via settings
-DEFAULT_UPDATE_URL = ""  # Set your update URL here or configure in app settings
+# Default configuration - GitHub releases API for Pickfair
+DEFAULT_UPDATE_URL = "https://api.github.com/repos/petiro/Pickfair/releases/latest"
 
 
 def parse_version(version_str):

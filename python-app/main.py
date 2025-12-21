@@ -14,10 +14,10 @@ from database import Database
 from betfair_client import BetfairClient, MARKET_TYPES
 from dutching import calculate_dutching_stakes, validate_selections, format_currency
 from telegram_listener import TelegramListener, SignalQueue
-from auto_updater import check_for_updates, show_update_dialog
+from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.10.2"
+APP_VERSION = "3.10.4"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2044,13 +2044,12 @@ class PickfairApp:
     
     def _check_for_updates_on_startup(self):
         """Check for updates when app starts."""
-        settings = self.db.get_settings()
-        if not settings:
-            return
+        settings = self.db.get_settings() or {}
         
-        update_url = settings.get('update_url')
+        # Use saved URL or default
+        update_url = settings.get('update_url') or DEFAULT_UPDATE_URL
         if not update_url:
-            return  # No update URL configured
+            return
         
         skipped_version = settings.get('skipped_version')
         
@@ -2076,8 +2075,8 @@ class PickfairApp:
     
     def _check_for_updates_manual(self):
         """Manually check for updates."""
-        settings = self.db.get_settings()
-        update_url = settings.get('update_url') if settings else None
+        settings = self.db.get_settings() or {}
+        update_url = settings.get('update_url') or DEFAULT_UPDATE_URL
         
         if not update_url:
             messagebox.showinfo("Aggiornamenti", 
@@ -2114,10 +2113,10 @@ class PickfairApp:
         settings = self.db.get_settings() or {}
         
         ttk.Label(frame, text="URL GitHub Releases API:").pack(anchor=tk.W)
-        ttk.Label(frame, text="(es: https://api.github.com/repos/username/repo/releases/latest)", 
+        ttk.Label(frame, text=f"(Default: {DEFAULT_UPDATE_URL})", 
                   foreground='gray', font=('Segoe UI', 8)).pack(anchor=tk.W)
         
-        url_var = tk.StringVar(value=settings.get('update_url', ''))
+        url_var = tk.StringVar(value=settings.get('update_url', '') or DEFAULT_UPDATE_URL)
         url_entry = ttk.Entry(frame, textvariable=url_var, width=60)
         url_entry.pack(fill=tk.X, pady=(5, 15))
         
