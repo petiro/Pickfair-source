@@ -104,7 +104,7 @@ class PickfairApp:
     def _create_menu(self):
         """Create application menu."""
         menubar = tk.Menu(self.root)
-        self.root.config(menu=menubar)
+        self.root.configure(menu=menubar)
         
         file_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="File", menu=file_menu)
