@@ -3280,21 +3280,22 @@ class PickfairApp:
             try:
                 from dutching import calculate_mixed_dutching
                 
+                commission = 2.0
+                
                 if mode == 'STAKE':
                     amount = float(stake_var.get().replace(',', '.'))
                     if has_swapped:
-                        results, profit, _ = calculate_mixed_dutching(selections, amount)
+                        results, profit, _ = calculate_mixed_dutching(selections, amount, commission)
                     else:
                         results, profit, _ = calculate_dutching_stakes(selections, amount, bet_type)
                 else:  # PROFIT mode
                     target_profit = float(profit_var.get().replace(',', '.'))
-                    # Reverse calculate: stake = profit / (1/implied - 1) for back
                     implied_dec = sum(1.0 / s['price'] for s in selections)
                     if implied_dec >= 1:
                         raise ValueError("Book value >= 100%, profitto non garantito")
                     required_stake = target_profit / (1.0 / implied_dec - 1)
                     if has_swapped:
-                        results, profit, _ = calculate_mixed_dutching(selections, required_stake)
+                        results, profit, _ = calculate_mixed_dutching(selections, required_stake, commission)
                     else:
                         results, profit, _ = calculate_dutching_stakes(selections, required_stake, bet_type)
                 

@@ -246,7 +246,8 @@ def format_currency(amount: float) -> str:
 
 def calculate_mixed_dutching(
     selections: List[Dict],
-    total_stake: float
+    total_stake: float,
+    commission: float = 0.0
 ) -> Tuple[List[Dict], float, float]:
     """
     Calculate mixed BACK/LAY dutching stakes for equal profit distribution.
@@ -258,6 +259,8 @@ def calculate_mixed_dutching(
     
     For BACK bet: profit if wins = stake * (price - 1), loss if loses = stake
     For LAY bet: loss if wins = stake * (price - 1), profit if loses = stake
+    
+    commission: Betfair commission percentage (e.g., 2.0 for 2%)
     """
     import numpy as np
     
@@ -325,13 +328,15 @@ def calculate_mixed_dutching(
         s = max(stakes[i], MIN_BACK_STAKE)
         final_stakes.append(round(s, 2))
     
+    commission_mult = 1 - (commission / 100.0)
+    
     results = []
     for i, sel in enumerate(valid_selections):
         stake = final_stakes[i]
         price = sel['price']
         eff_type = sel.get('effectiveType', 'BACK')
         
-        actual_profit = 0.0
+        gross_profit = 0.0
         for j, other in enumerate(valid_selections):
             other_stake = final_stakes[j]
             other_price = other['price']
@@ -339,14 +344,16 @@ def calculate_mixed_dutching(
             
             if j == i:
                 if other_is_back:
-                    actual_profit += other_stake * (other_price - 1)
+                    gross_profit += other_stake * (other_price - 1)
                 else:
-                    actual_profit -= other_stake * (other_price - 1)
+                    gross_profit -= other_stake * (other_price - 1)
             else:
                 if other_is_back:
-                    actual_profit -= other_stake
+                    gross_profit -= other_stake
                 else:
-                    actual_profit += other_stake
+                    gross_profit += other_stake
+        
+        net_profit = gross_profit * commission_mult if gross_profit > 0 else gross_profit
         
         results.append({
             'selectionId': sel['selectionId'],
@@ -354,7 +361,8 @@ def calculate_mixed_dutching(
             'price': price,
             'stake': stake,
             'effectiveType': eff_type,
-            'profitIfWins': round(actual_profit, 2),
+            'profitIfWins': round(net_profit, 2),
+            'grossProfit': round(gross_profit, 2),
             'potentialReturn': round(stake * price, 2) if eff_type == 'BACK' else stake,
             'liability': round(stake * (price - 1), 2) if eff_type == 'LAY' else 0
         })
