@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.0"
+APP_VERSION = "3.13.1"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2605,7 +2605,7 @@ class PickfairApp:
         
         btn_update_frame = ttk.Frame(update_frame)
         btn_update_frame.pack(fill=tk.X, pady=10)
-        ttk.Button(btn_update_frame, text="Verifica Aggiornamenti", command=self._check_for_updates).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_update_frame, text="Verifica Aggiornamenti", command=self._check_for_updates_manual).pack(side=tk.LEFT, padx=5)
         ttk.Label(btn_update_frame, text=f"Versione attuale: {APP_VERSION}", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
         
         app_frame = ttk.LabelFrame(main_frame, text="Applicazione", padding=15)
