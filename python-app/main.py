@@ -232,49 +232,61 @@ class PickfairApp:
     
     def _create_events_panel(self, parent):
         """Create events list panel with country grouping."""
-        events_frame = ttk.LabelFrame(parent, text="Partite", padding=10)
+        events_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8)
         events_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
         
-        search_frame = ttk.Frame(events_frame)
-        search_frame.pack(fill=tk.X, pady=(0, 5))
+        # Title label (replaces LabelFrame text)
+        ctk.CTkLabel(events_frame, text="Partite", font=FONTS['heading'], 
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
+        
+        search_frame = ctk.CTkFrame(events_frame, fg_color='transparent')
+        search_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
         
         self.search_var = tk.StringVar()
         self.search_var.trace_add('write', self._filter_events)
-        search_entry = ttk.Entry(search_frame, textvariable=self.search_var)
+        search_entry = ctk.CTkEntry(search_frame, textvariable=self.search_var, 
+                                    placeholder_text="Cerca partita...",
+                                    fg_color=COLORS['bg_card'], border_color=COLORS['border'])
         search_entry.pack(fill=tk.X)
         
         # Auto-refresh controls (in seconds for faster updates)
-        auto_refresh_frame = ttk.Frame(events_frame)
-        auto_refresh_frame.pack(fill=tk.X, pady=(5, 5))
+        auto_refresh_frame = ctk.CTkFrame(events_frame, fg_color='transparent')
+        auto_refresh_frame.pack(fill=tk.X, padx=10, pady=(5, 5))
         
         self.auto_refresh_var = tk.BooleanVar(value=True)  # Enabled by default
-        self.auto_refresh_check = ttk.Checkbutton(
+        self.auto_refresh_check = ctk.CTkCheckBox(
             auto_refresh_frame,
             text="Auto-refresh ogni",
             variable=self.auto_refresh_var,
-            command=self._toggle_auto_refresh
+            command=self._toggle_auto_refresh,
+            fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+            text_color=COLORS['text_primary']
         )
         self.auto_refresh_check.pack(side=tk.LEFT)
         
         self.auto_refresh_interval_var = tk.StringVar(value="30")  # 30 seconds default
-        self.auto_refresh_interval = ttk.Combobox(
+        self.auto_refresh_interval = ctk.CTkOptionMenu(
             auto_refresh_frame,
-            textvariable=self.auto_refresh_interval_var,
-            values=["15", "30", "60", "120", "300"],  # Seconds: 15s, 30s, 1m, 2m, 5m
-            state='readonly',
-            width=4
+            variable=self.auto_refresh_interval_var,
+            values=["15", "30", "60", "120", "300"],
+            width=60,
+            fg_color=COLORS['bg_card'], button_color=COLORS['back'],
+            button_hover_color=COLORS['back_hover'],
+            command=lambda v: self._on_auto_refresh_interval_change(None)
         )
-        self.auto_refresh_interval.pack(side=tk.LEFT, padx=2)
-        self.auto_refresh_interval.bind('<<ComboboxSelected>>', self._on_auto_refresh_interval_change)
+        self.auto_refresh_interval.pack(side=tk.LEFT, padx=5)
         
-        ttk.Label(auto_refresh_frame, text="sec").pack(side=tk.LEFT)
+        ctk.CTkLabel(auto_refresh_frame, text="sec", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
         
-        self.auto_refresh_status = ttk.Label(auto_refresh_frame, text="", foreground='green')
+        self.auto_refresh_status = ctk.CTkLabel(auto_refresh_frame, text="", text_color=COLORS['success'])
         self.auto_refresh_status.pack(side=tk.LEFT, padx=10)
         
-        # Hierarchical tree: Country -> Matches
+        # Hierarchical tree: Country -> Matches (Treeview remains ttk)
+        tree_container = ctk.CTkFrame(events_frame, fg_color='transparent')
+        tree_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        
         columns = ('name', 'date')
-        self.events_tree = ttk.Treeview(events_frame, columns=columns, show='tree headings', height=20)
+        self.events_tree = ttk.Treeview(tree_container, columns=columns, show='tree headings', height=20)
         self.events_tree.heading('#0', text='Nazione')
         self.events_tree.heading('name', text='Partita')
         self.events_tree.heading('date', text='Data')
@@ -282,7 +294,7 @@ class PickfairApp:
         self.events_tree.column('name', width=150, minwidth=100)
         self.events_tree.column('date', width=70, minwidth=60)
         
-        scrollbar = ttk.Scrollbar(events_frame, orient=tk.VERTICAL, command=self.events_tree.yview)
+        scrollbar = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.events_tree.yview)
         self.events_tree.configure(yscrollcommand=scrollbar.set)
         
         self.events_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -295,38 +307,48 @@ class PickfairApp:
     
     def _create_market_panel(self, parent):
         """Create market/runners panel with market type selector."""
-        market_frame = ttk.LabelFrame(parent, text="Mercato", padding=10)
+        market_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8)
         market_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
         
-        header_frame = ttk.Frame(market_frame)
-        header_frame.pack(fill=tk.X, pady=(0, 5))
+        # Title
+        ctk.CTkLabel(market_frame, text="Mercato", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
-        self.event_name_label = ttk.Label(header_frame, text="Seleziona una partita", style='Header.TLabel')
+        header_frame = ctk.CTkFrame(market_frame, fg_color='transparent')
+        header_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        
+        self.event_name_label = ctk.CTkLabel(header_frame, text="Seleziona una partita", 
+                                             font=('Segoe UI', 12, 'bold'),
+                                             text_color=COLORS['text_primary'])
         self.event_name_label.pack(anchor=tk.W)
         
-        selector_frame = ttk.Frame(market_frame)
-        selector_frame.pack(fill=tk.X, pady=5)
+        selector_frame = ctk.CTkFrame(market_frame, fg_color='transparent')
+        selector_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        ttk.Label(selector_frame, text="Tipo Mercato:").pack(side=tk.LEFT)
+        ctk.CTkLabel(selector_frame, text="Tipo Mercato:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
         self.market_type_var = tk.StringVar()
-        self.market_combo = ttk.Combobox(
+        self.market_combo = ctk.CTkOptionMenu(
             selector_frame, 
-            textvariable=self.market_type_var, 
-            state='readonly',
-            width=30
+            variable=self.market_type_var,
+            values=[""],
+            width=200,
+            fg_color=COLORS['bg_card'], button_color=COLORS['back'],
+            button_hover_color=COLORS['back_hover'],
+            command=lambda v: self._on_market_type_selected(None)
         )
         self.market_combo.pack(side=tk.LEFT, padx=5)
-        self.market_combo.bind('<<ComboboxSelected>>', self._on_market_type_selected)
         
-        stream_frame = ttk.Frame(market_frame)
-        stream_frame.pack(fill=tk.X, pady=5)
+        stream_frame = ctk.CTkFrame(market_frame, fg_color='transparent')
+        stream_frame.pack(fill=tk.X, padx=10, pady=5)
         
         self.stream_var = tk.BooleanVar(value=False)
-        self.stream_check = ttk.Checkbutton(
+        self.stream_check = ctk.CTkCheckBox(
             stream_frame, 
             text="Streaming Quote Live", 
             variable=self.stream_var,
-            command=self._toggle_streaming
+            command=self._toggle_streaming,
+            fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+            text_color=COLORS['text_primary']
         )
         self.stream_check.pack(side=tk.LEFT)
         
@@ -349,8 +371,12 @@ class PickfairApp:
         )
         self.market_status_label.pack(side=tk.RIGHT, padx=10)
         
+        # Runners tree container
+        runners_container = ctk.CTkFrame(market_frame, fg_color='transparent')
+        runners_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        
         columns = ('select', 'name', 'back', 'back_size', 'lay', 'lay_size')
-        self.runners_tree = ttk.Treeview(market_frame, columns=columns, show='headings', height=18)
+        self.runners_tree = ttk.Treeview(runners_container, columns=columns, show='headings', height=18)
         self.runners_tree.heading('select', text='')
         self.runners_tree.heading('name', text='Selezione')
         self.runners_tree.heading('back', text='Back')
@@ -365,9 +391,9 @@ class PickfairApp:
         self.runners_tree.column('lay_size', width=60)
         
         # Configure row tags for FairBot-style coloring
-        self.runners_tree.tag_configure('runner_row', background='#e6f3ff')
+        self.runners_tree.tag_configure('runner_row', background=COLORS['bg_card'])
         
-        scrollbar = ttk.Scrollbar(market_frame, orient=tk.VERTICAL, command=self.runners_tree.yview)
+        scrollbar = ttk.Scrollbar(runners_container, orient=tk.VERTICAL, command=self.runners_tree.yview)
         self.runners_tree.configure(yscrollcommand=scrollbar.set)
         
         self.runners_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -388,13 +414,17 @@ class PickfairApp:
     
     def _create_dutching_panel(self, parent):
         """Create dutching calculator panel with scrollable content."""
-        dutch_outer = ttk.LabelFrame(parent, text="Calcolo Dutching", padding=0)
+        dutch_outer = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8)
         dutch_outer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
         
+        # Title
+        ctk.CTkLabel(dutch_outer, text="Calcolo Dutching", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
+        
         # Create scrollable canvas
-        canvas = tk.Canvas(dutch_outer, highlightthickness=0)
+        canvas = tk.Canvas(dutch_outer, highlightthickness=0, bg=COLORS['bg_panel'])
         scrollbar = ttk.Scrollbar(dutch_outer, orient=tk.VERTICAL, command=canvas.yview)
-        dutch_frame = ttk.Frame(canvas, padding=10)
+        dutch_frame = ctk.CTkFrame(canvas, fg_color='transparent')
         
         # Configure canvas scrolling
         def configure_scroll(event):
@@ -428,10 +458,10 @@ class PickfairApp:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
-        type_frame = ttk.Frame(dutch_frame)
-        type_frame.pack(fill=tk.X, pady=5)
+        type_frame = ctk.CTkFrame(dutch_frame, fg_color='transparent')
+        type_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        ctk.CTkLabel(type_frame, text="Tipo:").pack(side=tk.LEFT)
+        ctk.CTkLabel(type_frame, text="Tipo:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
         self.bet_type_var = tk.StringVar(value='BACK')
         
         # Blue button for BACK
@@ -448,37 +478,45 @@ class PickfairApp:
                                      command=lambda: self._set_bet_type('LAY'))
         self.lay_btn.pack(side=tk.LEFT)
         
-        stake_frame = ttk.Frame(dutch_frame)
-        stake_frame.pack(fill=tk.X, pady=5)
+        stake_frame = ctk.CTkFrame(dutch_frame, fg_color='transparent')
+        stake_frame.pack(fill=tk.X, padx=10, pady=5)
         
-        ttk.Label(stake_frame, text="Stake Totale (EUR):").pack(side=tk.LEFT)
+        ctk.CTkLabel(stake_frame, text="Stake Totale (EUR):", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
         self.stake_var = tk.StringVar(value='1.00')
         self.stake_var.trace_add('write', lambda *args: self._recalculate())
-        stake_entry = ttk.Entry(stake_frame, textvariable=self.stake_var, width=10)
+        stake_entry = ctk.CTkEntry(stake_frame, textvariable=self.stake_var, width=80,
+                                   fg_color=COLORS['bg_card'], border_color=COLORS['border'])
         stake_entry.pack(side=tk.LEFT, padx=5)
         
         # Note about minimum stake
-        ttk.Label(stake_frame, text="(min. 1 EUR per selezione)", 
-                  font=('Segoe UI', 8), foreground='gray').pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(stake_frame, text="(min. 1 EUR per selezione)", 
+                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(side=tk.LEFT, padx=5)
         
         # Best price option
-        options_frame = ttk.Frame(dutch_frame)
-        options_frame.pack(fill=tk.X, pady=5)
+        options_frame = ctk.CTkFrame(dutch_frame, fg_color='transparent')
+        options_frame.pack(fill=tk.X, padx=10, pady=5)
         
         self.best_price_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(options_frame, text="Accetta Miglior Prezzo", 
-                        variable=self.best_price_var).pack(side=tk.LEFT)
-        ttk.Label(options_frame, text="(piazza al prezzo corrente)", 
-                  font=('Segoe UI', 8), foreground='gray').pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(options_frame, text="Accetta Miglior Prezzo", 
+                        variable=self.best_price_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        ctk.CTkLabel(options_frame, text="(piazza al prezzo corrente)", 
+                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(side=tk.LEFT, padx=5)
         
-        ttk.Label(dutch_frame, text="Selezioni:", style='Header.TLabel').pack(anchor=tk.W, pady=(10, 5))
+        ctk.CTkLabel(dutch_frame, text="Selezioni:", font=('Segoe UI', 11, 'bold'),
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
-        self.selections_text = scrolledtext.ScrolledText(dutch_frame, height=6, width=30)
-        self.selections_text.pack(fill=tk.BOTH, expand=True)
-        self.selections_text.config(state=tk.DISABLED)
+        self.selections_text = ctk.CTkTextbox(dutch_frame, height=100, 
+                                               fg_color=COLORS['bg_card'], 
+                                               text_color=COLORS['text_primary'],
+                                               border_color=COLORS['border'])
+        self.selections_text.pack(fill=tk.BOTH, expand=True, padx=10)
+        self.selections_text.configure(state=tk.DISABLED)
         
         # Placed bets for current market
-        ttk.Label(dutch_frame, text="Scommesse Piazzate:", style='Header.TLabel').pack(anchor=tk.W, pady=(10, 2))
+        ctk.CTkLabel(dutch_frame, text="Scommesse Piazzate:", font=('Segoe UI', 11, 'bold'),
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 2))
         
         placed_cols = ('sel', 'tipo', 'quota', 'stake')
         self.placed_bets_tree = ttk.Treeview(dutch_frame, columns=placed_cols, show='headings', height=4)
@@ -491,32 +529,42 @@ class PickfairApp:
         self.placed_bets_tree.column('quota', width=50)
         self.placed_bets_tree.column('stake', width=50)
         
-        self.placed_bets_tree.tag_configure('back', foreground='#007bff')
-        self.placed_bets_tree.tag_configure('lay', foreground='#dc3545')
+        self.placed_bets_tree.tag_configure('back', foreground=COLORS['back'])
+        self.placed_bets_tree.tag_configure('lay', foreground=COLORS['lay'])
         
-        self.placed_bets_tree.pack(fill=tk.X, pady=2)
+        self.placed_bets_tree.pack(fill=tk.X, padx=10, pady=2)
         
-        summary_frame = ttk.Frame(dutch_frame)
-        summary_frame.pack(fill=tk.X, pady=10)
+        summary_frame = ctk.CTkFrame(dutch_frame, fg_color='transparent')
+        summary_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        self.profit_label = ttk.Label(summary_frame, text="Profitto: -", style='Money.TLabel')
+        self.profit_label = ctk.CTkLabel(summary_frame, text="Profitto: -", 
+                                         font=('Segoe UI', 11, 'bold'),
+                                         text_color=COLORS['text_primary'])
         self.profit_label.pack(anchor=tk.W)
         
-        self.prob_label = ttk.Label(summary_frame, text="Probabilita Implicita: -")
+        self.prob_label = ctk.CTkLabel(summary_frame, text="Probabilita Implicita: -",
+                                       text_color=COLORS['text_secondary'])
         self.prob_label.pack(anchor=tk.W)
         
-        btn_frame = ttk.Frame(dutch_frame)
-        btn_frame.pack(fill=tk.X, pady=10)
+        btn_frame = ctk.CTkFrame(dutch_frame, fg_color='transparent')
+        btn_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        ttk.Button(btn_frame, text="Cancella Selezioni", command=self._clear_selections).pack(side=tk.LEFT)
-        self.place_btn = ttk.Button(btn_frame, text="Piazza Scommesse", command=self._place_bets, state=tk.DISABLED)
+        ctk.CTkButton(btn_frame, text="Cancella Selezioni", command=self._clear_selections,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6).pack(side=tk.LEFT)
+        self.place_btn = ctk.CTkButton(btn_frame, text="Piazza Scommesse", command=self._place_bets, 
+                                       state=tk.DISABLED,
+                                       fg_color=COLORS['button_success'], hover_color='#4caf50',
+                                       corner_radius=6)
         self.place_btn.pack(side=tk.RIGHT)
         
         # Separator before cashout section
-        ttk.Separator(dutch_frame, orient='horizontal').pack(fill=tk.X, pady=10)
+        separator = ctk.CTkFrame(dutch_frame, fg_color=COLORS['border'], height=2)
+        separator.pack(fill=tk.X, padx=10, pady=10)
         
         # Cashout section in main panel
-        ttk.Label(dutch_frame, text="Cashout", style='Header.TLabel').pack(anchor=tk.W, pady=(5, 2))
+        ctk.CTkLabel(dutch_frame, text="Cashout", font=('Segoe UI', 11, 'bold'),
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 2))
         
         # Cashout positions list
         cashout_cols = ('sel', 'tipo', 'p/l')
@@ -528,14 +576,14 @@ class PickfairApp:
         self.market_cashout_tree.column('tipo', width=40)
         self.market_cashout_tree.column('p/l', width=60)
         
-        self.market_cashout_tree.tag_configure('profit', foreground='#28a745')
-        self.market_cashout_tree.tag_configure('loss', foreground='#dc3545')
+        self.market_cashout_tree.tag_configure('profit', foreground=COLORS['success'])
+        self.market_cashout_tree.tag_configure('loss', foreground=COLORS['loss'])
         
-        self.market_cashout_tree.pack(fill=tk.X, pady=2)
+        self.market_cashout_tree.pack(fill=tk.X, padx=10, pady=2)
         
         # Cashout buttons
-        cashout_btn_frame = ttk.Frame(dutch_frame)
-        cashout_btn_frame.pack(fill=tk.X, pady=5)
+        cashout_btn_frame = ctk.CTkFrame(dutch_frame, fg_color='transparent')
+        cashout_btn_frame.pack(fill=tk.X, padx=10, pady=5)
         
         self.market_cashout_btn = ctk.CTkButton(cashout_btn_frame, text="CASHOUT", 
                                                fg_color=COLORS['success'], hover_color='#0d9668',
@@ -546,16 +594,24 @@ class PickfairApp:
         
         # Auto-confirm checkbox (skip confirmation dialog)
         self.auto_cashout_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(cashout_btn_frame, text="Auto", variable=self.auto_cashout_var).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(cashout_btn_frame, text="Auto", variable=self.auto_cashout_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary'], width=60).pack(side=tk.LEFT, padx=5)
         
         self.market_live_tracking_var = tk.BooleanVar(value=True)  # Auto-enabled by default
-        ttk.Checkbutton(cashout_btn_frame, text="Live", variable=self.market_live_tracking_var,
-                       command=self._toggle_market_live_tracking).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(cashout_btn_frame, text="Live", variable=self.market_live_tracking_var,
+                        command=self._toggle_market_live_tracking,
+                        fg_color=COLORS['success'], hover_color='#4caf50',
+                        text_color=COLORS['text_primary'], width=60).pack(side=tk.LEFT, padx=5)
         
-        self.market_live_status = ttk.Label(cashout_btn_frame, text="", font=('Segoe UI', 8, 'bold'))
+        self.market_live_status = ctk.CTkLabel(cashout_btn_frame, text="", 
+                                               font=('Segoe UI', 8, 'bold'),
+                                               text_color=COLORS['text_secondary'])
         self.market_live_status.pack(side=tk.LEFT)
         
-        ttk.Button(cashout_btn_frame, text="Aggiorna", command=self._update_market_cashout_positions).pack(side=tk.RIGHT, padx=2)
+        ctk.CTkButton(cashout_btn_frame, text="Aggiorna", command=self._update_market_cashout_positions,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6, width=80).pack(side=tk.RIGHT, padx=2)
         
         # Bind double-click on cashout tree to cashout single position
         self.market_cashout_tree.bind('<Double-1>', self._do_single_cashout)
@@ -760,7 +816,7 @@ class PickfairApp:
         
         self._update_market_cashout_positions()
         self.market_live_tracking_id = self.root.after(5000, update)
-        self.market_live_status.config(text="LIVE", foreground=COLORS['success'])
+        self.market_live_status.configure(text="LIVE", text_color=COLORS['success'])
     
     def _stop_market_live_tracking(self):
         """Stop live tracking for market cashout."""
@@ -769,7 +825,7 @@ class PickfairApp:
             self.market_live_tracking_id = None
         # Signal cancellation to any in-flight fetch thread
         self.market_cashout_fetch_cancelled = True
-        self.market_live_status.config(text="", foreground=COLORS['text_secondary'])
+        self.market_live_status.configure(text="", text_color=COLORS['text_secondary'])
     
     def _do_single_cashout(self, event):
         """Execute cashout for double-clicked position."""
