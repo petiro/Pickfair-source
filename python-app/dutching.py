@@ -121,7 +121,8 @@ def _calculate_back_dutching(
 
 def _calculate_lay_dutching(
     selections: List[Dict],
-    total_stake: float
+    total_stake: float,
+    commission: float = 2.0
 ) -> Tuple[List[Dict], float, float]:
     """
     Calculate LAY dutching: Lay multiple outcomes for balanced profit/loss.
@@ -140,6 +141,7 @@ def _calculate_lay_dutching(
     We distribute proportionally by 1/(price-1) to equalize outcomes.
     Net profit = sum(other stakes) - liability for any winner.
     """
+    commission_mult = 1 - (commission / 100.0)
     results = []
     
     # Calculate lay exposure weights: 1/(price-1) for equalized outcomes
@@ -190,18 +192,24 @@ def _calculate_lay_dutching(
     # If runner X wins: we pay X's liability, collect stakes from all others (who lost)
     for r in results:
         other_stakes = total_stakes - r['stake']
-        r['profitIfWins'] = round(other_stakes - r['liability'], 2)
+        gross_profit = other_stakes - r['liability']
+        # Apply commission only on positive profits
+        net_profit = gross_profit * commission_mult if gross_profit > 0 else gross_profit
+        r['profitIfWins'] = round(net_profit, 2)
+        r['grossProfit'] = round(gross_profit, 2)
         r['potentialReturn'] = r['stake']
     
-    # Best case: all laid selections lose (we keep all stakes)
-    best_case_profit = total_stakes
+    # Best case: all laid selections lose (we keep all stakes, minus commission)
+    best_case_gross = total_stakes
+    best_case_profit = best_case_gross * commission_mult
     
     # Worst case: the most expensive one wins
     worst_case_profit = min(r['profitIfWins'] for r in results) if results else 0
     
     for r in results:
-        r['worstCase'] = worst_case_profit
-        r['bestCase'] = best_case_profit
+        r['worstCase'] = round(worst_case_profit, 2)
+        r['bestCase'] = round(best_case_profit, 2)
+        r['profitIfLoses'] = round(r['stake'] * commission_mult, 2)  # Net profit after commission
     
     # Validate max winnings (best case profit)
     if best_case_profit > MAX_WINNINGS:

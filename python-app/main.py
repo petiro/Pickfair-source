@@ -1591,11 +1591,14 @@ class PickfairApp:
         """Place a quick simulated bet."""
         try:
             # Calculate P/L
+            commission = 0.02  # 2% Betfair commission
             if bet_type == 'BACK':
-                profit = stake * (price - 1)
+                gross_profit = stake * (price - 1)
+                profit = gross_profit * (1 - commission)  # Net profit after commission
                 liability = stake
             else:
-                profit = stake
+                gross_profit = stake
+                profit = gross_profit * (1 - commission)  # Net profit after commission
                 liability = stake * (price - 1)
             
             # Check balance
@@ -1669,7 +1672,7 @@ class PickfairApp:
                 bet_type=bet_type,
                 selections=runner['runnerName'],
                 total_stake=stake,
-                potential_profit=stake * (price - 1) if bet_type == 'BACK' else stake,
+                potential_profit=(stake * (price - 1)) * 0.98 if bet_type == 'BACK' else stake * 0.98,
                 status='MATCHED' if matched > 0 else 'UNMATCHED'
             )
             
