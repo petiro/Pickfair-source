@@ -42,13 +42,16 @@ class TelegramListener:
     def _default_patterns(self) -> Dict:
         """Default regex patterns for parsing betting signals."""
         return {
-            'score': r'(\d+)\s*[-:]\s*(\d+)',
+            'event': r'🆚\s*(.+?)(?:\n|$)',
+            'score': r'(\d+)\s*[-–]\s*(\d+)',
+            'time': r'(\d+)m',
             'odds': r'@?\s*(\d+[.,]\d+)',
             'stake': r'(?:stake|puntata|€)\s*(\d+(?:[.,]\d+)?)',
-            'back': r'\b(back|punta)\b',
-            'lay': r'\b(lay|banca)\b',
+            'back': r'\b(back|punta|P\.Exc\.)\b',
+            'lay': r'\b(lay|banca|B\.Exc\.)\b',
             'over': r'\b(over|sopra)\s*(\d+[.,]?\d*)',
             'under': r'\b(under|sotto)\s*(\d+[.,]?\d*)',
+            'next_goal': r'NEXT\s*GOL|PROSSIMO\s*GOL',
         }
     
     def set_signal_patterns(self, patterns: Dict):
@@ -72,47 +75,77 @@ class TelegramListener:
         """
         Parse a message text to extract betting signal.
         
-        Returns dict with keys: side, selection, odds, stake, raw_text
+        Returns dict with keys: event, side, selection, market_type, odds, stake, raw_text
         or None if no valid signal found.
         """
-        text_lower = text.lower()
         signal = {
             'raw_text': text,
             'timestamp': datetime.now().isoformat(),
+            'event': None,
             'side': None,
             'selection': None,
+            'market_type': None,
             'odds': None,
             'stake': None,
+            'score_home': None,
+            'score_away': None,
+            'over_line': None,
+            'minute': None,
         }
         
-        if re.search(self.signal_patterns['back'], text_lower):
-            signal['side'] = 'BACK'
-        elif re.search(self.signal_patterns['lay'], text_lower):
-            signal['side'] = 'LAY'
+        event_match = re.search(self.signal_patterns['event'], text)
+        if event_match:
+            signal['event'] = event_match.group(1).strip()
         
         score_match = re.search(self.signal_patterns['score'], text)
         if score_match:
-            signal['selection'] = f"{score_match.group(1)}-{score_match.group(2)}"
+            signal['score_home'] = int(score_match.group(1))
+            signal['score_away'] = int(score_match.group(2))
+            total_goals = signal['score_home'] + signal['score_away']
+            signal['over_line'] = total_goals + 0.5
+        
+        time_match = re.search(self.signal_patterns['time'], text)
+        if time_match:
+            signal['minute'] = int(time_match.group(1))
+        
+        if re.search(self.signal_patterns['back'], text, re.IGNORECASE):
+            signal['side'] = 'BACK'
+        elif re.search(self.signal_patterns['lay'], text, re.IGNORECASE):
+            signal['side'] = 'LAY'
+        
+        if re.search(self.signal_patterns['next_goal'], text, re.IGNORECASE):
+            signal['market_type'] = 'NEXT_GOAL'
+            if signal['score_home'] is not None and signal['score_away'] is not None:
+                signal['selection'] = f"Over {signal['over_line']}"
+                signal['side'] = 'BACK'
+        
+        over_match = re.search(self.signal_patterns['over'], text, re.IGNORECASE)
+        if over_match:
+            signal['selection'] = f"Over {over_match.group(2)}"
+            signal['market_type'] = 'OVER_UNDER'
+        
+        under_match = re.search(self.signal_patterns['under'], text, re.IGNORECASE)
+        if under_match:
+            signal['selection'] = f"Under {under_match.group(2)}"
+            signal['market_type'] = 'OVER_UNDER'
         
         odds_match = re.search(self.signal_patterns['odds'], text)
         if odds_match:
             odds_str = odds_match.group(1).replace(',', '.')
             signal['odds'] = float(odds_str)
         
-        stake_match = re.search(self.signal_patterns['stake'], text_lower)
+        stake_match = re.search(self.signal_patterns['stake'], text.lower())
         if stake_match:
             stake_str = stake_match.group(1).replace(',', '.')
             signal['stake'] = float(stake_str)
         
-        over_match = re.search(self.signal_patterns['over'], text_lower)
-        if over_match:
-            signal['selection'] = f"Over {over_match.group(2)}"
+        if signal['event'] and signal['score_home'] is not None:
+            signal['selection'] = f"Over {signal['over_line']}"
+            signal['side'] = 'BACK'
+            signal['market_type'] = 'OVER_UNDER'
+            return signal
         
-        under_match = re.search(self.signal_patterns['under'], text_lower)
-        if under_match:
-            signal['selection'] = f"Under {under_match.group(2)}"
-        
-        if signal['side'] and (signal['selection'] or signal['odds']):
+        if signal['side'] and signal['selection']:
             return signal
         
         return None

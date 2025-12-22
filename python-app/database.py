@@ -61,6 +61,12 @@ class Database:
         except sqlite3.OperationalError:
             pass  # Column already exists
         
+        # Add auto_stake column for telegram auto-betting
+        try:
+            cursor.execute('ALTER TABLE telegram_settings ADD COLUMN auto_stake REAL DEFAULT 1.0')
+        except sqlite3.OperationalError:
+            pass  # Column already exists or table doesn't exist yet
+        
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS bets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,7 +151,8 @@ class Database:
                 phone_number TEXT,
                 enabled INTEGER DEFAULT 0,
                 auto_bet INTEGER DEFAULT 0,
-                require_confirmation INTEGER DEFAULT 1
+                require_confirmation INTEGER DEFAULT 1,
+                auto_stake REAL DEFAULT 1.0
             )
         ''')
         
@@ -543,17 +550,17 @@ class Database:
     
     def save_telegram_settings(self, api_id, api_hash, session_string=None, 
                                 phone_number=None, enabled=False, auto_bet=False,
-                                require_confirmation=True):
+                                require_confirmation=True, auto_stake=1.0):
         """Save Telegram settings."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE telegram_settings SET 
                 api_id = ?, api_hash = ?, session_string = ?, phone_number = ?,
-                enabled = ?, auto_bet = ?, require_confirmation = ?
+                enabled = ?, auto_bet = ?, require_confirmation = ?, auto_stake = ?
             WHERE id = 1
         ''', (api_id, api_hash, session_string, phone_number,
-              1 if enabled else 0, 1 if auto_bet else 0, 1 if require_confirmation else 0))
+              1 if enabled else 0, 1 if auto_bet else 0, 1 if require_confirmation else 0, auto_stake))
         conn.commit()
         conn.close()
     
