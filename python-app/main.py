@@ -161,18 +161,30 @@ class PickfairApp:
         self.root.destroy()
     
     def _create_main_layout(self):
-        """Create main application layout."""
+        """Create main application layout with tabs."""
         self.main_frame = ttk.Frame(self.root, padding=10)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
         self._create_status_bar()
         
-        content_frame = ttk.Frame(self.main_frame)
-        content_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        self.main_notebook = ttk.Notebook(self.main_frame)
+        self.main_notebook.pack(fill=tk.BOTH, expand=True, pady=10)
         
-        self._create_events_panel(content_frame)
-        self._create_market_panel(content_frame)
-        self._create_dutching_panel(content_frame)
+        self.trading_tab = ttk.Frame(self.main_notebook)
+        self.main_notebook.add(self.trading_tab, text="Trading")
+        
+        self.dashboard_tab = ttk.Frame(self.main_notebook)
+        self.main_notebook.add(self.dashboard_tab, text="Dashboard")
+        
+        self.telegram_tab = ttk.Frame(self.main_notebook)
+        self.main_notebook.add(self.telegram_tab, text="Telegram")
+        
+        self._create_events_panel(self.trading_tab)
+        self._create_market_panel(self.trading_tab)
+        self._create_dutching_panel(self.trading_tab)
+        
+        self._create_dashboard_tab()
+        self._create_telegram_tab()
     
     def _create_status_bar(self):
         """Create status bar with connection info and mode buttons."""
@@ -193,11 +205,6 @@ class PickfairApp:
         
         self.refresh_btn = ttk.Button(status_frame, text="Aggiorna", command=self._refresh_data, state=tk.DISABLED)
         self.refresh_btn.pack(side=tk.RIGHT, padx=5)
-        
-        # Dashboard button
-        self.dashboard_btn = tk.Button(status_frame, text="Dashboard", bg='#6c757d', fg='white',
-                                       activebackground='#5a6268', command=self._show_dashboard)
-        self.dashboard_btn.pack(side=tk.RIGHT, padx=5)
         
         # Live mode button
         self.live_btn = tk.Button(status_frame, text="LIVE", bg='#dc3545', fg='white',
@@ -2191,6 +2198,251 @@ class PickfairApp:
         if self.live_refresh_id:
             self.root.after_cancel(self.live_refresh_id)
             self.live_refresh_id = None
+    
+    def _create_dashboard_tab(self):
+        """Create dashboard tab content."""
+        main_frame = ttk.Frame(self.dashboard_tab, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(main_frame, text="Dashboard - Account Betfair Italy", 
+                 style='Title.TLabel').pack(anchor=tk.W, pady=(0, 20))
+        
+        self.dashboard_stats_frame = ttk.Frame(main_frame)
+        self.dashboard_stats_frame.pack(fill=tk.X, pady=10)
+        
+        self.dashboard_not_connected = ttk.Label(main_frame, text="Connettiti a Betfair per vedere i dati", 
+                                                  font=('Segoe UI', 11))
+        self.dashboard_not_connected.pack(pady=20)
+        
+        ttk.Button(main_frame, text="Aggiorna Dashboard", command=self._refresh_dashboard_tab).pack(anchor=tk.E, pady=10)
+        
+        self.dashboard_notebook = ttk.Notebook(main_frame)
+        self.dashboard_notebook.pack(fill=tk.BOTH, expand=True, pady=10)
+        
+        self.dashboard_recent_frame = ttk.Frame(self.dashboard_notebook, padding=10)
+        self.dashboard_notebook.add(self.dashboard_recent_frame, text="Scommesse Recenti")
+        
+        self.dashboard_orders_frame = ttk.Frame(self.dashboard_notebook, padding=10)
+        self.dashboard_notebook.add(self.dashboard_orders_frame, text="Ordini Correnti")
+        
+        self.dashboard_bookings_frame = ttk.Frame(self.dashboard_notebook, padding=10)
+        self.dashboard_notebook.add(self.dashboard_bookings_frame, text="Prenotazioni")
+        
+        self.dashboard_cashout_frame = ttk.Frame(self.dashboard_notebook, padding=10)
+        self.dashboard_notebook.add(self.dashboard_cashout_frame, text="Cashout")
+    
+    def _refresh_dashboard_tab(self):
+        """Refresh dashboard tab data."""
+        if not self.client:
+            self.dashboard_not_connected.config(text="Connettiti a Betfair per vedere i dati")
+            return
+        
+        self.dashboard_not_connected.config(text="")
+        
+        def create_stat_card(parent, title, value, subtitle, col):
+            card = ttk.LabelFrame(parent, text=title, padding=10)
+            card.grid(row=0, column=col, padx=5, sticky='nsew')
+            ttk.Label(card, text=value, style='Title.TLabel').pack()
+            ttk.Label(card, text=subtitle, font=('Segoe UI', 8)).pack()
+            return card
+        
+        def fetch_data():
+            try:
+                funds = self.client.get_account_funds()
+                self.account_data = funds
+                daily_pl = self.db.get_today_profit_loss()
+                try:
+                    orders = self.client.get_current_orders()
+                    active_count = len([o for o in orders.get('matched', []) if o.get('sizeMatched', 0) > 0])
+                except:
+                    active_count = self.db.get_active_bets_count()
+                
+                self.root.after(0, lambda: update_ui(funds, daily_pl, active_count, orders))
+            except Exception as e:
+                err_msg = str(e)
+                self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", msg))
+        
+        def update_ui(funds, daily_pl, active_count, orders):
+            for widget in self.dashboard_stats_frame.winfo_children():
+                widget.destroy()
+            
+            create_stat_card(self.dashboard_stats_frame, "Saldo Disponibile", 
+                            f"{funds.get('available', 0):.2f} EUR", 
+                            "Fondi disponibili", 0)
+            create_stat_card(self.dashboard_stats_frame, "Esposizione", 
+                            f"{abs(funds.get('exposure', 0)):.2f} EUR", 
+                            "Responsabilita corrente", 1)
+            pl_text = f"+{daily_pl:.2f}" if daily_pl >= 0 else f"{daily_pl:.2f}"
+            create_stat_card(self.dashboard_stats_frame, "P/L Oggi", 
+                            f"{pl_text} EUR", 
+                            "Profitto/Perdita giornaliero", 2)
+            create_stat_card(self.dashboard_stats_frame, "Scommesse Attive", 
+                            str(active_count), 
+                            "In attesa di risultato", 3)
+            
+            for i in range(4):
+                self.dashboard_stats_frame.columnconfigure(i, weight=1)
+            
+            for widget in self.dashboard_recent_frame.winfo_children():
+                widget.destroy()
+            self._create_bets_list(self.dashboard_recent_frame, self.db.get_recent_bets(20))
+            
+            for widget in self.dashboard_orders_frame.winfo_children():
+                widget.destroy()
+            self._create_current_orders_view(self.dashboard_orders_frame)
+            
+            for widget in self.dashboard_bookings_frame.winfo_children():
+                widget.destroy()
+            self._create_bookings_view(self.dashboard_bookings_frame)
+            
+            for widget in self.dashboard_cashout_frame.winfo_children():
+                widget.destroy()
+            self._create_cashout_view(self.dashboard_cashout_frame, None)
+        
+        threading.Thread(target=fetch_data, daemon=True).start()
+    
+    def _create_telegram_tab(self):
+        """Create Telegram tab content."""
+        main_frame = ttk.Frame(self.telegram_tab, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        left_frame = ttk.Frame(main_frame)
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+        
+        right_frame = ttk.Frame(main_frame)
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        
+        config_frame = ttk.LabelFrame(left_frame, text="Configurazione Telegram", padding=10)
+        config_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(config_frame, text="Ottieni API ID e Hash su my.telegram.org", 
+                 font=('Segoe UI', 8)).pack(anchor=tk.W)
+        
+        settings = self.db.get_telegram_settings() or {}
+        
+        ttk.Label(config_frame, text="API ID:").pack(anchor=tk.W, pady=(5, 0))
+        self.tg_api_id_var = tk.StringVar(value=settings.get('api_id', ''))
+        ttk.Entry(config_frame, textvariable=self.tg_api_id_var, width=30).pack(anchor=tk.W)
+        
+        ttk.Label(config_frame, text="API Hash:").pack(anchor=tk.W, pady=(5, 0))
+        self.tg_api_hash_var = tk.StringVar(value=settings.get('api_hash', ''))
+        ttk.Entry(config_frame, textvariable=self.tg_api_hash_var, width=30).pack(anchor=tk.W)
+        
+        ttk.Label(config_frame, text="Numero di Telefono (+39...):").pack(anchor=tk.W, pady=(5, 0))
+        self.tg_phone_var = tk.StringVar(value=settings.get('phone_number', ''))
+        ttk.Entry(config_frame, textvariable=self.tg_phone_var, width=20).pack(anchor=tk.W)
+        
+        ttk.Label(config_frame, text="Stake Automatico (EUR):").pack(anchor=tk.W, pady=(5, 0))
+        self.tg_auto_stake_var = tk.StringVar(value=str(settings.get('auto_stake', '1.0')))
+        ttk.Entry(config_frame, textvariable=self.tg_auto_stake_var, width=10).pack(anchor=tk.W)
+        
+        self.tg_auto_bet_var = tk.BooleanVar(value=bool(settings.get('auto_bet', 0)))
+        ttk.Checkbutton(config_frame, text="Piazza automaticamente", variable=self.tg_auto_bet_var).pack(anchor=tk.W, pady=(5, 0))
+        
+        self.tg_confirm_var = tk.BooleanVar(value=bool(settings.get('require_confirmation', 1)))
+        ttk.Checkbutton(config_frame, text="Richiedi conferma (solo se auto OFF)", variable=self.tg_confirm_var).pack(anchor=tk.W)
+        
+        self.tg_status_label = ttk.Label(config_frame, text=f"Stato: {self.telegram_status}")
+        self.tg_status_label.pack(anchor=tk.W, pady=5)
+        
+        btn_frame = ttk.Frame(config_frame)
+        btn_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(btn_frame, text="Salva", command=self._save_telegram_tab_settings).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="Avvia Listener", command=self._start_telegram_listener).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btn_frame, text="Ferma", command=self._stop_telegram_listener).pack(side=tk.LEFT, padx=2)
+        
+        chats_frame = ttk.LabelFrame(left_frame, text="Chat Monitorate", padding=10)
+        chats_frame.pack(fill=tk.BOTH, expand=True)
+        
+        columns = ('name', 'enabled')
+        self.tg_chats_tree = ttk.Treeview(chats_frame, columns=columns, show='headings', height=8)
+        self.tg_chats_tree.heading('name', text='Nome Chat')
+        self.tg_chats_tree.heading('enabled', text='Attivo')
+        self.tg_chats_tree.column('name', width=200)
+        self.tg_chats_tree.column('enabled', width=50)
+        self.tg_chats_tree.pack(fill=tk.BOTH, expand=True)
+        
+        chat_btn_frame = ttk.Frame(chats_frame)
+        chat_btn_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(chat_btn_frame, text="Carica Chat", command=self._show_telegram_chats).pack(side=tk.LEFT, padx=2)
+        ttk.Button(chat_btn_frame, text="Aggiorna Lista", command=self._refresh_telegram_chats_tree).pack(side=tk.LEFT, padx=2)
+        
+        self._refresh_telegram_chats_tree()
+        
+        signals_frame = ttk.LabelFrame(right_frame, text="Segnali Ricevuti", padding=10)
+        signals_frame.pack(fill=tk.BOTH, expand=True)
+        
+        columns = ('data', 'evento', 'over', 'status')
+        self.tg_signals_tree = ttk.Treeview(signals_frame, columns=columns, show='headings', height=15)
+        self.tg_signals_tree.heading('data', text='Data')
+        self.tg_signals_tree.heading('evento', text='Evento')
+        self.tg_signals_tree.heading('over', text='Over')
+        self.tg_signals_tree.heading('status', text='Stato')
+        self.tg_signals_tree.column('data', width=100)
+        self.tg_signals_tree.column('evento', width=150)
+        self.tg_signals_tree.column('over', width=50)
+        self.tg_signals_tree.column('status', width=80)
+        
+        self.tg_signals_tree.tag_configure('success', foreground='#28a745')
+        self.tg_signals_tree.tag_configure('failed', foreground='#dc3545')
+        
+        scrollbar = ttk.Scrollbar(signals_frame, orient=tk.VERTICAL, command=self.tg_signals_tree.yview)
+        self.tg_signals_tree.configure(yscrollcommand=scrollbar.set)
+        self.tg_signals_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        ttk.Button(signals_frame, text="Aggiorna Segnali", command=self._refresh_telegram_signals_tree).pack(pady=5)
+        
+        self._refresh_telegram_signals_tree()
+    
+    def _save_telegram_tab_settings(self):
+        """Save Telegram settings from tab."""
+        try:
+            stake = float(self.tg_auto_stake_var.get().replace(',', '.'))
+        except:
+            stake = 1.0
+        
+        settings = self.db.get_telegram_settings() or {}
+        self.db.save_telegram_settings(
+            api_id=self.tg_api_id_var.get(),
+            api_hash=self.tg_api_hash_var.get(),
+            session_string=settings.get('session_string'),
+            phone_number=self.tg_phone_var.get(),
+            enabled=True,
+            auto_bet=self.tg_auto_bet_var.get(),
+            require_confirmation=self.tg_confirm_var.get(),
+            auto_stake=stake
+        )
+        messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
+    
+    def _refresh_telegram_chats_tree(self):
+        """Refresh chats tree in Telegram tab."""
+        self.tg_chats_tree.delete(*self.tg_chats_tree.get_children())
+        chats = self.db.get_telegram_chats()
+        for chat in chats:
+            self.tg_chats_tree.insert('', tk.END, values=(
+                chat.get('chat_name', str(chat['chat_id'])),
+                'Si' if chat.get('enabled') else 'No'
+            ))
+    
+    def _refresh_telegram_signals_tree(self):
+        """Refresh signals tree in Telegram tab."""
+        self.tg_signals_tree.delete(*self.tg_signals_tree.get_children())
+        signals = self.db.get_telegram_signals(limit=50)
+        for sig in signals:
+            parsed = sig.get('parsed_data', {}) or {}
+            timestamp = sig.get('received_at', '')[:16]
+            event = parsed.get('event', 'N/A')[:25]
+            over_line = parsed.get('over_line', '')
+            status = parsed.get('auto_bet_status', 'OK')
+            tag = 'success' if status == 'OK' else 'failed' if status == 'FAILED' else ''
+            
+            self.tg_signals_tree.insert('', tk.END, values=(
+                timestamp,
+                event,
+                f"Over {over_line}" if over_line else '',
+                status
+            ), tags=(tag,) if tag else ())
     
     def _show_dashboard(self):
         """Show dashboard with account info and bets."""
