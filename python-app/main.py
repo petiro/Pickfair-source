@@ -2376,8 +2376,8 @@ class PickfairApp:
         columns = ('data', 'evento', 'over', 'status')
         self.tg_signals_tree = ttk.Treeview(signals_frame, columns=columns, show='headings', height=15)
         self.tg_signals_tree.heading('data', text='Data')
-        self.tg_signals_tree.heading('evento', text='Evento')
-        self.tg_signals_tree.heading('over', text='Over')
+        self.tg_signals_tree.heading('evento', text='Selezione')
+        self.tg_signals_tree.heading('over', text='Tipo')
         self.tg_signals_tree.heading('status', text='Stato')
         self.tg_signals_tree.column('data', width=100)
         self.tg_signals_tree.column('evento', width=150)
@@ -2429,19 +2429,18 @@ class PickfairApp:
     def _refresh_telegram_signals_tree(self):
         """Refresh signals tree in Telegram tab."""
         self.tg_signals_tree.delete(*self.tg_signals_tree.get_children())
-        signals = self.db.get_telegram_signals(limit=50)
+        signals = self.db.get_recent_signals(limit=50)
         for sig in signals:
-            parsed = sig.get('parsed_data', {}) or {}
             timestamp = sig.get('received_at', '')[:16]
-            event = parsed.get('event', 'N/A')[:25]
-            over_line = parsed.get('over_line', '')
-            status = parsed.get('auto_bet_status', 'OK')
-            tag = 'success' if status == 'OK' else 'failed' if status == 'FAILED' else ''
+            selection = sig.get('parsed_selection', '')[:25] if sig.get('parsed_selection') else 'N/A'
+            side = sig.get('parsed_side', '')
+            status = sig.get('status', 'PENDING')
+            tag = 'success' if status in ('MATCHED', 'PLACED') else 'failed' if status == 'FAILED' else ''
             
             self.tg_signals_tree.insert('', tk.END, values=(
                 timestamp,
-                event,
-                f"Over {over_line}" if over_line else '',
+                selection,
+                side,
                 status
             ), tags=(tag,) if tag else ())
     
