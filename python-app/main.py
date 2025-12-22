@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.5"
+APP_VERSION = "3.13.6"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2429,20 +2429,20 @@ class PickfairApp:
         chats_frame = ttk.LabelFrame(left_frame, text="Chat Monitorate", padding=10)
         chats_frame.pack(fill=tk.BOTH, expand=True)
         
+        chat_btn_frame = ttk.Frame(chats_frame)
+        chat_btn_frame.pack(fill=tk.X, pady=(0, 5))
+        ttk.Button(chat_btn_frame, text="Carica", command=self._show_telegram_chats).pack(side=tk.LEFT, padx=2)
+        ttk.Button(chat_btn_frame, text="Aggiungi", command=self._add_telegram_chat).pack(side=tk.LEFT, padx=2)
+        ttk.Button(chat_btn_frame, text="Rimuovi", command=self._remove_telegram_chat).pack(side=tk.LEFT, padx=2)
+        ttk.Button(chat_btn_frame, text="Aggiorna", command=self._refresh_telegram_chats_tree).pack(side=tk.LEFT, padx=2)
+        
         columns = ('name', 'enabled')
-        self.tg_chats_tree = ttk.Treeview(chats_frame, columns=columns, show='headings', height=8)
+        self.tg_chats_tree = ttk.Treeview(chats_frame, columns=columns, show='headings', height=6)
         self.tg_chats_tree.heading('name', text='Nome Chat')
         self.tg_chats_tree.heading('enabled', text='Attivo')
         self.tg_chats_tree.column('name', width=200)
         self.tg_chats_tree.column('enabled', width=50)
         self.tg_chats_tree.pack(fill=tk.BOTH, expand=True)
-        
-        chat_btn_frame = ttk.Frame(chats_frame)
-        chat_btn_frame.pack(fill=tk.X, pady=5)
-        ttk.Button(chat_btn_frame, text="Carica Chat", command=self._show_telegram_chats).pack(side=tk.LEFT, padx=2)
-        ttk.Button(chat_btn_frame, text="Aggiungi", command=self._add_telegram_chat).pack(side=tk.LEFT, padx=2)
-        ttk.Button(chat_btn_frame, text="Rimuovi", command=self._remove_telegram_chat).pack(side=tk.LEFT, padx=2)
-        ttk.Button(chat_btn_frame, text="Aggiorna", command=self._refresh_telegram_chats_tree).pack(side=tk.LEFT, padx=2)
         
         self._refresh_telegram_chats_tree()
         
