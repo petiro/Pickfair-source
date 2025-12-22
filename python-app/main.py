@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.3"
+APP_VERSION = "3.13.4"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2622,9 +2622,27 @@ class PickfairApp:
                      font=('Segoe UI', 10, 'bold')).pack(anchor=tk.W)
     
     def _create_impostazioni_tab(self):
-        """Create Impostazioni tab content."""
-        main_frame = ttk.Frame(self.impostazioni_tab, padding=20)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        """Create Impostazioni tab content with scrollbar."""
+        canvas = tk.Canvas(self.impostazioni_tab)
+        scrollbar = ttk.Scrollbar(self.impostazioni_tab, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas, padding=20)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
+        main_frame = scrollable_frame
         
         ttk.Label(main_frame, text="Impostazioni", style='Title.TLabel').pack(anchor=tk.W, pady=(0, 20))
         
