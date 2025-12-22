@@ -4088,7 +4088,6 @@ class PickfairApp:
         event_name = signal.get('event', '')
         over_line = signal.get('over_line')
         stake = float(settings.get('auto_stake', 1.0))
-        require_confirm = settings.get('require_confirmation', True)
         
         if not event_name or over_line is None:
             return
@@ -4168,9 +4167,6 @@ class PickfairApp:
                 f"Tipo: BACK"
             )
             
-            if require_confirm:
-                if not messagebox.askyesno("Conferma Auto-Bet", f"Piazzare questa scommessa?\n\n{bet_info}"):
-                    return
             
             if self.simulation_mode:
                 commission = 0.045
