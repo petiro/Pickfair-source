@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.4"
+APP_VERSION = "3.13.5"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -186,6 +186,9 @@ class PickfairApp:
         self.impostazioni_tab = ttk.Frame(self.main_notebook)
         self.main_notebook.add(self.impostazioni_tab, text="Impostazioni")
         
+        self.simulazione_tab = ttk.Frame(self.main_notebook)
+        self.main_notebook.add(self.simulazione_tab, text="Simulazione")
+        
         self._create_events_panel(self.trading_tab)
         self._create_market_panel(self.trading_tab)
         self._create_dutching_panel(self.trading_tab)
@@ -194,6 +197,7 @@ class PickfairApp:
         self._create_telegram_tab()
         self._create_strumenti_tab()
         self._create_impostazioni_tab()
+        self._create_simulazione_tab()
     
     def _create_status_bar(self):
         """Create status bar with connection info and mode buttons."""
@@ -2242,18 +2246,11 @@ class PickfairApp:
         
         self.dashboard_cashout_frame = ttk.Frame(self.dashboard_notebook, padding=10)
         self.dashboard_notebook.add(self.dashboard_cashout_frame, text="Cashout")
-        
-        self.dashboard_simulation_frame = ttk.Frame(self.dashboard_notebook, padding=10)
-        self.dashboard_notebook.add(self.dashboard_simulation_frame, text="Simulate")
     
     def _refresh_dashboard_tab(self):
         """Refresh dashboard tab data."""
-        for widget in self.dashboard_simulation_frame.winfo_children():
-            widget.destroy()
-        self._create_simulation_bets_list(self.dashboard_simulation_frame)
-        
         if not self.client:
-            self.dashboard_not_connected.config(text="Connettiti a Betfair per dati account (Simulate sempre visibili)")
+            self.dashboard_not_connected.config(text="Connettiti a Betfair per vedere i dati")
             return
         
         self.dashboard_not_connected.config(text="")
@@ -2596,30 +2593,6 @@ class PickfairApp:
         btn_frame2.pack(fill=tk.X, pady=5)
         ttk.Button(btn_frame2, text="Filtri Avanzati", command=self._show_advanced_filters).pack(side=tk.LEFT, padx=5)
         ttk.Label(btn_frame2, text="Configura filtri per eventi e mercati", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
-        
-        sim_frame = ttk.LabelFrame(main_frame, text="Simulazione", padding=15)
-        sim_frame.pack(fill=tk.X, pady=10)
-        
-        btn_frame3 = ttk.Frame(sim_frame)
-        btn_frame3.pack(fill=tk.X, pady=5)
-        ttk.Button(btn_frame3, text="Dashboard Simulazione", command=self._show_simulation_dashboard).pack(side=tk.LEFT, padx=5)
-        ttk.Label(btn_frame3, text="Visualizza statistiche simulazione", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
-        
-        btn_frame4 = ttk.Frame(sim_frame)
-        btn_frame4.pack(fill=tk.X, pady=5)
-        ttk.Button(btn_frame4, text="Reset Simulazione", command=self._reset_simulation).pack(side=tk.LEFT, padx=5)
-        ttk.Label(btn_frame4, text="Azzera saldo e storico simulazione", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
-        
-        sim_status = ttk.Frame(sim_frame)
-        sim_status.pack(fill=tk.X, pady=10)
-        sim_settings = self.db.get_simulation_settings()
-        if sim_settings:
-            balance = sim_settings.get('virtual_balance', 1000)
-            starting = sim_settings.get('starting_balance', 1000)
-            pl = balance - starting
-            pl_text = f"+{pl:.2f}" if pl >= 0 else f"{pl:.2f}"
-            ttk.Label(sim_status, text=f"Saldo Simulato: {balance:.2f} EUR  |  P/L: {pl_text} EUR", 
-                     font=('Segoe UI', 10, 'bold')).pack(anchor=tk.W)
     
     def _create_impostazioni_tab(self):
         """Create Impostazioni tab content with scrollbar."""
@@ -2691,6 +2664,107 @@ class PickfairApp:
         app_frame.pack(fill=tk.X, pady=10)
         
         ttk.Button(app_frame, text="Esci dall'Applicazione", command=self._on_close).pack(anchor=tk.W)
+    
+    def _create_simulazione_tab(self):
+        """Create Simulazione tab content."""
+        main_frame = ttk.Frame(self.simulazione_tab, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(main_frame, text="Simulazione", style='Title.TLabel').pack(anchor=tk.W, pady=(0, 10))
+        
+        sim_settings = self.db.get_simulation_settings()
+        balance = sim_settings.get('virtual_balance', 1000) if sim_settings else 1000
+        starting = sim_settings.get('starting_balance', 1000) if sim_settings else 1000
+        pl = balance - starting
+        pl_text = f"+{pl:.2f}" if pl >= 0 else f"{pl:.2f}"
+        pl_color = '#28a745' if pl >= 0 else '#dc3545'
+        
+        stats_frame = ttk.Frame(main_frame)
+        stats_frame.pack(fill=tk.X, pady=10)
+        
+        balance_card = ttk.LabelFrame(stats_frame, text="Saldo Simulato", padding=10)
+        balance_card.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        ttk.Label(balance_card, text=f"{balance:.2f} EUR", style='Title.TLabel').pack()
+        
+        pl_card = ttk.LabelFrame(stats_frame, text="Profitto/Perdita", padding=10)
+        pl_card.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        ttk.Label(pl_card, text=f"{pl_text} EUR", font=('Segoe UI', 14, 'bold'), foreground=pl_color).pack()
+        
+        starting_card = ttk.LabelFrame(stats_frame, text="Saldo Iniziale", padding=10)
+        starting_card.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        ttk.Label(starting_card, text=f"{starting:.2f} EUR", style='Title.TLabel').pack()
+        
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(fill=tk.X, pady=10)
+        ttk.Button(btn_frame, text="Reset Simulazione", command=self._reset_simulation).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Aggiorna", command=self._refresh_simulazione_tab).pack(side=tk.LEFT, padx=5)
+        
+        bets_frame = ttk.LabelFrame(main_frame, text="Storico Scommesse Simulate", padding=10)
+        bets_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        
+        self.sim_bets_frame = bets_frame
+        self._refresh_simulation_bets_list()
+    
+    def _refresh_simulazione_tab(self):
+        """Refresh the Simulazione tab."""
+        for widget in self.simulazione_tab.winfo_children():
+            widget.destroy()
+        self._create_simulazione_tab()
+    
+    def _refresh_simulation_bets_list(self):
+        """Refresh the simulation bets list."""
+        for widget in self.sim_bets_frame.winfo_children():
+            widget.destroy()
+        
+        sim_bets = self.db.get_simulation_bets(limit=50)
+        
+        columns = ('data', 'evento', 'mercato', 'tipo', 'stake', 'profitto')
+        tree = ttk.Treeview(self.sim_bets_frame, columns=columns, show='headings', height=15)
+        tree.heading('data', text='Data')
+        tree.heading('evento', text='Evento')
+        tree.heading('mercato', text='Mercato')
+        tree.heading('tipo', text='Tipo')
+        tree.heading('stake', text='Stake')
+        tree.heading('profitto', text='Profitto')
+        tree.column('data', width=130)
+        tree.column('evento', width=180)
+        tree.column('mercato', width=120)
+        tree.column('tipo', width=50)
+        tree.column('stake', width=70)
+        tree.column('profitto', width=80)
+        
+        tree.tag_configure('win', foreground='#28a745')
+        tree.tag_configure('loss', foreground='#dc3545')
+        
+        scrollbar = ttk.Scrollbar(self.sim_bets_frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        if not sim_bets:
+            ttk.Label(self.sim_bets_frame, text="Nessuna scommessa simulata", 
+                     font=('Segoe UI', 10)).place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+            return
+        
+        for bet in sim_bets:
+            placed_at = bet.get('placed_at', '')[:16] if bet.get('placed_at') else ''
+            event_name = bet.get('event_name', '')[:25]
+            market_name = bet.get('market_name', '')[:20]
+            bet_type = bet.get('bet_type', '')
+            stake = bet.get('stake', 0)
+            profit = bet.get('profit', 0) or 0
+            
+            tag = 'win' if profit > 0 else 'loss' if profit < 0 else ''
+            profit_text = f"+{profit:.2f}" if profit > 0 else f"{profit:.2f}"
+            
+            tree.insert('', tk.END, values=(
+                placed_at,
+                event_name,
+                market_name,
+                bet_type,
+                f"{stake:.2f}",
+                profit_text
+            ), tags=(tag,) if tag else ())
     
     def _save_settings_from_tab(self):
         """Save settings from Impostazioni tab."""
