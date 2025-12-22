@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.10.5"
+APP_VERSION = "3.10.6"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2944,134 +2944,442 @@ class PickfairApp:
         ttk.Button(frame, text="Prenota", command=save_booking).pack(pady=20)
     
     def _show_dutching_modal(self):
-        """Show dutching modal for multiple selection with stake/profit options."""
+        """Show Fairbot-style dutching modal with advanced options."""
         if not self.current_market:
             return
         
         dialog = tk.Toplevel(self.root)
-        dialog.title(f"Dutching - {self.current_market.get('marketName', '')}")
-        dialog.geometry("700x600")
+        event_name = self.current_event.get('name', '') if self.current_event else ''
+        market_name = self.current_market.get('marketName', '')
+        status_text = "IN-PLAY" if self.current_event and self.current_event.get('inPlayOdds') else "PRE-MATCH"
+        dialog.title(f"Dutching - {event_name} | {market_name} | {status_text}")
+        dialog.geometry("900x650")
         dialog.transient(self.root)
+        dialog.grab_set()
         
-        frame = ttk.Frame(dialog, padding=20)
-        frame.pack(fill=tk.BOTH, expand=True)
+        # Store runner data for calculations
+        dialog.runner_data = {}
+        dialog.calculated_results = None
+        dialog.bet_type = 'BACK'
         
-        # Bet type selection
-        type_frame = ttk.Frame(frame)
-        type_frame.pack(fill=tk.X, pady=10)
+        main_frame = ttk.Frame(dialog, padding=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
         
-        modal_bet_type = tk.StringVar(value='BACK')
+        # ============ TOP SECTION: Dutching Type ============
+        type_frame = ttk.LabelFrame(main_frame, text="Tipo Dutching", padding=10)
+        type_frame.pack(fill=tk.X, pady=(0, 10))
         
-        back_btn = tk.Button(type_frame, text="Dutching BACK", bg='#3498db', fg='white',
-                            command=lambda: modal_bet_type.set('BACK'))
-        back_btn.pack(side=tk.LEFT, padx=5)
+        # Left column: Stake Available / Required Profit / Variable Profit
+        left_col = ttk.Frame(type_frame)
+        left_col.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        lay_btn = tk.Button(type_frame, text="Dutching LAY", bg='#ffb6c1', fg='#333',
-                           command=lambda: modal_bet_type.set('LAY'))
-        lay_btn.pack(side=tk.LEFT, padx=5)
+        dutching_mode = tk.StringVar(value='STAKE')
+        stake_var = tk.StringVar(value='100')
+        profit_var = tk.StringVar(value='10')
         
-        # Selection mode
-        mode_frame = ttk.Frame(frame)
-        mode_frame.pack(fill=tk.X, pady=10)
+        # Row 1: Stake Available
+        row1 = ttk.Frame(left_col)
+        row1.pack(fill=tk.X, pady=2)
+        ttk.Radiobutton(row1, text="Stake Totale", variable=dutching_mode, value='STAKE').pack(side=tk.LEFT)
+        stake_entry = ttk.Entry(row1, textvariable=stake_var, width=10)
+        stake_entry.pack(side=tk.LEFT, padx=5)
+        ttk.Label(row1, text="EUR").pack(side=tk.LEFT)
         
-        mode_var = tk.StringVar(value='STAKE')
-        ttk.Radiobutton(mode_frame, text="Stake Fisso", variable=mode_var, value='STAKE').pack(side=tk.LEFT)
-        ttk.Radiobutton(mode_frame, text="Profitto Target", variable=mode_var, value='PROFIT').pack(side=tk.LEFT, padx=10)
+        # Row 2: Required Profit
+        row2 = ttk.Frame(left_col)
+        row2.pack(fill=tk.X, pady=2)
+        ttk.Radiobutton(row2, text="Profitto Target", variable=dutching_mode, value='PROFIT').pack(side=tk.LEFT)
+        profit_entry = ttk.Entry(row2, textvariable=profit_var, width=10)
+        profit_entry.pack(side=tk.LEFT, padx=5)
+        ttk.Label(row2, text="EUR").pack(side=tk.LEFT)
         
-        # Amount entry
-        amount_frame = ttk.Frame(frame)
-        amount_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(amount_frame, text="Importo (EUR):").pack(side=tk.LEFT)
-        amount_var = tk.StringVar(value='10.00')
-        ttk.Entry(amount_frame, textvariable=amount_var, width=10).pack(side=tk.LEFT, padx=5)
         
-        # Runners selection
-        ttk.Label(frame, text="Seleziona Esiti:", style='Header.TLabel').pack(anchor=tk.W, pady=(10, 5))
+        # Right column: Bet type (BACK/LAY)
+        right_col = ttk.Frame(type_frame)
+        right_col.pack(side=tk.RIGHT, padx=20)
         
-        runners_frame = ttk.Frame(frame)
-        runners_frame.pack(fill=tk.BOTH, expand=True)
+        bet_type_var = tk.StringVar(value='BACK')
+        ttk.Label(right_col, text="Tipo Scommessa:").pack(anchor=tk.W)
+        bet_frame = ttk.Frame(right_col)
+        bet_frame.pack(fill=tk.X)
         
-        # Checkboxes for each runner
-        runner_vars = {}
-        canvas = tk.Canvas(runners_frame, height=300)
-        scrollbar = ttk.Scrollbar(runners_frame, orient=tk.VERTICAL, command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
+        back_btn = tk.Button(bet_frame, text="BACK", bg='#3498db', fg='white', width=8,
+                            command=lambda: [bet_type_var.set('BACK'), update_bet_type_buttons()])
+        back_btn.pack(side=tk.LEFT, padx=2)
         
-        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
+        lay_btn = tk.Button(bet_frame, text="LAY", bg='#f5f5f5', fg='#333', width=8,
+                           command=lambda: [bet_type_var.set('LAY'), update_bet_type_buttons()])
+        lay_btn.pack(side=tk.LEFT, padx=2)
         
-        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        def update_bet_type_buttons():
+            if bet_type_var.get() == 'BACK':
+                back_btn.config(bg='#3498db', fg='white')
+                lay_btn.config(bg='#f5f5f5', fg='#333')
+            else:
+                back_btn.config(bg='#f5f5f5', fg='#333')
+                lay_btn.config(bg='#ffb6c1', fg='#333')
+            recalculate()
+        
+        # Book Value display
+        book_frame = ttk.Frame(type_frame)
+        book_frame.pack(side=tk.RIGHT, padx=20)
+        book_value_var = tk.StringVar(value="Book Value: -")
+        ttk.Label(book_frame, textvariable=book_value_var, font=('Arial', 10, 'bold')).pack()
+        
+        # ============ MIDDLE SECTION: Runners Table ============
+        table_frame = ttk.Frame(main_frame)
+        table_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # Create treeview with columns
+        columns = ('selected', 'runner', 'offset', 'odds', 'stake', 'profit_loss')
+        tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15)
+        
+        tree.heading('selected', text='')
+        tree.heading('runner', text='Selezione')
+        tree.heading('offset', text='Offset')
+        tree.heading('odds', text='Quota')
+        tree.heading('stake', text='Stake')
+        tree.heading('profit_loss', text='Profitto/Perdita')
+        
+        tree.column('selected', width=40, anchor='center')
+        tree.column('runner', width=220, anchor='w')
+        tree.column('offset', width=80, anchor='center')
+        tree.column('odds', width=100, anchor='center')
+        tree.column('stake', width=100, anchor='e')
+        tree.column('profit_loss', width=140, anchor='e')
+        
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
+        # Configure tag colors for profit/loss
+        tree.tag_configure('profit', foreground='#27ae60')
+        tree.tag_configure('loss', foreground='#e74c3c')
+        tree.tag_configure('selected', background='#e8f4fc')
+        
+        # Store runner selection and offset data
+        runner_selections = {}  # {selectionId: {'selected': bool, 'offset': int, 'swap': bool}}
+        
+        # Populate tree with runners
         for runner in self.current_market.get('runners', []):
-            var = tk.BooleanVar(value=False)
-            runner_vars[runner['selectionId']] = (var, runner)
+            sel_id = runner['selectionId']
+            back_price = runner.get('backPrice', 0) or 0
+            lay_price = runner.get('layPrice', 0) or 0
             
-            r_frame = ttk.Frame(scrollable_frame)
-            r_frame.pack(fill=tk.X, pady=2)
+            runner_selections[sel_id] = {
+                'selected': False,
+                'offset': 0,
+                'runner': runner
+            }
             
-            ttk.Checkbutton(r_frame, variable=var).pack(side=tk.LEFT)
-            ttk.Label(r_frame, text=runner['runnerName'], width=20).pack(side=tk.LEFT)
+            price = back_price if bet_type_var.get() == 'BACK' else lay_price
+            price_str = f"{price:.2f}" if price > 0 else '-'
             
-            back_p = f"{runner.get('backPrice', 0):.2f}" if runner.get('backPrice') else '-'
-            lay_p = f"{runner.get('layPrice', 0):.2f}" if runner.get('layPrice') else '-'
-            ttk.Label(r_frame, text=f"Back: {back_p}", width=10).pack(side=tk.LEFT)
-            ttk.Label(r_frame, text=f"Lay: {lay_p}", width=10).pack(side=tk.LEFT)
+            tree.insert('', tk.END, iid=str(sel_id), values=(
+                '',  # Checkbox indicator
+                runner['runnerName'],
+                '0',
+                price_str,
+                '-',
+                '-'
+            ))
         
-        # Calculate button
-        result_text = scrolledtext.ScrolledText(frame, height=6, width=60)
-        result_text.pack(fill=tk.X, pady=10)
+        # Handle row selection (toggle)
+        def on_row_click(event):
+            region = tree.identify_region(event.x, event.y)
+            if region == 'cell':
+                col = tree.identify_column(event.x)
+                item = tree.identify_row(event.y)
+                if item:
+                    sel_id = int(item)
+                    col_num = int(col.replace('#', ''))
+                    
+                    if col_num == 1:  # Selected column - toggle selection
+                        runner_selections[sel_id]['selected'] = not runner_selections[sel_id]['selected']
+                        update_row(sel_id)
+                        recalculate()
         
-        def calculate_modal():
+        def on_row_double_click(event):
+            """Double-click on offset to edit."""
+            region = tree.identify_region(event.x, event.y)
+            if region == 'cell':
+                col = tree.identify_column(event.x)
+                item = tree.identify_row(event.y)
+                if item and col == '#3':  # Offset column
+                    edit_offset(item)
+        
+        def edit_offset(item):
+            """Show popup to edit offset value."""
+            sel_id = int(item)
+            current_offset = runner_selections[sel_id]['offset']
+            
+            popup = tk.Toplevel(dialog)
+            popup.title("Modifica Offset")
+            popup.geometry("200x80")
+            popup.transient(dialog)
+            popup.grab_set()
+            
+            ttk.Label(popup, text="Offset (ticks):").pack(pady=5)
+            offset_var = tk.StringVar(value=str(current_offset))
+            entry = ttk.Entry(popup, textvariable=offset_var, width=10)
+            entry.pack()
+            entry.focus()
+            entry.select_range(0, tk.END)
+            
+            def save_offset():
+                try:
+                    new_offset = int(offset_var.get())
+                    runner_selections[sel_id]['offset'] = new_offset
+                    update_row(sel_id)
+                    recalculate()
+                    popup.destroy()
+                except ValueError:
+                    pass
+            
+            entry.bind('<Return>', lambda e: save_offset())
+            ttk.Button(popup, text="OK", command=save_offset).pack(pady=5)
+        
+        def update_row(sel_id):
+            """Update a single row display."""
+            data = runner_selections[sel_id]
+            runner = data['runner']
+            bet_type = bet_type_var.get()
+            
+            # Get price with offset
+            if bet_type == 'BACK':
+                base_price = runner.get('backPrice', 0) or 0
+            else:
+                base_price = runner.get('layPrice', 0) or 0
+            
+            # Apply offset (price ticks)
+            price = apply_price_offset(base_price, data['offset'])
+            price_str = f"{price:.2f}" if price > 0 else '-'
+            
+            # Selection indicator
+            sel_indicator = '[X]' if data['selected'] else '[ ]'
+            
+            # Get calculated stake/profit if available
+            stake_str = '-'
+            profit_str = '-'
+            tag = ()
+            
+            if dialog.calculated_results:
+                for r in dialog.calculated_results:
+                    if r['selectionId'] == sel_id:
+                        stake_str = f"{r['stake']:.2f} EUR"
+                        profit = r.get('profitIfWins', 0)
+                        if profit >= 0:
+                            profit_str = f"+{profit:.2f} EUR"
+                            tag = ('profit',)
+                        else:
+                            profit_str = f"{profit:.2f} EUR"
+                            tag = ('loss',)
+                        break
+            
+            tree.item(str(sel_id), values=(
+                sel_indicator,
+                runner['runnerName'],
+                str(data['offset']),
+                price_str,
+                stake_str,
+                profit_str
+            ), tags=tag)
+        
+        def apply_price_offset(price, offset):
+            """Apply tick offset to price."""
+            if price <= 0 or offset == 0:
+                return price
+            
+            # Betfair tick increments
+            if price < 2:
+                increment = 0.01
+            elif price < 3:
+                increment = 0.02
+            elif price < 4:
+                increment = 0.05
+            elif price < 6:
+                increment = 0.1
+            elif price < 10:
+                increment = 0.2
+            elif price < 20:
+                increment = 0.5
+            elif price < 30:
+                increment = 1.0
+            elif price < 50:
+                increment = 2.0
+            elif price < 100:
+                increment = 5.0
+            else:
+                increment = 10.0
+            
+            new_price = price + (increment * offset)
+            return max(1.01, min(1000, round(new_price, 2)))
+        
+        def recalculate():
+            """Recalculate dutching stakes."""
+            bet_type = bet_type_var.get()
+            mode = dutching_mode.get()
+            
+            # Gather selected runners with their prices
             selections = []
-            bet_type = modal_bet_type.get()
-            
-            for sel_id, (var, runner) in runner_vars.items():
-                if var.get():
-                    sel = runner.copy()
-                    sel['price'] = runner.get('backPrice', 0) if bet_type == 'BACK' else runner.get('layPrice', 0)
-                    if sel['price'] and sel['price'] > 1:
-                        selections.append(sel)
+            for sel_id, data in runner_selections.items():
+                if data['selected']:
+                    runner = data['runner']
+                    
+                    # Get base price based on bet type
+                    if bet_type == 'BACK':
+                        base_price = runner.get('backPrice', 0) or 0
+                    else:
+                        base_price = runner.get('layPrice', 0) or 0
+                    
+                    # Apply offset
+                    price = apply_price_offset(base_price, data['offset'])
+                    
+                    if price > 1:
+                        selections.append({
+                            'selectionId': sel_id,
+                            'runnerName': runner['runnerName'],
+                            'price': price
+                        })
             
             if not selections:
-                result_text.delete('1.0', tk.END)
-                result_text.insert('1.0', "Seleziona almeno un esito")
+                dialog.calculated_results = None
+                book_value_var.set("Book Value: -")
+                total_var.set("Totale: -")
+                for sel_id in runner_selections:
+                    update_row(sel_id)
                 return
             
+            # Calculate book value (implied probability)
+            implied = sum(1.0 / s['price'] for s in selections) * 100
+            book_value_var.set(f"Book Value: {implied:.1f}%")
+            
             try:
-                amount = float(amount_var.get().replace(',', '.'))
-                results, profit, implied = calculate_dutching_stakes(selections, amount, bet_type)
-                
-                text = f"Tipo: {bet_type} | Profitto: {format_currency(profit)} | Prob: {implied:.1f}%\n\n"
-                for r in results:
-                    text += f"{r['runnerName']}: Stake {format_currency(r['stake'])} @ {r['price']:.2f}\n"
-                
-                result_text.delete('1.0', tk.END)
-                result_text.insert('1.0', text)
+                if mode == 'STAKE':
+                    amount = float(stake_var.get().replace(',', '.'))
+                    results, profit, _ = calculate_dutching_stakes(selections, amount, bet_type)
+                else:  # PROFIT mode
+                    target_profit = float(profit_var.get().replace(',', '.'))
+                    # Reverse calculate: stake = profit / (1/implied - 1) for back
+                    implied_dec = sum(1.0 / s['price'] for s in selections)
+                    if implied_dec >= 1:
+                        raise ValueError("Book value >= 100%, profitto non garantito")
+                    required_stake = target_profit / (1.0 / implied_dec - 1)
+                    results, profit, _ = calculate_dutching_stakes(selections, required_stake, bet_type)
                 
                 dialog.calculated_results = results
                 dialog.bet_type = bet_type
+                
+                total_stake = sum(r['stake'] for r in results)
+                total_var.set(f"Totale: {total_stake:.2f} EUR")
+                
             except Exception as e:
-                result_text.delete('1.0', tk.END)
-                result_text.insert('1.0', f"Errore: {e}")
+                dialog.calculated_results = None
+                total_var.set(f"Errore: {str(e)[:30]}")
+            
+            # Update all rows
+            for sel_id in runner_selections:
+                update_row(sel_id)
         
-        def place_modal_bets():
-            if not hasattr(dialog, 'calculated_results'):
+        tree.bind('<Button-1>', on_row_click)
+        tree.bind('<Double-Button-1>', on_row_double_click)
+        
+        # ============ BOTTOM SECTION: Controls ============
+        controls_frame = ttk.Frame(main_frame)
+        controls_frame.pack(fill=tk.X, pady=10)
+        
+        # Left controls
+        left_controls = ttk.Frame(controls_frame)
+        left_controls.pack(side=tk.LEFT)
+        
+        live_odds_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(left_controls, text="Quote Live", variable=live_odds_var).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Label(left_controls, text="Offset Globale:").pack(side=tk.LEFT, padx=(20, 5))
+        global_offset_var = tk.StringVar(value='0')
+        global_offset_spin = ttk.Spinbox(left_controls, from_=-10, to=10, width=5, textvariable=global_offset_var)
+        global_offset_spin.pack(side=tk.LEFT)
+        
+        def apply_global_offset():
+            try:
+                offset = int(global_offset_var.get())
+                for sel_id in runner_selections:
+                    runner_selections[sel_id]['offset'] = offset
+                    update_row(sel_id)
+                recalculate()
+            except ValueError:
+                pass
+        
+        global_offset_spin.bind('<Return>', lambda e: apply_global_offset())
+        ttk.Button(left_controls, text="Applica", command=apply_global_offset).pack(side=tk.LEFT, padx=2)
+        
+        # Total display
+        total_var = tk.StringVar(value="Totale: -")
+        ttk.Label(left_controls, textvariable=total_var, font=('Arial', 10, 'bold')).pack(side=tk.LEFT, padx=20)
+        
+        # Right controls (buttons)
+        right_controls = ttk.Frame(controls_frame)
+        right_controls.pack(side=tk.RIGHT)
+        
+        def select_all():
+            for sel_id in runner_selections:
+                runner_selections[sel_id]['selected'] = True
+                update_row(sel_id)
+            recalculate()
+        
+        def select_none():
+            for sel_id in runner_selections:
+                runner_selections[sel_id]['selected'] = False
+                update_row(sel_id)
+            recalculate()
+        
+        def refresh_odds():
+            """Refresh market odds."""
+            if not self.client or not self.current_market:
+                return
+            try:
+                market_id = self.current_market['marketId']
+                prices = self.client.get_market_prices(market_id)
+                if prices and 'runners' in prices:
+                    for runner_price in prices['runners']:
+                        sel_id = runner_price['selectionId']
+                        if sel_id in runner_selections:
+                            runner_selections[sel_id]['runner']['backPrice'] = runner_price.get('backPrice', 0)
+                            runner_selections[sel_id]['runner']['layPrice'] = runner_price.get('layPrice', 0)
+                            update_row(sel_id)
+                    recalculate()
+                    messagebox.showinfo("Aggiornato", "Quote aggiornate!")
+            except Exception as e:
+                messagebox.showerror("Errore", f"Impossibile aggiornare quote: {e}")
+        
+        ttk.Button(right_controls, text="Sel. Tutti", command=select_all).pack(side=tk.LEFT, padx=2)
+        ttk.Button(right_controls, text="Sel. Nessuno", command=select_none).pack(side=tk.LEFT, padx=2)
+        ttk.Button(right_controls, text="Aggiorna Quote", command=refresh_odds).pack(side=tk.LEFT, padx=2)
+        
+        # ============ BOTTOM BUTTONS ============
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(fill=tk.X, pady=10)
+        
+        def place_bets():
+            if not dialog.calculated_results:
+                messagebox.showwarning("Attenzione", "Calcola prima le scommesse")
                 return
             
-            # Check if market is suspended
             if self.market_status == 'SUSPENDED':
-                messagebox.showwarning("Mercato Sospeso", 
-                    "Il mercato e' attualmente sospeso.\nAttendi che riapra per piazzare scommesse.")
+                messagebox.showwarning("Mercato Sospeso", "Attendi che il mercato riapra.")
                 return
             
             if self.market_status == 'CLOSED':
-                messagebox.showwarning("Mercato Chiuso", 
-                    "Il mercato e' chiuso. Non e' possibile piazzare scommesse.")
+                messagebox.showwarning("Mercato Chiuso", "Il mercato e' chiuso.")
                 return
             
-            if not messagebox.askyesno("Conferma", "Piazzare le scommesse?"):
+            # Show confirmation
+            total = sum(r['stake'] for r in dialog.calculated_results)
+            msg = f"Piazzare {len(dialog.calculated_results)} scommesse per un totale di {total:.2f} EUR?"
+            if not messagebox.askyesno("Conferma", msg):
                 return
             
             bet_type = dialog.bet_type
@@ -3085,20 +3393,34 @@ class PickfairApp:
                 })
             
             try:
+                if self.simulation_mode:
+                    messagebox.showinfo("Simulazione", f"[SIMULAZIONE] {len(instructions)} scommesse piazzate!")
+                    dialog.destroy()
+                    return
+                
                 result = self.client.place_bets(self.current_market['marketId'], instructions)
-                if result['status'] == 'SUCCESS':
-                    messagebox.showinfo("Successo", "Scommesse piazzate!")
+                if result.get('status') == 'SUCCESS':
+                    messagebox.showinfo("Successo", f"{len(instructions)} scommesse piazzate!")
                     dialog.destroy()
                 else:
-                    messagebox.showwarning("Attenzione", f"Stato: {result['status']}")
+                    messagebox.showwarning("Attenzione", f"Stato: {result.get('status', 'UNKNOWN')}")
             except Exception as e:
                 messagebox.showerror("Errore", str(e))
         
-        btn_frame = ttk.Frame(frame)
-        btn_frame.pack(fill=tk.X, pady=10)
-        ttk.Button(btn_frame, text="Calcola", command=calculate_modal).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Piazza Scommesse", command=place_modal_bets).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Chiudi", command=dialog.destroy).pack(side=tk.RIGHT)
+        submit_btn = tk.Button(btn_frame, text="Piazza Scommesse", bg='#27ae60', fg='white', 
+                              font=('Arial', 10, 'bold'), command=place_bets)
+        submit_btn.pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(btn_frame, text="Ricalcola", command=recalculate).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Chiudi", command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
+        
+        # Bind variable changes to recalculate
+        stake_var.trace_add('write', lambda *args: recalculate())
+        profit_var.trace_add('write', lambda *args: recalculate())
+        dutching_mode.trace_add('write', lambda *args: recalculate())
+        
+        # Initial calculation
+        dialog.after(100, recalculate)
     
     def _show_telegram_settings(self):
         """Show Telegram configuration dialog."""
