@@ -1,11 +1,12 @@
 """
 Betfair Dutching - Tutti i Mercati
-Main application with Tkinter GUI for Windows desktop.
+Main application with CustomTkinter GUI for Windows desktop.
 Supports all market types and Streaming API for real-time prices.
 """
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, scrolledtext
+import customtkinter as ctk
 import threading
 import json
 from datetime import datetime
@@ -15,9 +16,10 @@ from betfair_client import BetfairClient, MARKET_TYPES
 from dutching import calculate_dutching_stakes, validate_selections, format_currency
 from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
+from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_theme
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.21"
+APP_VERSION = "3.14.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -25,36 +27,32 @@ LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
 
 class PickfairApp:
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.title(f"{APP_NAME} v{APP_VERSION}")
+        configure_customtkinter()
         
-        # Get screen dimensions and adapt window size
+        self.root = ctk.CTk()
+        self.root.title(f"{APP_NAME} v{APP_VERSION}")
+        self.root.configure(fg_color=COLORS['bg_dark'])
+        
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         
-        # Account for taskbar (approx 40-50px on Windows)
         taskbar_offset = 50
         available_height = screen_height - taskbar_offset
         
-        # Calculate optimal window size (90% of screen, max 1400x900)
         window_width = min(WINDOW_WIDTH, int(screen_width * 0.9))
         window_height = min(WINDOW_HEIGHT, int(available_height * 0.9))
         
-        # Center window on screen
         x = (screen_width - window_width) // 2
         y = max(0, (available_height - window_height) // 2)
         
         self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
         
-        # Set reasonable minsize - allow shrinking on small screens
         min_width = min(900, screen_width - 100)
         min_height = min(500, available_height - 50)
         self.root.minsize(min_width, min_height)
         
-        # Enable window resizing
         self.root.resizable(True, True)
         
-        # On small screens, maximize after a delay to avoid minsize conflicts
         if screen_width <= 1366 or screen_height <= 768:
             self.root.after(100, lambda: self._try_maximize())
         
@@ -99,23 +97,9 @@ class PickfairApp:
             pass
     
     def _configure_styles(self):
-        """Configure ttk styles with FairBot-like colors."""
+        """Configure ttk styles for dark theme."""
         style = ttk.Style()
-        style.theme_use('clam')
-        
-        style.configure('TFrame', background='#f5f5f5')
-        style.configure('TLabel', background='#f5f5f5', font=('Segoe UI', 10))
-        style.configure('TButton', font=('Segoe UI', 10))
-        style.configure('Header.TLabel', font=('Segoe UI', 12, 'bold'))
-        style.configure('Title.TLabel', font=('Segoe UI', 14, 'bold'))
-        style.configure('Success.TLabel', foreground='green')
-        style.configure('Error.TLabel', foreground='red')
-        style.configure('Money.TLabel', font=('Segoe UI', 11, 'bold'), foreground='#1a73e8')
-        style.configure('Stream.TLabel', font=('Segoe UI', 10, 'bold'), foreground='#e65100')
-        
-        # FairBot-style treeview with colored headers
-        style.configure('Treeview', font=('Segoe UI', 9), rowheight=22)
-        style.configure('Treeview.Heading', font=('Segoe UI', 9, 'bold'))
+        configure_ttk_dark_theme(style)
     
     def _create_menu(self):
         """Create application menu."""
@@ -162,31 +146,32 @@ class PickfairApp:
     
     def _create_main_layout(self):
         """Create main application layout with tabs."""
-        self.main_frame = ttk.Frame(self.root, padding=10)
-        self.main_frame.pack(fill=tk.BOTH, expand=True)
+        self.main_frame = ctk.CTkFrame(self.root, fg_color=COLORS['bg_dark'])
+        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         self._create_status_bar()
         
-        self.main_notebook = ttk.Notebook(self.main_frame)
+        self.main_notebook = ctk.CTkTabview(self.main_frame, 
+                                            fg_color=COLORS['bg_surface'],
+                                            segmented_button_fg_color=COLORS['bg_panel'],
+                                            segmented_button_selected_color=COLORS['back'],
+                                            segmented_button_unselected_color=COLORS['bg_panel'],
+                                            text_color=COLORS['text_primary'])
         self.main_notebook.pack(fill=tk.BOTH, expand=True, pady=10)
         
-        self.trading_tab = ttk.Frame(self.main_notebook)
-        self.main_notebook.add(self.trading_tab, text="Trading")
+        self.main_notebook.add("Trading")
+        self.main_notebook.add("Dashboard")
+        self.main_notebook.add("Telegram")
+        self.main_notebook.add("Strumenti")
+        self.main_notebook.add("Impostazioni")
+        self.main_notebook.add("Simulazione")
         
-        self.dashboard_tab = ttk.Frame(self.main_notebook)
-        self.main_notebook.add(self.dashboard_tab, text="Dashboard")
-        
-        self.telegram_tab = ttk.Frame(self.main_notebook)
-        self.main_notebook.add(self.telegram_tab, text="Telegram")
-        
-        self.strumenti_tab = ttk.Frame(self.main_notebook)
-        self.main_notebook.add(self.strumenti_tab, text="Strumenti")
-        
-        self.impostazioni_tab = ttk.Frame(self.main_notebook)
-        self.main_notebook.add(self.impostazioni_tab, text="Impostazioni")
-        
-        self.simulazione_tab = ttk.Frame(self.main_notebook)
-        self.main_notebook.add(self.simulazione_tab, text="Simulazione")
+        self.trading_tab = self.main_notebook.tab("Trading")
+        self.dashboard_tab = self.main_notebook.tab("Dashboard")
+        self.telegram_tab = self.main_notebook.tab("Telegram")
+        self.strumenti_tab = self.main_notebook.tab("Strumenti")
+        self.impostazioni_tab = self.main_notebook.tab("Impostazioni")
+        self.simulazione_tab = self.main_notebook.tab("Simulazione")
         
         self._create_events_panel(self.trading_tab)
         self._create_market_panel(self.trading_tab)
@@ -200,37 +185,49 @@ class PickfairApp:
     
     def _create_status_bar(self):
         """Create status bar with connection info and mode buttons."""
-        status_frame = ttk.Frame(self.main_frame)
+        status_frame = ctk.CTkFrame(self.main_frame, fg_color=COLORS['bg_panel'], corner_radius=8, height=50)
         status_frame.pack(fill=tk.X, pady=(0, 10))
+        status_frame.pack_propagate(False)
         
-        self.status_label = ttk.Label(status_frame, text="Non connesso", style='Error.TLabel')
-        self.status_label.pack(side=tk.LEFT)
+        self.status_label = ctk.CTkLabel(status_frame, text="Non connesso", 
+                                         text_color=COLORS['error'], font=FONTS['default'])
+        self.status_label.pack(side=tk.LEFT, padx=15)
         
-        self.balance_label = ttk.Label(status_frame, text="", style='Money.TLabel')
+        self.balance_label = ctk.CTkLabel(status_frame, text="", 
+                                          text_color=COLORS['back'], font=('Segoe UI', 12, 'bold'))
         self.balance_label.pack(side=tk.LEFT, padx=20)
         
-        self.stream_label = ttk.Label(status_frame, text="", style='Stream.TLabel')
+        self.stream_label = ctk.CTkLabel(status_frame, text="", 
+                                         text_color=COLORS['warning'], font=FONTS['default'])
         self.stream_label.pack(side=tk.LEFT, padx=10)
         
-        self.connect_btn = ttk.Button(status_frame, text="Connetti", command=self._toggle_connection)
-        self.connect_btn.pack(side=tk.RIGHT)
+        self.connect_btn = ctk.CTkButton(status_frame, text="Connetti", 
+                                         command=self._toggle_connection,
+                                         fg_color=COLORS['button_primary'],
+                                         hover_color=COLORS['back_hover'],
+                                         corner_radius=6, width=100)
+        self.connect_btn.pack(side=tk.RIGHT, padx=10)
         
-        self.refresh_btn = ttk.Button(status_frame, text="Aggiorna", command=self._refresh_data, state=tk.DISABLED)
+        self.refresh_btn = ctk.CTkButton(status_frame, text="Aggiorna", 
+                                         command=self._refresh_data, state=tk.DISABLED,
+                                         fg_color=COLORS['button_secondary'],
+                                         corner_radius=6, width=100)
         self.refresh_btn.pack(side=tk.RIGHT, padx=5)
         
-        # Live mode button
-        self.live_btn = tk.Button(status_frame, text="LIVE", bg='#dc3545', fg='white',
-                                  activebackground='#c82333', command=self._toggle_live_mode)
+        self.live_btn = ctk.CTkButton(status_frame, text="LIVE",
+                                      fg_color=COLORS['loss'], hover_color='#c62828',
+                                      command=self._toggle_live_mode,
+                                      corner_radius=6, width=80)
         self.live_btn.pack(side=tk.RIGHT, padx=5)
         
-        # Simulation mode button
-        self.sim_btn = tk.Button(status_frame, text="SIMULAZIONE", bg='#6c757d', fg='white',
-                                 activebackground='#5a6268', command=self._toggle_simulation_mode)
+        self.sim_btn = ctk.CTkButton(status_frame, text="SIMULAZIONE",
+                                     fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                                     command=self._toggle_simulation_mode,
+                                     corner_radius=6, width=120)
         self.sim_btn.pack(side=tk.RIGHT, padx=5)
         
-        # Simulation balance label (shown only in simulation mode)
-        self.sim_balance_label = ttk.Label(status_frame, text="", foreground='#9c27b0', 
-                                           font=('Segoe UI', 10, 'bold'))
+        self.sim_balance_label = ctk.CTkLabel(status_frame, text="", 
+                                              text_color='#9c27b0', font=('Segoe UI', 11, 'bold'))
         self.sim_balance_label.pack(side=tk.LEFT, padx=10)
     
     def _create_events_panel(self, parent):
@@ -855,7 +852,7 @@ class PickfairApp:
             try:
                 expiry_dt = datetime.fromisoformat(expiry)
                 if datetime.now() < expiry_dt:
-                    self.status_label.config(text="Sessione salvata (clicca Connetti)", style='TLabel')
+                    self.status_label.configure(text="Sessione salvata (clicca Connetti)", text_color=COLORS['text_secondary'])
             except:
                 pass
     
@@ -987,8 +984,8 @@ class PickfairApp:
             
             pwd_dialog.destroy()
             
-            self.status_label.config(text="Connessione in corso...", style='TLabel')
-            self.connect_btn.config(state=tk.DISABLED)
+            self.status_label.configure(text="Connessione in corso...", text_color=COLORS['text_secondary'])
+            self.connect_btn.configure(state=tk.DISABLED)
             
             def login_thread():
                 try:
@@ -1014,9 +1011,9 @@ class PickfairApp:
     
     def _on_connected(self):
         """Handle successful connection."""
-        self.status_label.config(text="Connesso a Betfair Italia", style='Success.TLabel')
-        self.connect_btn.config(text="Disconnetti", state=tk.NORMAL)
-        self.refresh_btn.config(state=tk.NORMAL)
+        self.status_label.configure(text="Connesso a Betfair Italia", text_color=COLORS['success'])
+        self.connect_btn.configure(text="Disconnetti", state=tk.NORMAL)
+        self.refresh_btn.configure(state=tk.NORMAL)
         
         self._update_balance()
         self._load_events()
@@ -1078,8 +1075,8 @@ class PickfairApp:
     
     def _on_connection_error(self, error):
         """Handle connection error."""
-        self.status_label.config(text=f"Errore: {error}", style='Error.TLabel')
-        self.connect_btn.config(text="Connetti", state=tk.NORMAL)
+        self.status_label.configure(text=f"Errore: {error}", text_color=COLORS['error'])
+        self.connect_btn.configure(text="Connetti", state=tk.NORMAL)
         self.client = None
         messagebox.showerror("Errore Connessione", error)
     
@@ -1094,11 +1091,11 @@ class PickfairApp:
             self.client = None
         
         self.db.clear_session()
-        self.status_label.config(text="Non connesso", style='Error.TLabel')
-        self.stream_label.config(text="")
-        self.connect_btn.config(text="Connetti")
-        self.refresh_btn.config(state=tk.DISABLED)
-        self.balance_label.config(text="")
+        self.status_label.configure(text="Non connesso", text_color=COLORS['error'])
+        self.stream_label.configure(text="")
+        self.connect_btn.configure(text="Connetti")
+        self.refresh_btn.configure(state=tk.DISABLED)
+        self.balance_label.configure(text="")
         self.streaming_active = False
         self.stream_var.set(False)
         
@@ -1112,7 +1109,7 @@ class PickfairApp:
         def fetch():
             try:
                 funds = self.client.get_account_funds()
-                self.root.after(0, lambda: self.balance_label.config(
+                self.root.after(0, lambda: self.balance_label.configure(
                     text=f"Saldo: {format_currency(funds['available'])}"
                 ))
             except Exception as e:
@@ -1400,7 +1397,7 @@ class PickfairApp:
                 self._on_price_update
             )
             self.streaming_active = True
-            self.stream_label.config(text="STREAMING ATTIVO")
+            self.stream_label.configure(text="STREAMING ATTIVO")
         except Exception as e:
             self.stream_var.set(False)
             messagebox.showerror("Errore Streaming", str(e))
@@ -1411,7 +1408,7 @@ class PickfairApp:
             self.client.stop_streaming()
         self.streaming_active = False
         self.stream_var.set(False)
-        self.stream_label.config(text="")
+        self.stream_label.configure(text="")
     
     def _on_price_update(self, market_id, runners_data):
         """Handle streaming price update."""
@@ -2170,11 +2167,11 @@ class PickfairApp:
         self.live_mode = not self.live_mode
         
         if self.live_mode:
-            self.live_btn.config(bg='#28a745', text="LIVE ON")
+            self.live_btn.configure(fg_color=COLORS['success'], text="LIVE ON")
             self._load_live_events()
             self._start_live_refresh()
         else:
-            self.live_btn.config(bg='#dc3545', text="LIVE")
+            self.live_btn.configure(fg_color=COLORS['loss'], text="LIVE")
             self._stop_live_refresh()
             self._load_events()  # Load all events
     
@@ -5120,21 +5117,21 @@ class PickfairApp:
         self.simulation_mode = not self.simulation_mode
         
         if self.simulation_mode:
-            self.sim_btn.config(bg='#9c27b0', text="SIMULAZIONE ON")
+            self.sim_btn.configure(fg_color='#9c27b0', text="SIMULAZIONE ON")
             self.root.title(f"{APP_NAME} v{APP_VERSION} - MODALITA SIMULAZIONE")
             sim_settings = self.db.get_simulation_settings()
             if sim_settings:
                 balance = sim_settings.get('virtual_balance', 1000)
-                self.sim_balance_label.config(text=f"Saldo Virtuale: {format_currency(balance)}")
+                self.sim_balance_label.configure(text=f"Saldo Virtuale: {format_currency(balance)}")
             messagebox.showinfo("Simulazione Attiva", 
                 "Modalita simulazione attivata!\n\n"
                 "Le scommesse NON saranno piazzate su Betfair.\n"
                 "Userai soldi virtuali per testare strategie.\n\n"
                 "Le quote sono REALI da Betfair Exchange.")
         else:
-            self.sim_btn.config(bg='#6c757d', text="SIMULAZIONE")
+            self.sim_btn.configure(fg_color=COLORS['button_secondary'], text="SIMULAZIONE")
             self.root.title(f"{APP_NAME} v{APP_VERSION}")
-            self.sim_balance_label.config(text="")
+            self.sim_balance_label.configure(text="")
     
     def _update_simulation_balance_display(self):
         """Update simulation balance display."""
@@ -5142,7 +5139,7 @@ class PickfairApp:
             sim_settings = self.db.get_simulation_settings()
             if sim_settings:
                 balance = sim_settings.get('virtual_balance', 1000)
-                self.sim_balance_label.config(text=f"Saldo Virtuale: {format_currency(balance)}")
+                self.sim_balance_label.configure(text=f"Saldo Virtuale: {format_currency(balance)}")
     
     def _show_simulation_dashboard(self):
         """Show simulation statistics dashboard."""
