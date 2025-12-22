@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.9"
+APP_VERSION = "3.13.10"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -142,7 +142,6 @@ class PickfairApp:
         telegram_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Telegram", menu=telegram_menu)
         telegram_menu.add_command(label="Configura Telegram", command=self._show_telegram_settings)
-        telegram_menu.add_command(label="Gestisci Chat", command=self._show_telegram_chats)
         telegram_menu.add_command(label="Segnali Ricevuti", command=self._show_telegram_signals)
         telegram_menu.add_separator()
         telegram_menu.add_command(label="Avvia Listener", command=self._start_telegram_listener)
