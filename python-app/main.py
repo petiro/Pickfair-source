@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.16"
+APP_VERSION = "3.13.17"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2438,6 +2438,7 @@ class PickfairApp:
         ttk.Entry(auth_frame, textvariable=self.tg_2fa_var, width=10, show='*').pack(side=tk.LEFT, padx=2)
         ttk.Button(auth_frame, text="Invia Codice", command=self._send_telegram_code).pack(side=tk.LEFT, padx=5)
         ttk.Button(auth_frame, text="Verifica", command=self._verify_telegram_code).pack(side=tk.LEFT, padx=2)
+        ttk.Button(auth_frame, text="Reset Sessione", command=self._reset_telegram_session).pack(side=tk.LEFT, padx=5)
         
         self.tg_status_label = ttk.Label(config_frame, text=f"Stato: {self.telegram_status}")
         self.tg_status_label.pack(anchor=tk.W, pady=5)
@@ -4438,6 +4439,34 @@ class PickfairApp:
             self.telegram_listener = None
         self.telegram_status = 'STOPPED'
         messagebox.showinfo("Telegram", "Listener Telegram fermato")
+    
+    def _reset_telegram_session(self):
+        """Reset Telegram session to start fresh authentication."""
+        import os
+        session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+        
+        files_to_delete = [
+            session_path + '.session',
+            session_path + '.session-journal',
+        ]
+        
+        deleted = False
+        for f in files_to_delete:
+            if os.path.exists(f):
+                try:
+                    os.remove(f)
+                    deleted = True
+                except:
+                    pass
+        
+        self.tg_phone_code_hash = None
+        self.telegram_status = 'AUTH_REQUIRED'
+        self.tg_status_label.config(text="Stato: AUTH_REQUIRED")
+        
+        if deleted:
+            messagebox.showinfo("Reset", "Sessione Telegram eliminata. Ora clicca 'Invia Codice'.")
+        else:
+            messagebox.showinfo("Reset", "Nessuna sessione da eliminare. Clicca 'Invia Codice'.")
     
     def _send_telegram_code(self):
         """Send authentication code to Telegram."""
