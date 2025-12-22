@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.11"
+APP_VERSION = "3.13.12"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2416,6 +2416,17 @@ class PickfairApp:
         self.tg_confirm_var = tk.BooleanVar(value=bool(settings.get('require_confirmation', 1)))
         ttk.Checkbutton(config_frame, text="Richiedi conferma (solo se auto OFF)", variable=self.tg_confirm_var).pack(anchor=tk.W)
         
+        auth_frame = ttk.Frame(config_frame)
+        auth_frame.pack(fill=tk.X, pady=(5, 0))
+        ttk.Label(auth_frame, text="Codice:").pack(side=tk.LEFT)
+        self.tg_code_var = tk.StringVar()
+        ttk.Entry(auth_frame, textvariable=self.tg_code_var, width=8).pack(side=tk.LEFT, padx=2)
+        ttk.Label(auth_frame, text="2FA:").pack(side=tk.LEFT, padx=(10, 0))
+        self.tg_2fa_var = tk.StringVar()
+        ttk.Entry(auth_frame, textvariable=self.tg_2fa_var, width=10, show='*').pack(side=tk.LEFT, padx=2)
+        ttk.Button(auth_frame, text="Invia Codice", command=self._send_telegram_code).pack(side=tk.LEFT, padx=5)
+        ttk.Button(auth_frame, text="Verifica", command=self._verify_telegram_code).pack(side=tk.LEFT, padx=2)
+        
         self.tg_status_label = ttk.Label(config_frame, text=f"Stato: {self.telegram_status}")
         self.tg_status_label.pack(anchor=tk.W, pady=5)
         
@@ -4408,6 +4419,104 @@ class PickfairApp:
             self.telegram_listener = None
         self.telegram_status = 'STOPPED'
         messagebox.showinfo("Telegram", "Listener Telegram fermato")
+    
+    def _send_telegram_code(self):
+        """Send authentication code to Telegram."""
+        settings = self.db.get_telegram_settings()
+        if not settings or not settings.get('api_id') or not settings.get('api_hash'):
+            messagebox.showwarning("Attenzione", "Configura prima API ID e Hash")
+            return
+        
+        phone = self.tg_phone_var.get().strip()
+        if not phone:
+            messagebox.showwarning("Attenzione", "Inserisci il numero di telefono")
+            return
+        
+        self.tg_status_label.config(text="Stato: Invio codice...")
+        
+        def send_thread():
+            try:
+                import asyncio
+                import os
+                from telethon.sync import TelegramClient
+                
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                api_id = int(settings['api_id'])
+                api_hash = settings['api_hash'].strip()
+                session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+                
+                client = TelegramClient(session_path, api_id, api_hash)
+                client.connect()
+                
+                result = client.send_code_request(phone)
+                self.tg_phone_code_hash = getattr(result, 'phone_code_hash', None)
+                
+                client.disconnect()
+                
+                self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Codice inviato! Inserisci e clicca Verifica"))
+            except Exception as e:
+                self.root.after(0, lambda: self.tg_status_label.config(text=f"Stato: Errore: {str(e)[:40]}"))
+        
+        threading.Thread(target=send_thread, daemon=True).start()
+    
+    def _verify_telegram_code(self):
+        """Verify the Telegram authentication code."""
+        settings = self.db.get_telegram_settings()
+        if not settings:
+            return
+        
+        code = self.tg_code_var.get().strip()
+        if not code:
+            messagebox.showwarning("Attenzione", "Inserisci il codice ricevuto")
+            return
+        
+        phone = self.tg_phone_var.get().strip()
+        password = self.tg_2fa_var.get().strip()
+        
+        self.tg_status_label.config(text="Stato: Verifica in corso...")
+        
+        def verify_thread():
+            try:
+                import asyncio
+                import os
+                from telethon.sync import TelegramClient
+                
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                api_id = int(settings['api_id'])
+                api_hash = settings['api_hash'].strip()
+                session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+                
+                client = TelegramClient(session_path, api_id, api_hash)
+                client.connect()
+                
+                phone_hash = getattr(self, 'tg_phone_code_hash', None)
+                if phone_hash:
+                    client.sign_in(phone, code, phone_code_hash=phone_hash)
+                else:
+                    client.sign_in(phone, code)
+                
+                if not client.is_user_authorized() and password:
+                    client.sign_in(password=password)
+                
+                if client.is_user_authorized():
+                    client.disconnect()
+                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: CONNECTED"))
+                    self.root.after(0, lambda: messagebox.showinfo("Telegram", "Autenticazione completata!"))
+                else:
+                    client.disconnect()
+                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Autenticazione fallita"))
+            except Exception as e:
+                err = str(e)
+                if '2fa' in err.lower() or 'password' in err.lower():
+                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Inserisci password 2FA"))
+                else:
+                    self.root.after(0, lambda: self.tg_status_label.config(text=f"Stato: Errore: {err[:40]}"))
+        
+        threading.Thread(target=verify_thread, daemon=True).start()
     
     def _notify_new_signal(self, signal):
         """Notify user of new betting signal."""
