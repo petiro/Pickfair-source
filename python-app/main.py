@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.6"
+APP_VERSION = "3.13.7"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -4472,9 +4472,13 @@ class PickfairApp:
             def on_status(status, message):
                 self.telegram_status = status
                 if status == 'AUTH_REQUIRED':
-                    self.root.after(0, self._show_telegram_auth)
+                    if settings.get('session_string'):
+                        self.root.after(0, lambda: messagebox.showwarning("Telegram", 
+                            "Sessione scaduta. Vai su Strumenti > Telegram per ri-autenticarti."))
+                    else:
+                        self.root.after(0, self._show_telegram_auth)
                 elif status == 'CONNECTED':
-                    self.root.after(0, lambda: messagebox.showinfo("Telegram", "Connesso a Telegram"))
+                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: CONNECTED"))
             
             self.telegram_listener.set_callbacks(on_signal=on_signal, on_status=on_status)
             self.telegram_listener.start()
