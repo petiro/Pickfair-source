@@ -2231,11 +2231,18 @@ class PickfairApp:
         
         self.dashboard_cashout_frame = ttk.Frame(self.dashboard_notebook, padding=10)
         self.dashboard_notebook.add(self.dashboard_cashout_frame, text="Cashout")
+        
+        self.dashboard_simulation_frame = ttk.Frame(self.dashboard_notebook, padding=10)
+        self.dashboard_notebook.add(self.dashboard_simulation_frame, text="Simulate")
     
     def _refresh_dashboard_tab(self):
         """Refresh dashboard tab data."""
+        for widget in self.dashboard_simulation_frame.winfo_children():
+            widget.destroy()
+        self._create_simulation_bets_list(self.dashboard_simulation_frame)
+        
         if not self.client:
-            self.dashboard_not_connected.config(text="Connettiti a Betfair per vedere i dati")
+            self.dashboard_not_connected.config(text="Connettiti a Betfair per dati account (Simulate sempre visibili)")
             return
         
         self.dashboard_not_connected.config(text="")
@@ -2301,6 +2308,60 @@ class PickfairApp:
             self._create_cashout_view(self.dashboard_cashout_frame, None)
         
         threading.Thread(target=fetch_data, daemon=True).start()
+    
+    def _create_simulation_bets_list(self, parent):
+        """Create list of simulation bets."""
+        sim_bets = self.db.get_simulation_bets(limit=50)
+        sim_settings = self.db.get_simulation_settings()
+        
+        if sim_settings:
+            balance = sim_settings.get('current_balance', 1000)
+            starting = sim_settings.get('starting_balance', 1000)
+            pl = balance - starting
+            pl_text = f"+{pl:.2f}" if pl >= 0 else f"{pl:.2f}"
+            info_frame = ttk.Frame(parent)
+            info_frame.pack(fill=tk.X, pady=(0, 10))
+            ttk.Label(info_frame, text=f"Saldo Simulato: {balance:.2f} EUR", 
+                     font=('Segoe UI', 10, 'bold')).pack(side=tk.LEFT)
+            ttk.Label(info_frame, text=f"  |  P/L: {pl_text} EUR", 
+                     foreground='#28a745' if pl >= 0 else '#dc3545').pack(side=tk.LEFT)
+        
+        columns = ('data', 'evento', 'mercato', 'tipo', 'stake', 'profitto')
+        tree = ttk.Treeview(parent, columns=columns, show='headings', height=12)
+        tree.heading('data', text='Data')
+        tree.heading('evento', text='Evento')
+        tree.heading('mercato', text='Mercato')
+        tree.heading('tipo', text='Tipo')
+        tree.heading('stake', text='Stake')
+        tree.heading('profitto', text='Profitto')
+        tree.column('data', width=100)
+        tree.column('evento', width=150)
+        tree.column('mercato', width=120)
+        tree.column('tipo', width=50)
+        tree.column('stake', width=70)
+        tree.column('profitto', width=80)
+        
+        scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        if not sim_bets:
+            ttk.Label(parent, text="Nessuna scommessa simulata", font=('Segoe UI', 10)).pack(pady=20)
+        
+        for bet in sim_bets:
+            placed_at = bet.get('placed_at', '')[:16] if bet.get('placed_at') else ''
+            profit = bet.get('potential_profit', 0)
+            profit_display = f"+{profit:.2f}" if profit and profit > 0 else f"{profit:.2f}" if profit else "-"
+            
+            tree.insert('', tk.END, values=(
+                placed_at,
+                bet.get('event_name', '')[:25],
+                bet.get('market_name', '')[:20],
+                bet.get('side', ''),
+                f"{bet.get('total_stake', 0):.2f}",
+                profit_display
+            ))
     
     def _create_telegram_tab(self):
         """Create Telegram tab content."""
