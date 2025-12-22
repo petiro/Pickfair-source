@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.15"
+APP_VERSION = "3.13.16"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -4452,6 +4452,10 @@ class PickfairApp:
             messagebox.showwarning("Attenzione", "Inserisci il numero di telefono")
             return
         
+        if not phone.startswith('+'):
+            phone = '+' + phone
+            self.tg_phone_var.set(phone)
+        
         self.tg_status_label.config(text="Stato: Invio codice...")
         
         def send_thread():
@@ -4468,19 +4472,31 @@ class PickfairApp:
                     client = TelegramClient(session_path, api_id, api_hash)
                     await client.connect()
                     
+                    if await client.is_user_authorized():
+                        await client.disconnect()
+                        return "ALREADY_AUTH"
+                    
                     result = await client.send_code_request(phone)
                     self.tg_phone_code_hash = result.phone_code_hash
-                    self.tg_auth_client = client
+                    await client.disconnect()
                     
-                    return True
+                    return "SENT"
                 
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                loop.run_until_complete(do_send())
+                result = loop.run_until_complete(do_send())
+                loop.close()
                 
-                self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Codice inviato! Inserisci e clicca Verifica"))
+                if result == "ALREADY_AUTH":
+                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Gia autenticato!"))
+                    self.root.after(0, lambda: messagebox.showinfo("Telegram", "Sei gia autenticato! Clicca 'Carica/Aggiorna Chat'."))
+                else:
+                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Codice inviato! Inserisci e clicca Verifica"))
+                    self.root.after(0, lambda: messagebox.showinfo("Telegram", "Codice inviato! Controlla Telegram e inseriscilo nel campo 'Codice'."))
             except Exception as e:
-                self.root.after(0, lambda: self.tg_status_label.config(text=f"Stato: Errore: {str(e)[:50]}"))
+                err = str(e)
+                self.root.after(0, lambda: self.tg_status_label.config(text=f"Stato: Errore: {err[:50]}"))
+                self.root.after(0, lambda: messagebox.showerror("Errore Telegram", f"Errore: {err}"))
         
         threading.Thread(target=send_thread, daemon=True).start()
     
