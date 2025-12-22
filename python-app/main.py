@@ -4086,29 +4086,64 @@ class PickfairApp:
             return
         
         event_name = signal.get('event', '')
+        league = signal.get('league', '')
         over_line = signal.get('over_line')
         stake = float(settings.get('auto_stake', 1.0))
         
         if not event_name or over_line is None:
             return
         
+        def log_failed_bet(reason):
+            self.db.save_telegram_signal(
+                signal.get('chat_id', ''),
+                signal.get('sender_id', ''),
+                signal.get('raw_text', ''),
+                {**signal, 'auto_bet_status': 'FAILED', 'auto_bet_reason': reason}
+            )
+        
         try:
             events = self.client.get_live_events('1')
             
             matched_event = None
             event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ')
+            league_lower = league.lower() if league else ''
+            
+            league_country = ''
+            if league_lower:
+                for country in ['greek', 'italian', 'spanish', 'english', 'german', 'french', 
+                               'portuguese', 'dutch', 'belgian', 'turkish', 'russian', 'polish',
+                               'grecia', 'italia', 'spagna', 'inghilterra', 'germania', 'francia']:
+                    if country in league_lower:
+                        league_country = country
+                        break
+            
+            best_match = None
+            best_score = 0
             
             for event in events:
                 event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ')
+                competition = event.get('competition', {}).get('name', '').lower()
+                
                 words_signal = set(event_lower.split())
                 words_event = set(event_search.split())
                 common = words_signal & words_event
-                if len(common) >= 2:
-                    matched_event = event
-                    break
+                match_score = len(common)
+                
+                if league_country and league_country in competition:
+                    match_score += 1
+                
+                if match_score > best_score and match_score >= 2:
+                    best_score = match_score
+                    best_match = event
+            
+            matched_event = best_match
             
             if not matched_event:
-                messagebox.showwarning("Auto-Bet", f"Evento non trovato: {event_name}")
+                reason = f"Evento non trovato: {event_name}"
+                if league:
+                    reason += f" ({league})"
+                log_failed_bet(reason)
+                messagebox.showwarning("Auto-Bet", reason)
                 return
             
             markets = self.client.get_markets(matched_event['id'])
@@ -4131,7 +4166,9 @@ class PickfairApp:
                         break
             
             if not over_under_market:
-                messagebox.showwarning("Auto-Bet", f"Mercato Over/Under {target_line} non trovato")
+                reason = f"Mercato Over/Under {target_line} non trovato per {matched_event['name']}"
+                log_failed_bet(reason)
+                messagebox.showwarning("Auto-Bet", reason)
                 return
             
             market_book = self.client.get_market_prices(over_under_market['marketId'])
@@ -4155,7 +4192,9 @@ class PickfairApp:
                     break
             
             if not over_runner:
-                messagebox.showwarning("Auto-Bet", "Selezione Over non trovata nel mercato")
+                reason = f"Selezione Over non disponibile per {matched_event['name']}"
+                log_failed_bet(reason)
+                messagebox.showwarning("Auto-Bet", reason)
                 return
             
             bet_info = (
@@ -4197,9 +4236,12 @@ class PickfairApp:
                     messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bet_info}")
                 else:
                     error = result.get('errorCode', 'UNKNOWN')
+                    reason = f"Errore Betfair: {error}"
+                    log_failed_bet(reason)
                     messagebox.showerror("Auto-Bet Errore", f"Errore piazzamento: {error}")
         
         except Exception as e:
+            log_failed_bet(f"Eccezione: {str(e)}")
             messagebox.showerror("Auto-Bet Errore", f"Errore: {str(e)}")
     
     def _show_multi_market_monitor(self):

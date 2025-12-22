@@ -43,6 +43,7 @@ class TelegramListener:
         """Default regex patterns for parsing betting signals."""
         return {
             'event': r'🆚\s*(.+?)(?:\n|$)',
+            'league': r'🏆\s*(.+?)(?:\n|$)',
             'score': r'(\d+)\s*[-–]\s*(\d+)',
             'time': r'(\d+)m',
             'odds': r'@?\s*(\d+[.,]\d+)',
@@ -82,6 +83,7 @@ class TelegramListener:
             'raw_text': text,
             'timestamp': datetime.now().isoformat(),
             'event': None,
+            'league': None,
             'side': None,
             'selection': None,
             'market_type': None,
@@ -96,6 +98,10 @@ class TelegramListener:
         event_match = re.search(self.signal_patterns['event'], text)
         if event_match:
             signal['event'] = event_match.group(1).strip()
+        
+        league_match = re.search(self.signal_patterns['league'], text)
+        if league_match:
+            signal['league'] = league_match.group(1).strip()
         
         score_match = re.search(self.signal_patterns['score'], text)
         if score_match:
