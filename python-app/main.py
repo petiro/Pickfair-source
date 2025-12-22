@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.14"
+APP_VERSION = "3.13.15"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2552,53 +2552,60 @@ class PickfairApp:
         def fetch_dialogs():
             try:
                 import asyncio
-                from telethon.sync import TelegramClient
+                import os
+                from telethon import TelegramClient
                 from telethon.tl.types import Channel, Chat, User
+                
+                async def do_fetch():
+                    api_id = int(settings['api_id'])
+                    api_hash = settings['api_hash'].strip()
+                    session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+                    
+                    client = TelegramClient(session_path, api_id, api_hash)
+                    await client.connect()
+                    
+                    if not await client.is_user_authorized():
+                        await client.disconnect()
+                        return None
+                    
+                    dialogs = await client.get_dialogs()
+                    chat_list = []
+                    
+                    for d in dialogs:
+                        entity = d.entity
+                        chat_type = 'Altro'
+                        
+                        if isinstance(entity, Channel):
+                            chat_type = 'Canale' if entity.broadcast else 'Gruppo'
+                        elif isinstance(entity, Chat):
+                            chat_type = 'Gruppo'
+                        elif isinstance(entity, User):
+                            chat_type = 'Bot' if entity.bot else 'Utente'
+                        
+                        chat_list.append({
+                            'id': d.id,
+                            'name': d.name or str(d.id),
+                            'type': chat_type
+                        })
+                    
+                    await client.disconnect()
+                    return chat_list
                 
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(do_fetch())
+                loop.close()
                 
-                api_id = int(settings['api_id'])
-                api_hash = settings['api_hash']
-                
-                import os
-                session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
-                
-                client = TelegramClient(session_path, api_id, api_hash)
-                client.connect()
-                
-                if not client.is_user_authorized():
-                    client.disconnect()
-                    self.root.after(0, lambda: self.tg_available_status.config(text="Non autenticato - avvia listener"))
+                if result is None:
+                    self.root.after(0, lambda: self.tg_available_status.config(text="Non autenticato"))
                     self.root.after(0, lambda: messagebox.showwarning("Attenzione", 
-                        "Non autenticato. Avvia il listener per autenticarti."))
-                    return
-                
-                dialogs = client.get_dialogs()
-                chat_list = []
-                
-                for d in dialogs:
-                    entity = d.entity
-                    chat_type = 'Altro'
-                    
-                    if isinstance(entity, Channel):
-                        chat_type = 'Canale' if entity.broadcast else 'Gruppo'
-                    elif isinstance(entity, Chat):
-                        chat_type = 'Gruppo'
-                    elif isinstance(entity, User):
-                        chat_type = 'Bot' if entity.bot else 'Utente'
-                    
-                    chat_list.append({
-                        'id': d.id,
-                        'name': d.name or str(d.id),
-                        'type': chat_type
-                    })
-                
-                client.disconnect()
-                self.root.after(0, lambda: self._populate_available_chats(chat_list))
+                        "Non autenticato. Clicca 'Invia Codice' e poi 'Verifica'."))
+                else:
+                    self.root.after(0, lambda: self._populate_available_chats(result))
                 
             except Exception as e:
-                self.root.after(0, lambda: self.tg_available_status.config(text=f"Errore: {str(e)[:30]}"))
+                err = str(e)
+                self.root.after(0, lambda: self.tg_available_status.config(text=f"Errore: {err[:30]}"))
         
         threading.Thread(target=fetch_dialogs, daemon=True).start()
     
