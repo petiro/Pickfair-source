@@ -1,34 +1,79 @@
-# Replit.md
+# Pickfair - Betfair Exchange Trading Application
 
 ## Overview
 
-This appears to be a new or empty repository with no existing codebase. The project structure and architecture have not yet been established. This document will be updated as the project develops to reflect architectural decisions and implementation details.
+Pickfair is a Windows desktop application for automated sports betting through Betfair Exchange Italy API. Built with Python, it features advanced dutching, live betting, Telegram integration, and a modern dark trading interface.
+
+**Current Version**: v3.14.0 (CustomTkinter UI conversion in progress)
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+- Communication: Simple, everyday language (Italian)
+- Design: Dark trading interface with professional aesthetics
+- **No popup windows**: All functionality must be in tabs
+- Colors: BACK (blue #1e88e5), LAY (pink #e5399b), profit (green), loss (red)
 
 ## System Architecture
 
-No architecture has been established yet. As the project develops, this section will document:
+### UI Framework
+- **CustomTkinter** (ctk) for modern dark theme widgets
+- **ttk** for Treeview and complex widgets (no CTk equivalent)
+- Tab-based interface using CTkTabview
+- Dark theme configuration in `theme.py`
 
-- **Frontend Framework** - The chosen UI framework and component architecture
-- **Backend Structure** - Server-side implementation and API design
-- **Data Layer** - Database choice and ORM/query patterns
-- **Authentication** - User authentication and session management approach
-- **State Management** - How application state is handled
+### Core Modules
+- `main.py` - Main application with UI and trading logic
+- `betfair_client.py` - Betfair Exchange API integration
+- `telegram_listener.py` - Telegram chat monitoring with Telethon
+- `database.py` - SQLite database operations
+- `dutching.py` - Dutching calculations (BACK/LAY mixed)
+- `auto_updater.py` - Automatic update system
+- `theme.py` - Dark theme colors and configuration
 
-When making architectural decisions, prefer:
-1. Simple, maintainable solutions over complex abstractions
-2. Well-documented libraries with active community support
-3. Patterns that scale appropriately for the project's needs
+### Data Storage
+- **SQLite database**: `%APPDATA%\Pickfair\pickfair.db` (1-5 MB)
+- **Telegram session**: `%APPDATA%\Pickfair\telegram_session`
 
-## External Dependencies
+## Theme Colors (from theme.py)
 
-No external dependencies have been configured yet. This section will track:
+```python
+COLORS = {
+    'bg_dark': '#0b111a',
+    'bg_card': '#111827',
+    'bg_hover': '#1f2937',
+    'back': '#1e88e5',      # Blue for BACK bets
+    'lay': '#e5399b',       # Pink for LAY bets
+    'success': '#10b981',   # Green for profit
+    'loss': '#ef4444',      # Red for loss
+    'text': '#f3f4f6',
+    'text_secondary': '#9ca3af'
+}
+```
 
-- **Third-party APIs** - External services the application integrates with
-- **Database Services** - Data storage solutions
-- **Authentication Providers** - OAuth or identity services
-- **Cloud Services** - Hosting, storage, or compute resources
-- **Package Dependencies** - Key libraries and frameworks used
+## Key Features
+
+- **Dutching**: Advanced calculations with mixed BACK/LAY support
+- **Live Betting**: Real-time odds streaming
+- **Bet Booking**: Track potential bets before placing
+- **Manual/Auto Cashout**: Position management
+- **Telegram Integration**: Chat monitoring and auto-bet placement
+- **Multi-Market Monitoring**: Track multiple events
+- **Simulation Mode**: Test strategies with virtual balance
+- **Italian Compliance**: 4.5% commission handling
+
+## Recent Changes (December 2024)
+
+- **v3.14.0**: Started CustomTkinter conversion
+  - Converted main window (CTk)
+  - Converted tab system (CTkTabview)
+  - Converted status bar with CTkButton/CTkLabel
+  - Updated all .config() to .configure() for CTk widgets
+  - Dark theme with proper color palette
+
+## Dependencies
+
+- customtkinter - Modern dark UI widgets
+- betfairlightweight - Betfair Exchange API
+- telethon - Telegram client
+- numpy - Calculations
+- PyInstaller - Executable packaging
