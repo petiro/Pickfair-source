@@ -4,6 +4,7 @@ Monitors specified channels/groups/chats and parses betting signals.
 """
 
 import re
+import os
 import asyncio
 import threading
 from datetime import datetime
@@ -15,7 +16,7 @@ from telethon.sessions import StringSession
 class TelegramListener:
     """Listens to Telegram messages and triggers bet placement."""
     
-    def __init__(self, api_id: int, api_hash: str, session_string: str = None):
+    def __init__(self, api_id: int, api_hash: str, session_string: str = None, session_path: str = None):
         """
         Initialize Telegram listener.
         
@@ -23,10 +24,12 @@ class TelegramListener:
             api_id: Telegram API ID (from my.telegram.org)
             api_hash: Telegram API Hash
             session_string: Optional saved session string for persistent login
+            session_path: Optional path to session file (preferred over session_string)
         """
         self.api_id = api_id
         self.api_hash = api_hash
         self.session_string = session_string
+        self.session_path = session_path
         self.client: Optional[TelegramClient] = None
         self.running = False
         self.loop = None
@@ -159,15 +162,22 @@ class TelegramListener:
     async def _connect(self):
         """Connect to Telegram."""
         try:
-            if self.session_string:
+            if self.session_path:
+                self.client = TelegramClient(
+                    self.session_path,
+                    self.api_id,
+                    self.api_hash
+                )
+            elif self.session_string:
                 self.client = TelegramClient(
                     StringSession(self.session_string),
                     self.api_id,
                     self.api_hash
                 )
             else:
+                session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
                 self.client = TelegramClient(
-                    StringSession(),
+                    session_path,
                     self.api_id,
                     self.api_hash
                 )

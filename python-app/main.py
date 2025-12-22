@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.17"
+APP_VERSION = "3.13.18"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -4393,10 +4393,12 @@ class PickfairApp:
             return
         
         try:
+            import os
+            session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
             self.telegram_listener = TelegramListener(
                 api_id=int(settings['api_id']),
                 api_hash=settings['api_hash'],
-                session_string=settings.get('session_string')
+                session_path=session_path
             )
             
             chats = self.db.get_telegram_chats()
