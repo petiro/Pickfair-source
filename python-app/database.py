@@ -61,6 +61,12 @@ class Database:
         except sqlite3.OperationalError:
             pass  # Column already exists
         
+        # Add auto_update column for auto-update setting
+        try:
+            cursor.execute('ALTER TABLE settings ADD COLUMN auto_update INTEGER DEFAULT 1')
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+        
         # Add auto_stake column for telegram auto-betting
         try:
             cursor.execute('ALTER TABLE telegram_settings ADD COLUMN auto_stake REAL DEFAULT 1.0')
@@ -783,3 +789,24 @@ class Database:
             'total_lost': settings['total_lost'],
             'win_rate': (settings['total_won'] / settings['total_bets'] * 100) if settings['total_bets'] > 0 else 0
         }
+    
+    def get_auto_update_enabled(self):
+        """Get auto-update enabled setting."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT auto_update FROM settings LIMIT 1')
+        row = cursor.fetchone()
+        conn.close()
+        return bool(row[0]) if row else True
+    
+    def set_auto_update_enabled(self, enabled):
+        """Set auto-update enabled setting."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM settings')
+        if cursor.fetchone()[0] > 0:
+            cursor.execute('UPDATE settings SET auto_update = ?', (1 if enabled else 0,))
+        else:
+            cursor.execute('INSERT INTO settings (auto_update) VALUES (?)', (1 if enabled else 0,))
+        conn.commit()
+        conn.close()

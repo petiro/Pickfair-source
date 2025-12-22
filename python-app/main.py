@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.12.2"
+APP_VERSION = "3.13.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -180,12 +180,20 @@ class PickfairApp:
         self.telegram_tab = ttk.Frame(self.main_notebook)
         self.main_notebook.add(self.telegram_tab, text="Telegram")
         
+        self.strumenti_tab = ttk.Frame(self.main_notebook)
+        self.main_notebook.add(self.strumenti_tab, text="Strumenti")
+        
+        self.impostazioni_tab = ttk.Frame(self.main_notebook)
+        self.main_notebook.add(self.impostazioni_tab, text="Impostazioni")
+        
         self._create_events_panel(self.trading_tab)
         self._create_market_panel(self.trading_tab)
         self._create_dutching_panel(self.trading_tab)
         
         self._create_dashboard_tab()
         self._create_telegram_tab()
+        self._create_strumenti_tab()
+        self._create_impostazioni_tab()
     
     def _create_status_bar(self):
         """Create status bar with connection info and mode buttons."""
@@ -1016,6 +1024,9 @@ class PickfairApp:
         
         # Start session keep-alive to prevent disconnection
         self._start_session_keepalive()
+        
+        # Refresh dashboard tab with connected data
+        self._refresh_dashboard_tab()
     
     def _start_session_keepalive(self):
         """Start periodic session keep-alive to prevent timeout."""
@@ -2315,7 +2326,7 @@ class PickfairApp:
         sim_settings = self.db.get_simulation_settings()
         
         if sim_settings:
-            balance = sim_settings.get('current_balance', 1000)
+            balance = sim_settings.get('virtual_balance', 1000)
             starting = sim_settings.get('starting_balance', 1000)
             pl = balance - starting
             pl_text = f"+{pl:.2f}" if pl >= 0 else f"{pl:.2f}"
@@ -2504,6 +2515,124 @@ class PickfairApp:
                 side,
                 status
             ), tags=(tag,) if tag else ())
+    
+    def _create_strumenti_tab(self):
+        """Create Strumenti tab content."""
+        main_frame = ttk.Frame(self.strumenti_tab, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(main_frame, text="Strumenti", style='Title.TLabel').pack(anchor=tk.W, pady=(0, 20))
+        
+        tools_frame = ttk.LabelFrame(main_frame, text="Strumenti di Trading", padding=15)
+        tools_frame.pack(fill=tk.X, pady=10)
+        
+        btn_frame1 = ttk.Frame(tools_frame)
+        btn_frame1.pack(fill=tk.X, pady=5)
+        ttk.Button(btn_frame1, text="Multi-Market Monitor", command=self._show_multi_market_monitor).pack(side=tk.LEFT, padx=5)
+        ttk.Label(btn_frame1, text="Monitora piu mercati contemporaneamente", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
+        
+        btn_frame2 = ttk.Frame(tools_frame)
+        btn_frame2.pack(fill=tk.X, pady=5)
+        ttk.Button(btn_frame2, text="Filtri Avanzati", command=self._show_advanced_filters).pack(side=tk.LEFT, padx=5)
+        ttk.Label(btn_frame2, text="Configura filtri per eventi e mercati", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
+        
+        sim_frame = ttk.LabelFrame(main_frame, text="Simulazione", padding=15)
+        sim_frame.pack(fill=tk.X, pady=10)
+        
+        btn_frame3 = ttk.Frame(sim_frame)
+        btn_frame3.pack(fill=tk.X, pady=5)
+        ttk.Button(btn_frame3, text="Dashboard Simulazione", command=self._show_simulation_dashboard).pack(side=tk.LEFT, padx=5)
+        ttk.Label(btn_frame3, text="Visualizza statistiche simulazione", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
+        
+        btn_frame4 = ttk.Frame(sim_frame)
+        btn_frame4.pack(fill=tk.X, pady=5)
+        ttk.Button(btn_frame4, text="Reset Simulazione", command=self._reset_simulation).pack(side=tk.LEFT, padx=5)
+        ttk.Label(btn_frame4, text="Azzera saldo e storico simulazione", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
+        
+        sim_status = ttk.Frame(sim_frame)
+        sim_status.pack(fill=tk.X, pady=10)
+        sim_settings = self.db.get_simulation_settings()
+        if sim_settings:
+            balance = sim_settings.get('virtual_balance', 1000)
+            starting = sim_settings.get('starting_balance', 1000)
+            pl = balance - starting
+            pl_text = f"+{pl:.2f}" if pl >= 0 else f"{pl:.2f}"
+            ttk.Label(sim_status, text=f"Saldo Simulato: {balance:.2f} EUR  |  P/L: {pl_text} EUR", 
+                     font=('Segoe UI', 10, 'bold')).pack(anchor=tk.W)
+    
+    def _create_impostazioni_tab(self):
+        """Create Impostazioni tab content."""
+        main_frame = ttk.Frame(self.impostazioni_tab, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(main_frame, text="Impostazioni", style='Title.TLabel').pack(anchor=tk.W, pady=(0, 20))
+        
+        cred_frame = ttk.LabelFrame(main_frame, text="Credenziali Betfair", padding=15)
+        cred_frame.pack(fill=tk.X, pady=10)
+        
+        settings = self.db.get_settings() or {}
+        
+        ttk.Label(cred_frame, text="Username:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        self.settings_username_var = tk.StringVar(value=settings.get('username', ''))
+        ttk.Entry(cred_frame, textvariable=self.settings_username_var, width=30).grid(row=0, column=1, pady=2, padx=5)
+        
+        ttk.Label(cred_frame, text="App Key:").grid(row=1, column=0, sticky=tk.W, pady=2)
+        self.settings_appkey_var = tk.StringVar(value=settings.get('app_key', ''))
+        ttk.Entry(cred_frame, textvariable=self.settings_appkey_var, width=40).grid(row=1, column=1, pady=2, padx=5)
+        
+        ttk.Label(cred_frame, text="Certificato (.crt):").grid(row=2, column=0, sticky=tk.W, pady=2)
+        self.settings_cert_var = tk.StringVar(value=settings.get('certificate', ''))
+        cert_frame = ttk.Frame(cred_frame)
+        cert_frame.grid(row=2, column=1, pady=2, padx=5, sticky=tk.W)
+        ttk.Entry(cert_frame, textvariable=self.settings_cert_var, width=35).pack(side=tk.LEFT)
+        ttk.Button(cert_frame, text="...", width=3, command=lambda: self._browse_file(self.settings_cert_var, [("Certificati", "*.crt *.pem")])).pack(side=tk.LEFT, padx=2)
+        
+        ttk.Label(cred_frame, text="Chiave Privata (.key):").grid(row=3, column=0, sticky=tk.W, pady=2)
+        self.settings_key_var = tk.StringVar(value=settings.get('private_key', ''))
+        key_frame = ttk.Frame(cred_frame)
+        key_frame.grid(row=3, column=1, pady=2, padx=5, sticky=tk.W)
+        ttk.Entry(key_frame, textvariable=self.settings_key_var, width=35).pack(side=tk.LEFT)
+        ttk.Button(key_frame, text="...", width=3, command=lambda: self._browse_file(self.settings_key_var, [("Chiavi", "*.key *.pem")])).pack(side=tk.LEFT, padx=2)
+        
+        ttk.Button(cred_frame, text="Salva Credenziali", command=self._save_settings_from_tab).grid(row=4, column=1, pady=10, sticky=tk.W)
+        
+        update_frame = ttk.LabelFrame(main_frame, text="Aggiornamenti", padding=15)
+        update_frame.pack(fill=tk.X, pady=10)
+        
+        self.auto_update_var = tk.BooleanVar(value=self.db.get_auto_update_enabled())
+        ttk.Checkbutton(update_frame, text="Controlla automaticamente aggiornamenti all'avvio", 
+                       variable=self.auto_update_var, command=self._save_auto_update_setting).pack(anchor=tk.W)
+        
+        btn_update_frame = ttk.Frame(update_frame)
+        btn_update_frame.pack(fill=tk.X, pady=10)
+        ttk.Button(btn_update_frame, text="Verifica Aggiornamenti", command=self._check_for_updates).pack(side=tk.LEFT, padx=5)
+        ttk.Label(btn_update_frame, text=f"Versione attuale: {APP_VERSION}", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
+        
+        app_frame = ttk.LabelFrame(main_frame, text="Applicazione", padding=15)
+        app_frame.pack(fill=tk.X, pady=10)
+        
+        ttk.Button(app_frame, text="Esci dall'Applicazione", command=self._on_close).pack(anchor=tk.W)
+    
+    def _save_settings_from_tab(self):
+        """Save settings from Impostazioni tab."""
+        self.db.save_credentials(
+            username=self.settings_username_var.get(),
+            app_key=self.settings_appkey_var.get(),
+            certificate=self.settings_cert_var.get(),
+            private_key=self.settings_key_var.get()
+        )
+        messagebox.showinfo("Salvato", "Credenziali salvate con successo")
+    
+    def _save_auto_update_setting(self):
+        """Save auto-update setting."""
+        self.db.set_auto_update_enabled(self.auto_update_var.get())
+    
+    def _browse_file(self, var, filetypes):
+        """Open file browser and set variable."""
+        from tkinter import filedialog
+        filename = filedialog.askopenfilename(filetypes=filetypes)
+        if filename:
+            var.set(filename)
     
     def _show_dashboard(self):
         """Show dashboard with account info and bets."""
