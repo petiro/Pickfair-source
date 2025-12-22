@@ -4,7 +4,7 @@
 
 Pickfair is a Windows desktop application for automated sports betting through Betfair Exchange Italy API. Built with Python, it features advanced dutching, live betting, Telegram integration, and a modern dark trading interface.
 
-**Current Version**: v3.14.0 (CustomTkinter UI conversion in progress)
+**Current Version**: v3.15.0 (Full CustomTkinter Tab Conversion)
 
 ## User Preferences
 
@@ -63,14 +63,22 @@ COLORS = {
 
 ## Recent Changes (December 2024)
 
-- **v3.14.0**: CustomTkinter conversion COMPLETED
+- **v3.15.0**: Full CustomTkinter Tab Conversion
+  - **Dashboard Tab**: Converted to CTkFrame, CTkLabel, CTkButton with CTkTabview sub-tabs
+  - **Telegram Tab**: Full CTk conversion with CTkFrame panels, CTkEntry inputs, CTkCheckBox, CTkButton
+  - **Strumenti Tab**: Converted to CTkFrame and CTkButton with proper theming
+  - **Impostazioni Tab**: Full CTk conversion with grid layout for credentials form
+  - **Simulazione Tab**: Converted stat cards to CTkFrame with proper color theming
+  - Updated all .config() to .configure() for CTkLabel and CTkButton widgets
+  - Fixed Treeview tag colors to use COLORS dictionary (success/loss)
+  - All tabs now use COLORS and FONTS from theme.py for consistency
+
+- **v3.14.0**: CustomTkinter conversion STARTED
   - Converted main window (CTk) with dark trading theme
   - Converted tab system (CTkTabview)
   - Converted all trading panel buttons (dutch_modal_btn, back_btn, lay_btn, market_cashout_btn) to CTkButton
   - Converted market_status_label to CTkLabel
-  - Updated all .config() to .configure() for CTk widgets with proper parameters
   - Enhanced COLORS palette with info_hover for consistent theming
-  - All colors now reference COLORS dictionary from theme.py
   - Treeview widgets remain ttk (styled via configure_ttk_dark_theme())
 
 ## Dependencies

@@ -19,7 +19,7 @@ from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_U
 from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_theme
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.14.0"
+APP_VERSION = "3.15.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -403,8 +403,8 @@ class PickfairApp:
         self.runners_tree.bind('<Button-3>', self._show_runner_context_menu)  # Right-click
         
         # Style for odds cells to show they're clickable
-        self.runners_tree.tag_configure('clickable_back', foreground='#0066cc')
-        self.runners_tree.tag_configure('clickable_lay', foreground='#cc0066')
+        self.runners_tree.tag_configure('clickable_back', foreground=COLORS['clickable_back'])
+        self.runners_tree.tag_configure('clickable_lay', foreground=COLORS['clickable_lay'])
         
         # Context menu for runners
         self.runner_context_menu = tk.Menu(self.root, tearoff=0)
@@ -1265,18 +1265,18 @@ class PickfairApp:
                 self._load_events()
                 self._update_balance()
                 now = datetime.now().strftime('%H:%M:%S')
-                self.auto_refresh_status.config(text=f"Ultimo: {now}")
+                self.auto_refresh_status.configure(text=f"Ultimo: {now}")
                 self.auto_refresh_id = self.root.after(interval_ms, do_refresh)
         
         self.auto_refresh_id = self.root.after(interval_ms, do_refresh)
-        self.auto_refresh_status.config(text="Attivo")
+        self.auto_refresh_status.configure(text="Attivo")
     
     def _stop_auto_refresh(self):
         """Stop auto-refresh timer."""
         if self.auto_refresh_id:
             self.root.after_cancel(self.auto_refresh_id)
             self.auto_refresh_id = None
-        self.auto_refresh_status.config(text="")
+        self.auto_refresh_status.configure(text="")
     
     def _on_auto_refresh_interval_change(self, event=None):
         """Handle auto-refresh interval change."""
@@ -1305,7 +1305,7 @@ class PickfairApp:
         for evt in self.all_events:
             if evt['id'] == event_id:
                 self.current_event = evt
-                self.event_name_label.config(text=evt['name'])
+                self.event_name_label.configure(text=evt['name'])
                 break
         else:
             return  # Event not found
@@ -1388,11 +1388,11 @@ class PickfairApp:
         if self.market_status == 'SUSPENDED':
             self.market_status_label.configure(text="SOSPESO", text_color=COLORS['loss'])
             self.dutch_modal_btn.configure(state=tk.DISABLED)
-            self.place_btn.config(state=tk.DISABLED)
+            self.place_btn.configure(state=tk.DISABLED)
         elif self.market_status == 'CLOSED':
             self.market_status_label.configure(text="CHIUSO", text_color=COLORS['text_secondary'])
             self.dutch_modal_btn.configure(state=tk.DISABLED)
-            self.place_btn.config(state=tk.DISABLED)
+            self.place_btn.configure(state=tk.DISABLED)
         else:
             if is_inplay:
                 self.market_status_label.configure(text="LIVE - APERTO", text_color=COLORS['success'])
@@ -1786,27 +1786,27 @@ class PickfairApp:
             values[0] = ''
             self.runners_tree.item(item, values=values)
         
-        self.selections_text.config(state=tk.NORMAL)
+        self.selections_text.configure(state=tk.NORMAL)
         self.selections_text.delete('1.0', tk.END)
-        self.selections_text.config(state=tk.DISABLED)
+        self.selections_text.configure(state=tk.DISABLED)
         
-        self.profit_label.config(text="Profitto: -")
-        self.prob_label.config(text="Probabilita Implicita: -")
-        self.place_btn.config(state=tk.DISABLED)
+        self.profit_label.configure(text="Profitto: -")
+        self.prob_label.configure(text="Probabilita Implicita: -")
+        self.place_btn.configure(state=tk.DISABLED)
         self.calculated_results = None
     
     def _recalculate(self):
         """Recalculate dutching stakes."""
         if not self.selected_runners:
-            self.selections_text.config(state=tk.NORMAL)
+            self.selections_text.configure(state=tk.NORMAL)
             self.selections_text.delete('1.0', tk.END)
-            self.selections_text.config(state=tk.DISABLED)
-            self.profit_label.config(text="Profitto: -")
-            self.prob_label.config(text="Probabilita Implicita: -")
-            self.place_btn.config(state=tk.DISABLED)
+            self.selections_text.configure(state=tk.DISABLED)
+            self.profit_label.configure(text="Profitto: -")
+            self.prob_label.configure(text="Probabilita Implicita: -")
+            self.place_btn.configure(state=tk.DISABLED)
             return
         
-        self.selections_text.config(state=tk.NORMAL)
+        self.selections_text.configure(state=tk.NORMAL)
         self.selections_text.delete('1.0', tk.END)
         
         try:
@@ -1848,26 +1848,26 @@ class PickfairApp:
                 # Show both best and worst case for LAY
                 best = results[0].get('bestCase', profit)
                 worst = results[0].get('worstCase', 0)
-                self.profit_label.config(text=f"Profitto Max: {format_currency(best)} | Rischio: {format_currency(worst)}")
+                self.profit_label.configure(text=f"Profitto Max: {format_currency(best)} | Rischio: {format_currency(worst)}")
             else:
-                self.profit_label.config(text=f"Profitto Atteso: {format_currency(profit)}")
-            self.prob_label.config(text=f"Probabilita Implicita: {implied_prob:.1f}%")
+                self.profit_label.configure(text=f"Profitto Atteso: {format_currency(profit)}")
+            self.prob_label.configure(text=f"Probabilita Implicita: {implied_prob:.1f}%")
             
             errors = validate_selections(results, bet_type)
             if not errors:
-                self.place_btn.config(state=tk.NORMAL)
+                self.place_btn.configure(state=tk.NORMAL)
             else:
-                self.place_btn.config(state=tk.DISABLED)
+                self.place_btn.configure(state=tk.DISABLED)
                 self.selections_text.insert(tk.END, "\nErrori:\n" + "\n".join(errors))
             
             self.calculated_results = results
             
         except Exception as e:
             self.selections_text.insert('1.0', f"Errore calcolo: {e}")
-            self.profit_label.config(text="Profitto: -")
-            self.place_btn.config(state=tk.DISABLED)
+            self.profit_label.configure(text="Profitto: -")
+            self.place_btn.configure(state=tk.DISABLED)
         
-        self.selections_text.config(state=tk.DISABLED)
+        self.selections_text.configure(state=tk.DISABLED)
     
     def _place_bets(self):
         """Place the calculated bets (real or simulated)."""
@@ -1924,7 +1924,7 @@ class PickfairApp:
         use_best_price = self.best_price_var.get()
         market_id = self.current_market['marketId']
         
-        self.place_btn.config(state=tk.DISABLED)
+        self.place_btn.configure(state=tk.DISABLED)
         self._placing_in_progress = True
         
         # Handle simulation mode separately
@@ -2063,7 +2063,7 @@ class PickfairApp:
             
             # Update display
             self._update_simulation_balance_display()
-            self.place_btn.config(state=tk.NORMAL)
+            self.place_btn.configure(state=tk.NORMAL)
             
             messagebox.showinfo("Simulazione", 
                 f"Scommessa virtuale piazzata!\n\n"
@@ -2074,13 +2074,13 @@ class PickfairApp:
             self._clear_selections()
             
         except Exception as e:
-            self.place_btn.config(state=tk.NORMAL)
+            self.place_btn.configure(state=tk.NORMAL)
             messagebox.showerror("Errore Simulazione", f"Errore: {e}")
     
     def _on_bets_placed(self, result):
         """Handle successful bet placement."""
         self._placing_in_progress = False
-        self.place_btn.config(state=tk.NORMAL)
+        self.place_btn.configure(state=tk.NORMAL)
         
         if result['status'] == 'SUCCESS':
             matched = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
@@ -2093,7 +2093,7 @@ class PickfairApp:
     def _on_bets_error(self, error):
         """Handle bet placement error."""
         self._placing_in_progress = False
-        self.place_btn.config(state=tk.NORMAL)
+        self.place_btn.configure(state=tk.NORMAL)
         messagebox.showerror("Errore", f"Errore piazzamento: {error}")
     
     def _show_about(self):
@@ -2271,49 +2271,57 @@ class PickfairApp:
     
     def _create_dashboard_tab(self):
         """Create dashboard tab content."""
-        main_frame = ttk.Frame(self.dashboard_tab, padding=20)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main_frame = ctk.CTkFrame(self.dashboard_tab, fg_color='transparent')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        ttk.Label(main_frame, text="Dashboard - Account Betfair Italy", 
-                 style='Title.TLabel').pack(anchor=tk.W, pady=(0, 20))
+        ctk.CTkLabel(main_frame, text="Dashboard - Account Betfair Italy", 
+                     font=FONTS['title'], text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(0, 20))
         
-        self.dashboard_stats_frame = ttk.Frame(main_frame)
+        self.dashboard_stats_frame = ctk.CTkFrame(main_frame, fg_color='transparent')
         self.dashboard_stats_frame.pack(fill=tk.X, pady=10)
         
-        self.dashboard_not_connected = ttk.Label(main_frame, text="Connettiti a Betfair per vedere i dati", 
-                                                  font=('Segoe UI', 11))
+        self.dashboard_not_connected = ctk.CTkLabel(main_frame, text="Connettiti a Betfair per vedere i dati", 
+                                                     font=('Segoe UI', 11), text_color=COLORS['text_secondary'])
         self.dashboard_not_connected.pack(pady=20)
         
-        ttk.Button(main_frame, text="Aggiorna Dashboard", command=self._refresh_dashboard_tab).pack(anchor=tk.E, pady=10)
+        ctk.CTkButton(main_frame, text="Aggiorna Dashboard", command=self._refresh_dashboard_tab,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6).pack(anchor=tk.E, pady=10)
         
-        self.dashboard_notebook = ttk.Notebook(main_frame)
+        # Dashboard sub-tabs (using CTkTabview)
+        self.dashboard_notebook = ctk.CTkTabview(main_frame, fg_color=COLORS['bg_panel'],
+                                                  segmented_button_fg_color=COLORS['bg_card'],
+                                                  segmented_button_selected_color=COLORS['back'],
+                                                  segmented_button_unselected_color=COLORS['bg_card'])
         self.dashboard_notebook.pack(fill=tk.BOTH, expand=True, pady=10)
         
-        self.dashboard_recent_frame = ttk.Frame(self.dashboard_notebook, padding=10)
-        self.dashboard_notebook.add(self.dashboard_recent_frame, text="Scommesse Recenti")
+        self.dashboard_notebook.add("Scommesse Recenti")
+        self.dashboard_notebook.add("Ordini Correnti")
+        self.dashboard_notebook.add("Prenotazioni")
+        self.dashboard_notebook.add("Cashout")
         
-        self.dashboard_orders_frame = ttk.Frame(self.dashboard_notebook, padding=10)
-        self.dashboard_notebook.add(self.dashboard_orders_frame, text="Ordini Correnti")
-        
-        self.dashboard_bookings_frame = ttk.Frame(self.dashboard_notebook, padding=10)
-        self.dashboard_notebook.add(self.dashboard_bookings_frame, text="Prenotazioni")
-        
-        self.dashboard_cashout_frame = ttk.Frame(self.dashboard_notebook, padding=10)
-        self.dashboard_notebook.add(self.dashboard_cashout_frame, text="Cashout")
+        self.dashboard_recent_frame = self.dashboard_notebook.tab("Scommesse Recenti")
+        self.dashboard_orders_frame = self.dashboard_notebook.tab("Ordini Correnti")
+        self.dashboard_bookings_frame = self.dashboard_notebook.tab("Prenotazioni")
+        self.dashboard_cashout_frame = self.dashboard_notebook.tab("Cashout")
     
     def _refresh_dashboard_tab(self):
         """Refresh dashboard tab data."""
         if not self.client:
-            self.dashboard_not_connected.config(text="Connettiti a Betfair per vedere i dati")
+            self.dashboard_not_connected.configure(text="Connettiti a Betfair per vedere i dati")
             return
         
-        self.dashboard_not_connected.config(text="")
+        self.dashboard_not_connected.configure(text="")
         
         def create_stat_card(parent, title, value, subtitle, col):
-            card = ttk.LabelFrame(parent, text=title, padding=10)
+            card = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
             card.grid(row=0, column=col, padx=5, sticky='nsew')
-            ttk.Label(card, text=value, style='Title.TLabel').pack()
-            ttk.Label(card, text=subtitle, font=('Segoe UI', 8)).pack()
+            ctk.CTkLabel(card, text=title, font=('Segoe UI', 9), 
+                        text_color=COLORS['text_secondary']).pack(pady=(10, 2))
+            ctk.CTkLabel(card, text=value, font=FONTS['title'], 
+                        text_color=COLORS['text_primary']).pack()
+            ctk.CTkLabel(card, text=subtitle, font=('Segoe UI', 8), 
+                        text_color=COLORS['text_tertiary']).pack(pady=(2, 10))
             return card
         
         def fetch_data():
@@ -2432,16 +2440,16 @@ class PickfairApp:
     
     def _create_telegram_tab(self):
         """Create Telegram tab content."""
-        main_frame = ttk.Frame(self.telegram_tab, padding=10)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main_frame = ctk.CTkFrame(self.telegram_tab, fg_color='transparent')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        left_container = ttk.Frame(main_frame, width=450)
+        left_container = ctk.CTkFrame(main_frame, fg_color='transparent', width=450)
         left_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 10))
         left_container.pack_propagate(False)
         
-        left_canvas = tk.Canvas(left_container, highlightthickness=0)
+        left_canvas = tk.Canvas(left_container, highlightthickness=0, bg=COLORS['bg_dark'])
         left_scrollbar = ttk.Scrollbar(left_container, orient=tk.VERTICAL, command=left_canvas.yview)
-        left_frame = ttk.Frame(left_canvas)
+        left_frame = ctk.CTkFrame(left_canvas, fg_color='transparent')
         
         left_frame.bind("<Configure>", lambda e: left_canvas.configure(scrollregion=left_canvas.bbox("all")))
         left_canvas.create_window((0, 0), window=left_frame, anchor="nw")
@@ -2450,66 +2458,96 @@ class PickfairApp:
         left_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         left_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        right_frame = ttk.Frame(main_frame)
+        right_frame = ctk.CTkFrame(main_frame, fg_color='transparent')
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         
-        config_frame = ttk.LabelFrame(left_frame, text="Configurazione Telegram", padding=5)
-        config_frame.pack(fill=tk.X, pady=(0, 5))
+        config_frame = ctk.CTkFrame(left_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
+        config_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
         
-        ttk.Label(config_frame, text="Ottieni API ID e Hash su my.telegram.org", 
-                 font=('Segoe UI', 8)).pack(anchor=tk.W)
+        ctk.CTkLabel(config_frame, text="Configurazione Telegram", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
+        ctk.CTkLabel(config_frame, text="Ottieni API ID e Hash su my.telegram.org", 
+                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(anchor=tk.W, padx=10)
         
         settings = self.db.get_telegram_settings() or {}
         
-        ttk.Label(config_frame, text="API ID:").pack(anchor=tk.W, pady=(5, 0))
+        ctk.CTkLabel(config_frame, text="API ID:", text_color=COLORS['text_secondary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
         self.tg_api_id_var = tk.StringVar(value=settings.get('api_id', ''))
-        ttk.Entry(config_frame, textvariable=self.tg_api_id_var, width=30).pack(anchor=tk.W)
+        ctk.CTkEntry(config_frame, textvariable=self.tg_api_id_var, width=200,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(anchor=tk.W, padx=10)
         
-        ttk.Label(config_frame, text="API Hash:").pack(anchor=tk.W, pady=(5, 0))
+        ctk.CTkLabel(config_frame, text="API Hash:", text_color=COLORS['text_secondary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
         self.tg_api_hash_var = tk.StringVar(value=settings.get('api_hash', ''))
-        ttk.Entry(config_frame, textvariable=self.tg_api_hash_var, width=30).pack(anchor=tk.W)
+        ctk.CTkEntry(config_frame, textvariable=self.tg_api_hash_var, width=200,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(anchor=tk.W, padx=10)
         
-        ttk.Label(config_frame, text="Numero di Telefono (+39...):").pack(anchor=tk.W, pady=(5, 0))
+        ctk.CTkLabel(config_frame, text="Numero di Telefono (+39...):", text_color=COLORS['text_secondary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
         self.tg_phone_var = tk.StringVar(value=settings.get('phone_number', ''))
-        ttk.Entry(config_frame, textvariable=self.tg_phone_var, width=20).pack(anchor=tk.W)
+        ctk.CTkEntry(config_frame, textvariable=self.tg_phone_var, width=150,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(anchor=tk.W, padx=10)
         
-        ttk.Label(config_frame, text="Stake Automatico (EUR):").pack(anchor=tk.W, pady=(5, 0))
+        ctk.CTkLabel(config_frame, text="Stake Automatico (EUR):", text_color=COLORS['text_secondary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
         self.tg_auto_stake_var = tk.StringVar(value=str(settings.get('auto_stake', '1.0')))
-        ttk.Entry(config_frame, textvariable=self.tg_auto_stake_var, width=10).pack(anchor=tk.W)
+        ctk.CTkEntry(config_frame, textvariable=self.tg_auto_stake_var, width=80,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(anchor=tk.W, padx=10)
         
         self.tg_auto_bet_var = tk.BooleanVar(value=bool(settings.get('auto_bet', 0)))
-        ttk.Checkbutton(config_frame, text="Piazza automaticamente", variable=self.tg_auto_bet_var).pack(anchor=tk.W, pady=(5, 0))
+        ctk.CTkCheckBox(config_frame, text="Piazza automaticamente", variable=self.tg_auto_bet_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
         
         self.tg_confirm_var = tk.BooleanVar(value=bool(settings.get('require_confirmation', 1)))
-        ttk.Checkbutton(config_frame, text="Richiedi conferma (solo se auto OFF)", variable=self.tg_confirm_var).pack(anchor=tk.W)
+        ctk.CTkCheckBox(config_frame, text="Richiedi conferma (solo se auto OFF)", variable=self.tg_confirm_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10)
         
-        auth_frame = ttk.Frame(config_frame)
-        auth_frame.pack(fill=tk.X, pady=(5, 0))
-        ttk.Label(auth_frame, text="Codice:").pack(side=tk.LEFT)
+        auth_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
+        auth_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
+        ctk.CTkLabel(auth_frame, text="Codice:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
         self.tg_code_var = tk.StringVar()
-        ttk.Entry(auth_frame, textvariable=self.tg_code_var, width=8).pack(side=tk.LEFT, padx=2)
-        ttk.Label(auth_frame, text="2FA:").pack(side=tk.LEFT, padx=(10, 0))
+        ctk.CTkEntry(auth_frame, textvariable=self.tg_code_var, width=60,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=2)
+        ctk.CTkLabel(auth_frame, text="2FA:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=(10, 0))
         self.tg_2fa_var = tk.StringVar()
-        ttk.Entry(auth_frame, textvariable=self.tg_2fa_var, width=10, show='*').pack(side=tk.LEFT, padx=2)
-        ttk.Button(auth_frame, text="Invia Codice", command=self._send_telegram_code).pack(side=tk.LEFT, padx=5)
-        ttk.Button(auth_frame, text="Verifica", command=self._verify_telegram_code).pack(side=tk.LEFT, padx=2)
-        ttk.Button(auth_frame, text="Reset Sessione", command=self._reset_telegram_session).pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(auth_frame, textvariable=self.tg_2fa_var, width=80, show='*',
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(auth_frame, text="Invia Codice", command=self._send_telegram_code,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6, width=90).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(auth_frame, text="Verifica", command=self._verify_telegram_code,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=70).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(auth_frame, text="Reset Sessione", command=self._reset_telegram_session,
+                      fg_color=COLORS['button_danger'], hover_color='#c62828',
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=5)
         
-        self.tg_status_label = ttk.Label(config_frame, text=f"Stato: {self.telegram_status}")
-        self.tg_status_label.pack(anchor=tk.W, pady=5)
+        self.tg_status_label = ctk.CTkLabel(config_frame, text=f"Stato: {self.telegram_status}",
+                                            text_color=COLORS['text_secondary'])
+        self.tg_status_label.pack(anchor=tk.W, padx=10, pady=5)
         
-        btn_frame = ttk.Frame(config_frame)
-        btn_frame.pack(fill=tk.X, pady=5)
-        ttk.Button(btn_frame, text="Salva", command=self._save_telegram_tab_settings).pack(side=tk.LEFT, padx=2)
-        ttk.Button(btn_frame, text="Avvia Listener", command=self._start_telegram_listener).pack(side=tk.LEFT, padx=2)
-        ttk.Button(btn_frame, text="Ferma", command=self._stop_telegram_listener).pack(side=tk.LEFT, padx=2)
+        btn_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
+        btn_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+        ctk.CTkButton(btn_frame, text="Salva", command=self._save_telegram_tab_settings,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=80).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(btn_frame, text="Avvia Listener", command=self._start_telegram_listener,
+                      fg_color=COLORS['button_success'], hover_color='#4caf50',
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(btn_frame, text="Ferma", command=self._stop_telegram_listener,
+                      fg_color=COLORS['button_danger'], hover_color='#c62828',
+                      corner_radius=6, width=70).pack(side=tk.LEFT, padx=2)
         
-        chats_frame = ttk.LabelFrame(left_frame, text="Chat Monitorate", padding=5)
-        chats_frame.pack(fill=tk.X, pady=(0, 5))
+        chats_frame = ctk.CTkFrame(left_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
+        chats_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
         
-        chat_btn_frame = ttk.Frame(chats_frame)
-        chat_btn_frame.pack(fill=tk.X, pady=(0, 5))
-        ttk.Button(chat_btn_frame, text="Rimuovi", command=self._remove_telegram_chat).pack(side=tk.LEFT, padx=2)
+        ctk.CTkLabel(chats_frame, text="Chat Monitorate", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
+        
+        chat_btn_frame = ctk.CTkFrame(chats_frame, fg_color='transparent')
+        chat_btn_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        ctk.CTkButton(chat_btn_frame, text="Rimuovi", command=self._remove_telegram_chat,
+                      fg_color=COLORS['button_danger'], hover_color='#c62828',
+                      corner_radius=6, width=80).pack(side=tk.LEFT, padx=2)
         
         columns = ('name', 'enabled')
         self.tg_chats_tree = ttk.Treeview(chats_frame, columns=columns, show='headings', height=4)
@@ -2517,23 +2555,33 @@ class PickfairApp:
         self.tg_chats_tree.heading('enabled', text='Attivo')
         self.tg_chats_tree.column('name', width=200)
         self.tg_chats_tree.column('enabled', width=50)
-        self.tg_chats_tree.pack(fill=tk.X)
+        self.tg_chats_tree.pack(fill=tk.X, padx=10, pady=(0, 10))
         
         self._refresh_telegram_chats_tree()
         
-        available_frame = ttk.LabelFrame(left_frame, text="Chat Disponibili da Telegram", padding=5)
-        available_frame.pack(fill=tk.X, pady=(0, 5))
+        available_frame = ctk.CTkFrame(left_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
+        available_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
         
-        avail_btn_frame = ttk.Frame(available_frame)
-        avail_btn_frame.pack(fill=tk.X, pady=(0, 5))
-        ttk.Button(avail_btn_frame, text="Carica/Aggiorna Chat", command=self._load_available_chats).pack(side=tk.LEFT, padx=2)
-        ttk.Button(avail_btn_frame, text="Aggiungi Selezionate", command=self._add_selected_available_chats).pack(side=tk.LEFT, padx=2)
+        ctk.CTkLabel(available_frame, text="Chat Disponibili da Telegram", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
-        self.tg_available_status = ttk.Label(avail_btn_frame, text="")
+        avail_btn_frame = ctk.CTkFrame(available_frame, fg_color='transparent')
+        avail_btn_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        ctk.CTkButton(avail_btn_frame, text="Carica/Aggiorna Chat", command=self._load_available_chats,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=140).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(avail_btn_frame, text="Aggiungi Selezionate", command=self._add_selected_available_chats,
+                      fg_color=COLORS['button_success'], hover_color='#4caf50',
+                      corner_radius=6, width=140).pack(side=tk.LEFT, padx=2)
+        
+        self.tg_available_status = ctk.CTkLabel(avail_btn_frame, text="", text_color=COLORS['text_secondary'])
         self.tg_available_status.pack(side=tk.RIGHT, padx=5)
         
         avail_columns = ('select', 'type', 'name')
-        self.tg_available_tree = ttk.Treeview(available_frame, columns=avail_columns, show='headings', height=8, selectmode='extended')
+        avail_tree_container = ctk.CTkFrame(available_frame, fg_color='transparent')
+        avail_tree_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        
+        self.tg_available_tree = ttk.Treeview(avail_tree_container, columns=avail_columns, show='headings', height=8, selectmode='extended')
         self.tg_available_tree.heading('select', text='')
         self.tg_available_tree.heading('type', text='Tipo')
         self.tg_available_tree.heading('name', text='Nome')
@@ -2541,18 +2589,24 @@ class PickfairApp:
         self.tg_available_tree.column('type', width=60)
         self.tg_available_tree.column('name', width=200)
         
-        avail_scroll = ttk.Scrollbar(available_frame, orient=tk.VERTICAL, command=self.tg_available_tree.yview)
+        avail_scroll = ttk.Scrollbar(avail_tree_container, orient=tk.VERTICAL, command=self.tg_available_tree.yview)
         self.tg_available_tree.configure(yscrollcommand=avail_scroll.set)
         self.tg_available_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         avail_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         
         self.available_chats_data = []
         
-        signals_frame = ttk.LabelFrame(right_frame, text="Segnali Ricevuti", padding=10)
+        signals_frame = ctk.CTkFrame(right_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
         signals_frame.pack(fill=tk.BOTH, expand=True)
         
+        ctk.CTkLabel(signals_frame, text="Segnali Ricevuti", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
+        
+        signals_tree_container = ctk.CTkFrame(signals_frame, fg_color='transparent')
+        signals_tree_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        
         columns = ('data', 'evento', 'over', 'status')
-        self.tg_signals_tree = ttk.Treeview(signals_frame, columns=columns, show='headings', height=15)
+        self.tg_signals_tree = ttk.Treeview(signals_tree_container, columns=columns, show='headings', height=15)
         self.tg_signals_tree.heading('data', text='Data')
         self.tg_signals_tree.heading('evento', text='Selezione')
         self.tg_signals_tree.heading('over', text='Tipo')
@@ -2562,15 +2616,17 @@ class PickfairApp:
         self.tg_signals_tree.column('over', width=50)
         self.tg_signals_tree.column('status', width=80)
         
-        self.tg_signals_tree.tag_configure('success', foreground='#28a745')
-        self.tg_signals_tree.tag_configure('failed', foreground='#dc3545')
+        self.tg_signals_tree.tag_configure('success', foreground=COLORS['success'])
+        self.tg_signals_tree.tag_configure('failed', foreground=COLORS['loss'])
         
-        scrollbar = ttk.Scrollbar(signals_frame, orient=tk.VERTICAL, command=self.tg_signals_tree.yview)
+        scrollbar = ttk.Scrollbar(signals_tree_container, orient=tk.VERTICAL, command=self.tg_signals_tree.yview)
         self.tg_signals_tree.configure(yscrollcommand=scrollbar.set)
         self.tg_signals_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        ttk.Button(signals_frame, text="Aggiorna Segnali", command=self._refresh_telegram_signals_tree).pack(pady=5)
+        ctk.CTkButton(signals_frame, text="Aggiorna Segnali", command=self._refresh_telegram_signals_tree,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6).pack(pady=10)
         
         self._refresh_telegram_signals_tree()
     
@@ -2601,7 +2657,7 @@ class PickfairApp:
             messagebox.showwarning("Attenzione", "Configura prima le credenziali Telegram")
             return
         
-        self.tg_available_status.config(text="Caricamento...")
+        self.tg_available_status.configure(text="Caricamento...")
         self.tg_available_tree.delete(*self.tg_available_tree.get_children())
         self.available_chats_data = []
         
@@ -2653,7 +2709,7 @@ class PickfairApp:
                 loop.close()
                 
                 if result is None:
-                    self.root.after(0, lambda: self.tg_available_status.config(text="Non autenticato"))
+                    self.root.after(0, lambda: self.tg_available_status.configure(text="Non autenticato"))
                     self.root.after(0, lambda: messagebox.showwarning("Attenzione", 
                         "Non autenticato. Clicca 'Invia Codice' e poi 'Verifica'."))
                 else:
@@ -2661,7 +2717,7 @@ class PickfairApp:
                 
             except Exception as e:
                 err = str(e)
-                self.root.after(0, lambda: self.tg_available_status.config(text=f"Errore: {err[:30]}"))
+                self.root.after(0, lambda: self.tg_available_status.configure(text=f"Errore: {err[:30]}"))
         
         threading.Thread(target=fetch_dialogs, daemon=True).start()
     
@@ -2684,7 +2740,7 @@ class PickfairApp:
             ))
         
         count = len(self.tg_available_tree.get_children())
-        self.tg_available_status.config(text=f"{count} chat disponibili")
+        self.tg_available_status.configure(text=f"{count} chat disponibili")
     
     def _add_selected_available_chats(self):
         """Add selected chats from available list to monitored."""
@@ -2706,7 +2762,7 @@ class PickfairApp:
         
         self._refresh_telegram_chats_tree()
         remaining = len(self.tg_available_tree.get_children())
-        self.tg_available_status.config(text=f"{remaining} chat disponibili")
+        self.tg_available_status.configure(text=f"{remaining} chat disponibili")
         messagebox.showinfo("Aggiunto", f"Aggiunte {count} chat alla lista monitorata")
     
     def _add_telegram_chat(self):
@@ -2793,29 +2849,39 @@ class PickfairApp:
     
     def _create_strumenti_tab(self):
         """Create Strumenti tab content."""
-        main_frame = ttk.Frame(self.strumenti_tab, padding=20)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main_frame = ctk.CTkFrame(self.strumenti_tab, fg_color='transparent')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        ttk.Label(main_frame, text="Strumenti", style='Title.TLabel').pack(anchor=tk.W, pady=(0, 20))
+        ctk.CTkLabel(main_frame, text="Strumenti", font=FONTS['title'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(0, 20))
         
-        tools_frame = ttk.LabelFrame(main_frame, text="Strumenti di Trading", padding=15)
+        tools_frame = ctk.CTkFrame(main_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
         tools_frame.pack(fill=tk.X, pady=10)
         
-        btn_frame1 = ttk.Frame(tools_frame)
-        btn_frame1.pack(fill=tk.X, pady=5)
-        ttk.Button(btn_frame1, text="Multi-Market Monitor", command=self._show_multi_market_monitor).pack(side=tk.LEFT, padx=5)
-        ttk.Label(btn_frame1, text="Monitora piu mercati contemporaneamente", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
+        ctk.CTkLabel(tools_frame, text="Strumenti di Trading", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=15, pady=(15, 10))
         
-        btn_frame2 = ttk.Frame(tools_frame)
-        btn_frame2.pack(fill=tk.X, pady=5)
-        ttk.Button(btn_frame2, text="Filtri Avanzati", command=self._show_advanced_filters).pack(side=tk.LEFT, padx=5)
-        ttk.Label(btn_frame2, text="Configura filtri per eventi e mercati", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
+        btn_frame1 = ctk.CTkFrame(tools_frame, fg_color='transparent')
+        btn_frame1.pack(fill=tk.X, padx=15, pady=5)
+        ctk.CTkButton(btn_frame1, text="Multi-Market Monitor", command=self._show_multi_market_monitor,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=180).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(btn_frame1, text="Monitora piu mercati contemporaneamente", 
+                     font=('Segoe UI', 9), text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=10)
+        
+        btn_frame2 = ctk.CTkFrame(tools_frame, fg_color='transparent')
+        btn_frame2.pack(fill=tk.X, padx=15, pady=(5, 15))
+        ctk.CTkButton(btn_frame2, text="Filtri Avanzati", command=self._show_advanced_filters,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=180).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(btn_frame2, text="Configura filtri per eventi e mercati", 
+                     font=('Segoe UI', 9), text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=10)
     
     def _create_impostazioni_tab(self):
         """Create Impostazioni tab content with scrollbar."""
-        canvas = tk.Canvas(self.impostazioni_tab)
+        canvas = tk.Canvas(self.impostazioni_tab, bg=COLORS['bg_dark'], highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.impostazioni_tab, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas, padding=20)
+        scrollable_frame = ctk.CTkFrame(canvas, fg_color='transparent')
         
         scrollable_frame.bind(
             "<Configure>",
@@ -2834,90 +2900,132 @@ class PickfairApp:
         
         main_frame = scrollable_frame
         
-        ttk.Label(main_frame, text="Impostazioni", style='Title.TLabel').pack(anchor=tk.W, pady=(0, 20))
+        ctk.CTkLabel(main_frame, text="Impostazioni", font=FONTS['title'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=20, pady=(20, 20))
         
-        cred_frame = ttk.LabelFrame(main_frame, text="Credenziali Betfair", padding=15)
-        cred_frame.pack(fill=tk.X, pady=10)
+        cred_frame = ctk.CTkFrame(main_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
+        cred_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        ctk.CTkLabel(cred_frame, text="Credenziali Betfair", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=15, pady=(15, 10))
         
         settings = self.db.get_settings() or {}
         
-        ttk.Label(cred_frame, text="Username:").grid(row=0, column=0, sticky=tk.W, pady=2)
+        ctk.CTkLabel(cred_frame, text="Username:", text_color=COLORS['text_secondary']).grid(row=1, column=0, sticky=tk.W, padx=15, pady=2)
         self.settings_username_var = tk.StringVar(value=settings.get('username', ''))
-        ttk.Entry(cred_frame, textvariable=self.settings_username_var, width=30).grid(row=0, column=1, pady=2, padx=5)
+        ctk.CTkEntry(cred_frame, textvariable=self.settings_username_var, width=250,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=1, column=1, pady=2, padx=5)
         
-        ttk.Label(cred_frame, text="App Key:").grid(row=1, column=0, sticky=tk.W, pady=2)
+        ctk.CTkLabel(cred_frame, text="App Key:", text_color=COLORS['text_secondary']).grid(row=2, column=0, sticky=tk.W, padx=15, pady=2)
         self.settings_appkey_var = tk.StringVar(value=settings.get('app_key', ''))
-        ttk.Entry(cred_frame, textvariable=self.settings_appkey_var, width=40).grid(row=1, column=1, pady=2, padx=5)
+        ctk.CTkEntry(cred_frame, textvariable=self.settings_appkey_var, width=320,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=2, column=1, pady=2, padx=5)
         
-        ttk.Label(cred_frame, text="Certificato (.crt):").grid(row=2, column=0, sticky=tk.W, pady=2)
+        ctk.CTkLabel(cred_frame, text="Certificato (.crt):", text_color=COLORS['text_secondary']).grid(row=3, column=0, sticky=tk.W, padx=15, pady=2)
         self.settings_cert_var = tk.StringVar(value=settings.get('certificate', ''))
-        cert_frame = ttk.Frame(cred_frame)
-        cert_frame.grid(row=2, column=1, pady=2, padx=5, sticky=tk.W)
-        ttk.Entry(cert_frame, textvariable=self.settings_cert_var, width=35).pack(side=tk.LEFT)
-        ttk.Button(cert_frame, text="...", width=3, command=lambda: self._browse_file(self.settings_cert_var, [("Certificati", "*.crt *.pem")])).pack(side=tk.LEFT, padx=2)
+        cert_frame = ctk.CTkFrame(cred_frame, fg_color='transparent')
+        cert_frame.grid(row=3, column=1, pady=2, padx=5, sticky=tk.W)
+        ctk.CTkEntry(cert_frame, textvariable=self.settings_cert_var, width=280,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT)
+        ctk.CTkButton(cert_frame, text="...", width=30, command=lambda: self._browse_file(self.settings_cert_var, [("Certificati", "*.crt *.pem")]),
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'], corner_radius=6).pack(side=tk.LEFT, padx=2)
         
-        ttk.Label(cred_frame, text="Chiave Privata (.key):").grid(row=3, column=0, sticky=tk.W, pady=2)
+        ctk.CTkLabel(cred_frame, text="Chiave Privata (.key):", text_color=COLORS['text_secondary']).grid(row=4, column=0, sticky=tk.W, padx=15, pady=2)
         self.settings_key_var = tk.StringVar(value=settings.get('private_key', ''))
-        key_frame = ttk.Frame(cred_frame)
-        key_frame.grid(row=3, column=1, pady=2, padx=5, sticky=tk.W)
-        ttk.Entry(key_frame, textvariable=self.settings_key_var, width=35).pack(side=tk.LEFT)
-        ttk.Button(key_frame, text="...", width=3, command=lambda: self._browse_file(self.settings_key_var, [("Chiavi", "*.key *.pem")])).pack(side=tk.LEFT, padx=2)
+        key_frame = ctk.CTkFrame(cred_frame, fg_color='transparent')
+        key_frame.grid(row=4, column=1, pady=2, padx=5, sticky=tk.W)
+        ctk.CTkEntry(key_frame, textvariable=self.settings_key_var, width=280,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT)
+        ctk.CTkButton(key_frame, text="...", width=30, command=lambda: self._browse_file(self.settings_key_var, [("Chiavi", "*.key *.pem")]),
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'], corner_radius=6).pack(side=tk.LEFT, padx=2)
         
-        ttk.Button(cred_frame, text="Salva Credenziali", command=self._save_settings_from_tab).grid(row=4, column=1, pady=10, sticky=tk.W)
+        ctk.CTkButton(cred_frame, text="Salva Credenziali", command=self._save_settings_from_tab,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=150).grid(row=5, column=1, pady=(10, 15), sticky=tk.W, padx=5)
         
-        update_frame = ttk.LabelFrame(main_frame, text="Aggiornamenti", padding=15)
-        update_frame.pack(fill=tk.X, pady=10)
+        update_frame = ctk.CTkFrame(main_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
+        update_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        ctk.CTkLabel(update_frame, text="Aggiornamenti", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=15, pady=(15, 10))
         
         self.auto_update_var = tk.BooleanVar(value=self.db.get_auto_update_enabled())
-        ttk.Checkbutton(update_frame, text="Controlla automaticamente aggiornamenti all'avvio", 
-                       variable=self.auto_update_var, command=self._save_auto_update_setting).pack(anchor=tk.W)
+        ctk.CTkCheckBox(update_frame, text="Controlla automaticamente aggiornamenti all'avvio", 
+                        variable=self.auto_update_var, command=self._save_auto_update_setting,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=15)
         
-        btn_update_frame = ttk.Frame(update_frame)
-        btn_update_frame.pack(fill=tk.X, pady=10)
-        ttk.Button(btn_update_frame, text="Verifica Aggiornamenti", command=self._check_for_updates_manual).pack(side=tk.LEFT, padx=5)
-        ttk.Label(btn_update_frame, text=f"Versione attuale: {APP_VERSION}", font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=10)
+        btn_update_frame = ctk.CTkFrame(update_frame, fg_color='transparent')
+        btn_update_frame.pack(fill=tk.X, padx=15, pady=(10, 15))
+        ctk.CTkButton(btn_update_frame, text="Verifica Aggiornamenti", command=self._check_for_updates_manual,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=180).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(btn_update_frame, text=f"Versione attuale: {APP_VERSION}", 
+                     font=('Segoe UI', 9), text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=10)
         
-        app_frame = ttk.LabelFrame(main_frame, text="Applicazione", padding=15)
-        app_frame.pack(fill=tk.X, pady=10)
+        app_frame = ctk.CTkFrame(main_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
+        app_frame.pack(fill=tk.X, padx=20, pady=10)
         
-        ttk.Button(app_frame, text="Esci dall'Applicazione", command=self._on_close).pack(anchor=tk.W)
+        ctk.CTkLabel(app_frame, text="Applicazione", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=15, pady=(15, 10))
+        
+        ctk.CTkButton(app_frame, text="Esci dall'Applicazione", command=self._on_close,
+                      fg_color=COLORS['button_danger'], hover_color='#c62828',
+                      corner_radius=6, width=180).pack(anchor=tk.W, padx=15, pady=(0, 15))
     
     def _create_simulazione_tab(self):
         """Create Simulazione tab content."""
-        main_frame = ttk.Frame(self.simulazione_tab, padding=20)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main_frame = ctk.CTkFrame(self.simulazione_tab, fg_color='transparent')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        ttk.Label(main_frame, text="Simulazione", style='Title.TLabel').pack(anchor=tk.W, pady=(0, 10))
+        ctk.CTkLabel(main_frame, text="Simulazione", font=FONTS['title'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(0, 10))
         
         sim_settings = self.db.get_simulation_settings()
         balance = sim_settings.get('virtual_balance', 1000) if sim_settings else 1000
         starting = sim_settings.get('starting_balance', 1000) if sim_settings else 1000
         pl = balance - starting
         pl_text = f"+{pl:.2f}" if pl >= 0 else f"{pl:.2f}"
-        pl_color = '#28a745' if pl >= 0 else '#dc3545'
+        pl_color = COLORS['success'] if pl >= 0 else COLORS['loss']
         
-        stats_frame = ttk.Frame(main_frame)
+        stats_frame = ctk.CTkFrame(main_frame, fg_color='transparent')
         stats_frame.pack(fill=tk.X, pady=10)
         
-        balance_card = ttk.LabelFrame(stats_frame, text="Saldo Simulato", padding=10)
+        balance_card = ctk.CTkFrame(stats_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
         balance_card.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        ttk.Label(balance_card, text=f"{balance:.2f} EUR", style='Title.TLabel').pack()
+        ctk.CTkLabel(balance_card, text="Saldo Simulato", font=('Segoe UI', 9),
+                     text_color=COLORS['text_secondary']).pack(pady=(10, 2))
+        ctk.CTkLabel(balance_card, text=f"{balance:.2f} EUR", font=FONTS['title'],
+                     text_color=COLORS['text_primary']).pack(pady=(0, 10))
         
-        pl_card = ttk.LabelFrame(stats_frame, text="Profitto/Perdita", padding=10)
+        pl_card = ctk.CTkFrame(stats_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
         pl_card.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        ttk.Label(pl_card, text=f"{pl_text} EUR", font=('Segoe UI', 14, 'bold'), foreground=pl_color).pack()
+        ctk.CTkLabel(pl_card, text="Profitto/Perdita", font=('Segoe UI', 9),
+                     text_color=COLORS['text_secondary']).pack(pady=(10, 2))
+        ctk.CTkLabel(pl_card, text=f"{pl_text} EUR", font=('Segoe UI', 14, 'bold'),
+                     text_color=pl_color).pack(pady=(0, 10))
         
-        starting_card = ttk.LabelFrame(stats_frame, text="Saldo Iniziale", padding=10)
+        starting_card = ctk.CTkFrame(stats_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
         starting_card.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        ttk.Label(starting_card, text=f"{starting:.2f} EUR", style='Title.TLabel').pack()
+        ctk.CTkLabel(starting_card, text="Saldo Iniziale", font=('Segoe UI', 9),
+                     text_color=COLORS['text_secondary']).pack(pady=(10, 2))
+        ctk.CTkLabel(starting_card, text=f"{starting:.2f} EUR", font=FONTS['title'],
+                     text_color=COLORS['text_primary']).pack(pady=(0, 10))
         
-        btn_frame = ttk.Frame(main_frame)
+        btn_frame = ctk.CTkFrame(main_frame, fg_color='transparent')
         btn_frame.pack(fill=tk.X, pady=10)
-        ttk.Button(btn_frame, text="Reset Simulazione", command=self._reset_simulation).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Aggiorna", command=self._refresh_simulazione_tab).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(btn_frame, text="Reset Simulazione", command=self._reset_simulation,
+                      fg_color=COLORS['button_danger'], hover_color='#c62828',
+                      corner_radius=6, width=150).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(btn_frame, text="Aggiorna", command=self._refresh_simulazione_tab,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=120).pack(side=tk.LEFT, padx=5)
         
-        bets_frame = ttk.LabelFrame(main_frame, text="Storico Scommesse Simulate", padding=10)
+        bets_frame = ctk.CTkFrame(main_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
         bets_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        
+        ctk.CTkLabel(bets_frame, text="Storico Scommesse Simulate", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
         self.sim_bets_frame = bets_frame
         self._refresh_simulation_bets_list()
@@ -2950,8 +3058,8 @@ class PickfairApp:
         tree.column('stake', width=70)
         tree.column('profitto', width=80)
         
-        tree.tag_configure('win', foreground='#28a745')
-        tree.tag_configure('loss', foreground='#dc3545')
+        tree.tag_configure('win', foreground=COLORS['success'])
+        tree.tag_configure('loss', foreground=COLORS['loss'])
         
         scrollbar = ttk.Scrollbar(self.sim_bets_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -3153,8 +3261,8 @@ class PickfairApp:
         tree.column('stake', width=70)
         tree.column('profitto', width=80)
         
-        tree.tag_configure('win', foreground='#28a745')
-        tree.tag_configure('loss', foreground='#dc3545')
+        tree.tag_configure('win', foreground=COLORS['success'])
+        tree.tag_configure('loss', foreground=COLORS['loss'])
         
         scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -3207,10 +3315,10 @@ class PickfairApp:
         tree.column('stato', width=80)
         
         # Configure status color tags
-        tree.tag_configure('matched', foreground='#28a745')  # Green
-        tree.tag_configure('pending', foreground='#ffc107')   # Yellow/Orange
-        tree.tag_configure('partially_matched', foreground='#17a2b8')  # Blue
-        tree.tag_configure('settled', foreground='#6c757d')   # Gray
+        tree.tag_configure('matched', foreground=COLORS['matched'])
+        tree.tag_configure('pending', foreground=COLORS['pending'])
+        tree.tag_configure('partially_matched', foreground=COLORS['partially_matched'])
+        tree.tag_configure('settled', foreground=COLORS['settled'])
         
         scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -3379,8 +3487,8 @@ class PickfairApp:
         tree.column('azione', width=80)
         
         # Configure tags for P/L colors
-        tree.tag_configure('profit', foreground='#28a745')  # Green for profit
-        tree.tag_configure('loss', foreground='#dc3545')    # Red for loss
+        tree.tag_configure('profit', foreground=COLORS['success'])
+        tree.tag_configure('loss', foreground=COLORS['loss'])
         
         tree.pack(fill=tk.BOTH, expand=True)
         
@@ -3924,8 +4032,8 @@ class PickfairApp:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         # Configure tag colors for profit/loss
-        tree.tag_configure('profit', foreground='#27ae60')
-        tree.tag_configure('loss', foreground='#e74c3c')
+        tree.tag_configure('profit', foreground=COLORS['success'])
+        tree.tag_configure('loss', foreground=COLORS['loss'])
         tree.tag_configure('selected', background='#e8f4fc')
         
         # Store runner selection and offset data
@@ -4478,9 +4586,9 @@ class PickfairApp:
             def on_status(status, message):
                 self.telegram_status = status
                 if status == 'AUTH_REQUIRED':
-                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: AUTH_REQUIRED"))
+                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: AUTH_REQUIRED"))
                 elif status == 'CONNECTED':
-                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: CONNECTED"))
+                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: CONNECTED"))
             
             self.telegram_listener.set_callbacks(on_signal=on_signal, on_status=on_status)
             self.telegram_listener.start()
@@ -4520,7 +4628,7 @@ class PickfairApp:
         
         self.tg_phone_code_hash = None
         self.telegram_status = 'AUTH_REQUIRED'
-        self.tg_status_label.config(text="Stato: AUTH_REQUIRED")
+        self.tg_status_label.configure(text="Stato: AUTH_REQUIRED")
         
         if deleted:
             messagebox.showinfo("Reset", "Sessione Telegram eliminata. Ora clicca 'Invia Codice'.")
@@ -4544,7 +4652,7 @@ class PickfairApp:
             phone = '+' + phone
             self.tg_phone_var.set(phone)
         
-        self.tg_status_label.config(text="Stato: Invio codice...")
+        self.tg_status_label.configure(text="Stato: Invio codice...")
         
         def send_thread():
             try:
@@ -4576,14 +4684,14 @@ class PickfairApp:
                 loop.close()
                 
                 if result == "ALREADY_AUTH":
-                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Gia autenticato!"))
+                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: Gia autenticato!"))
                     self.root.after(0, lambda: messagebox.showinfo("Telegram", "Sei gia autenticato! Clicca 'Carica/Aggiorna Chat'."))
                 else:
-                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Codice inviato! Inserisci e clicca Verifica"))
+                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: Codice inviato! Inserisci e clicca Verifica"))
                     self.root.after(0, lambda: messagebox.showinfo("Telegram", "Codice inviato! Controlla Telegram e inseriscilo nel campo 'Codice'."))
             except Exception as e:
                 err = str(e)
-                self.root.after(0, lambda: self.tg_status_label.config(text=f"Stato: Errore: {err[:50]}"))
+                self.root.after(0, lambda: self.tg_status_label.configure(text=f"Stato: Errore: {err[:50]}"))
                 self.root.after(0, lambda: messagebox.showerror("Errore Telegram", f"Errore: {err}"))
         
         threading.Thread(target=send_thread, daemon=True).start()
@@ -4607,7 +4715,7 @@ class PickfairApp:
             messagebox.showwarning("Attenzione", "Prima clicca 'Invia Codice'")
             return
         
-        self.tg_status_label.config(text="Stato: Verifica in corso...")
+        self.tg_status_label.configure(text="Stato: Verifica in corso...")
         
         def verify_thread():
             try:
@@ -4646,15 +4754,15 @@ class PickfairApp:
                 loop.close()
                 
                 if result == "OK":
-                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: AUTHENTICATED"))
+                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: AUTHENTICATED"))
                     self.root.after(0, lambda: messagebox.showinfo("Telegram", "Autenticazione completata!"))
                 elif result == "2FA":
-                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Richiesta password 2FA"))
+                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: Richiesta password 2FA"))
                 else:
-                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Autenticazione fallita"))
+                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: Autenticazione fallita"))
             except Exception as e:
                 err = str(e)
-                self.root.after(0, lambda: self.tg_status_label.config(text=f"Stato: Errore: {err[:50]}"))
+                self.root.after(0, lambda: self.tg_status_label.configure(text=f"Stato: Errore: {err[:50]}"))
         
         threading.Thread(target=verify_thread, daemon=True).start()
     

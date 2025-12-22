@@ -40,6 +40,14 @@ COLORS = {
     'button_secondary': '#455a64',
     'button_danger': '#ef5350',
     'button_success': '#66bb6a',
+    
+    # Treeview tag colors
+    'clickable_back': '#0066cc',
+    'clickable_lay': '#cc0066',
+    'matched': '#28a745',
+    'pending': '#ffc107',
+    'partially_matched': '#17a2b8',
+    'settled': '#6c757d',
 }
 
 FONTS = {
