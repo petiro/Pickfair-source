@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.13"
+APP_VERSION = "3.13.14"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -4492,6 +4492,10 @@ class PickfairApp:
         password = self.tg_2fa_var.get().strip()
         phone_hash = getattr(self, 'tg_phone_code_hash', None)
         
+        if not phone_hash:
+            messagebox.showwarning("Attenzione", "Prima clicca 'Invia Codice'")
+            return
+        
         self.tg_status_label.config(text="Stato: Verifica in corso...")
         
         def verify_thread():
@@ -4506,10 +4510,8 @@ class PickfairApp:
                     api_hash = settings['api_hash'].strip()
                     session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
                     
-                    client = getattr(self, 'tg_auth_client', None)
-                    if not client or not client.is_connected():
-                        client = TelegramClient(session_path, api_id, api_hash)
-                        await client.connect()
+                    client = TelegramClient(session_path, api_id, api_hash)
+                    await client.connect()
                     
                     try:
                         await client.sign_in(phone, code, phone_code_hash=phone_hash)
@@ -4530,6 +4532,7 @@ class PickfairApp:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 result = loop.run_until_complete(do_verify())
+                loop.close()
                 
                 if result == "OK":
                     self.root.after(0, lambda: self.tg_status_label.config(text="Stato: AUTHENTICATED"))
