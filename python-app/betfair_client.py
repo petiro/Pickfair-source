@@ -711,6 +711,44 @@ class BetfairClient:
             'instructionReports': reports
         }
     
+    def get_settled_bets(self, days=7):
+        """Get settled (cleared) bets from Betfair for the last N days."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        from datetime import datetime, timedelta
+        
+        settled_from = datetime.utcnow() - timedelta(days=days)
+        settled_to = datetime.utcnow()
+        
+        time_range = betfairlightweight.filters.time_range(
+            from_=settled_from.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            to=settled_to.strftime('%Y-%m-%dT%H:%M:%SZ')
+        )
+        
+        result = self.client.betting.list_cleared_orders(
+            bet_status='SETTLED',
+            settled_date_range=time_range
+        )
+        
+        bets = []
+        for order in result.cleared_orders if result.cleared_orders else []:
+            bets.append({
+                'betId': order.bet_id,
+                'marketId': order.market_id,
+                'selectionId': order.selection_id,
+                'side': order.side,
+                'price': order.price_requested,
+                'priceMatched': order.price_matched,
+                'size': order.size_settled,
+                'profit': order.profit,
+                'settledDate': order.settled_date.isoformat() if order.settled_date else None,
+                'eventName': getattr(order, 'event_type_id', '') or '',
+                'itemDescription': getattr(order, 'item_description', None)
+            })
+        
+        return bets
+    
     def get_market_profit_and_loss(self, market_ids):
         """Get profit/loss for markets (for cashout calculation)."""
         if not self.client:

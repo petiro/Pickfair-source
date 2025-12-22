@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.2"
+APP_VERSION = "3.13.3"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2276,12 +2276,17 @@ class PickfairApp:
                 except:
                     active_count = self.db.get_active_bets_count()
                 
-                self.root.after(0, lambda: update_ui(funds, daily_pl, active_count, orders))
+                try:
+                    settled_bets = self.client.get_settled_bets(days=7)
+                except:
+                    settled_bets = []
+                
+                self.root.after(0, lambda: update_ui(funds, daily_pl, active_count, orders, settled_bets))
             except Exception as e:
                 err_msg = str(e)
                 self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", msg))
         
-        def update_ui(funds, daily_pl, active_count, orders):
+        def update_ui(funds, daily_pl, active_count, orders, settled_bets=None):
             for widget in self.dashboard_stats_frame.winfo_children():
                 widget.destroy()
             
@@ -2304,7 +2309,7 @@ class PickfairApp:
             
             for widget in self.dashboard_recent_frame.winfo_children():
                 widget.destroy()
-            self._create_bets_list(self.dashboard_recent_frame, self.db.get_recent_bets(20))
+            self._create_settled_bets_list(self.dashboard_recent_frame, settled_bets or [])
             
             for widget in self.dashboard_orders_frame.winfo_children():
                 widget.destroy()
@@ -2821,6 +2826,57 @@ class PickfairApp:
         cashout_frame = ttk.Frame(notebook, padding=10)
         notebook.add(cashout_frame, text="Cashout")
         self._create_cashout_view(cashout_frame, dialog)
+    
+    def _create_settled_bets_list(self, parent, settled_bets):
+        """Create a list view of settled bets from Betfair."""
+        columns = ('data', 'mercato', 'selezione', 'tipo', 'stake', 'profitto')
+        tree = ttk.Treeview(parent, columns=columns, show='headings', height=12)
+        tree.heading('data', text='Data')
+        tree.heading('mercato', text='Market ID')
+        tree.heading('selezione', text='Selezione')
+        tree.heading('tipo', text='Tipo')
+        tree.heading('stake', text='Stake')
+        tree.heading('profitto', text='Profitto')
+        tree.column('data', width=130)
+        tree.column('mercato', width=140)
+        tree.column('selezione', width=100)
+        tree.column('tipo', width=50)
+        tree.column('stake', width=70)
+        tree.column('profitto', width=80)
+        
+        tree.tag_configure('win', foreground='#28a745')
+        tree.tag_configure('loss', foreground='#dc3545')
+        
+        scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        if not settled_bets:
+            ttk.Label(parent, text="Nessuna scommessa negli ultimi 7 giorni", 
+                     font=('Segoe UI', 10)).place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+            return
+        
+        for bet in settled_bets:
+            settled_date = bet.get('settledDate', '')[:16].replace('T', ' ') if bet.get('settledDate') else ''
+            market_id = bet.get('marketId', '')
+            selection_id = str(bet.get('selectionId', ''))
+            side = bet.get('side', '')
+            stake = bet.get('size', 0)
+            profit = bet.get('profit', 0)
+            
+            tag = 'win' if profit > 0 else 'loss' if profit < 0 else ''
+            profit_text = f"+{profit:.2f}" if profit > 0 else f"{profit:.2f}"
+            
+            tree.insert('', tk.END, values=(
+                settled_date,
+                market_id,
+                selection_id,
+                side,
+                f"{stake:.2f}",
+                profit_text
+            ), tags=(tag,))
     
     def _create_bets_list(self, parent, bets):
         """Create a list view of bets with status colors."""
