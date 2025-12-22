@@ -12,7 +12,8 @@ MAX_WINNINGS = 10000.00  # EUR
 def calculate_dutching_stakes(
     selections: List[Dict],
     total_stake: float,
-    bet_type: str = 'BACK'
+    bet_type: str = 'BACK',
+    commission: float = 2.0
 ) -> Tuple[List[Dict], float, float]:
     """
     Calculate dutching stakes for equal profit distribution.
@@ -21,6 +22,7 @@ def calculate_dutching_stakes(
         selections: List of {'selectionId': int, 'runnerName': str, 'price': float}
         total_stake: Total amount to stake
         bet_type: 'BACK' or 'LAY'
+        commission: Betfair commission percentage (default 2%)
     
     Returns:
         Tuple of (selections_with_stakes, potential_profit, implied_probability)
@@ -38,14 +40,15 @@ def calculate_dutching_stakes(
         raise ValueError("Nessuna quota valida")
     
     if bet_type == 'BACK':
-        return _calculate_back_dutching(valid_selections, total_stake)
+        return _calculate_back_dutching(valid_selections, total_stake, commission)
     else:
-        return _calculate_lay_dutching(valid_selections, total_stake)
+        return _calculate_lay_dutching(valid_selections, total_stake, commission)
 
 
 def _calculate_back_dutching(
     selections: List[Dict],
-    total_stake: float
+    total_stake: float,
+    commission: float = 2.0
 ) -> Tuple[List[Dict], float, float]:
     """
     Calculate BACK dutching: Bet on multiple outcomes to win same profit.
@@ -56,6 +59,8 @@ def _calculate_back_dutching(
     - stake_i = total_stake * (1/price_i) / total_implied
     - profit = total_stake * (1 / total_implied - 1) if total_implied < 1
     """
+    commission_mult = 1 - (commission / 100.0)
+    
     # Calculate implied probabilities
     implied_probs = []
     for sel in selections:
@@ -91,18 +96,20 @@ def _calculate_back_dutching(
         
         total_actual_stake += stake
     
-    # Calculate profit (same for all outcomes in perfect dutching)
-    # Profit = Return - Total Stake
-    if results:
-        avg_return = sum(r['potentialReturn'] for r in results) / len(results)
-        potential_profit = avg_return - total_actual_stake
-    else:
-        potential_profit = 0
-    
     # For dutching, profit should be calculated per winning outcome
     # If one selection wins: profit = (stake * price) - total_stake_all
+    # Apply commission to profits
     for r in results:
-        r['profitIfWins'] = round(r['potentialReturn'] - total_actual_stake, 2)
+        gross_profit = r['potentialReturn'] - total_actual_stake
+        net_profit = gross_profit * commission_mult if gross_profit > 0 else gross_profit
+        r['profitIfWins'] = round(net_profit, 2)
+        r['grossProfit'] = round(gross_profit, 2)
+    
+    # Calculate average profit
+    if results:
+        potential_profit = sum(r['profitIfWins'] for r in results) / len(results)
+    else:
+        potential_profit = 0
     
     # Validate max winnings
     max_return = max(r['potentialReturn'] for r in results)
