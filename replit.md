@@ -63,12 +63,15 @@ COLORS = {
 
 ## Recent Changes (December 2024)
 
-- **v3.14.0**: Started CustomTkinter conversion
-  - Converted main window (CTk)
+- **v3.14.0**: CustomTkinter conversion COMPLETED
+  - Converted main window (CTk) with dark trading theme
   - Converted tab system (CTkTabview)
-  - Converted status bar with CTkButton/CTkLabel
-  - Updated all .config() to .configure() for CTk widgets
-  - Dark theme with proper color palette
+  - Converted all trading panel buttons (dutch_modal_btn, back_btn, lay_btn, market_cashout_btn) to CTkButton
+  - Converted market_status_label to CTkLabel
+  - Updated all .config() to .configure() for CTk widgets with proper parameters
+  - Enhanced COLORS palette with info_hover for consistent theming
+  - All colors now reference COLORS dictionary from theme.py
+  - Treeview widgets remain ttk (styled via configure_ttk_dark_theme())
 
 ## Dependencies
 
