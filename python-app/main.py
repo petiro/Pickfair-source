@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.12"
+APP_VERSION = "3.13.13"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2377,17 +2377,29 @@ class PickfairApp:
     
     def _create_telegram_tab(self):
         """Create Telegram tab content."""
-        main_frame = ttk.Frame(self.telegram_tab, padding=20)
+        main_frame = ttk.Frame(self.telegram_tab, padding=10)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
-        left_frame = ttk.Frame(main_frame)
-        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+        left_container = ttk.Frame(main_frame, width=450)
+        left_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 10))
+        left_container.pack_propagate(False)
+        
+        left_canvas = tk.Canvas(left_container, highlightthickness=0)
+        left_scrollbar = ttk.Scrollbar(left_container, orient=tk.VERTICAL, command=left_canvas.yview)
+        left_frame = ttk.Frame(left_canvas)
+        
+        left_frame.bind("<Configure>", lambda e: left_canvas.configure(scrollregion=left_canvas.bbox("all")))
+        left_canvas.create_window((0, 0), window=left_frame, anchor="nw")
+        left_canvas.configure(yscrollcommand=left_scrollbar.set)
+        
+        left_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        left_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         right_frame = ttk.Frame(main_frame)
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         
-        config_frame = ttk.LabelFrame(left_frame, text="Configurazione Telegram", padding=10)
-        config_frame.pack(fill=tk.X, pady=(0, 10))
+        config_frame = ttk.LabelFrame(left_frame, text="Configurazione Telegram", padding=5)
+        config_frame.pack(fill=tk.X, pady=(0, 5))
         
         ttk.Label(config_frame, text="Ottieni API ID e Hash su my.telegram.org", 
                  font=('Segoe UI', 8)).pack(anchor=tk.W)
@@ -2436,8 +2448,8 @@ class PickfairApp:
         ttk.Button(btn_frame, text="Avvia Listener", command=self._start_telegram_listener).pack(side=tk.LEFT, padx=2)
         ttk.Button(btn_frame, text="Ferma", command=self._stop_telegram_listener).pack(side=tk.LEFT, padx=2)
         
-        chats_frame = ttk.LabelFrame(left_frame, text="Chat Monitorate", padding=10)
-        chats_frame.pack(fill=tk.X, pady=(0, 10))
+        chats_frame = ttk.LabelFrame(left_frame, text="Chat Monitorate", padding=5)
+        chats_frame.pack(fill=tk.X, pady=(0, 5))
         
         chat_btn_frame = ttk.Frame(chats_frame)
         chat_btn_frame.pack(fill=tk.X, pady=(0, 5))
@@ -2453,8 +2465,8 @@ class PickfairApp:
         
         self._refresh_telegram_chats_tree()
         
-        available_frame = ttk.LabelFrame(left_frame, text="Chat Disponibili da Telegram", padding=10)
-        available_frame.pack(fill=tk.BOTH, expand=True)
+        available_frame = ttk.LabelFrame(left_frame, text="Chat Disponibili da Telegram", padding=5)
+        available_frame.pack(fill=tk.X, pady=(0, 5))
         
         avail_btn_frame = ttk.Frame(available_frame)
         avail_btn_frame.pack(fill=tk.X, pady=(0, 5))
@@ -4422,6 +4434,7 @@ class PickfairApp:
     
     def _send_telegram_code(self):
         """Send authentication code to Telegram."""
+        self._save_telegram_tab_settings()
         settings = self.db.get_telegram_settings()
         if not settings or not settings.get('api_id') or not settings.get('api_hash'):
             messagebox.showwarning("Attenzione", "Configura prima API ID e Hash")
@@ -4438,26 +4451,29 @@ class PickfairApp:
             try:
                 import asyncio
                 import os
-                from telethon.sync import TelegramClient
+                from telethon import TelegramClient
+                
+                async def do_send():
+                    api_id = int(settings['api_id'])
+                    api_hash = settings['api_hash'].strip()
+                    session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+                    
+                    client = TelegramClient(session_path, api_id, api_hash)
+                    await client.connect()
+                    
+                    result = await client.send_code_request(phone)
+                    self.tg_phone_code_hash = result.phone_code_hash
+                    self.tg_auth_client = client
+                    
+                    return True
                 
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                
-                api_id = int(settings['api_id'])
-                api_hash = settings['api_hash'].strip()
-                session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
-                
-                client = TelegramClient(session_path, api_id, api_hash)
-                client.connect()
-                
-                result = client.send_code_request(phone)
-                self.tg_phone_code_hash = getattr(result, 'phone_code_hash', None)
-                
-                client.disconnect()
+                loop.run_until_complete(do_send())
                 
                 self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Codice inviato! Inserisci e clicca Verifica"))
             except Exception as e:
-                self.root.after(0, lambda: self.tg_status_label.config(text=f"Stato: Errore: {str(e)[:40]}"))
+                self.root.after(0, lambda: self.tg_status_label.config(text=f"Stato: Errore: {str(e)[:50]}"))
         
         threading.Thread(target=send_thread, daemon=True).start()
     
@@ -4474,6 +4490,7 @@ class PickfairApp:
         
         phone = self.tg_phone_var.get().strip()
         password = self.tg_2fa_var.get().strip()
+        phone_hash = getattr(self, 'tg_phone_code_hash', None)
         
         self.tg_status_label.config(text="Stato: Verifica in corso...")
         
@@ -4481,40 +4498,49 @@ class PickfairApp:
             try:
                 import asyncio
                 import os
-                from telethon.sync import TelegramClient
+                from telethon import TelegramClient
+                from telethon.errors import SessionPasswordNeededError
+                
+                async def do_verify():
+                    api_id = int(settings['api_id'])
+                    api_hash = settings['api_hash'].strip()
+                    session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+                    
+                    client = getattr(self, 'tg_auth_client', None)
+                    if not client or not client.is_connected():
+                        client = TelegramClient(session_path, api_id, api_hash)
+                        await client.connect()
+                    
+                    try:
+                        await client.sign_in(phone, code, phone_code_hash=phone_hash)
+                    except SessionPasswordNeededError:
+                        if password:
+                            await client.sign_in(password=password)
+                        else:
+                            await client.disconnect()
+                            return "2FA"
+                    
+                    if await client.is_user_authorized():
+                        await client.disconnect()
+                        return "OK"
+                    else:
+                        await client.disconnect()
+                        return "FAIL"
                 
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(do_verify())
                 
-                api_id = int(settings['api_id'])
-                api_hash = settings['api_hash'].strip()
-                session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
-                
-                client = TelegramClient(session_path, api_id, api_hash)
-                client.connect()
-                
-                phone_hash = getattr(self, 'tg_phone_code_hash', None)
-                if phone_hash:
-                    client.sign_in(phone, code, phone_code_hash=phone_hash)
-                else:
-                    client.sign_in(phone, code)
-                
-                if not client.is_user_authorized() and password:
-                    client.sign_in(password=password)
-                
-                if client.is_user_authorized():
-                    client.disconnect()
-                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: CONNECTED"))
+                if result == "OK":
+                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: AUTHENTICATED"))
                     self.root.after(0, lambda: messagebox.showinfo("Telegram", "Autenticazione completata!"))
+                elif result == "2FA":
+                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Richiesta password 2FA"))
                 else:
-                    client.disconnect()
                     self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Autenticazione fallita"))
             except Exception as e:
                 err = str(e)
-                if '2fa' in err.lower() or 'password' in err.lower():
-                    self.root.after(0, lambda: self.tg_status_label.config(text="Stato: Inserisci password 2FA"))
-                else:
-                    self.root.after(0, lambda: self.tg_status_label.config(text=f"Stato: Errore: {err[:40]}"))
+                self.root.after(0, lambda: self.tg_status_label.config(text=f"Stato: Errore: {err[:50]}"))
         
         threading.Thread(target=verify_thread, daemon=True).start()
     
