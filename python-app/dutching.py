@@ -13,7 +13,7 @@ def calculate_dutching_stakes(
     selections: List[Dict],
     total_stake: float,
     bet_type: str = 'BACK',
-    commission: float = 2.0
+    commission: float = 5.0
 ) -> Tuple[List[Dict], float, float]:
     """
     Calculate dutching stakes for equal profit distribution.
@@ -48,7 +48,7 @@ def calculate_dutching_stakes(
 def _calculate_back_dutching(
     selections: List[Dict],
     total_stake: float,
-    commission: float = 2.0
+    commission: float = 5.0
 ) -> Tuple[List[Dict], float, float]:
     """
     Calculate BACK dutching: Bet on multiple outcomes to win same profit.
@@ -122,7 +122,7 @@ def _calculate_back_dutching(
 def _calculate_lay_dutching(
     selections: List[Dict],
     total_stake: float,
-    commission: float = 2.0
+    commission: float = 5.0
 ) -> Tuple[List[Dict], float, float]:
     """
     Calculate LAY dutching: Lay multiple outcomes for balanced profit/loss.
