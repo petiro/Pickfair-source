@@ -1591,7 +1591,7 @@ class PickfairApp:
         """Place a quick simulated bet."""
         try:
             # Calculate P/L
-            commission = 0.05  # 5% Betfair Italia commission
+            commission = 0.045  # 4.5% Betfair Italia commission
             if bet_type == 'BACK':
                 gross_profit = stake * (price - 1)
                 profit = gross_profit * (1 - commission)  # Net profit after commission
@@ -1672,7 +1672,7 @@ class PickfairApp:
                 bet_type=bet_type,
                 selections=runner['runnerName'],
                 total_stake=stake,
-                potential_profit=(stake * (price - 1)) * 0.95 if bet_type == 'BACK' else stake * 0.95,
+                potential_profit=(stake * (price - 1)) * 0.955 if bet_type == 'BACK' else stake * 0.955,
                 status='MATCHED' if matched > 0 else 'UNMATCHED'
             )
             
@@ -3283,7 +3283,7 @@ class PickfairApp:
             try:
                 from dutching import calculate_mixed_dutching
                 
-                commission = 5.0
+                commission = 4.5
                 
                 if mode == 'STAKE':
                     amount = float(stake_var.get().replace(',', '.'))
