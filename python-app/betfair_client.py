@@ -711,6 +711,10 @@ class BetfairClient:
             'instructionReports': reports
         }
     
+    def get_markets(self, event_id):
+        """Alias for get_available_markets - get all markets for an event."""
+        return self.get_available_markets(event_id)
+    
     def place_back_bet(self, market_id, selection_id, price, size):
         """Place a BACK bet (puntata)."""
         return self.place_bet(market_id, selection_id, 'BACK', price, size)
