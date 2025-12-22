@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.1"
+APP_VERSION = "3.13.2"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2438,7 +2438,9 @@ class PickfairApp:
         chat_btn_frame = ttk.Frame(chats_frame)
         chat_btn_frame.pack(fill=tk.X, pady=5)
         ttk.Button(chat_btn_frame, text="Carica Chat", command=self._show_telegram_chats).pack(side=tk.LEFT, padx=2)
-        ttk.Button(chat_btn_frame, text="Aggiorna Lista", command=self._refresh_telegram_chats_tree).pack(side=tk.LEFT, padx=2)
+        ttk.Button(chat_btn_frame, text="Aggiungi", command=self._add_telegram_chat).pack(side=tk.LEFT, padx=2)
+        ttk.Button(chat_btn_frame, text="Rimuovi", command=self._remove_telegram_chat).pack(side=tk.LEFT, padx=2)
+        ttk.Button(chat_btn_frame, text="Aggiorna", command=self._refresh_telegram_chats_tree).pack(side=tk.LEFT, padx=2)
         
         self._refresh_telegram_chats_tree()
         
@@ -2487,6 +2489,60 @@ class PickfairApp:
             auto_stake=stake
         )
         messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
+    
+    def _add_telegram_chat(self):
+        """Add a new telegram chat to monitor."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Aggiungi Chat")
+        dialog.geometry("400x150")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        ttk.Label(dialog, text="Chat ID:").pack(anchor=tk.W, padx=20, pady=(20, 5))
+        chat_id_var = tk.StringVar()
+        ttk.Entry(dialog, textvariable=chat_id_var, width=40).pack(padx=20)
+        
+        ttk.Label(dialog, text="Nome Chat (opzionale):").pack(anchor=tk.W, padx=20, pady=(10, 5))
+        chat_name_var = tk.StringVar()
+        ttk.Entry(dialog, textvariable=chat_name_var, width=40).pack(padx=20)
+        
+        def save():
+            chat_id = chat_id_var.get().strip()
+            if not chat_id:
+                messagebox.showwarning("Errore", "Inserisci un Chat ID")
+                return
+            try:
+                chat_id_int = int(chat_id)
+                chat_name = chat_name_var.get().strip() or f"Chat {chat_id}"
+                self.db.add_telegram_chat(chat_id_int, chat_name)
+                self._refresh_telegram_chats_tree()
+                dialog.destroy()
+                messagebox.showinfo("Successo", f"Chat '{chat_name}' aggiunta")
+            except ValueError:
+                messagebox.showwarning("Errore", "Chat ID deve essere un numero")
+        
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=15)
+        ttk.Button(btn_frame, text="Salva", command=save).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Annulla", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
+    
+    def _remove_telegram_chat(self):
+        """Remove selected telegram chat."""
+        selected = self.tg_chats_tree.selection()
+        if not selected:
+            messagebox.showwarning("Attenzione", "Seleziona una chat da rimuovere")
+            return
+        
+        item = self.tg_chats_tree.item(selected[0])
+        chat_name = item['values'][0]
+        
+        if messagebox.askyesno("Conferma", f"Rimuovere la chat '{chat_name}'?"):
+            chats = self.db.get_telegram_chats()
+            for chat in chats:
+                if chat.get('chat_name') == chat_name or str(chat['chat_id']) == chat_name:
+                    self.db.remove_telegram_chat(chat['chat_id'])
+                    break
+            self._refresh_telegram_chats_tree()
     
     def _refresh_telegram_chats_tree(self):
         """Refresh chats tree in Telegram tab."""
