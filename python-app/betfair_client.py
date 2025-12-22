@@ -711,6 +711,131 @@ class BetfairClient:
             'instructionReports': reports
         }
     
+    def place_back_bet(self, market_id, selection_id, price, size):
+        """Place a BACK bet (puntata)."""
+        return self.place_bet(market_id, selection_id, 'BACK', price, size)
+    
+    def place_lay_bet(self, market_id, selection_id, price, size):
+        """Place a LAY bet (bancata)."""
+        return self.place_bet(market_id, selection_id, 'LAY', price, size)
+    
+    def replace_orders(self, market_id, bet_id, new_price):
+        """Replace an existing order with a new price."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        instructions = [
+            betfairlightweight.filters.replace_instruction(
+                bet_id=bet_id,
+                new_price=new_price
+            )
+        ]
+        
+        result = self.client.betting.replace_orders(
+            market_id=market_id,
+            instructions=instructions
+        )
+        
+        instruction_reports = getattr(result, 'instruction_reports', None) or getattr(result, 'instructionReports', None) or []
+        
+        reports = []
+        for ir in instruction_reports:
+            reports.append({
+                'status': getattr(ir, 'status', 'UNKNOWN'),
+                'cancelInstructionReport': getattr(ir, 'cancel_instruction_report', None),
+                'placeInstructionReport': getattr(ir, 'place_instruction_report', None)
+            })
+        
+        return {
+            'status': getattr(result, 'status', 'UNKNOWN'),
+            'instructionReports': reports
+        }
+    
+    def cashout(self, market_id, selection_id, side, price, size):
+        """
+        Execute a cashout by placing an opposite bet.
+        
+        For a BACK position, place a LAY bet to cashout.
+        For a LAY position, place a BACK bet to cashout.
+        """
+        opposite_side = 'LAY' if side == 'BACK' else 'BACK'
+        return self.place_bet(market_id, selection_id, opposite_side, price, size)
+    
+    def calculate_cashout(self, original_stake, original_odds, current_odds, side='BACK'):
+        """
+        Calculate cashout stake and profit/loss.
+        
+        Returns dict with:
+            - cashout_stake: amount to bet for full cashout
+            - profit_if_win: profit if original selection wins
+            - profit_if_lose: profit if original selection loses  
+            - guaranteed_profit: locked-in profit (if positive)
+        """
+        if side == 'BACK':
+            potential_profit = original_stake * (original_odds - 1)
+            cashout_stake = potential_profit / (current_odds - 1)
+            
+            if current_odds < original_odds:
+                guaranteed = original_stake - cashout_stake
+            else:
+                guaranteed = potential_profit - (cashout_stake * (current_odds - 1))
+            
+            return {
+                'cashout_stake': round(cashout_stake, 2),
+                'profit_if_win': round(potential_profit - (cashout_stake * (current_odds - 1)), 2),
+                'profit_if_lose': round(cashout_stake - original_stake, 2),
+                'guaranteed_profit': round(guaranteed, 2) if guaranteed > 0 else 0
+            }
+        else:
+            liability = original_stake * (original_odds - 1)
+            potential_profit = original_stake
+            cashout_stake = liability / (current_odds - 1)
+            
+            return {
+                'cashout_stake': round(cashout_stake, 2),
+                'profit_if_win': round(cashout_stake - liability, 2),
+                'profit_if_lose': round(potential_profit - cashout_stake, 2),
+                'guaranteed_profit': 0
+            }
+    
+    def get_position(self, market_id, selection_id):
+        """Get current position on a selection including P&L."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        orders = self.get_current_orders(market_ids=[market_id])
+        pnl = self.get_market_profit_and_loss([market_id])
+        
+        position = {
+            'market_id': market_id,
+            'selection_id': selection_id,
+            'back_stake': 0,
+            'back_avg_odds': 0,
+            'lay_stake': 0,
+            'lay_avg_odds': 0,
+            'net_position': 0,
+            'profit_loss': 0
+        }
+        
+        for order_list in [orders['matched'], orders['partiallyMatched']]:
+            for order in order_list:
+                if order['selectionId'] == selection_id:
+                    if order['side'] == 'BACK':
+                        position['back_stake'] += order['sizeMatched']
+                        position['back_avg_odds'] = order['averagePriceMatched'] or 0
+                    else:
+                        position['lay_stake'] += order['sizeMatched']
+                        position['lay_avg_odds'] = order['averagePriceMatched'] or 0
+        
+        position['net_position'] = position['back_stake'] - position['lay_stake']
+        
+        if pnl and market_id in pnl:
+            for runner_pnl in pnl[market_id].get('runners', []):
+                if runner_pnl.get('selectionId') == selection_id:
+                    position['profit_loss'] = runner_pnl.get('ifWin', 0)
+        
+        return position
+    
     def get_settled_bets(self, days=7):
         """Get settled (cleared) bets from Betfair for the last N days."""
         if not self.client:
