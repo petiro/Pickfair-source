@@ -64,6 +64,7 @@ class PickfairApp:
             pass
         
         self.db = Database()
+        print(f"[DEBUG] Database path: {self.db.db_path}")
         self.client = None
         self.current_event = None
         self.current_market = None
