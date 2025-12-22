@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.10"
+APP_VERSION = "3.13.11"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2426,24 +2426,24 @@ class PickfairApp:
         ttk.Button(btn_frame, text="Ferma", command=self._stop_telegram_listener).pack(side=tk.LEFT, padx=2)
         
         chats_frame = ttk.LabelFrame(left_frame, text="Chat Monitorate", padding=10)
-        chats_frame.pack(fill=tk.BOTH, expand=True)
+        chats_frame.pack(fill=tk.X, pady=(0, 10))
         
         chat_btn_frame = ttk.Frame(chats_frame)
         chat_btn_frame.pack(fill=tk.X, pady=(0, 5))
         ttk.Button(chat_btn_frame, text="Rimuovi", command=self._remove_telegram_chat).pack(side=tk.LEFT, padx=2)
         
         columns = ('name', 'enabled')
-        self.tg_chats_tree = ttk.Treeview(chats_frame, columns=columns, show='headings', height=5)
+        self.tg_chats_tree = ttk.Treeview(chats_frame, columns=columns, show='headings', height=4)
         self.tg_chats_tree.heading('name', text='Nome Chat')
         self.tg_chats_tree.heading('enabled', text='Attivo')
         self.tg_chats_tree.column('name', width=200)
         self.tg_chats_tree.column('enabled', width=50)
-        self.tg_chats_tree.pack(fill=tk.BOTH, expand=True)
+        self.tg_chats_tree.pack(fill=tk.X)
         
         self._refresh_telegram_chats_tree()
         
         available_frame = ttk.LabelFrame(left_frame, text="Chat Disponibili da Telegram", padding=10)
-        available_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+        available_frame.pack(fill=tk.BOTH, expand=True)
         
         avail_btn_frame = ttk.Frame(available_frame)
         avail_btn_frame.pack(fill=tk.X, pady=(0, 5))
