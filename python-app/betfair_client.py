@@ -1147,14 +1147,14 @@ class BetfairClient:
                 'averagePriceMatched': None
             }
     
-    def get_live_events_only(self):
-        """Get only in-play football events."""
+    def get_live_events(self, event_type_id='1'):
+        """Get in-play events for a specific event type."""
         if not self.client:
             raise Exception("Non connesso a Betfair")
         
         inplay_events = self.client.betting.list_events(
             filter=filters.market_filter(
-                event_type_ids=[FOOTBALL_ID],
+                event_type_ids=[event_type_id],
                 in_play_only=True
             )
         )
@@ -1171,6 +1171,10 @@ class BetfairClient:
             })
         
         return result
+    
+    def get_live_events_only(self):
+        """Get only in-play football events."""
+        return self.get_live_events(FOOTBALL_ID)
     
     def get_live_markets(self, event_id=None):
         """Get all in-play markets, optionally filtered by event."""
