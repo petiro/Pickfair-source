@@ -17,7 +17,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.13.7"
+APP_VERSION = "3.13.8"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2431,13 +2431,10 @@ class PickfairApp:
         
         chat_btn_frame = ttk.Frame(chats_frame)
         chat_btn_frame.pack(fill=tk.X, pady=(0, 5))
-        ttk.Button(chat_btn_frame, text="Carica", command=self._show_telegram_chats).pack(side=tk.LEFT, padx=2)
-        ttk.Button(chat_btn_frame, text="Aggiungi", command=self._add_telegram_chat).pack(side=tk.LEFT, padx=2)
         ttk.Button(chat_btn_frame, text="Rimuovi", command=self._remove_telegram_chat).pack(side=tk.LEFT, padx=2)
-        ttk.Button(chat_btn_frame, text="Aggiorna", command=self._refresh_telegram_chats_tree).pack(side=tk.LEFT, padx=2)
         
         columns = ('name', 'enabled')
-        self.tg_chats_tree = ttk.Treeview(chats_frame, columns=columns, show='headings', height=6)
+        self.tg_chats_tree = ttk.Treeview(chats_frame, columns=columns, show='headings', height=5)
         self.tg_chats_tree.heading('name', text='Nome Chat')
         self.tg_chats_tree.heading('enabled', text='Attivo')
         self.tg_chats_tree.column('name', width=200)
@@ -2445,6 +2442,33 @@ class PickfairApp:
         self.tg_chats_tree.pack(fill=tk.BOTH, expand=True)
         
         self._refresh_telegram_chats_tree()
+        
+        available_frame = ttk.LabelFrame(left_frame, text="Chat Disponibili da Telegram", padding=10)
+        available_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+        
+        avail_btn_frame = ttk.Frame(available_frame)
+        avail_btn_frame.pack(fill=tk.X, pady=(0, 5))
+        ttk.Button(avail_btn_frame, text="Carica/Aggiorna Chat", command=self._load_available_chats).pack(side=tk.LEFT, padx=2)
+        ttk.Button(avail_btn_frame, text="Aggiungi Selezionate", command=self._add_selected_available_chats).pack(side=tk.LEFT, padx=2)
+        
+        self.tg_available_status = ttk.Label(avail_btn_frame, text="")
+        self.tg_available_status.pack(side=tk.RIGHT, padx=5)
+        
+        avail_columns = ('select', 'type', 'name')
+        self.tg_available_tree = ttk.Treeview(available_frame, columns=avail_columns, show='headings', height=8, selectmode='extended')
+        self.tg_available_tree.heading('select', text='')
+        self.tg_available_tree.heading('type', text='Tipo')
+        self.tg_available_tree.heading('name', text='Nome')
+        self.tg_available_tree.column('select', width=30)
+        self.tg_available_tree.column('type', width=60)
+        self.tg_available_tree.column('name', width=200)
+        
+        avail_scroll = ttk.Scrollbar(available_frame, orient=tk.VERTICAL, command=self.tg_available_tree.yview)
+        self.tg_available_tree.configure(yscrollcommand=avail_scroll.set)
+        self.tg_available_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        avail_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.available_chats_data = []
         
         signals_frame = ttk.LabelFrame(right_frame, text="Segnali Ricevuti", padding=10)
         signals_frame.pack(fill=tk.BOTH, expand=True)
@@ -2491,6 +2515,114 @@ class PickfairApp:
             auto_stake=stake
         )
         messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
+    
+    def _load_available_chats(self):
+        """Load available chats from Telegram account into the tree."""
+        settings = self.db.get_telegram_settings()
+        if not settings or not settings.get('api_id') or not settings.get('api_hash'):
+            messagebox.showwarning("Attenzione", "Configura prima le credenziali Telegram")
+            return
+        
+        self.tg_available_status.config(text="Caricamento...")
+        self.tg_available_tree.delete(*self.tg_available_tree.get_children())
+        self.available_chats_data = []
+        
+        def fetch_dialogs():
+            try:
+                import asyncio
+                from telethon.sync import TelegramClient
+                from telethon.tl.types import Channel, Chat, User
+                
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                api_id = int(settings['api_id'])
+                api_hash = settings['api_hash']
+                
+                import os
+                session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+                
+                client = TelegramClient(session_path, api_id, api_hash)
+                client.connect()
+                
+                if not client.is_user_authorized():
+                    client.disconnect()
+                    self.root.after(0, lambda: self.tg_available_status.config(text="Non autenticato - avvia listener"))
+                    self.root.after(0, lambda: messagebox.showwarning("Attenzione", 
+                        "Non autenticato. Avvia il listener per autenticarti."))
+                    return
+                
+                dialogs = client.get_dialogs()
+                chat_list = []
+                
+                for d in dialogs:
+                    entity = d.entity
+                    chat_type = 'Altro'
+                    
+                    if isinstance(entity, Channel):
+                        chat_type = 'Canale' if entity.broadcast else 'Gruppo'
+                    elif isinstance(entity, Chat):
+                        chat_type = 'Gruppo'
+                    elif isinstance(entity, User):
+                        chat_type = 'Bot' if entity.bot else 'Utente'
+                    
+                    chat_list.append({
+                        'id': d.id,
+                        'name': d.name or str(d.id),
+                        'type': chat_type
+                    })
+                
+                client.disconnect()
+                self.root.after(0, lambda: self._populate_available_chats(chat_list))
+                
+            except Exception as e:
+                self.root.after(0, lambda: self.tg_available_status.config(text=f"Errore: {str(e)[:30]}"))
+        
+        threading.Thread(target=fetch_dialogs, daemon=True).start()
+    
+    def _populate_available_chats(self, chat_list):
+        """Populate the available chats tree."""
+        self.tg_available_tree.delete(*self.tg_available_tree.get_children())
+        self.available_chats_data = chat_list
+        
+        monitored_ids = set()
+        for chat in self.db.get_telegram_chats():
+            monitored_ids.add(int(chat['chat_id']))
+        
+        for chat in chat_list:
+            if chat['id'] in monitored_ids:
+                continue
+            self.tg_available_tree.insert('', tk.END, iid=str(chat['id']), values=(
+                '',
+                chat['type'],
+                chat['name']
+            ))
+        
+        count = len(self.tg_available_tree.get_children())
+        self.tg_available_status.config(text=f"{count} chat disponibili")
+    
+    def _add_selected_available_chats(self):
+        """Add selected chats from available list to monitored."""
+        selected = self.tg_available_tree.selection()
+        if not selected:
+            messagebox.showwarning("Attenzione", "Seleziona almeno una chat dalla lista")
+            return
+        
+        count = 0
+        for item_id in selected:
+            item = self.tg_available_tree.item(item_id)
+            values = item['values']
+            chat_id = int(item_id)
+            chat_name = values[2] if len(values) > 2 else str(chat_id)
+            
+            self.db.add_telegram_chat(chat_id, chat_name)
+            self.tg_available_tree.delete(item_id)
+            count += 1
+        
+        self._refresh_telegram_chats_tree()
+        remaining = len(self.tg_available_tree.get_children())
+        self.tg_available_status.config(text=f"{remaining} chat disponibili")
+        messagebox.showinfo("Aggiunto", f"Aggiunte {count} chat alla lista monitorata")
     
     def _add_telegram_chat(self):
         """Add a new telegram chat to monitor."""
@@ -4166,221 +4298,6 @@ class PickfairApp:
         btn_frame.pack(fill=tk.X, pady=20)
         ttk.Button(btn_frame, text="Salva", command=save_settings).pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="Chiudi", command=dialog.destroy).pack(side=tk.LEFT)
-    
-    def _show_telegram_chats(self):
-        """Show dialog to manage monitored Telegram chats."""
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Gestisci Chat Telegram")
-        dialog.geometry("600x500")
-        dialog.transient(self.root)
-        
-        frame = ttk.Frame(dialog, padding=20)
-        frame.pack(fill=tk.BOTH, expand=True)
-        
-        ttk.Label(frame, text="Chat Monitorate", style='Title.TLabel').pack(anchor=tk.W)
-        
-        columns = ('chat_id', 'name', 'enabled')
-        tree = ttk.Treeview(frame, columns=columns, show='headings', height=10, selectmode='extended')
-        tree.heading('chat_id', text='Chat ID')
-        tree.heading('name', text='Nome')
-        tree.heading('enabled', text='Attivo')
-        tree.column('chat_id', width=120)
-        tree.column('name', width=300)
-        tree.column('enabled', width=60)
-        tree.pack(fill=tk.BOTH, expand=True, pady=10)
-        
-        def refresh_tree():
-            tree.delete(*tree.get_children())
-            chats = self.db.get_telegram_chats()
-            for chat in chats:
-                tree.insert('', tk.END, iid=str(chat['id']), values=(
-                    chat['chat_id'],
-                    chat.get('chat_name', ''),
-                    'Si' if chat.get('enabled') else 'No'
-                ))
-        
-        refresh_tree()
-        
-        btn_frame = ttk.Frame(frame)
-        btn_frame.pack(fill=tk.X, pady=10)
-        
-        def load_telegram_chats():
-            """Load all chats from Telegram account."""
-            settings = self.db.get_telegram_settings()
-            if not settings or not settings.get('api_id') or not settings.get('api_hash'):
-                messagebox.showwarning("Attenzione", "Configura prima le credenziali Telegram")
-                return
-            
-            status_label.config(text="Connessione a Telegram...")
-            dialog.update()
-            
-            def fetch_dialogs():
-                try:
-                    import asyncio
-                    from telethon.sync import TelegramClient
-                    from telethon.tl.types import Channel, Chat, User
-                    
-                    # Create event loop for this thread
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    
-                    api_id = int(settings['api_id'])
-                    api_hash = settings['api_hash']
-                    phone = settings.get('phone_number', '')
-                    
-                    # Session file path
-                    import os
-                    session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
-                    
-                    client = TelegramClient(session_path, api_id, api_hash)
-                    client.connect()
-                    
-                    if not client.is_user_authorized():
-                        # Need to authenticate - disconnect first, auth flow will create new client
-                        client.disconnect()
-                        dialog.after(0, lambda: self._telegram_auth_flow(settings, phone, show_chat_selector))
-                        return
-                    
-                    # Get all dialogs
-                    dialogs = client.get_dialogs()
-                    chat_list = []
-                    
-                    for d in dialogs:
-                        entity = d.entity
-                        chat_type = 'unknown'
-                        
-                        if isinstance(entity, Channel):
-                            chat_type = 'Canale' if entity.broadcast else 'Gruppo'
-                        elif isinstance(entity, Chat):
-                            chat_type = 'Gruppo'
-                        elif isinstance(entity, User):
-                            chat_type = 'Bot' if entity.bot else 'Utente'
-                        
-                        chat_list.append({
-                            'id': d.id,
-                            'name': d.name or str(d.id),
-                            'type': chat_type
-                        })
-                    
-                    client.disconnect()
-                    dialog.after(0, lambda: show_chat_selector(chat_list))
-                    
-                except Exception as e:
-                    dialog.after(0, lambda: status_label.config(text=f"Errore: {str(e)[:50]}"))
-                    dialog.after(0, lambda: messagebox.showerror("Errore", f"Errore Telegram: {e}"))
-            
-            threading.Thread(target=fetch_dialogs, daemon=True).start()
-        
-        def show_chat_selector(chat_list):
-            """Show dialog to select chats to monitor with checkboxes."""
-            status_label.config(text=f"Trovate {len(chat_list)} chat")
-            
-            sel_dialog = tk.Toplevel(dialog)
-            sel_dialog.title("Seleziona Chat da Monitorare")
-            sel_dialog.geometry("550x450")
-            sel_dialog.transient(dialog)
-            sel_dialog.grab_set()
-            
-            sel_frame = ttk.Frame(sel_dialog, padding=20)
-            sel_frame.pack(fill=tk.BOTH, expand=True)
-            
-            ttk.Label(sel_frame, text="Seleziona le chat da monitorare:", 
-                     font=('Segoe UI', 10, 'bold')).pack(anchor=tk.W, pady=(0, 10))
-            
-            # Container with scrollbar
-            container = ttk.Frame(sel_frame)
-            container.pack(fill=tk.BOTH, expand=True)
-            
-            canvas = tk.Canvas(container)
-            scrollbar = ttk.Scrollbar(container, orient=tk.VERTICAL, command=canvas.yview)
-            scrollable_frame = ttk.Frame(canvas)
-            
-            scrollable_frame.bind(
-                "<Configure>",
-                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-            )
-            
-            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-            canvas.configure(yscrollcommand=scrollbar.set)
-            
-            canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-            
-            # Enable mouse wheel scrolling
-            def on_mousewheel(event):
-                canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-            canvas.bind_all("<MouseWheel>", on_mousewheel)
-            
-            # Store checkbox variables
-            check_vars = {}
-            
-            for chat in chat_list:
-                row_frame = ttk.Frame(scrollable_frame)
-                row_frame.pack(fill=tk.X, pady=2)
-                
-                var = tk.BooleanVar(value=False)
-                check_vars[chat['id']] = {'var': var, 'name': chat['name']}
-                
-                cb = ttk.Checkbutton(row_frame, variable=var)
-                cb.pack(side=tk.LEFT, padx=(0, 5))
-                
-                # Type badge
-                type_text = chat['type']
-                type_color = '#007bff' if type_text == 'Canale' else '#28a745' if type_text == 'Gruppo' else '#6c757d'
-                type_label = tk.Label(row_frame, text=type_text, bg=type_color, fg='white', 
-                                      font=('Segoe UI', 8), padx=5, pady=1)
-                type_label.pack(side=tk.LEFT, padx=(0, 10))
-                
-                name_label = ttk.Label(row_frame, text=chat['name'], font=('Segoe UI', 10))
-                name_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
-            
-            def select_all():
-                for data in check_vars.values():
-                    data['var'].set(True)
-            
-            def deselect_all():
-                for data in check_vars.values():
-                    data['var'].set(False)
-            
-            def add_selected():
-                count = 0
-                for chat_id, data in check_vars.items():
-                    if data['var'].get():
-                        self.db.add_telegram_chat(str(chat_id), data['name'])
-                        count += 1
-                
-                canvas.unbind_all("<MouseWheel>")
-                sel_dialog.destroy()
-                refresh_tree()
-                if count > 0:
-                    messagebox.showinfo("Aggiunto", f"Aggiunte {count} chat alla lista monitorata")
-            
-            btn_sel_frame = ttk.Frame(sel_frame)
-            btn_sel_frame.pack(fill=tk.X, pady=(15, 0))
-            
-            ttk.Button(btn_sel_frame, text="Seleziona Tutti", command=select_all).pack(side=tk.LEFT, padx=2)
-            ttk.Button(btn_sel_frame, text="Deseleziona Tutti", command=deselect_all).pack(side=tk.LEFT, padx=2)
-            
-            tk.Button(btn_sel_frame, text="Aggiungi Selezionate", bg='#28a745', fg='white',
-                     font=('Segoe UI', 10, 'bold'), command=add_selected).pack(side=tk.RIGHT, padx=5)
-            ttk.Button(btn_sel_frame, text="Annulla", 
-                      command=lambda: [canvas.unbind_all("<MouseWheel>"), sel_dialog.destroy()]).pack(side=tk.RIGHT)
-        
-        tk.Button(btn_frame, text="Carica Chat da Telegram", bg='#007bff', fg='white',
-                 font=('Segoe UI', 10, 'bold'), command=load_telegram_chats).pack(side=tk.LEFT, padx=5)
-        
-        def remove_chat():
-            selected = tree.selection()
-            for item in selected:
-                values = tree.item(item)['values']
-                if values:
-                    self.db.remove_telegram_chat(values[0])
-                    tree.delete(item)
-        
-        ttk.Button(btn_frame, text="Rimuovi Selezionate", command=remove_chat).pack(side=tk.LEFT, padx=5)
-        
-        status_label = ttk.Label(frame, text="")
-        status_label.pack(anchor=tk.W, pady=5)
     
     def _show_telegram_signals(self):
         """Show received Telegram signals."""
