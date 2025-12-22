@@ -3072,6 +3072,7 @@ class PickfairApp:
             runner_selections[sel_id] = {
                 'selected': False,
                 'offset': 0,
+                'swap': False,
                 'runner': runner
             }
             
@@ -3082,6 +3083,7 @@ class PickfairApp:
                 '',  # Checkbox indicator
                 runner['runnerName'],
                 '0',
+                '',  # Swap indicator
                 price_str,
                 '-',
                 '-'
@@ -3099,6 +3101,10 @@ class PickfairApp:
                     
                     if col_num == 1:  # Selected column - toggle selection
                         runner_selections[sel_id]['selected'] = not runner_selections[sel_id]['selected']
+                        update_row(sel_id)
+                        recalculate()
+                    elif col_num == 4:  # Swap column - toggle swap
+                        runner_selections[sel_id]['swap'] = not runner_selections[sel_id]['swap']
                         update_row(sel_id)
                         recalculate()
         
@@ -3148,8 +3154,12 @@ class PickfairApp:
             runner = data['runner']
             bet_type = bet_type_var.get()
             
-            # Get price with offset
-            if bet_type == 'BACK':
+            # Determine effective bet type (considering swap)
+            effective_type = 'LAY' if (bet_type == 'BACK' and data['swap']) else \
+                            ('BACK' if (bet_type == 'LAY' and data['swap']) else bet_type)
+            
+            # Get price based on effective type
+            if effective_type == 'BACK':
                 base_price = runner.get('backPrice', 0) or 0
             else:
                 base_price = runner.get('layPrice', 0) or 0
@@ -3158,8 +3168,9 @@ class PickfairApp:
             price = apply_price_offset(base_price, data['offset'])
             price_str = f"{price:.2f}" if price > 0 else '-'
             
-            # Selection indicator
+            # Selection and swap indicators
             sel_indicator = '[X]' if data['selected'] else '[ ]'
+            swap_indicator = '[X]' if data['swap'] else '[ ]'
             
             # Get calculated stake/profit if available
             stake_str = '-'
@@ -3183,6 +3194,7 @@ class PickfairApp:
                 sel_indicator,
                 runner['runnerName'],
                 str(data['offset']),
+                swap_indicator,
                 price_str,
                 stake_str,
                 profit_str
@@ -3223,14 +3235,21 @@ class PickfairApp:
             bet_type = bet_type_var.get()
             mode = dutching_mode.get()
             
-            # Gather selected runners with their prices
+            # Gather selected runners with their effective type and prices
             selections = []
+            has_swapped = False
             for sel_id, data in runner_selections.items():
                 if data['selected']:
                     runner = data['runner']
                     
-                    # Get base price based on bet type
-                    if bet_type == 'BACK':
+                    # Determine effective bet type (considering swap)
+                    effective_type = 'LAY' if (bet_type == 'BACK' and data['swap']) else \
+                                    ('BACK' if (bet_type == 'LAY' and data['swap']) else bet_type)
+                    if data['swap']:
+                        has_swapped = True
+                    
+                    # Get base price based on effective type
+                    if effective_type == 'BACK':
                         base_price = runner.get('backPrice', 0) or 0
                     else:
                         base_price = runner.get('layPrice', 0) or 0
@@ -3242,7 +3261,8 @@ class PickfairApp:
                         selections.append({
                             'selectionId': sel_id,
                             'runnerName': runner['runnerName'],
-                            'price': price
+                            'price': price,
+                            'effectiveType': effective_type
                         })
             
             if not selections:
@@ -3258,9 +3278,14 @@ class PickfairApp:
             book_value_var.set(f"Book Value: {implied:.1f}%")
             
             try:
+                from dutching import calculate_mixed_dutching
+                
                 if mode == 'STAKE':
                     amount = float(stake_var.get().replace(',', '.'))
-                    results, profit, _ = calculate_dutching_stakes(selections, amount, bet_type)
+                    if has_swapped:
+                        results, profit, _ = calculate_mixed_dutching(selections, amount)
+                    else:
+                        results, profit, _ = calculate_dutching_stakes(selections, amount, bet_type)
                 else:  # PROFIT mode
                     target_profit = float(profit_var.get().replace(',', '.'))
                     # Reverse calculate: stake = profit / (1/implied - 1) for back
@@ -3268,10 +3293,14 @@ class PickfairApp:
                     if implied_dec >= 1:
                         raise ValueError("Book value >= 100%, profitto non garantito")
                     required_stake = target_profit / (1.0 / implied_dec - 1)
-                    results, profit, _ = calculate_dutching_stakes(selections, required_stake, bet_type)
+                    if has_swapped:
+                        results, profit, _ = calculate_mixed_dutching(selections, required_stake)
+                    else:
+                        results, profit, _ = calculate_dutching_stakes(selections, required_stake, bet_type)
                 
                 dialog.calculated_results = results
                 dialog.bet_type = bet_type
+                dialog.has_swapped = has_swapped
                 
                 total_stake = sum(r['stake'] for r in results)
                 total_var.set(f"Totale: {total_stake:.2f} EUR")
@@ -3382,12 +3411,13 @@ class PickfairApp:
             if not messagebox.askyesno("Conferma", msg):
                 return
             
-            bet_type = dialog.bet_type
             instructions = []
             for r in dialog.calculated_results:
+                # Use effectiveType if available (mixed dutching), otherwise global bet_type
+                side = r.get('effectiveType', dialog.bet_type)
                 instructions.append({
                     'selectionId': r['selectionId'],
-                    'side': bet_type,
+                    'side': side,
                     'price': r['price'],
                     'size': r['stake']
                 })

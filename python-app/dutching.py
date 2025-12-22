@@ -242,3 +242,124 @@ def validate_selections(selections: List[Dict], bet_type: str = 'BACK') -> List[
 def format_currency(amount: float) -> str:
     """Format amount as Italian currency."""
     return f"{amount:,.2f} EUR".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def calculate_mixed_dutching(
+    selections: List[Dict],
+    total_stake: float
+) -> Tuple[List[Dict], float, float]:
+    """
+    Calculate mixed BACK/LAY dutching stakes for equal profit distribution.
+    Uses linear system solving for mathematically correct equal profit.
+    
+    Each selection has:
+    - selectionId, runnerName, price
+    - effectiveType: 'BACK' or 'LAY'
+    
+    For BACK bet: profit if wins = stake * (price - 1), loss if loses = stake
+    For LAY bet: loss if wins = stake * (price - 1), profit if loses = stake
+    """
+    import numpy as np
+    
+    if not selections:
+        raise ValueError("Nessuna selezione")
+    
+    if total_stake <= 0:
+        raise ValueError("Stake deve essere positivo")
+    
+    valid_selections = [s for s in selections if s.get('price') and s['price'] > 1.0]
+    
+    if not valid_selections:
+        raise ValueError("Nessuna quota valida")
+    
+    back_sels = [s for s in valid_selections if s.get('effectiveType', 'BACK') == 'BACK']
+    lay_sels = [s for s in valid_selections if s.get('effectiveType', 'BACK') == 'LAY']
+    
+    if not lay_sels:
+        return _calculate_back_dutching(valid_selections, total_stake)
+    if not back_sels:
+        return _calculate_lay_dutching(valid_selections, total_stake)
+    
+    n = len(valid_selections)
+    
+    A_full = np.zeros((n + 1, n + 1))
+    b_full = np.zeros(n + 1)
+    
+    for k in range(n):
+        for i in range(n):
+            sel = valid_selections[i]
+            price = sel['price']
+            is_back = sel.get('effectiveType', 'BACK') == 'BACK'
+            
+            if i == k:
+                if is_back:
+                    A_full[k, i] = price - 1
+                else:
+                    A_full[k, i] = -(price - 1)
+            else:
+                if is_back:
+                    A_full[k, i] = -1
+                else:
+                    A_full[k, i] = 1
+        A_full[k, n] = -1
+        b_full[k] = 0
+    
+    for i in range(n):
+        A_full[n, i] = 1
+    A_full[n, n] = 0
+    b_full[n] = total_stake
+    
+    try:
+        solution = np.linalg.solve(A_full, b_full)
+        stakes = solution[:n]
+        profit = solution[n]
+        
+        if np.any(stakes < 0):
+            raise ValueError("Combinazione non risolvibile - stakes negativi")
+        
+    except np.linalg.LinAlgError:
+        raise ValueError("Sistema non risolvibile - combinazione di selezioni non valida")
+    
+    final_stakes = []
+    for i in range(n):
+        s = max(stakes[i], MIN_BACK_STAKE)
+        final_stakes.append(round(s, 2))
+    
+    results = []
+    for i, sel in enumerate(valid_selections):
+        stake = final_stakes[i]
+        price = sel['price']
+        eff_type = sel.get('effectiveType', 'BACK')
+        
+        actual_profit = 0.0
+        for j, other in enumerate(valid_selections):
+            other_stake = final_stakes[j]
+            other_price = other['price']
+            other_is_back = other.get('effectiveType', 'BACK') == 'BACK'
+            
+            if j == i:
+                if other_is_back:
+                    actual_profit += other_stake * (other_price - 1)
+                else:
+                    actual_profit -= other_stake * (other_price - 1)
+            else:
+                if other_is_back:
+                    actual_profit -= other_stake
+                else:
+                    actual_profit += other_stake
+        
+        results.append({
+            'selectionId': sel['selectionId'],
+            'runnerName': sel['runnerName'],
+            'price': price,
+            'stake': stake,
+            'effectiveType': eff_type,
+            'profitIfWins': round(actual_profit, 2),
+            'potentialReturn': round(stake * price, 2) if eff_type == 'BACK' else stake,
+            'liability': round(stake * (price - 1), 2) if eff_type == 'LAY' else 0
+        })
+    
+    avg_profit = sum(r['profitIfWins'] for r in results) / len(results) if results else 0
+    implied_back = sum(1/s['price'] for s in back_sels) * 100 if back_sels else 0
+    
+    return results, round(avg_profit, 2), round(implied_back, 2)
