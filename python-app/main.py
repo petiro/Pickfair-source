@@ -331,21 +331,21 @@ class PickfairApp:
         self.stream_check.pack(side=tk.LEFT)
         
         # Dutching modal button
-        self.dutch_modal_btn = tk.Button(
+        self.dutch_modal_btn = ctk.CTkButton(
             stream_frame, 
             text="Dutching Avanzato", 
-            bg='#17a2b8', fg='white',
+            fg_color=COLORS['info'], hover_color=COLORS['info_hover'],
             command=self._show_dutching_modal,
-            state=tk.DISABLED
+            state=tk.DISABLED,
+            corner_radius=6, width=130
         )
         self.dutch_modal_btn.pack(side=tk.LEFT, padx=5)
         
         # Market status indicator
-        self.market_status_label = tk.Label(
+        self.market_status_label = ctk.CTkLabel(
             stream_frame,
             text="",
-            font=('Segoe UI', 9, 'bold'),
-            padx=10
+            font=('Segoe UI', 9, 'bold')
         )
         self.market_status_label.pack(side=tk.RIGHT, padx=10)
         
@@ -431,21 +431,21 @@ class PickfairApp:
         type_frame = ttk.Frame(dutch_frame)
         type_frame.pack(fill=tk.X, pady=5)
         
-        ttk.Label(type_frame, text="Tipo:").pack(side=tk.LEFT)
+        ctk.CTkLabel(type_frame, text="Tipo:").pack(side=tk.LEFT)
         self.bet_type_var = tk.StringVar(value='BACK')
         
         # Blue button for BACK
-        self.back_btn = tk.Button(type_frame, text="Back", bg='#3498db', fg='white',
-                                  activebackground='#2980b9', activeforeground='white',
-                                  relief='raised', bd=2, padx=10,
-                                  command=lambda: self._set_bet_type('BACK'))
+        self.back_btn = ctk.CTkButton(type_frame, text="Back", 
+                                      fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                                      corner_radius=6, width=80,
+                                      command=lambda: self._set_bet_type('BACK'))
         self.back_btn.pack(side=tk.LEFT, padx=5)
         
         # Pink button for LAY (banca)
-        self.lay_btn = tk.Button(type_frame, text="Lay", bg='#ffb6c1', fg='#333',
-                                 activebackground='#ff69b4', activeforeground='white',
-                                 relief='raised', bd=2, padx=10,
-                                 command=lambda: self._set_bet_type('LAY'))
+        self.lay_btn = ctk.CTkButton(type_frame, text="Lay", 
+                                     fg_color=COLORS['lay'], hover_color=COLORS['lay_hover'],
+                                     corner_radius=6, width=80,
+                                     command=lambda: self._set_bet_type('LAY'))
         self.lay_btn.pack(side=tk.LEFT)
         
         stake_frame = ttk.Frame(dutch_frame)
@@ -537,9 +537,11 @@ class PickfairApp:
         cashout_btn_frame = ttk.Frame(dutch_frame)
         cashout_btn_frame.pack(fill=tk.X, pady=5)
         
-        self.market_cashout_btn = tk.Button(cashout_btn_frame, text="CASHOUT", bg='#28a745', fg='white',
-                                            font=('Segoe UI', 9, 'bold'), state=tk.DISABLED,
-                                            command=self._do_market_cashout)
+        self.market_cashout_btn = ctk.CTkButton(cashout_btn_frame, text="CASHOUT", 
+                                               fg_color=COLORS['success'], hover_color='#0d9668',
+                                               font=('Segoe UI', 9, 'bold'), state=tk.DISABLED,
+                                               corner_radius=6, width=100,
+                                               command=self._do_market_cashout)
         self.market_cashout_btn.pack(side=tk.LEFT, padx=2)
         
         # Auto-confirm checkbox (skip confirmation dialog)
@@ -630,7 +632,7 @@ class PickfairApp:
         # Don't clear existing items - keep old data visible until new data is ready
         
         if not self.client or not self.current_market:
-            self.market_cashout_btn.config(state=tk.DISABLED)
+            self.market_cashout_btn.configure(state=tk.DISABLED)
             return
         
         market_id = self.current_market.get('marketId')
@@ -737,9 +739,9 @@ class PickfairApp:
             self.market_cashout_positions[str(bet_id)] = pos
         
         if positions:
-            self.market_cashout_btn.config(state=tk.NORMAL)
+            self.market_cashout_btn.configure(state=tk.NORMAL)
         else:
-            self.market_cashout_btn.config(state=tk.DISABLED)
+            self.market_cashout_btn.configure(state=tk.DISABLED)
     
     def _toggle_market_live_tracking(self):
         """Toggle live tracking for market cashout."""
@@ -758,7 +760,7 @@ class PickfairApp:
         
         self._update_market_cashout_positions()
         self.market_live_tracking_id = self.root.after(5000, update)
-        self.market_live_status.config(text="LIVE", foreground='#28a745')
+        self.market_live_status.config(text="LIVE", foreground=COLORS['success'])
     
     def _stop_market_live_tracking(self):
         """Stop live tracking for market cashout."""
@@ -767,7 +769,7 @@ class PickfairApp:
             self.market_live_tracking_id = None
         # Signal cancellation to any in-flight fetch thread
         self.market_cashout_fetch_cancelled = True
-        self.market_live_status.config(text="", foreground='gray')
+        self.market_live_status.config(text="", foreground=COLORS['text_secondary'])
     
     def _do_single_cashout(self, event):
         """Execute cashout for double-clicked position."""
@@ -1328,19 +1330,19 @@ class PickfairApp:
         
         # Update status indicator
         if self.market_status == 'SUSPENDED':
-            self.market_status_label.config(text="SOSPESO", bg='#dc3545', fg='white')
-            self.dutch_modal_btn.config(state=tk.DISABLED)
+            self.market_status_label.configure(text="SOSPESO", text_color=COLORS['loss'])
+            self.dutch_modal_btn.configure(state=tk.DISABLED)
             self.place_btn.config(state=tk.DISABLED)
         elif self.market_status == 'CLOSED':
-            self.market_status_label.config(text="CHIUSO", bg='#6c757d', fg='white')
-            self.dutch_modal_btn.config(state=tk.DISABLED)
+            self.market_status_label.configure(text="CHIUSO", text_color=COLORS['text_secondary'])
+            self.dutch_modal_btn.configure(state=tk.DISABLED)
             self.place_btn.config(state=tk.DISABLED)
         else:
             if is_inplay:
-                self.market_status_label.config(text="LIVE - APERTO", bg='#28a745', fg='white')
+                self.market_status_label.configure(text="LIVE - APERTO", text_color=COLORS['success'])
             else:
-                self.market_status_label.config(text="APERTO", bg='#28a745', fg='white')
-            self.dutch_modal_btn.config(state=tk.NORMAL)
+                self.market_status_label.configure(text="APERTO", text_color=COLORS['success'])
+            self.dutch_modal_btn.configure(state=tk.NORMAL)
             # place_btn state is managed by calculate function
         
         for runner in market['runners']:
@@ -1709,13 +1711,13 @@ class PickfairApp:
         self.bet_type_var.set(bet_type)
         
         if bet_type == 'BACK':
-            # BACK selected - blue active, pink inactive for LAY
-            self.back_btn.config(bg='#3498db', fg='white', relief='sunken')
-            self.lay_btn.config(bg='#ffb6c1', fg='#333', relief='raised')
+            # BACK selected - blue active, pink faded for LAY
+            self.back_btn.configure(fg_color=COLORS['back'])
+            self.lay_btn.configure(fg_color=COLORS['button_secondary'])
         else:
-            # LAY selected - pink active, blue inactive for BACK
-            self.back_btn.config(bg='#a8d4f0', fg='#333', relief='raised')
-            self.lay_btn.config(bg='#ff69b4', fg='white', relief='sunken')
+            # LAY selected - pink active, blue faded for BACK
+            self.back_btn.configure(fg_color=COLORS['button_secondary'])
+            self.lay_btn.configure(fg_color=COLORS['lay'])
         
         self._recalculate()
     
@@ -3811,21 +3813,23 @@ class PickfairApp:
         bet_frame = ttk.Frame(right_col)
         bet_frame.pack(fill=tk.X)
         
-        back_btn = tk.Button(bet_frame, text="BACK", bg='#3498db', fg='white', width=8,
-                            command=lambda: [bet_type_var.set('BACK'), update_bet_type_buttons()])
+        back_btn = ctk.CTkButton(bet_frame, text="BACK", fg_color=COLORS['back'], 
+                                 hover_color=COLORS['back_hover'], width=80, corner_radius=6,
+                                 command=lambda: [bet_type_var.set('BACK'), update_bet_type_buttons()])
         back_btn.pack(side=tk.LEFT, padx=2)
         
-        lay_btn = tk.Button(bet_frame, text="LAY", bg='#f5f5f5', fg='#333', width=8,
-                           command=lambda: [bet_type_var.set('LAY'), update_bet_type_buttons()])
+        lay_btn = ctk.CTkButton(bet_frame, text="LAY", fg_color=COLORS['button_secondary'], 
+                                hover_color=COLORS['bg_hover'], width=80, corner_radius=6,
+                                command=lambda: [bet_type_var.set('LAY'), update_bet_type_buttons()])
         lay_btn.pack(side=tk.LEFT, padx=2)
         
         def update_bet_type_buttons():
             if bet_type_var.get() == 'BACK':
-                back_btn.config(bg='#3498db', fg='white')
-                lay_btn.config(bg='#f5f5f5', fg='#333')
+                back_btn.configure(fg_color=COLORS['back'])
+                lay_btn.configure(fg_color=COLORS['button_secondary'])
             else:
-                back_btn.config(bg='#f5f5f5', fg='#333')
-                lay_btn.config(bg='#ffb6c1', fg='#333')
+                back_btn.configure(fg_color=COLORS['button_secondary'])
+                lay_btn.configure(fg_color=COLORS['lay'])
             recalculate()
         
         # Book Value display

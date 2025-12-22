@@ -29,6 +29,7 @@ COLORS = {
     
     'warning': '#ffc107',
     'info': '#26c6da',
+    'info_hover': '#00acc1',
     'success': '#66bb6a',
     'error': '#ef5350',
     
