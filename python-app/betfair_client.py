@@ -316,12 +316,12 @@ class BetfairClient:
         if not self.client:
             raise Exception("Non connesso a Betfair")
         
-        # Fetch ALL markets without type restriction
+        # Fetch ALL markets without type restriction - include RUNNER_DESCRIPTION for auto-bet
         markets = self.client.betting.list_market_catalogue(
             filter=filters.market_filter(
                 event_ids=[event_id]
             ),
-            market_projection=['MARKET_START_TIME', 'MARKET_DESCRIPTION'],
+            market_projection=['MARKET_START_TIME', 'MARKET_DESCRIPTION', 'RUNNER_DESCRIPTION'],
             max_results=100
         )
         
@@ -345,13 +345,22 @@ class BetfairClient:
             display_name = MARKET_TYPES.get(market_type, market.market_name)
             is_inplay = in_play_status.get(market.market_id, False)
             
+            runners_list = []
+            if hasattr(market, 'runners') and market.runners:
+                for runner in market.runners:
+                    runners_list.append({
+                        'selectionId': runner.selection_id,
+                        'runnerName': runner.runner_name
+                    })
+            
             result.append({
                 'marketId': market.market_id,
                 'marketName': market.market_name,
                 'marketType': market_type,
                 'displayName': display_name,
                 'startTime': market.market_start_time.isoformat() if market.market_start_time else None,
-                'inPlay': is_inplay
+                'inPlay': is_inplay,
+                'runners': runners_list
             })
         
         return result

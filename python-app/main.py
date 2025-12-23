@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.19.4"
+APP_VERSION = "3.19.5"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2684,13 +2684,13 @@ class PickfairApp:
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=2)
         ctk.CTkButton(auth_frame, text="Invia Codice", command=self._send_telegram_code,
                       fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
-                      corner_radius=6, width=75).pack(side=tk.LEFT, padx=5)
+                      corner_radius=6, width=75).pack(side=tk.LEFT, padx=2)
         ctk.CTkButton(auth_frame, text="Verifica", command=self._verify_telegram_code,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
                       corner_radius=6, width=60).pack(side=tk.LEFT, padx=2)
         ctk.CTkButton(auth_frame, text="Reset", command=self._reset_telegram_session,
-              fg_color=COLORS['button_danger'], hover_color='#c62828',
-              corner_radius=6, width=50).pack(side=tk.LEFT, padx=2)
+                      fg_color=COLORS['button_danger'], hover_color='#c62828',
+                      corner_radius=6, width=50).pack(side=tk.LEFT, padx=2)
         
         self.tg_status_label = ctk.CTkLabel(config_frame, text=f"Stato: {self.telegram_status}",
                                             text_color=COLORS['text_secondary'])
