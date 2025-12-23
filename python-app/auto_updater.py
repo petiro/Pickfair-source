@@ -70,11 +70,30 @@ def check_for_updates(current_version, callback=None, update_url=None):
             if compare_versions(current_version, latest_version):
                 # Find the Windows executable asset
                 download_url = None
-                for asset in data.get('assets', []):
+                assets = data.get('assets', [])
+                
+                # First, look specifically for Pickfair.exe
+                for asset in assets:
                     name = asset.get('name', '').lower()
-                    if name.endswith('.exe') or name.endswith('.zip'):
+                    if name == 'pickfair.exe':
                         download_url = asset.get('browser_download_url')
                         break
+                
+                # If not found, look for any .exe file
+                if not download_url:
+                    for asset in assets:
+                        name = asset.get('name', '').lower()
+                        if name.endswith('.exe'):
+                            download_url = asset.get('browser_download_url')
+                            break
+                
+                # If still not found, look for Pickfair-windows.zip (NOT source code)
+                if not download_url:
+                    for asset in assets:
+                        name = asset.get('name', '').lower()
+                        if 'pickfair' in name and name.endswith('.zip') and 'source' not in name:
+                            download_url = asset.get('browser_download_url')
+                            break
                 
                 # Fallback to release page if no direct download
                 if not download_url:
