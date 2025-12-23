@@ -33,8 +33,6 @@ echo.
 echo [3/4] Compilazione eseguibile...
 pyinstaller --onefile --windowed ^
     --name "Pickfair" ^
-    --icon "icon.ico" ^
-    --add-data "icon.ico;." ^
     --add-data "plugins;plugins" ^
     --hidden-import customtkinter ^
     --hidden-import numpy ^
