@@ -2684,13 +2684,13 @@ class PickfairApp:
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=2)
         ctk.CTkButton(auth_frame, text="Invia Codice", command=self._send_telegram_code,
                       fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
-                      corner_radius=6, width=90).pack(side=tk.LEFT, padx=5)
+                      corner_radius=6, width=80).pack(side=tk.LEFT, padx=2)
         ctk.CTkButton(auth_frame, text="Verifica", command=self._verify_telegram_code,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
-                      corner_radius=6, width=70).pack(side=tk.LEFT, padx=2)
-        ctk.CTkButton(auth_frame, text="Reset Sessione", command=self._reset_telegram_session,
+                      corner_radius=6, width=65).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(auth_frame, text="Reset", command=self._reset_telegram_session,
                       fg_color=COLORS['button_danger'], hover_color='#c62828',
-                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=5)
+                      corner_radius=6, width=55).pack(side=tk.LEFT, padx=2)
         
         self.tg_status_label = ctk.CTkLabel(config_frame, text=f"Stato: {self.telegram_status}",
                                             text_color=COLORS['text_secondary'])
@@ -4791,7 +4791,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 return
             try:
                 market_id = self.current_market['marketId']
-                prices = self.client.get_market_prices(market_id)
+                prices = self.client.get_market_with_prices(market_id)
                 if prices and 'runners' in prices:
                     for runner_price in prices['runners']:
                         sel_id = runner_price['selectionId']
@@ -5404,7 +5404,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 messagebox.showwarning("Auto-Bet", reason)
                 return
             
-            market_book = self.client.get_market_prices(over_under_market['marketId'])
+            market_book = self.client.get_market_with_prices(over_under_market['marketId'])
             
             over_runner = None
             for runner in market_book.get('runners', []):
