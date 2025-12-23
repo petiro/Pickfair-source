@@ -2688,9 +2688,9 @@ class PickfairApp:
         ctk.CTkButton(auth_frame, text="Verifica", command=self._verify_telegram_code,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
                       corner_radius=6, width=70).pack(side=tk.LEFT, padx=2)
-        ctk.CTkButton(auth_frame, text="Reset Sessione", command=self._reset_telegram_session,
-                      fg_color=COLORS['button_danger'], hover_color='#c62828',
-                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(auth_frame, text="Reset", command=self._reset_telegram_session,
+              fg_color=COLORS['button_danger'], hover_color='#c62828',
+              corner_radius=6, width=55).pack(side=tk.LEFT, padx=2)
         
         self.tg_status_label = ctk.CTkLabel(config_frame, text=f"Stato: {self.telegram_status}",
                                             text_color=COLORS['text_secondary'])
