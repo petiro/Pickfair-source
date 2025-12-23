@@ -17,9 +17,10 @@ from dutching import calculate_dutching_stakes, validate_selections, format_curr
 from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_theme
+from plugin_manager import PluginManager, PluginAPI, PluginInfo
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.15.0"
+APP_VERSION = "3.16.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -80,6 +81,10 @@ class PickfairApp:
         self.telegram_status = 'STOPPED'
         self.market_status = 'OPEN'
         self.simulation_mode = False  # Simulation mode flag
+        
+        # Plugin system
+        self.plugin_manager = PluginManager(self)
+        self.plugin_tabs = {}  # Plugin-added tabs {name: (frame, plugin_name)}
         
         self._create_menu()
         self._create_main_layout()
@@ -163,6 +168,7 @@ class PickfairApp:
         self.main_notebook.add("Dashboard")
         self.main_notebook.add("Telegram")
         self.main_notebook.add("Strumenti")
+        self.main_notebook.add("Plugin")
         self.main_notebook.add("Impostazioni")
         self.main_notebook.add("Simulazione")
         
@@ -170,6 +176,7 @@ class PickfairApp:
         self.dashboard_tab = self.main_notebook.tab("Dashboard")
         self.telegram_tab = self.main_notebook.tab("Telegram")
         self.strumenti_tab = self.main_notebook.tab("Strumenti")
+        self.plugin_tab = self.main_notebook.tab("Plugin")
         self.impostazioni_tab = self.main_notebook.tab("Impostazioni")
         self.simulazione_tab = self.main_notebook.tab("Simulazione")
         
@@ -180,6 +187,7 @@ class PickfairApp:
         self._create_dashboard_tab()
         self._create_telegram_tab()
         self._create_strumenti_tab()
+        self._create_plugin_tab()
         self._create_impostazioni_tab()
         self._create_simulazione_tab()
     
@@ -2876,6 +2884,276 @@ class PickfairApp:
                       corner_radius=6, width=180).pack(side=tk.LEFT, padx=5)
         ctk.CTkLabel(btn_frame2, text="Configura filtri per eventi e mercati", 
                      font=('Segoe UI', 9), text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=10)
+    
+    def _create_plugin_tab(self):
+        """Create Plugin tab content with install/uninstall/enable/disable functionality."""
+        main_frame = ctk.CTkFrame(self.plugin_tab, fg_color='transparent')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # Header
+        header_frame = ctk.CTkFrame(main_frame, fg_color='transparent')
+        header_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        ctk.CTkLabel(header_frame, text="Gestione Plugin", font=FONTS['title'],
+                     text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        # Install button
+        ctk.CTkButton(header_frame, text="Installa Plugin", command=self._install_plugin,
+                      fg_color=COLORS['success'], hover_color='#0ea271',
+                      corner_radius=6, width=140).pack(side=tk.RIGHT, padx=5)
+        
+        # Reload all button
+        ctk.CTkButton(header_frame, text="Ricarica Tutti", command=self._reload_all_plugins,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=120).pack(side=tk.RIGHT, padx=5)
+        
+        # Plugin list frame
+        list_frame = ctk.CTkFrame(main_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
+        list_frame.pack(fill=tk.BOTH, expand=True)
+        
+        ctk.CTkLabel(list_frame, text="Plugin Installati", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=15, pady=(15, 10))
+        
+        # Treeview for plugins
+        tree_frame = ctk.CTkFrame(list_frame, fg_color='transparent')
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        
+        columns = ('name', 'version', 'author', 'status', 'description')
+        self.plugins_tree = ttk.Treeview(tree_frame, columns=columns, show='headings', height=10)
+        
+        self.plugins_tree.heading('name', text='Nome')
+        self.plugins_tree.heading('version', text='Versione')
+        self.plugins_tree.heading('author', text='Autore')
+        self.plugins_tree.heading('status', text='Stato')
+        self.plugins_tree.heading('description', text='Descrizione')
+        
+        self.plugins_tree.column('name', width=150)
+        self.plugins_tree.column('version', width=70)
+        self.plugins_tree.column('author', width=120)
+        self.plugins_tree.column('status', width=100)
+        self.plugins_tree.column('description', width=300)
+        
+        # Tags for status colors
+        self.plugins_tree.tag_configure('enabled', foreground=COLORS['success'])
+        self.plugins_tree.tag_configure('disabled', foreground=COLORS['text_secondary'])
+        self.plugins_tree.tag_configure('error', foreground=COLORS['error'])
+        
+        scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=self.plugins_tree.yview)
+        self.plugins_tree.configure(yscrollcommand=scrollbar.set)
+        
+        self.plugins_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Action buttons frame
+        action_frame = ctk.CTkFrame(list_frame, fg_color='transparent')
+        action_frame.pack(fill=tk.X, padx=15, pady=(5, 15))
+        
+        ctk.CTkButton(action_frame, text="Abilita", command=self._enable_selected_plugin,
+                      fg_color=COLORS['success'], hover_color='#0ea271',
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(action_frame, text="Disabilita", command=self._disable_selected_plugin,
+                      fg_color=COLORS['warning'], hover_color='#d97706',
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(action_frame, text="Disinstalla", command=self._uninstall_selected_plugin,
+                      fg_color=COLORS['loss'], hover_color='#dc2626',
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(action_frame, text="Dettagli", command=self._show_plugin_details,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=5)
+        
+        # Security info frame
+        security_frame = ctk.CTkFrame(main_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
+        security_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        ctk.CTkLabel(security_frame, text="Sicurezza Plugin", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=15, pady=(15, 5))
+        
+        security_info = """I plugin vengono eseguiti con le seguenti protezioni:
+- Timeout: Max 10 secondi per operazione
+- Thread separato: L'app rimane fluida anche se il plugin si blocca
+- Sandbox: Accesso file limitato alle cartelle plugins e data
+- Validazione: Funzioni pericolose bloccate (eval, exec, os.system, ecc.)
+- Librerie: Solo librerie pre-approvate o installate via requirements.txt"""
+        
+        ctk.CTkLabel(security_frame, text=security_info, font=('Segoe UI', 10),
+                     text_color=COLORS['text_secondary'], justify=tk.LEFT).pack(anchor=tk.W, padx=15, pady=(0, 15))
+        
+        # Plugin folder path
+        folder_frame = ctk.CTkFrame(security_frame, fg_color='transparent')
+        folder_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
+        
+        ctk.CTkLabel(folder_frame, text=f"Cartella plugin: {self.plugin_manager.plugins_dir}", 
+                     font=('Segoe UI', 9), text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        
+        ctk.CTkButton(folder_frame, text="Apri Cartella", command=self._open_plugins_folder,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6, width=100).pack(side=tk.RIGHT)
+        
+        # Load existing plugins
+        self._load_plugins_on_startup()
+        self._refresh_plugins_tree()
+    
+    def _load_plugins_on_startup(self):
+        """Load all plugins from plugins folder on startup."""
+        try:
+            self.plugin_manager.load_all_plugins()
+        except Exception as e:
+            print(f"[Plugin] Errore caricamento plugin: {e}")
+    
+    def _refresh_plugins_tree(self):
+        """Refresh the plugins treeview."""
+        self.plugins_tree.delete(*self.plugins_tree.get_children())
+        
+        for plugin in self.plugin_manager.get_plugin_list():
+            if plugin.error:
+                status = 'Errore'
+                tag = 'error'
+            elif plugin.enabled:
+                status = 'Abilitato'
+                tag = 'enabled'
+            else:
+                status = 'Disabilitato'
+                tag = 'disabled'
+            
+            self.plugins_tree.insert('', tk.END, values=(
+                plugin.name,
+                plugin.version,
+                plugin.author,
+                status,
+                plugin.description[:50] + '...' if len(plugin.description) > 50 else plugin.description
+            ), tags=(tag,))
+    
+    def _install_plugin(self):
+        """Install a plugin from file."""
+        filepath = filedialog.askopenfilename(
+            title="Seleziona Plugin",
+            filetypes=[("Python files", "*.py")],
+            initialdir=str(self.plugin_manager.plugins_dir)
+        )
+        
+        if not filepath:
+            return
+        
+        success, msg = self.plugin_manager.install_plugin_from_file(filepath)
+        if success:
+            messagebox.showinfo("Plugin Installato", msg)
+            self._refresh_plugins_tree()
+        else:
+            messagebox.showerror("Errore Installazione", msg)
+    
+    def _reload_all_plugins(self):
+        """Reload all plugins."""
+        # Unload all first
+        for name in list(self.plugin_manager.plugins.keys()):
+            self.plugin_manager.unload_plugin(name)
+        
+        # Reload
+        self.plugin_manager.load_all_plugins()
+        self._refresh_plugins_tree()
+        messagebox.showinfo("Plugin", "Plugin ricaricati")
+    
+    def _get_selected_plugin_name(self):
+        """Get the name of the selected plugin."""
+        selection = self.plugins_tree.selection()
+        if not selection:
+            messagebox.showwarning("Seleziona Plugin", "Seleziona un plugin dalla lista")
+            return None
+        
+        item = self.plugins_tree.item(selection[0])
+        return item['values'][0]
+    
+    def _enable_selected_plugin(self):
+        """Enable the selected plugin."""
+        name = self._get_selected_plugin_name()
+        if not name:
+            return
+        
+        success, msg = self.plugin_manager.enable_plugin(name)
+        if success:
+            self._refresh_plugins_tree()
+        else:
+            messagebox.showerror("Errore", msg)
+    
+    def _disable_selected_plugin(self):
+        """Disable the selected plugin."""
+        name = self._get_selected_plugin_name()
+        if not name:
+            return
+        
+        success, msg = self.plugin_manager.disable_plugin(name)
+        if success:
+            self._refresh_plugins_tree()
+        else:
+            messagebox.showerror("Errore", msg)
+    
+    def _uninstall_selected_plugin(self):
+        """Uninstall the selected plugin."""
+        name = self._get_selected_plugin_name()
+        if not name:
+            return
+        
+        if not messagebox.askyesno("Conferma", f"Disinstallare il plugin '{name}'?"):
+            return
+        
+        success, msg = self.plugin_manager.uninstall_plugin(name)
+        if success:
+            self._refresh_plugins_tree()
+            messagebox.showinfo("Plugin Rimosso", msg)
+        else:
+            messagebox.showerror("Errore", msg)
+    
+    def _show_plugin_details(self):
+        """Show details of the selected plugin."""
+        name = self._get_selected_plugin_name()
+        if not name:
+            return
+        
+        if name not in self.plugin_manager.plugins:
+            return
+        
+        plugin = self.plugin_manager.plugins[name]
+        
+        details = f"""Nome: {plugin.name}
+Versione: {plugin.version}
+Autore: {plugin.author}
+Abilitato: {'Si' if plugin.enabled else 'No'}
+Verificato: {'Si' if plugin.verified else 'No'}
+
+Descrizione:
+{plugin.description}
+
+File: {plugin.path}
+Tempo caricamento: {plugin.load_time:.2f}s
+Esecuzioni: {plugin.execution_count}
+
+Ultimo errore: {plugin.last_error or 'Nessuno'}"""
+        
+        messagebox.showinfo(f"Dettagli Plugin: {name}", details)
+    
+    def _open_plugins_folder(self):
+        """Open the plugins folder in file explorer."""
+        import subprocess
+        try:
+            subprocess.Popen(['explorer', str(self.plugin_manager.plugins_dir)])
+        except:
+            messagebox.showinfo("Cartella Plugin", str(self.plugin_manager.plugins_dir))
+    
+    def add_plugin_tab(self, title: str, create_func, plugin_name: str):
+        """Add a tab created by a plugin."""
+        # Not implemented - plugins can't add main tabs for now
+        pass
+    
+    def remove_plugin_tab(self, title: str, plugin_name: str):
+        """Remove a tab created by a plugin."""
+        pass
+    
+    def add_event_filter(self, name: str, filter_func, plugin_name: str):
+        """Add a custom event filter from a plugin."""
+        # Can be implemented to allow plugins to filter events
+        pass
     
     def _create_impostazioni_tab(self):
         """Create Impostazioni tab content with scrollbar."""

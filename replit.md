@@ -4,7 +4,7 @@
 
 Pickfair is a Windows desktop application for automated sports betting through Betfair Exchange Italy API. Built with Python, it features advanced dutching, live betting, Telegram integration, and a modern dark trading interface.
 
-**Current Version**: v3.15.0 (Full CustomTkinter Tab Conversion)
+**Current Version**: v3.16.0 (Plugin System)
 
 ## User Preferences
 
@@ -29,10 +29,13 @@ Pickfair is a Windows desktop application for automated sports betting through B
 - `dutching.py` - Dutching calculations (BACK/LAY mixed)
 - `auto_updater.py` - Automatic update system
 - `theme.py` - Dark theme colors and configuration
+- `plugin_manager.py` - Plugin system with security sandbox
 
 ### Data Storage
 - **SQLite database**: `%APPDATA%\Pickfair\pickfair.db` (1-5 MB)
 - **Telegram session**: `%APPDATA%\Pickfair\telegram_session`
+- **Plugins**: `%APPDATA%\Pickfair\plugins` (.py files)
+- **Plugin data**: `%APPDATA%\Pickfair\data` (JSON config)
 
 ## Theme Colors (from theme.py)
 
@@ -62,6 +65,24 @@ COLORS = {
 - **Italian Compliance**: 4.5% commission handling
 
 ## Recent Changes (December 2024)
+
+- **v3.16.0**: Plugin System
+  - Added `plugin_manager.py` with comprehensive security features:
+    - Code validation blocking dangerous functions (eval, exec, os.system, subprocess, etc.)
+    - Sandbox file access limiting plugins to allowed directories
+    - Timeout protection (10s max execution time)
+    - Thread-safe plugin execution preventing UI freezes
+    - Dynamic library installation from requirements.txt
+    - Resource monitoring capabilities
+    - Plugin API for safe app interaction
+  - Added Plugin Tab to main interface with:
+    - Install/Uninstall plugins from .py files
+    - Enable/Disable plugins dynamically
+    - Plugin details view (version, author, execution stats)
+    - Security info panel
+    - Open plugins folder button
+  - Created plugin template and example plugin (odds_alert)
+  - Added build.bat for PyInstaller packaging
 
 - **v3.15.0**: Full CustomTkinter Tab Conversion
   - **Dashboard Tab**: Converted to CTkFrame, CTkLabel, CTkButton with CTkTabview sub-tabs
