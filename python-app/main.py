@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.19.6"
+APP_VERSION = "3.19.7"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5458,7 +5458,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     selection_id=over_runner['selectionId'],
                     side='BACK',
                     price=over_runner['price'],
-                    stake=stake
+                    size=stake
                 )
                 
                 if result.get('status') == 'SUCCESS':
