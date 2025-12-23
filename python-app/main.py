@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.20.0"
+APP_VERSION = "3.20.1"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5109,13 +5109,15 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             
             def on_signal(signal):
                 self.telegram_signal_queue.add(signal)
-                self.db.save_telegram_signal(
+                signal_id = self.db.save_telegram_signal(
                     signal.get('chat_id', ''),
                     signal.get('sender_id', ''),
                     signal.get('raw_text', ''),
                     signal
                 )
+                signal['signal_id'] = signal_id
                 self.root.after(0, lambda: self._notify_new_signal(signal))
+                self.root.after(0, lambda: self._refresh_telegram_signals_tree())
                 
                 print(f"[AUTO-BET DEBUG] Signal received: event={signal.get('event')}, over_line={signal.get('over_line')}, auto_bet={settings.get('auto_bet')}")
                 
@@ -5444,6 +5446,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             )
             
             
+            signal_id = signal.get('signal_id')
+            
             if self.simulation_mode:
                 commission = 0.045
                 gross_profit = stake * (over_runner['price'] - 1)
@@ -5459,6 +5463,9 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     potential_profit=net_profit,
                     status='MATCHED'
                 )
+                if signal_id:
+                    self.db.update_signal_status(signal_id, 'PLACED')
+                    self._refresh_telegram_signals_tree()
                 messagebox.showinfo("Auto-Bet (Simulazione)", f"Scommessa simulata piazzata!\n\n{bet_info}")
             else:
                 result = self.client.place_bet(
@@ -5470,10 +5477,16 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 )
                 
                 if result.get('status') == 'SUCCESS':
+                    if signal_id:
+                        self.db.update_signal_status(signal_id, 'PLACED')
+                        self._refresh_telegram_signals_tree()
                     messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bet_info}")
                 else:
                     error = result.get('errorCode', 'UNKNOWN')
                     reason = f"Errore Betfair: {error}"
+                    if signal_id:
+                        self.db.update_signal_status(signal_id, 'FAILED')
+                        self._refresh_telegram_signals_tree()
                     log_failed_bet(reason)
                     messagebox.showerror("Auto-Bet Errore", f"Errore piazzamento: {error}")
         
