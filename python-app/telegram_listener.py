@@ -56,6 +56,11 @@ class TelegramListener:
             'over': r'\b(over|sopra)\s*(\d+[.,]?\d*)',
             'under': r'\b(under|sotto)\s*(\d+[.,]?\d*)',
             'next_goal': r'NEXT\s*GOL|PROSSIMO\s*GOL',
+            'gg': r'\b(GG|BTTS|goal\s*goal|entrambe.*segn|both.*score)\b',
+            'ng': r'\b(NG|NO\s*GOAL|no\s*gol|nessuna.*segn)\b',
+            'first_half_over': r'(?:1[°º]?\s*(?:tempo|half|t)|primo\s*tempo|1T)\s*(?:over|sopra)\s*(\d+[.,]?\d*)',
+            'first_half_under': r'(?:1[°º]?\s*(?:tempo|half|t)|primo\s*tempo|1T)\s*(?:under|sotto)\s*(\d+[.,]?\d*)',
+            'double_chance': r'\b(1X|X2|12|doppia\s*chance)\b',
         }
     
     def set_signal_patterns(self, patterns: Dict):
@@ -128,13 +133,45 @@ class TelegramListener:
                 signal['selection'] = f"Over {signal['over_line']}"
                 signal['side'] = 'BACK'
         
+        if re.search(self.signal_patterns['gg'], text, re.IGNORECASE):
+            signal['market_type'] = 'BOTH_TEAMS_TO_SCORE'
+            signal['selection'] = 'Yes'
+            signal['side'] = signal['side'] or 'BACK'
+        
+        if re.search(self.signal_patterns['ng'], text, re.IGNORECASE):
+            signal['market_type'] = 'BOTH_TEAMS_TO_SCORE'
+            signal['selection'] = 'No'
+            signal['side'] = signal['side'] or 'BACK'
+        
+        first_half_over = re.search(self.signal_patterns['first_half_over'], text, re.IGNORECASE)
+        if first_half_over:
+            line = first_half_over.group(1).replace(',', '.')
+            signal['selection'] = f"Over {line}"
+            signal['market_type'] = 'FIRST_HALF_GOALS'
+            signal['over_line'] = float(line)
+            signal['side'] = signal['side'] or 'BACK'
+        
+        first_half_under = re.search(self.signal_patterns['first_half_under'], text, re.IGNORECASE)
+        if first_half_under:
+            line = first_half_under.group(1).replace(',', '.')
+            signal['selection'] = f"Under {line}"
+            signal['market_type'] = 'FIRST_HALF_GOALS'
+            signal['over_line'] = float(line)
+            signal['side'] = signal['side'] or 'BACK'
+        
+        dc_match = re.search(self.signal_patterns['double_chance'], text, re.IGNORECASE)
+        if dc_match:
+            signal['market_type'] = 'DOUBLE_CHANCE'
+            signal['selection'] = dc_match.group(1).upper()
+            signal['side'] = signal['side'] or 'BACK'
+        
         over_match = re.search(self.signal_patterns['over'], text, re.IGNORECASE)
-        if over_match:
+        if over_match and not signal['market_type']:
             signal['selection'] = f"Over {over_match.group(2)}"
             signal['market_type'] = 'OVER_UNDER'
         
         under_match = re.search(self.signal_patterns['under'], text, re.IGNORECASE)
-        if under_match:
+        if under_match and not signal['market_type']:
             signal['selection'] = f"Under {under_match.group(2)}"
             signal['market_type'] = 'OVER_UNDER'
         
@@ -148,7 +185,11 @@ class TelegramListener:
             stake_str = stake_match.group(1).replace(',', '.')
             signal['stake'] = float(stake_str)
         
-        if signal['event'] and signal['score_home'] is not None:
+        if signal['market_type'] and signal['selection'] and signal['event']:
+            signal['side'] = signal['side'] or 'BACK'
+            return signal
+        
+        if signal['event'] and signal['score_home'] is not None and not signal['market_type']:
             signal['selection'] = f"Over {signal['over_line']}"
             signal['side'] = 'BACK'
             signal['market_type'] = 'OVER_UNDER'
