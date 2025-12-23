@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.19.7"
+APP_VERSION = "3.19.8"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5114,8 +5114,13 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 )
                 self.root.after(0, lambda: self._notify_new_signal(signal))
                 
+                print(f"[AUTO-BET DEBUG] Signal received: event={signal.get('event')}, over_line={signal.get('over_line')}, auto_bet={settings.get('auto_bet')}")
+                
                 if settings.get('auto_bet') and signal.get('event') and signal.get('over_line') is not None:
+                    print(f"[AUTO-BET DEBUG] Processing auto-bet for: {signal.get('event')}")
                     self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
+                else:
+                    print(f"[AUTO-BET DEBUG] Skipped - auto_bet={settings.get('auto_bet')}, event={signal.get('event')}, over_line={signal.get('over_line')}")
             
             def on_status(status, message):
                 self.telegram_status = status
