@@ -1,0 +1,54 @@
+name: Build Windows Exe
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install customtkinter
+        pip install numpy
+        pip install betfairlightweight
+        pip install telethon
+        pip install requests
+    
+    - name: Build with PyInstaller
+      run: |
+        pyinstaller --onedir --windowed --name Pickfair --noconfirm main.py
+    
+    - name: Create zip archive
+      run: |
+        Compress-Archive -Path dist\Pickfair\* -DestinationPath Pickfair-windows.zip
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Pickfair-windows
+        path: Pickfair-windows.zip
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: Pickfair-windows.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
