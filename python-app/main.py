@@ -20,7 +20,7 @@ from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_the
 from plugin_manager import PluginManager, PluginAPI, PluginInfo
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.17.0"
+APP_VERSION = "3.18.2"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
