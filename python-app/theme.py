@@ -10,9 +10,11 @@ COLORS = {
     'bg_card': '#1f2d3d',
     'bg_hover': '#243447',
     
+    'text': '#e8eaed',
     'text_primary': '#e8eaed',
     'text_secondary': '#8fa0b5',
     'text_tertiary': '#5f7185',
+    'primary': '#1e88e5',
     
     'back': '#1e88e5',
     'back_hover': '#1976d2',
