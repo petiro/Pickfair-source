@@ -18,9 +18,10 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_theme
 from plugin_manager import PluginManager, PluginAPI, PluginInfo
+from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.19.1"
+APP_VERSION = "3.19.9"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -82,9 +83,26 @@ class PickfairApp:
         self.market_status = 'OPEN'
         self.simulation_mode = False  # Simulation mode flag
         
+        # License check
+        self.is_app_licensed = is_licensed()
+        
+        if not self.is_app_licensed:
+            self._create_activation_screen()
+        else:
+            self._initialize_full_app()
+    
+    def _try_maximize(self):
+        """Try to maximize window on Windows."""
+        try:
+            self.root.state('zoomed')
+        except:
+            pass
+    
+    def _initialize_full_app(self):
+        """Initialize the full application after license validation."""
         # Plugin system
         self.plugin_manager = PluginManager(self)
-        self.plugin_tabs = {}  # Plugin-added tabs {name: (frame, plugin_name)}
+        self.plugin_tabs = {}
         
         self._create_menu()
         self._create_main_layout()
@@ -93,13 +111,138 @@ class PickfairApp:
         self._start_booking_monitor()
         self._start_auto_cashout_monitor()
         self._check_for_updates_on_startup()
+        
+        self.root.after(2000, self._auto_start_telegram_listener)
     
-    def _try_maximize(self):
-        """Try to maximize window on Windows."""
-        try:
-            self.root.state('zoomed')
-        except:
-            pass
+    def _create_activation_screen(self):
+        """Create the license activation screen."""
+        self.activation_frame = ctk.CTkFrame(self.root, fg_color=COLORS['bg_dark'])
+        self.activation_frame.pack(fill='both', expand=True)
+        
+        center_frame = ctk.CTkFrame(self.activation_frame, fg_color=COLORS['bg_card'], corner_radius=15)
+        center_frame.place(relx=0.5, rely=0.5, anchor='center')
+        
+        title_label = ctk.CTkLabel(
+            center_frame,
+            text="Attivazione Licenza",
+            font=ctk.CTkFont(size=28, weight="bold"),
+            text_color=COLORS['text']
+        )
+        title_label.pack(pady=(40, 10))
+        
+        subtitle_label = ctk.CTkLabel(
+            center_frame,
+            text="Inserisci la chiave di licenza per attivare Pickfair",
+            font=ctk.CTkFont(size=14),
+            text_color=COLORS['text_secondary']
+        )
+        subtitle_label.pack(pady=(0, 30))
+        
+        hwid_label = ctk.CTkLabel(
+            center_frame,
+            text="Il tuo Hardware ID:",
+            font=ctk.CTkFont(size=12),
+            text_color=COLORS['text_secondary']
+        )
+        hwid_label.pack(anchor='w', padx=40)
+        
+        hardware_id = get_hardware_id()
+        
+        hwid_frame = ctk.CTkFrame(center_frame, fg_color=COLORS['bg_hover'], corner_radius=8)
+        hwid_frame.pack(fill='x', padx=40, pady=(5, 5))
+        
+        self.hwid_display = ctk.CTkLabel(
+            hwid_frame,
+            text=hardware_id,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=COLORS['primary']
+        )
+        self.hwid_display.pack(pady=10, padx=15)
+        
+        copy_hwid_btn = ctk.CTkButton(
+            center_frame,
+            text="Copia Hardware ID",
+            command=lambda: self._copy_to_clipboard(hardware_id),
+            width=200,
+            height=32,
+            font=ctk.CTkFont(size=12),
+            fg_color=COLORS['bg_hover'],
+            hover_color=COLORS['border']
+        )
+        copy_hwid_btn.pack(pady=(0, 25))
+        
+        license_label = ctk.CTkLabel(
+            center_frame,
+            text="Chiave di Licenza:",
+            font=ctk.CTkFont(size=12),
+            text_color=COLORS['text_secondary']
+        )
+        license_label.pack(anchor='w', padx=40)
+        
+        self.license_entry = ctk.CTkEntry(
+            center_frame,
+            placeholder_text="PICK-XXXX-XXXX-XXXX-XXXX-XXXX",
+            width=400,
+            height=45,
+            font=ctk.CTkFont(size=14)
+        )
+        self.license_entry.pack(pady=(5, 20), padx=40)
+        
+        self.activation_status = ctk.CTkLabel(
+            center_frame,
+            text="",
+            font=ctk.CTkFont(size=12),
+            text_color=COLORS['loss']
+        )
+        self.activation_status.pack(pady=(0, 10))
+        
+        activate_btn = ctk.CTkButton(
+            center_frame,
+            text="Attiva Licenza",
+            command=self._attempt_activation,
+            width=250,
+            height=50,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            fg_color=COLORS['success'],
+            hover_color='#059669'
+        )
+        activate_btn.pack(pady=(10, 40))
+        
+        info_label = ctk.CTkLabel(
+            center_frame,
+            text="Invia il tuo Hardware ID al venditore per ricevere la chiave di licenza",
+            font=ctk.CTkFont(size=11),
+            text_color=COLORS['text_secondary']
+        )
+        info_label.pack(pady=(0, 20))
+    
+    def _copy_to_clipboard(self, text):
+        """Copy text to clipboard."""
+        self.root.clipboard_clear()
+        self.root.clipboard_append(text)
+        messagebox.showinfo("Copiato", "Hardware ID copiato negli appunti!")
+    
+    def _attempt_activation(self):
+        """Attempt to activate the license."""
+        license_key = self.license_entry.get().strip().upper()
+        
+        if not license_key:
+            self.activation_status.configure(text="Inserisci una chiave di licenza", text_color=COLORS['loss'])
+            return
+        
+        success, message = activate_license(license_key)
+        
+        if success:
+            self.activation_status.configure(text=message, text_color=COLORS['success'])
+            self.is_app_licensed = True
+            self.root.after(1500, self._switch_to_full_app)
+        else:
+            self.activation_status.configure(text=message, text_color=COLORS['loss'])
+    
+    def _switch_to_full_app(self):
+        """Switch from activation screen to full app."""
+        self.activation_frame.destroy()
+        self._initialize_full_app()
     
     def _configure_styles(self):
         """Configure ttk styles for dark theme."""
@@ -145,6 +288,16 @@ class PickfairApp:
     def _on_close(self):
         """Handle window close."""
         self._stop_auto_refresh()
+        
+        # Auto-stop Telegram listener if enabled
+        settings = self.db.get_telegram_settings()
+        if settings and settings.get('auto_stop_listener', 1) and self.telegram_listener:
+            try:
+                self.telegram_listener.stop()
+                self.telegram_listener = None
+            except:
+                pass
+        
         if self.client:
             self.client.logout()
         self.root.destroy()
@@ -2509,6 +2662,16 @@ class PickfairApp:
                         fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                         text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10)
         
+        self.tg_auto_start_var = tk.BooleanVar(value=bool(settings.get('auto_start_listener', 0)))
+        ctk.CTkCheckBox(config_frame, text="Avvia listener automaticamente all'avvio", variable=self.tg_auto_start_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
+        
+        self.tg_auto_stop_var = tk.BooleanVar(value=bool(settings.get('auto_stop_listener', 1)))
+        ctk.CTkCheckBox(config_frame, text="Ferma listener automaticamente alla chiusura", variable=self.tg_auto_stop_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10)
+        
         auth_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
         auth_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
         ctk.CTkLabel(auth_frame, text="Codice:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
@@ -2517,17 +2680,17 @@ class PickfairApp:
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=2)
         ctk.CTkLabel(auth_frame, text="2FA:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=(10, 0))
         self.tg_2fa_var = tk.StringVar()
-        ctk.CTkEntry(auth_frame, textvariable=self.tg_2fa_var, width=80, show='*',
+        ctk.CTkEntry(auth_frame, textvariable=self.tg_2fa_var, width=60, show='*',
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=2)
         ctk.CTkButton(auth_frame, text="Invia Codice", command=self._send_telegram_code,
                       fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
-                      corner_radius=6, width=90).pack(side=tk.LEFT, padx=5)
+                      corner_radius=6, width=95).pack(side=tk.LEFT, padx=2)
         ctk.CTkButton(auth_frame, text="Verifica", command=self._verify_telegram_code,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
-                      corner_radius=6, width=70).pack(side=tk.LEFT, padx=2)
-        ctk.CTkButton(auth_frame, text="Reset Sessione", command=self._reset_telegram_session,
+                      corner_radius=6, width=75).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(auth_frame, text="Reset", command=self._reset_telegram_session,
                       fg_color=COLORS['button_danger'], hover_color='#c62828',
-                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=5)
+                      corner_radius=6, width=60).pack(side=tk.LEFT, padx=2)
         
         self.tg_status_label = ctk.CTkLabel(config_frame, text=f"Stato: {self.telegram_status}",
                                             text_color=COLORS['text_secondary'])
@@ -2537,13 +2700,13 @@ class PickfairApp:
         btn_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
         ctk.CTkButton(btn_frame, text="Salva", command=self._save_telegram_tab_settings,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
-                      corner_radius=6, width=80).pack(side=tk.LEFT, padx=2)
+                      corner_radius=6, width=60).pack(side=tk.LEFT, padx=2)
         ctk.CTkButton(btn_frame, text="Avvia Listener", command=self._start_telegram_listener,
                       fg_color=COLORS['button_success'], hover_color='#4caf50',
-                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=2)
+                      corner_radius=6, width=90).pack(side=tk.LEFT, padx=2)
         ctk.CTkButton(btn_frame, text="Ferma", command=self._stop_telegram_listener,
                       fg_color=COLORS['button_danger'], hover_color='#c62828',
-                      corner_radius=6, width=70).pack(side=tk.LEFT, padx=2)
+                      corner_radius=6, width=55).pack(side=tk.LEFT, padx=2)
         
         chats_frame = ctk.CTkFrame(left_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
         chats_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
@@ -2654,7 +2817,9 @@ class PickfairApp:
             enabled=True,
             auto_bet=self.tg_auto_bet_var.get(),
             require_confirmation=self.tg_confirm_var.get(),
-            auto_stake=stake
+            auto_stake=stake,
+            auto_start_listener=self.tg_auto_start_var.get(),
+            auto_stop_listener=self.tg_auto_stop_var.get()
         )
         messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
     
@@ -4626,7 +4791,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 return
             try:
                 market_id = self.current_market['marketId']
-                prices = self.client.get_market_prices(market_id)
+                prices = self.client.get_market_with_prices(market_id)
                 if prices and 'runners' in prices:
                     for runner_price in prices['runners']:
                         sel_id = runner_price['selectionId']
@@ -4884,6 +5049,97 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             self.telegram_listener = None
         self.telegram_status = 'STOPPED'
         messagebox.showinfo("Telegram", "Listener Telegram fermato")
+    
+    def _auto_start_telegram_listener(self):
+        """Auto-start Telegram listener if enabled in settings."""
+        try:
+            settings = self.db.get_telegram_settings()
+            if not settings:
+                return
+            
+            # Check if auto-start is enabled and credentials are configured
+            if not settings.get('auto_start_listener', 0):
+                return
+            
+            if not settings.get('api_id') or not settings.get('api_hash'):
+                return
+            
+            # Check if there's a valid session
+            import os
+            session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session.session')
+            if not os.path.exists(session_path):
+                return
+            
+            # Check if there are chats to monitor
+            chats = self.db.get_telegram_chats()
+            if not chats:
+                return
+            
+            # Start the listener silently
+            self._start_telegram_listener_silent()
+            
+        except Exception as e:
+            print(f"[DEBUG] Auto-start Telegram listener failed: {e}")
+    
+    def _start_telegram_listener_silent(self):
+        """Start Telegram listener without showing message boxes."""
+        import os
+        
+        settings = self.db.get_telegram_settings()
+        if not settings or not settings.get('api_id') or not settings.get('api_hash'):
+            return
+        
+        if self.telegram_listener:
+            return  # Already running
+        
+        try:
+            session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+            self.telegram_listener = TelegramListener(
+                api_id=int(settings['api_id']),
+                api_hash=settings['api_hash'],
+                session_path=session_path
+            )
+            
+            chats = self.db.get_telegram_chats()
+            chat_ids = [int(c['chat_id']) for c in chats if c.get('enabled')]
+            self.telegram_listener.set_monitored_chats(chat_ids)
+            
+            def on_signal(signal):
+                self.telegram_signal_queue.add(signal)
+                self.db.save_telegram_signal(
+                    signal.get('chat_id', ''),
+                    signal.get('sender_id', ''),
+                    signal.get('raw_text', ''),
+                    signal
+                )
+                self.root.after(0, lambda: self._notify_new_signal(signal))
+                
+                print(f"[AUTO-BET DEBUG] Signal received: event={signal.get('event')}, over_line={signal.get('over_line')}, auto_bet={settings.get('auto_bet')}")
+                
+                if settings.get('auto_bet') and signal.get('event') and signal.get('over_line') is not None:
+                    print(f"[AUTO-BET DEBUG] Processing auto-bet for: {signal.get('event')}")
+                    self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
+                else:
+                    print(f"[AUTO-BET DEBUG] Skipped - auto_bet={settings.get('auto_bet')}, event={signal.get('event')}, over_line={signal.get('over_line')}")
+            
+            def on_status(status, message):
+                self.telegram_status = status
+                try:
+                    if status == 'AUTH_REQUIRED':
+                        self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: AUTH_REQUIRED"))
+                    elif status == 'CONNECTED':
+                        self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: CONNECTED (Auto)"))
+                except:
+                    pass
+            
+            self.telegram_listener.set_callbacks(on_signal=on_signal, on_status=on_status)
+            self.telegram_listener.start()
+            
+            self.telegram_status = 'STARTING'
+            print("[DEBUG] Telegram listener auto-started successfully")
+            
+        except Exception as e:
+            print(f"[DEBUG] Error auto-starting Telegram: {e}")
     
     def _reset_telegram_session(self):
         """Reset Telegram session to start fresh authentication."""
@@ -5153,25 +5409,21 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 messagebox.showwarning("Auto-Bet", reason)
                 return
             
-            market_book = self.client.get_market_prices(over_under_market['marketId'])
+            market_book = self.client.get_market_with_prices(over_under_market['marketId'])
             
             over_runner = None
             for runner in market_book.get('runners', []):
-                runner_name = ''
-                for r in over_under_market.get('runners', []):
-                    if r['selectionId'] == runner['selectionId']:
-                        runner_name = r.get('runnerName', '')
-                        break
+                runner_name = runner.get('runnerName', '')
                 
                 if 'over' in runner_name.lower():
-                    back_prices = runner.get('ex', {}).get('availableToBack', [])
-                    if back_prices:
+                    back_price = runner.get('backPrice')
+                    if back_price:
                         over_runner = {
                             'selectionId': runner['selectionId'],
                             'runnerName': runner_name,
-                            'price': back_prices[0]['price']
+                            'price': back_price
                         }
-                    break
+                        break
             
             if not over_runner:
                 reason = f"Selezione Over non disponibile per {matched_event['name']}"
@@ -5211,7 +5463,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     selection_id=over_runner['selectionId'],
                     side='BACK',
                     price=over_runner['price'],
-                    stake=stake
+                    size=stake
                 )
                 
                 if result.get('status') == 'SUCCESS':
