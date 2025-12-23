@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.19.9"
+APP_VERSION = "3.20.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2682,15 +2682,18 @@ class PickfairApp:
         self.tg_2fa_var = tk.StringVar()
         ctk.CTkEntry(auth_frame, textvariable=self.tg_2fa_var, width=60, show='*',
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=2)
-        ctk.CTkButton(auth_frame, text="Invia Codice", command=self._send_telegram_code,
+        
+        auth_btn_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
+        auth_btn_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
+        ctk.CTkButton(auth_btn_frame, text="Invia Codice", command=self._send_telegram_code,
                       fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
-                      corner_radius=6, width=95).pack(side=tk.LEFT, padx=2)
-        ctk.CTkButton(auth_frame, text="Verifica", command=self._verify_telegram_code,
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(auth_btn_frame, text="Verifica", command=self._verify_telegram_code,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
-                      corner_radius=6, width=75).pack(side=tk.LEFT, padx=2)
-        ctk.CTkButton(auth_frame, text="Reset", command=self._reset_telegram_session,
+                      corner_radius=6, width=80).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(auth_btn_frame, text="Reset", command=self._reset_telegram_session,
                       fg_color=COLORS['button_danger'], hover_color='#c62828',
-                      corner_radius=6, width=60).pack(side=tk.LEFT, padx=2)
+                      corner_radius=6, width=70).pack(side=tk.LEFT, padx=2)
         
         self.tg_status_label = ctk.CTkLabel(config_frame, text=f"Stato: {self.telegram_status}",
                                             text_color=COLORS['text_secondary'])
