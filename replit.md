@@ -4,7 +4,7 @@
 
 Pickfair is a Windows desktop application for automated sports betting through Betfair Exchange Italy API. Built with Python, it features advanced dutching, live betting, Telegram integration, and a modern dark trading interface.
 
-**Current Version**: v3.16.0 (Plugin System)
+**Current Version**: v3.17.0 (Telegram Auto-Start/Stop)
 
 ## User Preferences
 

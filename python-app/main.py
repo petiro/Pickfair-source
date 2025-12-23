@@ -20,7 +20,7 @@ from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_the
 from plugin_manager import PluginManager, PluginAPI, PluginInfo
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.16.0"
+APP_VERSION = "3.17.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -93,6 +93,9 @@ class PickfairApp:
         self._start_booking_monitor()
         self._start_auto_cashout_monitor()
         self._check_for_updates_on_startup()
+        
+        # Auto-start Telegram listener after UI is ready
+        self.root.after(2000, self._auto_start_telegram_listener)
     
     def _try_maximize(self):
         """Try to maximize window on Windows."""
@@ -145,6 +148,16 @@ class PickfairApp:
     def _on_close(self):
         """Handle window close."""
         self._stop_auto_refresh()
+        
+        # Auto-stop Telegram listener if enabled
+        settings = self.db.get_telegram_settings()
+        if settings and settings.get('auto_stop_listener', 1) and self.telegram_listener:
+            try:
+                self.telegram_listener.stop()
+                self.telegram_listener = None
+            except:
+                pass
+        
         if self.client:
             self.client.logout()
         self.root.destroy()
@@ -2509,6 +2522,16 @@ class PickfairApp:
                         fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                         text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10)
         
+        self.tg_auto_start_var = tk.BooleanVar(value=bool(settings.get('auto_start_listener', 0)))
+        ctk.CTkCheckBox(config_frame, text="Avvia listener automaticamente all'avvio", variable=self.tg_auto_start_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
+        
+        self.tg_auto_stop_var = tk.BooleanVar(value=bool(settings.get('auto_stop_listener', 1)))
+        ctk.CTkCheckBox(config_frame, text="Ferma listener automaticamente alla chiusura", variable=self.tg_auto_stop_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10)
+        
         auth_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
         auth_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
         ctk.CTkLabel(auth_frame, text="Codice:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
@@ -2654,7 +2677,9 @@ class PickfairApp:
             enabled=True,
             auto_bet=self.tg_auto_bet_var.get(),
             require_confirmation=self.tg_confirm_var.get(),
-            auto_stake=stake
+            auto_stake=stake,
+            auto_start_listener=self.tg_auto_start_var.get(),
+            auto_stop_listener=self.tg_auto_stop_var.get()
         )
         messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
     
@@ -4884,6 +4909,92 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             self.telegram_listener = None
         self.telegram_status = 'STOPPED'
         messagebox.showinfo("Telegram", "Listener Telegram fermato")
+    
+    def _auto_start_telegram_listener(self):
+        """Auto-start Telegram listener if enabled in settings."""
+        try:
+            settings = self.db.get_telegram_settings()
+            if not settings:
+                return
+            
+            # Check if auto-start is enabled and credentials are configured
+            if not settings.get('auto_start_listener', 0):
+                return
+            
+            if not settings.get('api_id') or not settings.get('api_hash'):
+                return
+            
+            # Check if there's a valid session
+            import os
+            session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session.session')
+            if not os.path.exists(session_path):
+                return
+            
+            # Check if there are chats to monitor
+            chats = self.db.get_telegram_chats()
+            if not chats:
+                return
+            
+            # Start the listener silently
+            self._start_telegram_listener_silent()
+            
+        except Exception as e:
+            print(f"[DEBUG] Auto-start Telegram listener failed: {e}")
+    
+    def _start_telegram_listener_silent(self):
+        """Start Telegram listener without showing message boxes."""
+        import os
+        
+        settings = self.db.get_telegram_settings()
+        if not settings or not settings.get('api_id') or not settings.get('api_hash'):
+            return
+        
+        if self.telegram_listener:
+            return  # Already running
+        
+        try:
+            session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session')
+            self.telegram_listener = TelegramListener(
+                api_id=int(settings['api_id']),
+                api_hash=settings['api_hash'],
+                session_path=session_path
+            )
+            
+            chats = self.db.get_telegram_chats()
+            chat_ids = [int(c['chat_id']) for c in chats if c.get('enabled')]
+            self.telegram_listener.set_monitored_chats(chat_ids)
+            
+            def on_signal(signal):
+                self.telegram_signal_queue.add(signal)
+                self.db.save_telegram_signal(
+                    signal.get('chat_id', ''),
+                    signal.get('sender_id', ''),
+                    signal.get('raw_text', ''),
+                    signal
+                )
+                self.root.after(0, lambda: self._notify_new_signal(signal))
+                
+                if settings.get('auto_bet') and signal.get('event') and signal.get('over_line') is not None:
+                    self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
+            
+            def on_status(status, message):
+                self.telegram_status = status
+                try:
+                    if status == 'AUTH_REQUIRED':
+                        self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: AUTH_REQUIRED"))
+                    elif status == 'CONNECTED':
+                        self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: CONNECTED (Auto)"))
+                except:
+                    pass
+            
+            self.telegram_listener.set_callbacks(on_signal=on_signal, on_status=on_status)
+            self.telegram_listener.start()
+            
+            self.telegram_status = 'STARTING'
+            print("[DEBUG] Telegram listener auto-started successfully")
+            
+        except Exception as e:
+            print(f"[DEBUG] Error auto-starting Telegram: {e}")
     
     def _reset_telegram_session(self):
         """Reset Telegram session to start fresh authentication."""

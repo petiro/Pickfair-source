@@ -158,9 +158,21 @@ class Database:
                 enabled INTEGER DEFAULT 0,
                 auto_bet INTEGER DEFAULT 0,
                 require_confirmation INTEGER DEFAULT 1,
-                auto_stake REAL DEFAULT 1.0
+                auto_stake REAL DEFAULT 1.0,
+                auto_start_listener INTEGER DEFAULT 0,
+                auto_stop_listener INTEGER DEFAULT 1
             )
         ''')
+        
+        # Add new columns if they don't exist (for existing databases)
+        try:
+            cursor.execute('ALTER TABLE telegram_settings ADD COLUMN auto_start_listener INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            cursor.execute('ALTER TABLE telegram_settings ADD COLUMN auto_stop_listener INTEGER DEFAULT 1')
+        except sqlite3.OperationalError:
+            pass
         
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS telegram_chats (
@@ -556,17 +568,20 @@ class Database:
     
     def save_telegram_settings(self, api_id, api_hash, session_string=None, 
                                 phone_number=None, enabled=False, auto_bet=False,
-                                require_confirmation=True, auto_stake=1.0):
+                                require_confirmation=True, auto_stake=1.0,
+                                auto_start_listener=False, auto_stop_listener=True):
         """Save Telegram settings."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE telegram_settings SET 
                 api_id = ?, api_hash = ?, session_string = ?, phone_number = ?,
-                enabled = ?, auto_bet = ?, require_confirmation = ?, auto_stake = ?
+                enabled = ?, auto_bet = ?, require_confirmation = ?, auto_stake = ?,
+                auto_start_listener = ?, auto_stop_listener = ?
             WHERE id = 1
         ''', (api_id, api_hash, session_string, phone_number,
-              1 if enabled else 0, 1 if auto_bet else 0, 1 if require_confirmation else 0, auto_stake))
+              1 if enabled else 0, 1 if auto_bet else 0, 1 if require_confirmation else 0, auto_stake,
+              1 if auto_start_listener else 0, 1 if auto_stop_listener else 0))
         conn.commit()
         conn.close()
     
