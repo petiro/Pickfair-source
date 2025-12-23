@@ -4791,7 +4791,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 return
             try:
                 market_id = self.current_market['marketId']
-                prices = self.client.get_market_prices(market_id)
+                prices = self.client.get_market_with_prices(market_id)
                 if prices and 'runners' in prices:
                     for runner_price in prices['runners']:
                         sel_id = runner_price['selectionId']
@@ -5404,7 +5404,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 messagebox.showwarning("Auto-Bet", reason)
                 return
             
-            market_book = self.client.get_market_prices(over_under_market['marketId'])
+            market_book = self.client.get_market_with_prices(over_under_market['marketId'])
             
             over_runner = None
             for runner in market_book.get('runners', []):
