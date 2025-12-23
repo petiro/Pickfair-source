@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.19.5"
+APP_VERSION = "3.19.6"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5408,21 +5408,17 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             
             over_runner = None
             for runner in market_book.get('runners', []):
-                runner_name = ''
-                for r in over_under_market.get('runners', []):
-                    if r['selectionId'] == runner['selectionId']:
-                        runner_name = r.get('runnerName', '')
-                        break
+                runner_name = runner.get('runnerName', '')
                 
                 if 'over' in runner_name.lower():
-                    back_prices = runner.get('ex', {}).get('availableToBack', [])
-                    if back_prices:
+                    back_price = runner.get('backPrice')
+                    if back_price:
                         over_runner = {
                             'selectionId': runner['selectionId'],
                             'runnerName': runner_name,
-                            'price': back_prices[0]['price']
+                            'price': back_price
                         }
-                    break
+                        break
             
             if not over_runner:
                 reason = f"Selezione Over non disponibile per {matched_event['name']}"
