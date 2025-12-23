@@ -18,9 +18,10 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_theme
 from plugin_manager import PluginManager, PluginAPI, PluginInfo
+from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.18.2"
+APP_VERSION = "3.19.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -82,9 +83,26 @@ class PickfairApp:
         self.market_status = 'OPEN'
         self.simulation_mode = False  # Simulation mode flag
         
+        # License check
+        self.is_app_licensed = is_licensed()
+        
+        if not self.is_app_licensed:
+            self._create_activation_screen()
+        else:
+            self._initialize_full_app()
+    
+    def _try_maximize(self):
+        """Try to maximize window on Windows."""
+        try:
+            self.root.state('zoomed')
+        except:
+            pass
+    
+    def _initialize_full_app(self):
+        """Initialize the full application after license validation."""
         # Plugin system
         self.plugin_manager = PluginManager(self)
-        self.plugin_tabs = {}  # Plugin-added tabs {name: (frame, plugin_name)}
+        self.plugin_tabs = {}
         
         self._create_menu()
         self._create_main_layout()
@@ -94,15 +112,137 @@ class PickfairApp:
         self._start_auto_cashout_monitor()
         self._check_for_updates_on_startup()
         
-        # Auto-start Telegram listener after UI is ready
         self.root.after(2000, self._auto_start_telegram_listener)
     
-    def _try_maximize(self):
-        """Try to maximize window on Windows."""
-        try:
-            self.root.state('zoomed')
-        except:
-            pass
+    def _create_activation_screen(self):
+        """Create the license activation screen."""
+        self.activation_frame = ctk.CTkFrame(self.root, fg_color=COLORS['bg_dark'])
+        self.activation_frame.pack(fill='both', expand=True)
+        
+        center_frame = ctk.CTkFrame(self.activation_frame, fg_color=COLORS['bg_card'], corner_radius=15)
+        center_frame.place(relx=0.5, rely=0.5, anchor='center')
+        
+        title_label = ctk.CTkLabel(
+            center_frame,
+            text="Attivazione Licenza",
+            font=ctk.CTkFont(size=28, weight="bold"),
+            text_color=COLORS['text']
+        )
+        title_label.pack(pady=(40, 10))
+        
+        subtitle_label = ctk.CTkLabel(
+            center_frame,
+            text="Inserisci la chiave di licenza per attivare Pickfair",
+            font=ctk.CTkFont(size=14),
+            text_color=COLORS['text_secondary']
+        )
+        subtitle_label.pack(pady=(0, 30))
+        
+        hwid_label = ctk.CTkLabel(
+            center_frame,
+            text="Il tuo Hardware ID:",
+            font=ctk.CTkFont(size=12),
+            text_color=COLORS['text_secondary']
+        )
+        hwid_label.pack(anchor='w', padx=40)
+        
+        hardware_id = get_hardware_id()
+        
+        hwid_frame = ctk.CTkFrame(center_frame, fg_color=COLORS['bg_hover'], corner_radius=8)
+        hwid_frame.pack(fill='x', padx=40, pady=(5, 5))
+        
+        self.hwid_display = ctk.CTkLabel(
+            hwid_frame,
+            text=hardware_id,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=COLORS['primary']
+        )
+        self.hwid_display.pack(pady=10, padx=15)
+        
+        copy_hwid_btn = ctk.CTkButton(
+            center_frame,
+            text="Copia Hardware ID",
+            command=lambda: self._copy_to_clipboard(hardware_id),
+            width=200,
+            height=32,
+            font=ctk.CTkFont(size=12),
+            fg_color=COLORS['bg_hover'],
+            hover_color=COLORS['border']
+        )
+        copy_hwid_btn.pack(pady=(0, 25))
+        
+        license_label = ctk.CTkLabel(
+            center_frame,
+            text="Chiave di Licenza:",
+            font=ctk.CTkFont(size=12),
+            text_color=COLORS['text_secondary']
+        )
+        license_label.pack(anchor='w', padx=40)
+        
+        self.license_entry = ctk.CTkEntry(
+            center_frame,
+            placeholder_text="PICK-XXXX-XXXX-XXXX-XXXX-XXXX",
+            width=400,
+            height=45,
+            font=ctk.CTkFont(size=14)
+        )
+        self.license_entry.pack(pady=(5, 20), padx=40)
+        
+        self.activation_status = ctk.CTkLabel(
+            center_frame,
+            text="",
+            font=ctk.CTkFont(size=12),
+            text_color=COLORS['loss']
+        )
+        self.activation_status.pack(pady=(0, 10))
+        
+        activate_btn = ctk.CTkButton(
+            center_frame,
+            text="Attiva Licenza",
+            command=self._attempt_activation,
+            width=250,
+            height=50,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            fg_color=COLORS['success'],
+            hover_color='#059669'
+        )
+        activate_btn.pack(pady=(10, 40))
+        
+        info_label = ctk.CTkLabel(
+            center_frame,
+            text="Invia il tuo Hardware ID al venditore per ricevere la chiave di licenza",
+            font=ctk.CTkFont(size=11),
+            text_color=COLORS['text_secondary']
+        )
+        info_label.pack(pady=(0, 20))
+    
+    def _copy_to_clipboard(self, text):
+        """Copy text to clipboard."""
+        self.root.clipboard_clear()
+        self.root.clipboard_append(text)
+        messagebox.showinfo("Copiato", "Hardware ID copiato negli appunti!")
+    
+    def _attempt_activation(self):
+        """Attempt to activate the license."""
+        license_key = self.license_entry.get().strip().upper()
+        
+        if not license_key:
+            self.activation_status.configure(text="Inserisci una chiave di licenza", text_color=COLORS['loss'])
+            return
+        
+        success, message = activate_license(license_key)
+        
+        if success:
+            self.activation_status.configure(text=message, text_color=COLORS['success'])
+            self.is_app_licensed = True
+            self.root.after(1500, self._switch_to_full_app)
+        else:
+            self.activation_status.configure(text=message, text_color=COLORS['loss'])
+    
+    def _switch_to_full_app(self):
+        """Switch from activation screen to full app."""
+        self.activation_frame.destroy()
+        self._initialize_full_app()
     
     def _configure_styles(self):
         """Configure ttk styles for dark theme."""
