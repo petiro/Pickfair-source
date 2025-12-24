@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.12"
+APP_VERSION = "3.24.13"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -3147,11 +3147,18 @@ class PickfairApp:
                     break
         
         self.pattern_editor_frame = ctk.CTkFrame(self.telegram_tab, fg_color=COLORS['bg_panel'], corner_radius=8)
-        self.pattern_editor_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER, relwidth=0.7, relheight=0.6)
+        self.pattern_editor_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER, relwidth=0.7, relheight=0.7)
+        
+        header_frame = ctk.CTkFrame(self.pattern_editor_frame, fg_color='transparent')
+        header_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
         
         title_text = "Modifica Regola" if mode == 'edit' else "Nuova Regola di Parsing"
-        ctk.CTkLabel(self.pattern_editor_frame, text=title_text, font=FONTS['heading'],
-                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=15, pady=(15, 10))
+        ctk.CTkLabel(header_frame, text=title_text, font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        ctk.CTkButton(header_frame, text="X", width=30, height=30,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['loss'],
+                      corner_radius=6, command=lambda: self.pattern_editor_frame.destroy()).pack(side=tk.RIGHT)
         
         form_frame = ctk.CTkFrame(self.pattern_editor_frame, fg_color='transparent')
         form_frame.pack(fill=tk.X, padx=15, pady=5)
