@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.11"
+APP_VERSION = "3.24.12"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -3185,19 +3185,35 @@ class PickfairApp:
                         fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                         text_color=COLORS['text_primary']).grid(row=4, column=1, pady=10, sticky=tk.W)
         
-        example_frame = ctk.CTkFrame(self.pattern_editor_frame, fg_color='transparent')
-        example_frame.pack(fill=tk.X, padx=15, pady=5)
-        ctk.CTkLabel(example_frame, text="Esempi Pattern:", font=('Segoe UI', 9, 'bold'),
-                     text_color=COLORS['text_primary']).pack(anchor=tk.W)
+        help_frame = ctk.CTkFrame(self.pattern_editor_frame, fg_color=COLORS['bg_card'], corner_radius=6)
+        help_frame.pack(fill=tk.X, padx=15, pady=10)
+        
+        ctk.CTkLabel(help_frame, text="Come funziona:", font=('Segoe UI', 11, 'bold'),
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
+        
+        help_text = """Crea un pattern regex per riconoscere i segnali Telegram.
+Il pattern deve catturare il valore (es. 2.5 per Over 2.5).
+
+Esempi di pattern regex:"""
+        ctk.CTkLabel(help_frame, text=help_text, font=('Segoe UI', 10),
+                     text_color=COLORS['text_secondary'], justify=tk.LEFT).pack(anchor=tk.W, padx=10)
+        
         examples = [
-            "Over: (?i)\\bover\\s*(\\d+[,.]?\\d*)\\b",
-            "Under: (?i)\\bunder\\s*(\\d+[,.]?\\d*)\\b",
-            "GG/BTTS: (?i)\\b(gg|btts|goal\\s*goal|entrambe)\\b",
-            "1X2: (?i)\\b(1|X|2|home|draw|away)\\b",
+            ("Over 2.5", "(?i)over\\s*(\\d+[,.]?\\d*)"),
+            ("Under 1.5", "(?i)under\\s*(\\d+[,.]?\\d*)"),
+            ("GG / BTTS", "(?i)(gg|btts|goal\\s*goal)"),
+            ("1X2", "(?i)\\b(home|draw|away|1|x|2)\\b"),
         ]
-        for ex in examples:
-            ctk.CTkLabel(example_frame, text=ex, font=('Consolas', 8),
-                         text_color=COLORS['text_tertiary']).pack(anchor=tk.W)
+        
+        for label, pattern in examples:
+            ex_frame = ctk.CTkFrame(help_frame, fg_color='transparent')
+            ex_frame.pack(fill=tk.X, padx=10, pady=2)
+            ctk.CTkLabel(ex_frame, text=f"{label}:", font=('Segoe UI', 10, 'bold'),
+                         text_color=COLORS['text_primary'], width=80).pack(side=tk.LEFT)
+            ctk.CTkLabel(ex_frame, text=pattern, font=('Consolas', 10),
+                         text_color=COLORS['back']).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkLabel(help_frame, text="", height=5).pack()
         
         btn_frame = ctk.CTkFrame(self.pattern_editor_frame, fg_color='transparent')
         btn_frame.pack(fill=tk.X, padx=15, pady=15)
