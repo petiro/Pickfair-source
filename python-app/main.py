@@ -2770,6 +2770,50 @@ class PickfairApp:
         
         self.available_chats_data = []
         
+        rules_frame = ctk.CTkFrame(left_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
+        rules_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
+        
+        ctk.CTkLabel(rules_frame, text="Regole di Parsing", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
+        ctk.CTkLabel(rules_frame, text="Definisci pattern regex per riconoscere i segnali", 
+                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(anchor=tk.W, padx=10)
+        
+        rules_btn_frame = ctk.CTkFrame(rules_frame, fg_color='transparent')
+        rules_btn_frame.pack(fill=tk.X, padx=10, pady=(5, 5))
+        ctk.CTkButton(rules_btn_frame, text="Aggiungi", command=self._add_signal_pattern,
+                      fg_color=COLORS['button_success'], hover_color='#4caf50',
+                      corner_radius=6, width=80).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(rules_btn_frame, text="Modifica", command=self._edit_signal_pattern,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=80).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(rules_btn_frame, text="Elimina", command=self._delete_signal_pattern,
+                      fg_color=COLORS['button_danger'], hover_color='#c62828',
+                      corner_radius=6, width=80).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(rules_btn_frame, text="Attiva/Disattiva", command=self._toggle_signal_pattern,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6, width=110).pack(side=tk.LEFT, padx=2)
+        
+        rules_columns = ('enabled', 'name', 'market', 'pattern')
+        rules_tree_container = ctk.CTkFrame(rules_frame, fg_color='transparent')
+        rules_tree_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        
+        self.rules_tree = ttk.Treeview(rules_tree_container, columns=rules_columns, show='headings', height=6)
+        self.rules_tree.heading('enabled', text='ON')
+        self.rules_tree.heading('name', text='Nome')
+        self.rules_tree.heading('market', text='Mercato')
+        self.rules_tree.heading('pattern', text='Pattern')
+        self.rules_tree.column('enabled', width=30)
+        self.rules_tree.column('name', width=120)
+        self.rules_tree.column('market', width=100)
+        self.rules_tree.column('pattern', width=150)
+        
+        rules_scroll = ttk.Scrollbar(rules_tree_container, orient=tk.VERTICAL, command=self.rules_tree.yview)
+        self.rules_tree.configure(yscrollcommand=rules_scroll.set)
+        self.rules_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        rules_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self._refresh_rules_tree()
+        
         signals_frame = ctk.CTkFrame(right_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
         signals_frame.pack(fill=tk.BOTH, expand=True)
         
@@ -3022,6 +3066,172 @@ class PickfairApp:
                 side,
                 status
             ), tags=(tag,) if tag else ())
+    
+    def _refresh_rules_tree(self):
+        """Refresh signal patterns tree."""
+        self.rules_tree.delete(*self.rules_tree.get_children())
+        patterns = self.db.get_signal_patterns()
+        for p in patterns:
+            enabled_str = 'Si' if p.get('enabled') else 'No'
+            pattern_display = p.get('pattern', '')[:40]
+            self.rules_tree.insert('', tk.END, iid=str(p['id']), values=(
+                enabled_str,
+                p.get('name', ''),
+                p.get('market_type', ''),
+                pattern_display
+            ))
+    
+    def _add_signal_pattern(self):
+        """Add a new signal pattern via inline form in the tab."""
+        self._show_pattern_editor(mode='add')
+    
+    def _edit_signal_pattern(self):
+        """Edit the selected signal pattern."""
+        selected = self.rules_tree.selection()
+        if not selected:
+            messagebox.showwarning("Attenzione", "Seleziona una regola da modificare")
+            return
+        pattern_id = int(selected[0])
+        self._show_pattern_editor(mode='edit', pattern_id=pattern_id)
+    
+    def _delete_signal_pattern(self):
+        """Delete the selected signal pattern."""
+        selected = self.rules_tree.selection()
+        if not selected:
+            messagebox.showwarning("Attenzione", "Seleziona una regola da eliminare")
+            return
+        
+        pattern_id = int(selected[0])
+        item = self.rules_tree.item(selected[0])
+        pattern_name = item['values'][1]
+        
+        if messagebox.askyesno("Conferma", f"Eliminare la regola '{pattern_name}'?"):
+            self.db.delete_signal_pattern(pattern_id)
+            self._refresh_rules_tree()
+    
+    def _toggle_signal_pattern(self):
+        """Toggle enable/disable for selected pattern."""
+        selected = self.rules_tree.selection()
+        if not selected:
+            messagebox.showwarning("Attenzione", "Seleziona una regola da attivare/disattivare")
+            return
+        
+        pattern_id = int(selected[0])
+        item = self.rules_tree.item(selected[0])
+        current_enabled = item['values'][0] == 'Si'
+        
+        self.db.toggle_signal_pattern(pattern_id, not current_enabled)
+        self._refresh_rules_tree()
+    
+    def _show_pattern_editor(self, mode='add', pattern_id=None):
+        """Show pattern editor in a sub-tab instead of popup."""
+        if hasattr(self, 'pattern_editor_frame') and self.pattern_editor_frame.winfo_exists():
+            self.pattern_editor_frame.destroy()
+        
+        existing_pattern = None
+        if mode == 'edit' and pattern_id:
+            patterns = self.db.get_signal_patterns()
+            for p in patterns:
+                if p['id'] == pattern_id:
+                    existing_pattern = p
+                    break
+        
+        self.pattern_editor_frame = ctk.CTkFrame(self.telegram_tab, fg_color=COLORS['bg_panel'], corner_radius=8)
+        self.pattern_editor_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER, relwidth=0.7, relheight=0.6)
+        
+        title_text = "Modifica Regola" if mode == 'edit' else "Nuova Regola di Parsing"
+        ctk.CTkLabel(self.pattern_editor_frame, text=title_text, font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=15, pady=(15, 10))
+        
+        form_frame = ctk.CTkFrame(self.pattern_editor_frame, fg_color='transparent')
+        form_frame.pack(fill=tk.X, padx=15, pady=5)
+        
+        ctk.CTkLabel(form_frame, text="Nome:", text_color=COLORS['text_secondary']).grid(row=0, column=0, sticky=tk.W, pady=3)
+        name_var = tk.StringVar(value=existing_pattern.get('name', '') if existing_pattern else '')
+        ctk.CTkEntry(form_frame, textvariable=name_var, width=300,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=0, column=1, pady=3, padx=5)
+        
+        ctk.CTkLabel(form_frame, text="Descrizione:", text_color=COLORS['text_secondary']).grid(row=1, column=0, sticky=tk.W, pady=3)
+        desc_var = tk.StringVar(value=existing_pattern.get('description', '') if existing_pattern else '')
+        ctk.CTkEntry(form_frame, textvariable=desc_var, width=300,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=1, column=1, pady=3, padx=5)
+        
+        ctk.CTkLabel(form_frame, text="Pattern Regex:", text_color=COLORS['text_secondary']).grid(row=2, column=0, sticky=tk.W, pady=3)
+        pattern_var = tk.StringVar(value=existing_pattern.get('pattern', '') if existing_pattern else '')
+        ctk.CTkEntry(form_frame, textvariable=pattern_var, width=300,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=2, column=1, pady=3, padx=5)
+        
+        ctk.CTkLabel(form_frame, text="Tipo Mercato:", text_color=COLORS['text_secondary']).grid(row=3, column=0, sticky=tk.W, pady=3)
+        market_types = ['OVER_UNDER_X5', 'BOTH_TEAMS_TO_SCORE', 'OVER_UNDER_15_FH', 'DOUBLE_CHANCE',
+                        'MATCH_ODDS', 'CORRECT_SCORE', 'ASIAN_HANDICAP', 'DRAW_NO_BET', 'HALF_TIME_FULL_TIME']
+        market_var = tk.StringVar(value=existing_pattern.get('market_type', market_types[0]) if existing_pattern else market_types[0])
+        market_menu = ctk.CTkOptionMenu(form_frame, variable=market_var, values=market_types,
+                                        fg_color=COLORS['bg_card'], button_color=COLORS['button_primary'],
+                                        button_hover_color=COLORS['back_hover'], width=200)
+        market_menu.grid(row=3, column=1, pady=3, padx=5, sticky=tk.W)
+        
+        enabled_var = tk.BooleanVar(value=existing_pattern.get('enabled', True) if existing_pattern else True)
+        ctk.CTkCheckBox(form_frame, text="Regola Attiva", variable=enabled_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).grid(row=4, column=1, pady=10, sticky=tk.W)
+        
+        example_frame = ctk.CTkFrame(self.pattern_editor_frame, fg_color='transparent')
+        example_frame.pack(fill=tk.X, padx=15, pady=5)
+        ctk.CTkLabel(example_frame, text="Esempi Pattern:", font=('Segoe UI', 9, 'bold'),
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W)
+        examples = [
+            "Over: (?i)\\bover\\s*(\\d+[,.]?\\d*)\\b",
+            "Under: (?i)\\bunder\\s*(\\d+[,.]?\\d*)\\b",
+            "GG/BTTS: (?i)\\b(gg|btts|goal\\s*goal|entrambe)\\b",
+            "1X2: (?i)\\b(1|X|2|home|draw|away)\\b",
+        ]
+        for ex in examples:
+            ctk.CTkLabel(example_frame, text=ex, font=('Consolas', 8),
+                         text_color=COLORS['text_tertiary']).pack(anchor=tk.W)
+        
+        btn_frame = ctk.CTkFrame(self.pattern_editor_frame, fg_color='transparent')
+        btn_frame.pack(fill=tk.X, padx=15, pady=15)
+        
+        def save_pattern():
+            name = name_var.get().strip()
+            pattern = pattern_var.get().strip()
+            market = market_var.get()
+            desc = desc_var.get().strip()
+            enabled = enabled_var.get()
+            
+            if not name:
+                messagebox.showwarning("Errore", "Inserisci un nome per la regola")
+                return
+            if not pattern:
+                messagebox.showwarning("Errore", "Inserisci il pattern regex")
+                return
+            
+            import re
+            try:
+                re.compile(pattern)
+            except re.error as e:
+                messagebox.showerror("Errore Regex", f"Pattern non valido: {e}")
+                return
+            
+            if mode == 'edit' and pattern_id:
+                self.db.update_signal_pattern(pattern_id, name=name, description=desc,
+                                               pattern=pattern, market_type=market, enabled=enabled)
+            else:
+                self.db.save_signal_pattern(name, desc, pattern, market, enabled)
+            
+            self.pattern_editor_frame.destroy()
+            self._refresh_rules_tree()
+            messagebox.showinfo("Salvato", f"Regola '{name}' salvata con successo!")
+        
+        def cancel_edit():
+            self.pattern_editor_frame.destroy()
+        
+        ctk.CTkButton(btn_frame, text="Salva", command=save_pattern,
+                      fg_color=COLORS['button_success'], hover_color='#4caf50',
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(btn_frame, text="Annulla", command=cancel_edit,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=5)
     
     def _create_strumenti_tab(self):
         """Create Strumenti tab content."""
