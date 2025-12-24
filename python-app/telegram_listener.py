@@ -61,6 +61,11 @@ class TelegramListener:
             'first_half_over': r'(?:1[°º]?\s*(?:tempo|half|t)|primo\s*tempo|1T)\s*(?:over|sopra)\s*(\d+[.,]?\d*)',
             'first_half_under': r'(?:1[°º]?\s*(?:tempo|half|t)|primo\s*tempo|1T)\s*(?:under|sotto)\s*(\d+[.,]?\d*)',
             'double_chance': r'\b(1X|X2|12|doppia\s*chance)\b',
+            'match_odds': r'\b(?:FT\s*)?([1X2])\b(?!\s*[X12])|(?:esito\s*finale|vincente)\s*([1X2])',
+            'correct_score': r'(?:CS|RIS\.?|risultato\s*esatto)\s*(\d+)[-–](\d+)|(\d+)[-–](\d+)\s*(?:finale|FT|CS)',
+            'asian_handicap': r'(?:AH|handicap\s*asiatico)\s*(home|away|casa|ospiti|1|2)\s*([+-]?\d+(?:[.,]\d)?)',
+            'draw_no_bet': r'\b(DNB|draw\s*no\s*bet|pareggio\s*no\s*scommessa)\s*(1|2|home|away|casa|ospiti)\b',
+            'half_time_full_time': r'\b(HT/FT|parziale[/\\]finale)\s*([1X2])[/\\]([1X2])\b|(?<![\d])([1X2])/([1X2])(?![\d])',
         }
     
     def set_signal_patterns(self, patterns: Dict):
@@ -164,6 +169,61 @@ class TelegramListener:
             signal['market_type'] = 'DOUBLE_CHANCE'
             signal['selection'] = dc_match.group(1).upper()
             signal['side'] = signal['side'] or 'BACK'
+        
+        mo_match = re.search(self.signal_patterns['match_odds'], text, re.IGNORECASE)
+        if mo_match and not signal['market_type']:
+            sel = mo_match.group(1) or mo_match.group(2)
+            if sel:
+                signal['market_type'] = 'MATCH_ODDS'
+                signal['selection'] = sel.upper()
+                signal['side'] = signal['side'] or 'BACK'
+        
+        cs_match = re.search(self.signal_patterns['correct_score'], text, re.IGNORECASE)
+        if cs_match and not signal['market_type']:
+            if cs_match.group(1) and cs_match.group(2):
+                signal['market_type'] = 'CORRECT_SCORE'
+                signal['selection'] = f"{cs_match.group(1)}-{cs_match.group(2)}"
+            elif cs_match.group(3) and cs_match.group(4):
+                signal['market_type'] = 'CORRECT_SCORE'
+                signal['selection'] = f"{cs_match.group(3)}-{cs_match.group(4)}"
+            signal['side'] = signal['side'] or 'BACK'
+        
+        ah_match = re.search(self.signal_patterns['asian_handicap'], text, re.IGNORECASE)
+        if ah_match and not signal['market_type']:
+            team = ah_match.group(1).lower()
+            line = ah_match.group(2).replace(',', '.')
+            if team in ['home', 'casa', '1']:
+                signal['selection'] = f"Home {line}"
+            else:
+                signal['selection'] = f"Away {line}"
+            signal['market_type'] = 'ASIAN_HANDICAP'
+            signal['handicap_line'] = float(line)
+            signal['side'] = signal['side'] or 'BACK'
+        
+        dnb_match = re.search(self.signal_patterns['draw_no_bet'], text, re.IGNORECASE)
+        if dnb_match and not signal['market_type']:
+            team = dnb_match.group(2).lower()
+            if team in ['home', 'casa', '1']:
+                signal['selection'] = 'Home'
+            else:
+                signal['selection'] = 'Away'
+            signal['market_type'] = 'DRAW_NO_BET'
+            signal['side'] = signal['side'] or 'BACK'
+        
+        htft_match = re.search(self.signal_patterns['half_time_full_time'], text, re.IGNORECASE)
+        if htft_match and not signal['market_type']:
+            if htft_match.group(2) and htft_match.group(3):
+                ht = htft_match.group(2).upper()
+                ft = htft_match.group(3).upper()
+            elif htft_match.group(4) and htft_match.group(5):
+                ht = htft_match.group(4).upper()
+                ft = htft_match.group(5).upper()
+            else:
+                ht, ft = None, None
+            if ht and ft:
+                signal['market_type'] = 'HALF_TIME_FULL_TIME'
+                signal['selection'] = f"{ht}/{ft}"
+                signal['side'] = signal['side'] or 'BACK'
         
         over_match = re.search(self.signal_patterns['over'], text, re.IGNORECASE)
         if over_match and not signal['market_type']:

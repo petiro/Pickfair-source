@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.21.0"
+APP_VERSION = "3.22.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5515,6 +5515,130 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                                     'runnerName': runner.get('runnerName'),
                                     'price': back_price
                                 }
+                                break
+            
+            elif market_type == 'MATCH_ODDS':
+                for market in markets:
+                    market_type_api = market.get('marketType', '')
+                    market_name = market.get('marketName', '').lower()
+                    if market_type_api == 'MATCH_ODDS' or 'esito' in market_name or 'match odds' in market_name:
+                        target_market = market
+                        break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    runners = market_book.get('runners', [])
+                    for i, runner in enumerate(runners):
+                        back_price = runner.get('backPrice')
+                        if not back_price:
+                            continue
+                        if selection == '1' and i == 0:
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+                        elif selection == 'X' and 'draw' in runner.get('runnerName', '').lower():
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+                        elif selection == '2' and i == 1 and 'draw' not in runner.get('runnerName', '').lower():
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+            
+            elif market_type == 'CORRECT_SCORE':
+                for market in markets:
+                    market_type_api = market.get('marketType', '')
+                    market_name = market.get('marketName', '').lower()
+                    if market_type_api == 'CORRECT_SCORE' or 'correct score' in market_name or 'risultato esatto' in market_name:
+                        target_market = market
+                        break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    score_normalized = selection.replace('-', ' - ')
+                    for runner in market_book.get('runners', []):
+                        runner_name = runner.get('runnerName', '')
+                        runner_normalized = runner_name.replace('-', ' - ').replace('  ', ' ')
+                        if selection in runner_name or score_normalized in runner_normalized:
+                            back_price = runner.get('backPrice')
+                            if back_price:
+                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner_name, 'price': back_price}
+                                break
+            
+            elif market_type == 'ASIAN_HANDICAP':
+                handicap_line = signal.get('handicap_line', 0)
+                for market in markets:
+                    market_type_api = market.get('marketType', '')
+                    market_name = market.get('marketName', '').lower()
+                    if market_type_api in ['ASIAN_HANDICAP', 'ASIAN_HANDICAP_DOUBLE_LINE'] or 'handicap' in market_name:
+                        line_str = str(abs(handicap_line)).replace('.0', '')
+                        if line_str in market_name.replace('.0', '').replace(',', '.'):
+                            target_market = market
+                            break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    is_home = 'home' in selection.lower()
+                    for runner in market_book.get('runners', []):
+                        back_price = runner.get('backPrice')
+                        if not back_price:
+                            continue
+                        runner_handicap = runner.get('handicap', 0)
+                        if is_home and runner_handicap == handicap_line:
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+                        elif not is_home and runner_handicap == -handicap_line:
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+            
+            elif market_type == 'DRAW_NO_BET':
+                for market in markets:
+                    market_type_api = market.get('marketType', '')
+                    market_name = market.get('marketName', '').lower()
+                    if 'draw no bet' in market_name or 'pareggio no' in market_name:
+                        target_market = market
+                        break
+                    if market_type_api == 'ASIAN_HANDICAP' and '0' in market_name:
+                        target_market = market
+                        break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    runners = market_book.get('runners', [])
+                    is_home = 'home' in selection.lower()
+                    for i, runner in enumerate(runners):
+                        back_price = runner.get('backPrice')
+                        if not back_price:
+                            continue
+                        if is_home and i == 0:
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+                        elif not is_home and i == 1:
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+            
+            elif market_type == 'HALF_TIME_FULL_TIME':
+                for market in markets:
+                    market_type_api = market.get('marketType', '')
+                    market_name = market.get('marketName', '').lower()
+                    if market_type_api == 'HALF_TIME_FULL_TIME' or 'half time' in market_name or 'parziale' in market_name:
+                        target_market = market
+                        break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    ht_ft_map = {'1': 'home', 'X': 'draw', '2': 'away'}
+                    parts = selection.split('/')
+                    if len(parts) == 2:
+                        ht_sel = ht_ft_map.get(parts[0], parts[0].lower())
+                        ft_sel = ht_ft_map.get(parts[1], parts[1].lower())
+                        for runner in market_book.get('runners', []):
+                            runner_name = runner.get('runnerName', '').lower()
+                            back_price = runner.get('backPrice')
+                            if not back_price:
+                                continue
+                            if ht_sel in runner_name and ft_sel in runner_name:
+                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                                break
+                            if selection.upper().replace('/', ' / ') in runner_name.upper() or selection.upper() in runner_name.upper():
+                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
                                 break
             
             if not target_market:
