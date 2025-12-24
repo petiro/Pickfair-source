@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.17"
+APP_VERSION = "3.24.18"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5852,7 +5852,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     runners = market_book.get('runners', [])
                     for i, runner in enumerate(runners):
                         price = get_runner_price(runner, bet_side)
-                        if not back_price:
+                        if not price:
                             continue
                         if selection == '1' and i == 0:
                             target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
@@ -5900,7 +5900,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     is_home = 'home' in selection.lower()
                     for runner in market_book.get('runners', []):
                         price = get_runner_price(runner, bet_side)
-                        if not back_price:
+                        if not price:
                             continue
                         runner_handicap = runner.get('handicap', 0)
                         if is_home and runner_handicap == handicap_line:
@@ -5927,7 +5927,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     is_home = 'home' in selection.lower()
                     for i, runner in enumerate(runners):
                         price = get_runner_price(runner, bet_side)
-                        if not back_price:
+                        if not price:
                             continue
                         if is_home and i == 0:
                             target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
@@ -5954,7 +5954,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                         for runner in market_book.get('runners', []):
                             runner_name = runner.get('runnerName', '').lower()
                             price = get_runner_price(runner, bet_side)
-                            if not back_price:
+                            if not price:
                                 continue
                             if ht_sel in runner_name and ft_sel in runner_name:
                                 target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
@@ -5977,18 +5977,36 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 messagebox.showwarning("Auto-Bet", reason)
                 return
             
-            bet_info = (
-                f"Evento: {matched_event['name']}\n"
-                f"Mercato: {target_market.get('marketName', 'N/A')}\n"
-                f"Selezione: {target_runner['runnerName']}\n"
-                f"Quota: {target_runner['price']}\n"
-                f"Stake: {stake:.2f} EUR\n"
-                f"Tipo: {bet_side}"
-            )
+            if bet_side == 'LAY':
+                liability = stake * (target_runner['price'] - 1)
+                potential_profit = stake
+                bet_info = (
+                    f"Evento: {matched_event['name']}\n"
+                    f"Mercato: {target_market.get('marketName', 'N/A')}\n"
+                    f"Selezione: {target_runner['runnerName']}\n"
+                    f"Quota: {target_runner['price']}\n"
+                    f"Liability: {liability:.2f} EUR\n"
+                    f"Profitto Potenziale: {potential_profit:.2f} EUR\n"
+                    f"Tipo: LAY"
+                )
+            else:
+                potential_profit = stake * (target_runner['price'] - 1)
+                bet_info = (
+                    f"Evento: {matched_event['name']}\n"
+                    f"Mercato: {target_market.get('marketName', 'N/A')}\n"
+                    f"Selezione: {target_runner['runnerName']}\n"
+                    f"Quota: {target_runner['price']}\n"
+                    f"Stake: {stake:.2f} EUR\n"
+                    f"Profitto Potenziale: {potential_profit:.2f} EUR\n"
+                    f"Tipo: BACK"
+                )
             
             if self.simulation_mode:
                 commission = 0.045
-                gross_profit = stake * (target_runner['price'] - 1)
+                if bet_side == 'LAY':
+                    gross_profit = stake
+                else:
+                    gross_profit = stake * (target_runner['price'] - 1)
                 net_profit = gross_profit * (1 - commission)
                 
                 self.db.save_simulation_bet(
