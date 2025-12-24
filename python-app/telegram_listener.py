@@ -41,6 +41,8 @@ class TelegramListener:
         self.status_callback: Optional[Callable] = None
         
         self.signal_patterns = self._default_patterns()
+        self.custom_patterns: List[Dict] = []
+        self.db = None
     
     def _default_patterns(self) -> Dict:
         """Default regex patterns for parsing betting signals."""
@@ -71,6 +73,20 @@ class TelegramListener:
     def set_signal_patterns(self, patterns: Dict):
         """Update signal parsing patterns."""
         self.signal_patterns.update(patterns)
+    
+    def set_database(self, db):
+        """Set database reference for loading custom patterns."""
+        self.db = db
+        self.reload_custom_patterns()
+    
+    def reload_custom_patterns(self):
+        """Reload custom patterns from database."""
+        if self.db:
+            try:
+                self.custom_patterns = self.db.get_signal_patterns(enabled_only=True)
+            except Exception as e:
+                print(f"Error loading custom patterns: {e}")
+                self.custom_patterns = []
     
     def set_monitored_chats(self, chat_ids: List[int]):
         """Set list of chat IDs to monitor."""
@@ -131,6 +147,36 @@ class TelegramListener:
             signal['side'] = 'BACK'
         elif re.search(self.signal_patterns['lay'], text, re.IGNORECASE):
             signal['side'] = 'LAY'
+        
+        for custom in self.custom_patterns:
+            try:
+                pattern = custom.get('pattern', '')
+                market_type = custom.get('market_type', '')
+                if pattern and re.search(pattern, text, re.IGNORECASE):
+                    match = re.search(pattern, text, re.IGNORECASE)
+                    signal['market_type'] = market_type
+                    if match.groups():
+                        if 'OVER' in market_type.upper():
+                            signal['selection'] = f"Over {match.group(1)}" if match.group(1) else 'Yes'
+                        elif 'UNDER' in market_type.upper():
+                            signal['selection'] = f"Under {match.group(1)}" if match.group(1) else 'Yes'
+                        elif market_type == 'BOTH_TEAMS_TO_SCORE':
+                            matched_text = match.group(0).upper()
+                            if 'NG' in matched_text or 'NO' in matched_text:
+                                signal['selection'] = 'No'
+                            else:
+                                signal['selection'] = 'Yes'
+                        else:
+                            signal['selection'] = match.group(1) if match.group(1) else match.group(0)
+                    else:
+                        if market_type == 'BOTH_TEAMS_TO_SCORE':
+                            signal['selection'] = 'Yes'
+                        else:
+                            signal['selection'] = match.group(0)
+                    signal['side'] = signal['side'] or 'BACK'
+                    break
+            except Exception as e:
+                continue
         
         if re.search(self.signal_patterns['next_goal'], text, re.IGNORECASE):
             signal['market_type'] = 'NEXT_GOAL'

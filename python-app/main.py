@@ -3108,6 +3108,7 @@ class PickfairApp:
         if messagebox.askyesno("Conferma", f"Eliminare la regola '{pattern_name}'?"):
             self.db.delete_signal_pattern(pattern_id)
             self._refresh_rules_tree()
+            self._reload_listener_patterns()
     
     def _toggle_signal_pattern(self):
         """Toggle enable/disable for selected pattern."""
@@ -3122,6 +3123,15 @@ class PickfairApp:
         
         self.db.toggle_signal_pattern(pattern_id, not current_enabled)
         self._refresh_rules_tree()
+        self._reload_listener_patterns()
+    
+    def _reload_listener_patterns(self):
+        """Reload custom patterns in the Telegram listener if running."""
+        if self.telegram_listener:
+            try:
+                self.telegram_listener.reload_custom_patterns()
+            except Exception as e:
+                print(f"[DEBUG] Error reloading listener patterns: {e}")
     
     def _show_pattern_editor(self, mode='add', pattern_id=None):
         """Show pattern editor in a sub-tab instead of popup."""
@@ -3221,6 +3231,7 @@ class PickfairApp:
             
             self.pattern_editor_frame.destroy()
             self._refresh_rules_tree()
+            self._reload_listener_patterns()
             messagebox.showinfo("Salvato", f"Regola '{name}' salvata con successo!")
         
         def cancel_edit():
@@ -5221,6 +5232,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 api_hash=settings['api_hash'],
                 session_path=session_path
             )
+            self.telegram_listener.set_database(self.db)
             
             chats = self.db.get_telegram_chats()
             chat_ids = [int(c['chat_id']) for c in chats if c.get('enabled')]
@@ -5312,6 +5324,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 api_hash=settings['api_hash'],
                 session_path=session_path
             )
+            self.telegram_listener.set_database(self.db)
             
             chats = self.db.get_telegram_chats()
             chat_ids = [int(c['chat_id']) for c in chats if c.get('enabled')]
