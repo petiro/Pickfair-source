@@ -201,6 +201,19 @@ class Database:
             )
         ''')
         
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS signal_patterns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                pattern TEXT NOT NULL,
+                market_type TEXT NOT NULL,
+                enabled INTEGER DEFAULT 1,
+                is_default INTEGER DEFAULT 0,
+                created_at TEXT
+            )
+        ''')
+        
         # Simulation mode tables
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS simulation_settings (
@@ -823,5 +836,76 @@ class Database:
             cursor.execute('UPDATE settings SET auto_update = ?', (1 if enabled else 0,))
         else:
             cursor.execute('INSERT INTO settings (auto_update) VALUES (?)', (1 if enabled else 0,))
+        conn.commit()
+        conn.close()
+    
+    def get_signal_patterns(self, enabled_only=False):
+        """Get all signal patterns."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        if enabled_only:
+            cursor.execute('SELECT * FROM signal_patterns WHERE enabled = 1 ORDER BY name')
+        else:
+            cursor.execute('SELECT * FROM signal_patterns ORDER BY name')
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(row) for row in rows]
+    
+    def save_signal_pattern(self, name, description, pattern, market_type, enabled=True, is_default=False):
+        """Save a new signal pattern."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO signal_patterns (name, description, pattern, market_type, enabled, is_default, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (name, description, pattern, market_type, 1 if enabled else 0, 1 if is_default else 0, datetime.now().isoformat()))
+        pattern_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        return pattern_id
+    
+    def update_signal_pattern(self, pattern_id, name=None, description=None, pattern=None, market_type=None, enabled=None):
+        """Update an existing signal pattern."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        updates = []
+        params = []
+        if name is not None:
+            updates.append('name = ?')
+            params.append(name)
+        if description is not None:
+            updates.append('description = ?')
+            params.append(description)
+        if pattern is not None:
+            updates.append('pattern = ?')
+            params.append(pattern)
+        if market_type is not None:
+            updates.append('market_type = ?')
+            params.append(market_type)
+        if enabled is not None:
+            updates.append('enabled = ?')
+            params.append(1 if enabled else 0)
+        
+        if updates:
+            params.append(pattern_id)
+            cursor.execute(f'UPDATE signal_patterns SET {", ".join(updates)} WHERE id = ?', params)
+            conn.commit()
+        conn.close()
+    
+    def delete_signal_pattern(self, pattern_id):
+        """Delete a signal pattern."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM signal_patterns WHERE id = ?', (pattern_id,))
+        conn.commit()
+        conn.close()
+    
+    def toggle_signal_pattern(self, pattern_id, enabled):
+        """Toggle signal pattern enabled status."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('UPDATE signal_patterns SET enabled = ? WHERE id = ?', (1 if enabled else 0, pattern_id))
         conn.commit()
         conn.close()
