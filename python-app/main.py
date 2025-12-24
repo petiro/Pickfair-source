@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.19"
+APP_VERSION = "3.24.20"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5676,8 +5676,27 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             return runner.get('layPrice')
         
         try:
-            live_events = self.client.get_live_events('1')
-            all_events = self.client.get_football_events(include_inplay=True)
+            import time as time_module
+            now = time_module.time()
+            cache_ttl = 30
+            
+            if not hasattr(self, '_api_cache'):
+                self._api_cache = {}
+            
+            cache_key_live = 'live_events'
+            cache_key_all = 'all_events'
+            
+            if cache_key_live in self._api_cache and (now - self._api_cache[cache_key_live]['time']) < cache_ttl:
+                live_events = self._api_cache[cache_key_live]['data']
+            else:
+                live_events = self.client.get_live_events('1')
+                self._api_cache[cache_key_live] = {'data': live_events, 'time': now}
+            
+            if cache_key_all in self._api_cache and (now - self._api_cache[cache_key_all]['time']) < cache_ttl:
+                all_events = self._api_cache[cache_key_all]['data']
+            else:
+                all_events = self.client.get_football_events(include_inplay=True)
+                self._api_cache[cache_key_all] = {'data': all_events, 'time': now}
             
             event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ')
             league_lower = league.lower() if league else ''
@@ -6008,22 +6027,38 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 commission = 0.045
                 if bet_side == 'LAY':
                     gross_profit = stake
+                    bet_liability = stake * (target_runner['price'] - 1)
                 else:
                     gross_profit = stake * (target_runner['price'] - 1)
+                    bet_liability = stake
                 net_profit = gross_profit * (1 - commission)
+                
+                sim_settings = self.db.get_simulation_settings()
+                virtual_balance = sim_settings.get('virtual_balance', 0)
+                
+                if bet_liability > virtual_balance:
+                    reason = f"Saldo virtuale insufficiente. Richiesto: {bet_liability:.2f}, Disponibile: {virtual_balance:.2f}"
+                    update_status('FAILED')
+                    log_failed_bet(reason)
+                    messagebox.showwarning("Auto-Bet (Simulazione)", reason)
+                    return
+                
+                new_balance = virtual_balance - bet_liability
+                self.db.increment_simulation_bet_count(new_balance)
                 
                 self.db.save_simulation_bet(
                     event_name=matched_event['name'],
                     market_id=target_market['marketId'],
                     market_name=target_market.get('marketName', ''),
-                    bet_type=bet_side,
+                    side=bet_side,
                     selections=target_runner['runnerName'],
                     total_stake=stake,
-                    potential_profit=net_profit,
-                    status='MATCHED'
+                    potential_profit=net_profit
                 )
                 update_status('PLACED')
-                messagebox.showinfo("Auto-Bet (Simulazione)", f"Scommessa simulata piazzata!\n\n{bet_info}")
+                self._update_simulation_balance_display()
+                messagebox.showinfo("Auto-Bet (Simulazione)", 
+                    f"Scommessa simulata piazzata!\n\n{bet_info}\n\nNuovo Saldo: {new_balance:.2f} EUR")
             else:
                 result = self.client.place_bet(
                     market_id=target_market['marketId'],
