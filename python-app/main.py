@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.19.9"
+APP_VERSION = "3.23.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2682,15 +2682,18 @@ class PickfairApp:
         self.tg_2fa_var = tk.StringVar()
         ctk.CTkEntry(auth_frame, textvariable=self.tg_2fa_var, width=60, show='*',
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=2)
-        ctk.CTkButton(auth_frame, text="Invia Codice", command=self._send_telegram_code,
+        
+        auth_btn_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
+        auth_btn_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
+        ctk.CTkButton(auth_btn_frame, text="Invia Codice", command=self._send_telegram_code,
                       fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
-                      corner_radius=6, width=95).pack(side=tk.LEFT, padx=2)
-        ctk.CTkButton(auth_frame, text="Verifica", command=self._verify_telegram_code,
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(auth_btn_frame, text="Verifica", command=self._verify_telegram_code,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
-                      corner_radius=6, width=75).pack(side=tk.LEFT, padx=2)
-        ctk.CTkButton(auth_frame, text="Reset", command=self._reset_telegram_session,
+                      corner_radius=6, width=80).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(auth_btn_frame, text="Reset", command=self._reset_telegram_session,
                       fg_color=COLORS['button_danger'], hover_color='#c62828',
-                      corner_radius=6, width=60).pack(side=tk.LEFT, padx=2)
+                      corner_radius=6, width=70).pack(side=tk.LEFT, padx=2)
         
         self.tg_status_label = ctk.CTkLabel(config_frame, text=f"Stato: {self.telegram_status}",
                                             text_color=COLORS['text_secondary'])
@@ -5023,7 +5026,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 )
                 self.root.after(0, lambda: self._notify_new_signal(signal))
                 
-                if settings.get('auto_bet') and signal.get('event') and signal.get('over_line') is not None:
+                if settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
                     self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
             
             def on_status(status, message):
@@ -5106,21 +5109,23 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             
             def on_signal(signal):
                 self.telegram_signal_queue.add(signal)
-                self.db.save_telegram_signal(
+                signal_id = self.db.save_telegram_signal(
                     signal.get('chat_id', ''),
                     signal.get('sender_id', ''),
                     signal.get('raw_text', ''),
                     signal
                 )
+                signal['signal_id'] = signal_id
                 self.root.after(0, lambda: self._notify_new_signal(signal))
+                self.root.after(0, lambda: self._refresh_telegram_signals_tree())
                 
-                print(f"[AUTO-BET DEBUG] Signal received: event={signal.get('event')}, over_line={signal.get('over_line')}, auto_bet={settings.get('auto_bet')}")
+                print(f"[AUTO-BET DEBUG] Signal received: event={signal.get('event')}, market_type={signal.get('market_type')}, selection={signal.get('selection')}, auto_bet={settings.get('auto_bet')}")
                 
-                if settings.get('auto_bet') and signal.get('event') and signal.get('over_line') is not None:
-                    print(f"[AUTO-BET DEBUG] Processing auto-bet for: {signal.get('event')}")
+                if settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
+                    print(f"[AUTO-BET DEBUG] Processing auto-bet for: {signal.get('event')} - {signal.get('market_type')}")
                     self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
                 else:
-                    print(f"[AUTO-BET DEBUG] Skipped - auto_bet={settings.get('auto_bet')}, event={signal.get('event')}, over_line={signal.get('over_line')}")
+                    print(f"[AUTO-BET DEBUG] Skipped - auto_bet={settings.get('auto_bet')}, event={signal.get('event')}, market_type={signal.get('market_type')}")
             
             def on_status(status, message):
                 self.telegram_status = status
@@ -5325,10 +5330,16 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         
         event_name = signal.get('event', '')
         league = signal.get('league', '')
+        market_type = signal.get('market_type', 'OVER_UNDER')
+        selection = signal.get('selection', '')
         over_line = signal.get('over_line')
         stake = float(settings.get('auto_stake', 1.0))
+        signal_id = signal.get('signal_id')
         
-        if not event_name or over_line is None:
+        if not event_name:
+            return
+        
+        if market_type == 'OVER_UNDER' and over_line is None:
             return
         
         def log_failed_bet(reason):
@@ -5339,10 +5350,15 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 {**signal, 'auto_bet_status': 'FAILED', 'auto_bet_reason': reason}
             )
         
+        def update_status(status):
+            if signal_id:
+                self.db.update_signal_status(signal_id, status)
+                self._refresh_telegram_signals_tree()
+        
         try:
-            events = self.client.get_live_events('1')
+            live_events = self.client.get_live_events('1')
+            all_events = self.client.get_football_events(include_inplay=True)
             
-            matched_event = None
             event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ')
             league_lower = league.lower() if league else ''
             
@@ -5355,127 +5371,343 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                         league_country = country
                         break
             
-            best_match = None
-            best_score = 0
+            def find_best_match(events_list):
+                best_match = None
+                best_score = 0
+                for event in events_list:
+                    event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ')
+                    competition = event.get('competition', {}).get('name', '').lower()
+                    
+                    words_signal = set(event_lower.split())
+                    words_event = set(event_search.split())
+                    common = words_signal & words_event
+                    match_score = len(common)
+                    
+                    if league_country and league_country in competition:
+                        match_score += 1
+                    
+                    if match_score > best_score and match_score >= 2:
+                        best_score = match_score
+                        best_match = event
+                return best_match
             
-            for event in events:
-                event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ')
-                competition = event.get('competition', {}).get('name', '').lower()
-                
-                words_signal = set(event_lower.split())
-                words_event = set(event_search.split())
-                common = words_signal & words_event
-                match_score = len(common)
-                
-                if league_country and league_country in competition:
-                    match_score += 1
-                
-                if match_score > best_score and match_score >= 2:
-                    best_score = match_score
-                    best_match = event
+            matched_event = find_best_match(live_events)
             
-            matched_event = best_match
+            if not matched_event:
+                matched_event = find_best_match(all_events)
             
             if not matched_event:
                 reason = f"Evento non trovato: {event_name}"
                 if league:
                     reason += f" ({league})"
                 log_failed_bet(reason)
+                update_status('FAILED')
                 messagebox.showwarning("Auto-Bet", reason)
                 return
             
             markets = self.client.get_markets(matched_event['id'])
             
-            over_under_market = None
-            target_line = over_line
+            target_market = None
+            target_runner = None
             
-            for market in markets:
-                market_name = market.get('marketName', '').lower()
-                if 'over' in market_name and 'under' in market_name:
-                    if str(target_line).replace('.', '') in market_name.replace('.', '').replace(',', ''):
-                        over_under_market = market
-                        break
-            
-            if not over_under_market:
+            if market_type == 'OVER_UNDER':
+                target_line = over_line
                 for market in markets:
                     market_name = market.get('marketName', '').lower()
-                    if 'over' in market_name or 'goal' in market_name:
-                        over_under_market = market
-                        break
+                    if 'over' in market_name and 'under' in market_name:
+                        line_str = str(target_line).replace('.', '')
+                        if line_str in market_name.replace('.', '').replace(',', ''):
+                            target_market = market
+                            break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    for runner in market_book.get('runners', []):
+                        runner_name = runner.get('runnerName', '').lower()
+                        if 'over' in runner_name:
+                            back_price = runner.get('backPrice')
+                            if back_price:
+                                target_runner = {
+                                    'selectionId': runner['selectionId'],
+                                    'runnerName': runner.get('runnerName'),
+                                    'price': back_price
+                                }
+                                break
             
-            if not over_under_market:
-                reason = f"Mercato Over/Under {target_line} non trovato per {matched_event['name']}"
+            elif market_type == 'BOTH_TEAMS_TO_SCORE':
+                for market in markets:
+                    market_name = market.get('marketName', '').lower()
+                    market_type_api = market.get('marketType', '')
+                    if market_type_api == 'BOTH_TEAMS_TO_SCORE' or 'entrambe' in market_name or 'both' in market_name:
+                        target_market = market
+                        break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    for runner in market_book.get('runners', []):
+                        runner_name = runner.get('runnerName', '').lower()
+                        if selection.lower() == 'yes' and ('yes' in runner_name or 'si' in runner_name or runner_name == 'yes'):
+                            back_price = runner.get('backPrice')
+                            if back_price:
+                                target_runner = {
+                                    'selectionId': runner['selectionId'],
+                                    'runnerName': runner.get('runnerName'),
+                                    'price': back_price
+                                }
+                                break
+                        elif selection.lower() == 'no' and ('no' in runner_name and 'goal' not in runner_name):
+                            back_price = runner.get('backPrice')
+                            if back_price:
+                                target_runner = {
+                                    'selectionId': runner['selectionId'],
+                                    'runnerName': runner.get('runnerName'),
+                                    'price': back_price
+                                }
+                                break
+            
+            elif market_type == 'FIRST_HALF_GOALS':
+                target_line = over_line
+                for market in markets:
+                    market_name = market.get('marketName', '').lower()
+                    market_type_api = market.get('marketType', '')
+                    if ('1' in market_name or 'primo' in market_name or 'first' in market_name or 'half' in market_name):
+                        if 'goal' in market_name or 'over' in market_name:
+                            line_str = str(target_line).replace('.', '')
+                            if line_str in market_name.replace('.', '').replace(',', ''):
+                                target_market = market
+                                break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    for runner in market_book.get('runners', []):
+                        runner_name = runner.get('runnerName', '').lower()
+                        if 'over' in selection.lower() and 'over' in runner_name:
+                            back_price = runner.get('backPrice')
+                            if back_price:
+                                target_runner = {
+                                    'selectionId': runner['selectionId'],
+                                    'runnerName': runner.get('runnerName'),
+                                    'price': back_price
+                                }
+                                break
+                        elif 'under' in selection.lower() and 'under' in runner_name:
+                            back_price = runner.get('backPrice')
+                            if back_price:
+                                target_runner = {
+                                    'selectionId': runner['selectionId'],
+                                    'runnerName': runner.get('runnerName'),
+                                    'price': back_price
+                                }
+                                break
+            
+            elif market_type == 'DOUBLE_CHANCE':
+                for market in markets:
+                    market_name = market.get('marketName', '').lower()
+                    market_type_api = market.get('marketType', '')
+                    if market_type_api == 'DOUBLE_CHANCE' or 'doppia' in market_name or 'double' in market_name:
+                        target_market = market
+                        break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    for runner in market_book.get('runners', []):
+                        runner_name = runner.get('runnerName', '').upper()
+                        if selection.upper() in runner_name or selection.upper() == runner_name:
+                            back_price = runner.get('backPrice')
+                            if back_price:
+                                target_runner = {
+                                    'selectionId': runner['selectionId'],
+                                    'runnerName': runner.get('runnerName'),
+                                    'price': back_price
+                                }
+                                break
+            
+            elif market_type == 'MATCH_ODDS':
+                for market in markets:
+                    market_type_api = market.get('marketType', '')
+                    market_name = market.get('marketName', '').lower()
+                    if market_type_api == 'MATCH_ODDS' or 'esito' in market_name or 'match odds' in market_name:
+                        target_market = market
+                        break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    runners = market_book.get('runners', [])
+                    for i, runner in enumerate(runners):
+                        back_price = runner.get('backPrice')
+                        if not back_price:
+                            continue
+                        if selection == '1' and i == 0:
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+                        elif selection == 'X' and 'draw' in runner.get('runnerName', '').lower():
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+                        elif selection == '2' and i == 1 and 'draw' not in runner.get('runnerName', '').lower():
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+            
+            elif market_type == 'CORRECT_SCORE':
+                for market in markets:
+                    market_type_api = market.get('marketType', '')
+                    market_name = market.get('marketName', '').lower()
+                    if market_type_api == 'CORRECT_SCORE' or 'correct score' in market_name or 'risultato esatto' in market_name:
+                        target_market = market
+                        break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    score_normalized = selection.replace('-', ' - ')
+                    for runner in market_book.get('runners', []):
+                        runner_name = runner.get('runnerName', '')
+                        runner_normalized = runner_name.replace('-', ' - ').replace('  ', ' ')
+                        if selection in runner_name or score_normalized in runner_normalized:
+                            back_price = runner.get('backPrice')
+                            if back_price:
+                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner_name, 'price': back_price}
+                                break
+            
+            elif market_type == 'ASIAN_HANDICAP':
+                handicap_line = signal.get('handicap_line', 0)
+                for market in markets:
+                    market_type_api = market.get('marketType', '')
+                    market_name = market.get('marketName', '').lower()
+                    if market_type_api in ['ASIAN_HANDICAP', 'ASIAN_HANDICAP_DOUBLE_LINE'] or 'handicap' in market_name:
+                        line_str = str(abs(handicap_line)).replace('.0', '')
+                        if line_str in market_name.replace('.0', '').replace(',', '.'):
+                            target_market = market
+                            break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    is_home = 'home' in selection.lower()
+                    for runner in market_book.get('runners', []):
+                        back_price = runner.get('backPrice')
+                        if not back_price:
+                            continue
+                        runner_handicap = runner.get('handicap', 0)
+                        if is_home and runner_handicap == handicap_line:
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+                        elif not is_home and runner_handicap == -handicap_line:
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+            
+            elif market_type == 'DRAW_NO_BET':
+                for market in markets:
+                    market_type_api = market.get('marketType', '')
+                    market_name = market.get('marketName', '').lower()
+                    if 'draw no bet' in market_name or 'pareggio no' in market_name:
+                        target_market = market
+                        break
+                    if market_type_api == 'ASIAN_HANDICAP' and '0' in market_name:
+                        target_market = market
+                        break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    runners = market_book.get('runners', [])
+                    is_home = 'home' in selection.lower()
+                    for i, runner in enumerate(runners):
+                        back_price = runner.get('backPrice')
+                        if not back_price:
+                            continue
+                        if is_home and i == 0:
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+                        elif not is_home and i == 1:
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            break
+            
+            elif market_type == 'HALF_TIME_FULL_TIME':
+                for market in markets:
+                    market_type_api = market.get('marketType', '')
+                    market_name = market.get('marketName', '').lower()
+                    if market_type_api == 'HALF_TIME_FULL_TIME' or 'half time' in market_name or 'parziale' in market_name:
+                        target_market = market
+                        break
+                
+                if target_market:
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    ht_ft_map = {'1': 'home', 'X': 'draw', '2': 'away'}
+                    parts = selection.split('/')
+                    if len(parts) == 2:
+                        ht_sel = ht_ft_map.get(parts[0], parts[0].lower())
+                        ft_sel = ht_ft_map.get(parts[1], parts[1].lower())
+                        for runner in market_book.get('runners', []):
+                            runner_name = runner.get('runnerName', '').lower()
+                            back_price = runner.get('backPrice')
+                            if not back_price:
+                                continue
+                            if ht_sel in runner_name and ft_sel in runner_name:
+                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                                break
+                            if selection.upper().replace('/', ' / ') in runner_name.upper() or selection.upper() in runner_name.upper():
+                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                                break
+            
+            if not target_market:
+                reason = f"Mercato {market_type} non trovato per {matched_event['name']}"
                 log_failed_bet(reason)
+                update_status('FAILED')
                 messagebox.showwarning("Auto-Bet", reason)
                 return
             
-            market_book = self.client.get_market_with_prices(over_under_market['marketId'])
-            
-            over_runner = None
-            for runner in market_book.get('runners', []):
-                runner_name = runner.get('runnerName', '')
-                
-                if 'over' in runner_name.lower():
-                    back_price = runner.get('backPrice')
-                    if back_price:
-                        over_runner = {
-                            'selectionId': runner['selectionId'],
-                            'runnerName': runner_name,
-                            'price': back_price
-                        }
-                        break
-            
-            if not over_runner:
-                reason = f"Selezione Over non disponibile per {matched_event['name']}"
+            if not target_runner:
+                reason = f"Selezione '{selection}' non disponibile per {matched_event['name']}"
                 log_failed_bet(reason)
+                update_status('FAILED')
                 messagebox.showwarning("Auto-Bet", reason)
                 return
             
             bet_info = (
                 f"Evento: {matched_event['name']}\n"
-                f"Mercato: {over_under_market.get('marketName', 'N/A')}\n"
-                f"Selezione: {over_runner['runnerName']}\n"
-                f"Quota: {over_runner['price']}\n"
+                f"Mercato: {target_market.get('marketName', 'N/A')}\n"
+                f"Selezione: {target_runner['runnerName']}\n"
+                f"Quota: {target_runner['price']}\n"
                 f"Stake: {stake:.2f} EUR\n"
                 f"Tipo: BACK"
             )
             
-            
             if self.simulation_mode:
                 commission = 0.045
-                gross_profit = stake * (over_runner['price'] - 1)
+                gross_profit = stake * (target_runner['price'] - 1)
                 net_profit = gross_profit * (1 - commission)
                 
                 self.db.save_simulation_bet(
                     event_name=matched_event['name'],
-                    market_id=over_under_market['marketId'],
-                    market_name=over_under_market.get('marketName', ''),
+                    market_id=target_market['marketId'],
+                    market_name=target_market.get('marketName', ''),
                     bet_type='BACK',
-                    selections=over_runner['runnerName'],
+                    selections=target_runner['runnerName'],
                     total_stake=stake,
                     potential_profit=net_profit,
                     status='MATCHED'
                 )
+                update_status('PLACED')
                 messagebox.showinfo("Auto-Bet (Simulazione)", f"Scommessa simulata piazzata!\n\n{bet_info}")
             else:
                 result = self.client.place_bet(
-                    market_id=over_under_market['marketId'],
-                    selection_id=over_runner['selectionId'],
+                    market_id=target_market['marketId'],
+                    selection_id=target_runner['selectionId'],
                     side='BACK',
-                    price=over_runner['price'],
+                    price=target_runner['price'],
                     size=stake
                 )
                 
                 if result.get('status') == 'SUCCESS':
+                    update_status('PLACED')
                     messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bet_info}")
                 else:
                     error = result.get('errorCode', 'UNKNOWN')
                     reason = f"Errore Betfair: {error}"
+                    update_status('FAILED')
                     log_failed_bet(reason)
                     messagebox.showerror("Auto-Bet Errore", f"Errore piazzamento: {error}")
         
         except Exception as e:
             log_failed_bet(f"Eccezione: {str(e)}")
+            update_status('FAILED')
             messagebox.showerror("Auto-Bet Errore", f"Errore: {str(e)}")
     
     def _show_multi_market_monitor(self):
