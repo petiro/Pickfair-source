@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.15"
+APP_VERSION = "3.24.16"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -3202,55 +3202,72 @@ class PickfairApp:
         ctk.CTkEntry(form_frame, textvariable=desc_var, width=300,
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=1, column=1, pady=3, padx=5)
         
-        ctk.CTkLabel(form_frame, text="Pattern Regex:", text_color=COLORS['text_secondary']).grid(row=2, column=0, sticky=tk.W, pady=3)
-        pattern_var = tk.StringVar(value=existing_pattern.get('pattern', '') if existing_pattern else '')
-        ctk.CTkEntry(form_frame, textvariable=pattern_var, width=300,
-                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=2, column=1, pady=3, padx=5)
+        ctk.CTkLabel(form_frame, text="Pattern Predefinito:", text_color=COLORS['text_secondary']).grid(row=2, column=0, sticky=tk.W, pady=3)
         
-        ctk.CTkLabel(form_frame, text="Tipo Mercato:", text_color=COLORS['text_secondary']).grid(row=3, column=0, sticky=tk.W, pady=3)
+        preset_patterns = {
+            "-- Seleziona --": ("", "OVER_UNDER_X5"),
+            "Over 0.5": ("over.*(0.5)", "OVER_UNDER_X5"),
+            "Over 1.5": ("over.*(1.5)", "OVER_UNDER_X5"),
+            "Over 2.5": ("over.*(2.5)", "OVER_UNDER_X5"),
+            "Over 3.5": ("over.*(3.5)", "OVER_UNDER_X5"),
+            "Under 0.5": ("under.*(0.5)", "OVER_UNDER_X5"),
+            "Under 1.5": ("under.*(1.5)", "OVER_UNDER_X5"),
+            "Under 2.5": ("under.*(2.5)", "OVER_UNDER_X5"),
+            "Under 3.5": ("under.*(3.5)", "OVER_UNDER_X5"),
+            "GG / BTTS": ("(gg|btts|gol)", "BOTH_TEAMS_TO_SCORE"),
+            "NG / No Goal": ("(ng|no.?goal|nogol)", "BOTH_TEAMS_TO_SCORE"),
+            "1T Over 0.5": ("1t.*(over|0.5)", "OVER_UNDER_15_FH"),
+            "1T Under 0.5": ("1t.*(under|0.5)", "OVER_UNDER_15_FH"),
+            "1X (Casa o Pari)": ("(1x)", "DOUBLE_CHANCE"),
+            "X2 (Pari o Trasferta)": ("(x2)", "DOUBLE_CHANCE"),
+            "12 (Casa o Trasferta)": ("(12)", "DOUBLE_CHANCE"),
+            "Casa Vince": ("(home|casa|1)", "MATCH_ODDS"),
+            "Pareggio": ("(draw|pari|x)", "MATCH_ODDS"),
+            "Trasferta Vince": ("(away|trasferta|2)", "MATCH_ODDS"),
+            "Personalizzato...": ("", "OVER_UNDER_X5"),
+        }
+        
+        preset_var = tk.StringVar(value="-- Seleziona --")
+        pattern_var = tk.StringVar(value=existing_pattern.get('pattern', '') if existing_pattern else '')
+        
+        def on_preset_change(choice):
+            if choice in preset_patterns and choice not in ["-- Seleziona --", "Personalizzato..."]:
+                pattern, market = preset_patterns[choice]
+                pattern_var.set(pattern)
+                market_var.set(market)
+                if not name_var.get():
+                    name_var.set(choice)
+        
+        preset_menu = ctk.CTkOptionMenu(form_frame, variable=preset_var, values=list(preset_patterns.keys()),
+                                        fg_color=COLORS['bg_card'], button_color=COLORS['success'],
+                                        button_hover_color='#4caf50', width=200, command=on_preset_change)
+        preset_menu.grid(row=2, column=1, pady=3, padx=5, sticky=tk.W)
+        
+        ctk.CTkLabel(form_frame, text="Pattern Regex:", text_color=COLORS['text_secondary']).grid(row=3, column=0, sticky=tk.W, pady=3)
+        ctk.CTkEntry(form_frame, textvariable=pattern_var, width=300,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=3, column=1, pady=3, padx=5)
+        
+        ctk.CTkLabel(form_frame, text="Tipo Mercato:", text_color=COLORS['text_secondary']).grid(row=4, column=0, sticky=tk.W, pady=3)
         market_types = ['OVER_UNDER_X5', 'BOTH_TEAMS_TO_SCORE', 'OVER_UNDER_15_FH', 'DOUBLE_CHANCE',
                         'MATCH_ODDS', 'CORRECT_SCORE', 'ASIAN_HANDICAP', 'DRAW_NO_BET', 'HALF_TIME_FULL_TIME']
         market_var = tk.StringVar(value=existing_pattern.get('market_type', market_types[0]) if existing_pattern else market_types[0])
         market_menu = ctk.CTkOptionMenu(form_frame, variable=market_var, values=market_types,
                                         fg_color=COLORS['bg_card'], button_color=COLORS['button_primary'],
                                         button_hover_color=COLORS['back_hover'], width=200)
-        market_menu.grid(row=3, column=1, pady=3, padx=5, sticky=tk.W)
+        market_menu.grid(row=4, column=1, pady=3, padx=5, sticky=tk.W)
         
         enabled_var = tk.BooleanVar(value=existing_pattern.get('enabled', True) if existing_pattern else True)
         ctk.CTkCheckBox(form_frame, text="Regola Attiva", variable=enabled_var,
                         fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
-                        text_color=COLORS['text_primary']).grid(row=4, column=1, pady=10, sticky=tk.W)
+                        text_color=COLORS['text_primary']).grid(row=5, column=1, pady=10, sticky=tk.W)
         
         help_frame = ctk.CTkFrame(self.pattern_editor_frame, fg_color=COLORS['bg_card'], corner_radius=6)
         help_frame.pack(fill=tk.X, padx=15, pady=10)
         
-        ctk.CTkLabel(help_frame, text="Come funziona:", font=('Segoe UI', 11, 'bold'),
-                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
-        
-        help_text = """Scrivi un pattern per riconoscere i messaggi.
-Usa (parentesi) per catturare il valore.
-Usa .* per "qualsiasi testo", | per "oppure".
-
-Esempi:"""
+        help_text = """Seleziona un pattern predefinito dal menu sopra, oppure scegli "Personalizzato" 
+e scrivi il tuo pattern nel campo Pattern Regex."""
         ctk.CTkLabel(help_frame, text=help_text, font=('Segoe UI', 10),
-                     text_color=COLORS['text_secondary'], justify=tk.LEFT).pack(anchor=tk.W, padx=10)
-        
-        examples = [
-            ("Over 2.5", "over.*(2.5)"),
-            ("Under 1.5", "under.*(1.5)"),
-            ("GG / BTTS", "(gg|btts)"),
-            ("1X2", "(home|away|draw)"),
-        ]
-        
-        for label, pattern in examples:
-            ex_frame = ctk.CTkFrame(help_frame, fg_color='transparent')
-            ex_frame.pack(fill=tk.X, padx=10, pady=2)
-            ctk.CTkLabel(ex_frame, text=f"{label}:", font=('Segoe UI', 10, 'bold'),
-                         text_color=COLORS['text_primary'], width=80).pack(side=tk.LEFT)
-            ctk.CTkLabel(ex_frame, text=pattern, font=('Consolas', 10),
-                         text_color=COLORS['back']).pack(side=tk.LEFT, padx=5)
-        
-        ctk.CTkLabel(help_frame, text="", height=5).pack()
+                     text_color=COLORS['text_secondary'], justify=tk.LEFT).pack(anchor=tk.W, padx=10, pady=10)
         
         btn_frame = ctk.CTkFrame(self.pattern_editor_frame, fg_color='transparent')
         btn_frame.pack(fill=tk.X, padx=15, pady=15)
