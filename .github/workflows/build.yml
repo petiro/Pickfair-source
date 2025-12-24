@@ -13,13 +13,11 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.7'
-    - run: pip install pyinstaller betfairlightweight telethon customtkinter numpy
+    - run: pip install pyinstaller betfairlightweight telethon customtkinter numpy requests
     - name: Build executable
-      working-directory: python-app
       run: pyinstaller --onefile --windowed --name Pickfair main.py --hidden-import=customtkinter
-    - name: Upload to public repo
+    - name: Upload to release
       uses: softprops/action-gh-release@v1
       with:
-        files: python-app/dist/Pickfair.exe
-        repository: petiro/Pickfair
+        files: dist/Pickfair.exe
         token: ${{ secrets.RELEASE_TOKEN }}
