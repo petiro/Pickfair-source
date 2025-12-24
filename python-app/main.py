@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.18"
+APP_VERSION = "3.24.19"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5667,10 +5667,13 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 self._refresh_telegram_signals_tree()
         
         def get_runner_price(runner, side):
-            """Get back or lay price based on bet side."""
+            """Get price for instant matching (crossing the spread).
+            For BACK: take the best available LAY price (higher, but matches instantly)
+            For LAY: take the best available BACK price (lower, but matches instantly)
+            """
             if side == 'LAY':
-                return runner.get('layPrice')
-            return runner.get('backPrice')
+                return runner.get('backPrice')
+            return runner.get('layPrice')
         
         try:
             live_events = self.client.get_live_events('1')
@@ -5984,10 +5987,10 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     f"Evento: {matched_event['name']}\n"
                     f"Mercato: {target_market.get('marketName', 'N/A')}\n"
                     f"Selezione: {target_runner['runnerName']}\n"
-                    f"Quota: {target_runner['price']}\n"
+                    f"Quota LAY: {target_runner['price']:.2f} (best BACK)\n"
                     f"Liability: {liability:.2f} EUR\n"
                     f"Profitto Potenziale: {potential_profit:.2f} EUR\n"
-                    f"Tipo: LAY"
+                    f"Tipo: LAY (match istantaneo)"
                 )
             else:
                 potential_profit = stake * (target_runner['price'] - 1)
@@ -5995,10 +5998,10 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     f"Evento: {matched_event['name']}\n"
                     f"Mercato: {target_market.get('marketName', 'N/A')}\n"
                     f"Selezione: {target_runner['runnerName']}\n"
-                    f"Quota: {target_runner['price']}\n"
+                    f"Quota BACK: {target_runner['price']:.2f} (best LAY)\n"
                     f"Stake: {stake:.2f} EUR\n"
                     f"Profitto Potenziale: {potential_profit:.2f} EUR\n"
-                    f"Tipo: BACK"
+                    f"Tipo: BACK (match istantaneo)"
                 )
             
             if self.simulation_mode:
