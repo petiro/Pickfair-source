@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.13"
+APP_VERSION = "3.24.14"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2600,7 +2600,7 @@ class PickfairApp:
             ))
     
     def _create_telegram_tab(self):
-        """Create Telegram tab content."""
+        """Create Telegram tab content with sub-tabs."""
         main_frame = ctk.CTkFrame(self.telegram_tab, fg_color='transparent')
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
@@ -2608,22 +2608,35 @@ class PickfairApp:
         left_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=False, padx=(0, 10))
         left_container.pack_propagate(False)
         
-        left_canvas = tk.Canvas(left_container, highlightthickness=0, bg=COLORS['bg_dark'])
-        left_scrollbar = ttk.Scrollbar(left_container, orient=tk.VERTICAL, command=left_canvas.yview)
-        left_frame = ctk.CTkFrame(left_canvas, fg_color='transparent')
+        subtab_btn_frame = ctk.CTkFrame(left_container, fg_color='transparent')
+        subtab_btn_frame.pack(fill=tk.X, pady=(0, 5))
         
-        left_frame.bind("<Configure>", lambda e: left_canvas.configure(scrollregion=left_canvas.bbox("all")))
-        left_canvas.create_window((0, 0), window=left_frame, anchor="nw")
-        left_canvas.configure(yscrollcommand=left_scrollbar.set)
+        self.tg_subtab_frames = {}
+        self.tg_subtab_buttons = {}
         
-        left_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        left_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        subtab_names = [
+            ("config", "Configurazione"),
+            ("chats", "Chat Monitorate"),
+            ("available", "Chat Disponibili"),
+            ("rules", "Regole Parsing")
+        ]
+        
+        for key, label in subtab_names:
+            btn = ctk.CTkButton(subtab_btn_frame, text=label, width=105, height=28,
+                                fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                                corner_radius=4, font=('Segoe UI', 9),
+                                command=lambda k=key: self._switch_telegram_subtab(k))
+            btn.pack(side=tk.LEFT, padx=2)
+            self.tg_subtab_buttons[key] = btn
+        
+        subtab_container = ctk.CTkFrame(left_container, fg_color='transparent')
+        subtab_container.pack(fill=tk.BOTH, expand=True)
         
         right_frame = ctk.CTkFrame(main_frame, fg_color='transparent')
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         
-        config_frame = ctk.CTkFrame(left_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
-        config_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
+        config_frame = ctk.CTkFrame(subtab_container, fg_color=COLORS['bg_panel'], corner_radius=8)
+        self.tg_subtab_frames['config'] = config_frame
         
         ctk.CTkLabel(config_frame, text="Configurazione Telegram", font=FONTS['heading'],
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
@@ -2711,8 +2724,8 @@ class PickfairApp:
                       fg_color=COLORS['button_danger'], hover_color='#c62828',
                       corner_radius=6, width=55).pack(side=tk.LEFT, padx=2)
         
-        chats_frame = ctk.CTkFrame(left_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
-        chats_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
+        chats_frame = ctk.CTkFrame(subtab_container, fg_color=COLORS['bg_panel'], corner_radius=8)
+        self.tg_subtab_frames['chats'] = chats_frame
         
         ctk.CTkLabel(chats_frame, text="Chat Monitorate", font=FONTS['heading'],
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
@@ -2733,8 +2746,8 @@ class PickfairApp:
         
         self._refresh_telegram_chats_tree()
         
-        available_frame = ctk.CTkFrame(left_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
-        available_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
+        available_frame = ctk.CTkFrame(subtab_container, fg_color=COLORS['bg_panel'], corner_radius=8)
+        self.tg_subtab_frames['available'] = available_frame
         
         ctk.CTkLabel(available_frame, text="Chat Disponibili da Telegram", font=FONTS['heading'],
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
@@ -2770,8 +2783,8 @@ class PickfairApp:
         
         self.available_chats_data = []
         
-        rules_frame = ctk.CTkFrame(left_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
-        rules_frame.pack(fill=tk.X, pady=(0, 5), padx=5)
+        rules_frame = ctk.CTkFrame(subtab_container, fg_color=COLORS['bg_panel'], corner_radius=8)
+        self.tg_subtab_frames['rules'] = rules_frame
         
         ctk.CTkLabel(rules_frame, text="Regole di Parsing", font=FONTS['heading'],
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
@@ -2847,6 +2860,22 @@ class PickfairApp:
                       corner_radius=6).pack(pady=10)
         
         self._refresh_telegram_signals_tree()
+        
+        self._switch_telegram_subtab('config')
+    
+    def _switch_telegram_subtab(self, active_key):
+        """Switch between Telegram sub-tabs."""
+        for key, frame in self.tg_subtab_frames.items():
+            if key == active_key:
+                frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            else:
+                frame.pack_forget()
+        
+        for key, btn in self.tg_subtab_buttons.items():
+            if key == active_key:
+                btn.configure(fg_color=COLORS['button_primary'])
+            else:
+                btn.configure(fg_color=COLORS['button_secondary'])
     
     def _save_telegram_tab_settings(self):
         """Save Telegram settings from tab."""
