@@ -122,6 +122,8 @@ class TelegramListener:
             'score_away': None,
             'over_line': None,
             'minute': None,
+            'bet_side': 'BACK',
+            'live_only': False,
         }
         
         event_match = re.search(self.signal_patterns['event'], text)
@@ -152,9 +154,13 @@ class TelegramListener:
             try:
                 pattern = custom.get('pattern', '')
                 market_type = custom.get('market_type', '')
+                bet_side = custom.get('bet_side', 'BACK')
+                live_only = bool(custom.get('live_only', 0))
                 if pattern and re.search(pattern, text, re.IGNORECASE):
                     match = re.search(pattern, text, re.IGNORECASE)
                     signal['market_type'] = market_type
+                    signal['bet_side'] = bet_side
+                    signal['live_only'] = live_only
                     if match.groups():
                         if 'OVER' in market_type.upper():
                             signal['selection'] = f"Over {match.group(1)}" if match.group(1) else 'Yes'
@@ -173,7 +179,7 @@ class TelegramListener:
                             signal['selection'] = 'Yes'
                         else:
                             signal['selection'] = match.group(0)
-                    signal['side'] = signal['side'] or 'BACK'
+                    signal['side'] = bet_side
                     break
             except Exception as e:
                 continue

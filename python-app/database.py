@@ -210,9 +210,23 @@ class Database:
                 market_type TEXT NOT NULL,
                 enabled INTEGER DEFAULT 1,
                 is_default INTEGER DEFAULT 0,
-                created_at TEXT
+                created_at TEXT,
+                bet_side TEXT DEFAULT 'BACK',
+                live_only INTEGER DEFAULT 0
             )
         ''')
+        
+        # Add bet_side column if it doesn't exist
+        try:
+            cursor.execute('ALTER TABLE signal_patterns ADD COLUMN bet_side TEXT DEFAULT "BACK"')
+        except sqlite3.OperationalError:
+            pass
+        
+        # Add live_only column if it doesn't exist
+        try:
+            cursor.execute('ALTER TABLE signal_patterns ADD COLUMN live_only INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
         
         # Simulation mode tables
         cursor.execute('''
@@ -852,20 +866,20 @@ class Database:
         conn.close()
         return [dict(row) for row in rows]
     
-    def save_signal_pattern(self, name, description, pattern, market_type, enabled=True, is_default=False):
+    def save_signal_pattern(self, name, description, pattern, market_type, enabled=True, is_default=False, bet_side='BACK', live_only=False):
         """Save a new signal pattern."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO signal_patterns (name, description, pattern, market_type, enabled, is_default, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (name, description, pattern, market_type, 1 if enabled else 0, 1 if is_default else 0, datetime.now().isoformat()))
+            INSERT INTO signal_patterns (name, description, pattern, market_type, enabled, is_default, created_at, bet_side, live_only)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (name, description, pattern, market_type, 1 if enabled else 0, 1 if is_default else 0, datetime.now().isoformat(), bet_side, 1 if live_only else 0))
         pattern_id = cursor.lastrowid
         conn.commit()
         conn.close()
         return pattern_id
     
-    def update_signal_pattern(self, pattern_id, name=None, description=None, pattern=None, market_type=None, enabled=None):
+    def update_signal_pattern(self, pattern_id, name=None, description=None, pattern=None, market_type=None, enabled=None, bet_side=None, live_only=None):
         """Update an existing signal pattern."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -887,6 +901,12 @@ class Database:
         if enabled is not None:
             updates.append('enabled = ?')
             params.append(1 if enabled else 0)
+        if bet_side is not None:
+            updates.append('bet_side = ?')
+            params.append(bet_side)
+        if live_only is not None:
+            updates.append('live_only = ?')
+            params.append(1 if live_only else 0)
         
         if updates:
             params.append(pattern_id)

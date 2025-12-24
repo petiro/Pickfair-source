@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.16"
+APP_VERSION = "3.24.17"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -3243,6 +3243,19 @@ class PickfairApp:
                                         button_hover_color='#4caf50', width=200, command=on_preset_change)
         preset_menu.grid(row=2, column=1, pady=3, padx=5, sticky=tk.W)
         
+        options_frame = ctk.CTkFrame(form_frame, fg_color='transparent')
+        options_frame.grid(row=2, column=2, pady=3, padx=5, sticky=tk.W)
+        
+        lay_var = tk.BooleanVar(value=existing_pattern.get('bet_side', 'BACK') == 'LAY' if existing_pattern else False)
+        ctk.CTkCheckBox(options_frame, text="LAY", variable=lay_var,
+                        fg_color=COLORS['lay'], hover_color=COLORS['lay_hover'],
+                        text_color=COLORS['text_primary'], width=60).pack(side=tk.LEFT, padx=(0, 10))
+        
+        live_var = tk.BooleanVar(value=bool(existing_pattern.get('live_only', 0)) if existing_pattern else False)
+        ctk.CTkCheckBox(options_frame, text="LIVE", variable=live_var,
+                        fg_color=COLORS['success'], hover_color='#4caf50',
+                        text_color=COLORS['text_primary'], width=60).pack(side=tk.LEFT)
+        
         ctk.CTkLabel(form_frame, text="Pattern Regex:", text_color=COLORS['text_secondary']).grid(row=3, column=0, sticky=tk.W, pady=3)
         ctk.CTkEntry(form_frame, textvariable=pattern_var, width=300,
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=3, column=1, pady=3, padx=5)
@@ -3278,6 +3291,8 @@ e scrivi il tuo pattern nel campo Pattern Regex."""
             market = market_var.get()
             desc = desc_var.get().strip()
             enabled = enabled_var.get()
+            bet_side = 'LAY' if lay_var.get() else 'BACK'
+            live_only = live_var.get()
             
             if not name:
                 messagebox.showwarning("Errore", "Inserisci un nome per la regola")
@@ -3295,9 +3310,10 @@ e scrivi il tuo pattern nel campo Pattern Regex."""
             
             if mode == 'edit' and pattern_id:
                 self.db.update_signal_pattern(pattern_id, name=name, description=desc,
-                                               pattern=pattern, market_type=market, enabled=enabled)
+                                               pattern=pattern, market_type=market, enabled=enabled,
+                                               bet_side=bet_side, live_only=live_only)
             else:
-                self.db.save_signal_pattern(name, desc, pattern, market, enabled)
+                self.db.save_signal_pattern(name, desc, pattern, market, enabled, bet_side=bet_side, live_only=live_only)
             
             self.pattern_editor_frame.destroy()
             self._refresh_rules_tree()
@@ -5628,6 +5644,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         over_line = signal.get('over_line')
         stake = float(settings.get('auto_stake', 1.0))
         signal_id = signal.get('signal_id')
+        bet_side = signal.get('bet_side', signal.get('side', 'BACK'))
+        live_only = signal.get('live_only', False)
         
         if not event_name:
             return
@@ -5647,6 +5665,12 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             if signal_id:
                 self.db.update_signal_status(signal_id, status)
                 self._refresh_telegram_signals_tree()
+        
+        def get_runner_price(runner, side):
+            """Get back or lay price based on bet side."""
+            if side == 'LAY':
+                return runner.get('layPrice')
+            return runner.get('backPrice')
         
         try:
             live_events = self.client.get_live_events('1')
@@ -5686,7 +5710,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             
             matched_event = find_best_match(live_events)
             
-            if not matched_event:
+            if not matched_event and not live_only:
                 matched_event = find_best_match(all_events)
             
             if not matched_event:
@@ -5718,12 +5742,12 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     for runner in market_book.get('runners', []):
                         runner_name = runner.get('runnerName', '').lower()
                         if 'over' in runner_name:
-                            back_price = runner.get('backPrice')
-                            if back_price:
+                            price = get_runner_price(runner, bet_side)
+                            if price:
                                 target_runner = {
                                     'selectionId': runner['selectionId'],
                                     'runnerName': runner.get('runnerName'),
-                                    'price': back_price
+                                    'price': price
                                 }
                                 break
             
@@ -5740,21 +5764,21 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     for runner in market_book.get('runners', []):
                         runner_name = runner.get('runnerName', '').lower()
                         if selection.lower() == 'yes' and ('yes' in runner_name or 'si' in runner_name or runner_name == 'yes'):
-                            back_price = runner.get('backPrice')
-                            if back_price:
+                            price = get_runner_price(runner, bet_side)
+                            if price:
                                 target_runner = {
                                     'selectionId': runner['selectionId'],
                                     'runnerName': runner.get('runnerName'),
-                                    'price': back_price
+                                    'price': price
                                 }
                                 break
                         elif selection.lower() == 'no' and ('no' in runner_name and 'goal' not in runner_name):
-                            back_price = runner.get('backPrice')
-                            if back_price:
+                            price = get_runner_price(runner, bet_side)
+                            if price:
                                 target_runner = {
                                     'selectionId': runner['selectionId'],
                                     'runnerName': runner.get('runnerName'),
-                                    'price': back_price
+                                    'price': price
                                 }
                                 break
             
@@ -5775,21 +5799,21 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     for runner in market_book.get('runners', []):
                         runner_name = runner.get('runnerName', '').lower()
                         if 'over' in selection.lower() and 'over' in runner_name:
-                            back_price = runner.get('backPrice')
-                            if back_price:
+                            price = get_runner_price(runner, bet_side)
+                            if price:
                                 target_runner = {
                                     'selectionId': runner['selectionId'],
                                     'runnerName': runner.get('runnerName'),
-                                    'price': back_price
+                                    'price': price
                                 }
                                 break
                         elif 'under' in selection.lower() and 'under' in runner_name:
-                            back_price = runner.get('backPrice')
-                            if back_price:
+                            price = get_runner_price(runner, bet_side)
+                            if price:
                                 target_runner = {
                                     'selectionId': runner['selectionId'],
                                     'runnerName': runner.get('runnerName'),
-                                    'price': back_price
+                                    'price': price
                                 }
                                 break
             
@@ -5806,12 +5830,12 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     for runner in market_book.get('runners', []):
                         runner_name = runner.get('runnerName', '').upper()
                         if selection.upper() in runner_name or selection.upper() == runner_name:
-                            back_price = runner.get('backPrice')
-                            if back_price:
+                            price = get_runner_price(runner, bet_side)
+                            if price:
                                 target_runner = {
                                     'selectionId': runner['selectionId'],
                                     'runnerName': runner.get('runnerName'),
-                                    'price': back_price
+                                    'price': price
                                 }
                                 break
             
@@ -5827,17 +5851,17 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     market_book = self.client.get_market_with_prices(target_market['marketId'])
                     runners = market_book.get('runners', [])
                     for i, runner in enumerate(runners):
-                        back_price = runner.get('backPrice')
+                        price = get_runner_price(runner, bet_side)
                         if not back_price:
                             continue
                         if selection == '1' and i == 0:
-                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
                             break
                         elif selection == 'X' and 'draw' in runner.get('runnerName', '').lower():
-                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
                             break
                         elif selection == '2' and i == 1 and 'draw' not in runner.get('runnerName', '').lower():
-                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
                             break
             
             elif market_type == 'CORRECT_SCORE':
@@ -5855,9 +5879,9 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                         runner_name = runner.get('runnerName', '')
                         runner_normalized = runner_name.replace('-', ' - ').replace('  ', ' ')
                         if selection in runner_name or score_normalized in runner_normalized:
-                            back_price = runner.get('backPrice')
-                            if back_price:
-                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner_name, 'price': back_price}
+                            price = get_runner_price(runner, bet_side)
+                            if price:
+                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner_name, 'price': price}
                                 break
             
             elif market_type == 'ASIAN_HANDICAP':
@@ -5875,15 +5899,15 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     market_book = self.client.get_market_with_prices(target_market['marketId'])
                     is_home = 'home' in selection.lower()
                     for runner in market_book.get('runners', []):
-                        back_price = runner.get('backPrice')
+                        price = get_runner_price(runner, bet_side)
                         if not back_price:
                             continue
                         runner_handicap = runner.get('handicap', 0)
                         if is_home and runner_handicap == handicap_line:
-                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
                             break
                         elif not is_home and runner_handicap == -handicap_line:
-                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
                             break
             
             elif market_type == 'DRAW_NO_BET':
@@ -5902,14 +5926,14 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     runners = market_book.get('runners', [])
                     is_home = 'home' in selection.lower()
                     for i, runner in enumerate(runners):
-                        back_price = runner.get('backPrice')
+                        price = get_runner_price(runner, bet_side)
                         if not back_price:
                             continue
                         if is_home and i == 0:
-                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
                             break
                         elif not is_home and i == 1:
-                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                            target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
                             break
             
             elif market_type == 'HALF_TIME_FULL_TIME':
@@ -5929,14 +5953,14 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                         ft_sel = ht_ft_map.get(parts[1], parts[1].lower())
                         for runner in market_book.get('runners', []):
                             runner_name = runner.get('runnerName', '').lower()
-                            back_price = runner.get('backPrice')
+                            price = get_runner_price(runner, bet_side)
                             if not back_price:
                                 continue
                             if ht_sel in runner_name and ft_sel in runner_name:
-                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
                                 break
                             if selection.upper().replace('/', ' / ') in runner_name.upper() or selection.upper() in runner_name.upper():
-                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': back_price}
+                                target_runner = {'selectionId': runner['selectionId'], 'runnerName': runner.get('runnerName'), 'price': price}
                                 break
             
             if not target_market:
@@ -5959,7 +5983,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 f"Selezione: {target_runner['runnerName']}\n"
                 f"Quota: {target_runner['price']}\n"
                 f"Stake: {stake:.2f} EUR\n"
-                f"Tipo: BACK"
+                f"Tipo: {bet_side}"
             )
             
             if self.simulation_mode:
@@ -5971,7 +5995,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     event_name=matched_event['name'],
                     market_id=target_market['marketId'],
                     market_name=target_market.get('marketName', ''),
-                    bet_type='BACK',
+                    bet_type=bet_side,
                     selections=target_runner['runnerName'],
                     total_stake=stake,
                     potential_profit=net_profit,
@@ -5983,7 +6007,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 result = self.client.place_bet(
                     market_id=target_market['marketId'],
                     selection_id=target_runner['selectionId'],
-                    side='BACK',
+                    side=bet_side,
                     price=target_runner['price'],
                     size=stake
                 )
