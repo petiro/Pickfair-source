@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.14"
+APP_VERSION = "3.24.15"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -3227,18 +3227,19 @@ class PickfairApp:
         ctk.CTkLabel(help_frame, text="Come funziona:", font=('Segoe UI', 11, 'bold'),
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
-        help_text = """Crea un pattern regex per riconoscere i segnali Telegram.
-Il pattern deve catturare il valore (es. 2.5 per Over 2.5).
+        help_text = """Scrivi un pattern per riconoscere i messaggi.
+Usa (parentesi) per catturare il valore.
+Usa .* per "qualsiasi testo", | per "oppure".
 
-Esempi di pattern regex:"""
+Esempi:"""
         ctk.CTkLabel(help_frame, text=help_text, font=('Segoe UI', 10),
                      text_color=COLORS['text_secondary'], justify=tk.LEFT).pack(anchor=tk.W, padx=10)
         
         examples = [
-            ("Over 2.5", "(?i)over\\s*(\\d+[,.]?\\d*)"),
-            ("Under 1.5", "(?i)under\\s*(\\d+[,.]?\\d*)"),
-            ("GG / BTTS", "(?i)(gg|btts|goal\\s*goal)"),
-            ("1X2", "(?i)\\b(home|draw|away|1|x|2)\\b"),
+            ("Over 2.5", "over.*(2.5)"),
+            ("Under 1.5", "under.*(1.5)"),
+            ("GG / BTTS", "(gg|btts)"),
+            ("1X2", "(home|away|draw)"),
         ]
         
         for label, pattern in examples:
