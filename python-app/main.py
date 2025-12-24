@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.22.0"
+APP_VERSION = "3.23.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5356,7 +5356,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 self._refresh_telegram_signals_tree()
         
         try:
-            events = self.client.get_live_events('1')
+            live_events = self.client.get_live_events('1')
+            all_events = self.client.get_football_events(include_inplay=True)
             
             event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ')
             league_lower = league.lower() if league else ''
@@ -5370,26 +5371,30 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                         league_country = country
                         break
             
-            best_match = None
-            best_score = 0
+            def find_best_match(events_list):
+                best_match = None
+                best_score = 0
+                for event in events_list:
+                    event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ')
+                    competition = event.get('competition', {}).get('name', '').lower()
+                    
+                    words_signal = set(event_lower.split())
+                    words_event = set(event_search.split())
+                    common = words_signal & words_event
+                    match_score = len(common)
+                    
+                    if league_country and league_country in competition:
+                        match_score += 1
+                    
+                    if match_score > best_score and match_score >= 2:
+                        best_score = match_score
+                        best_match = event
+                return best_match
             
-            for event in events:
-                event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ')
-                competition = event.get('competition', {}).get('name', '').lower()
-                
-                words_signal = set(event_lower.split())
-                words_event = set(event_search.split())
-                common = words_signal & words_event
-                match_score = len(common)
-                
-                if league_country and league_country in competition:
-                    match_score += 1
-                
-                if match_score > best_score and match_score >= 2:
-                    best_score = match_score
-                    best_match = event
+            matched_event = find_best_match(live_events)
             
-            matched_event = best_match
+            if not matched_event:
+                matched_event = find_best_match(all_events)
             
             if not matched_event:
                 reason = f"Evento non trovato: {event_name}"
