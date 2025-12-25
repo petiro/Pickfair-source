@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.24"
+APP_VERSION = "3.24.25"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5372,7 +5372,12 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 elif status == 'CONNECTED':
                     self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: CONNECTED"))
             
-            self.telegram_listener.set_callbacks(on_signal=on_signal, on_status=on_status)
+            def on_cashout(cmd):
+                print(f"[CASHOUT DEBUG] Received cashout command: {cmd}")
+                if settings.get('auto_bet'):
+                    self.root.after(100, lambda: self._process_telegram_cashout(cmd))
+            
+            self.telegram_listener.set_callbacks(on_signal=on_signal, on_status=on_status, on_cashout=on_cashout)
             self.telegram_listener.start()
             
             self.telegram_status = 'STARTING'
@@ -5474,7 +5479,12 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 except:
                     pass
             
-            self.telegram_listener.set_callbacks(on_signal=on_signal, on_status=on_status)
+            def on_cashout(cmd):
+                print(f"[CASHOUT DEBUG] Received cashout command: {cmd}")
+                if settings.get('auto_bet'):
+                    self.root.after(100, lambda: self._process_telegram_cashout(cmd))
+            
+            self.telegram_listener.set_callbacks(on_signal=on_signal, on_status=on_status, on_cashout=on_cashout)
             self.telegram_listener.start()
             
             self.telegram_status = 'STARTING'
@@ -6175,6 +6185,154 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             log_failed_bet(f"Eccezione: {str(e)}")
             update_status('FAILED')
             messagebox.showerror("Auto-Bet Errore", f"Errore: {str(e)}")
+    
+    def _process_telegram_cashout(self, cmd):
+        """Process cashout command from Telegram."""
+        if not self.client:
+            messagebox.showwarning("Cashout", "Non connesso a Betfair")
+            return
+        
+        if self.simulation_mode:
+            messagebox.showinfo("Cashout", "Cashout non disponibile in modalità simulazione")
+            return
+        
+        cmd_type = cmd.get('type', '')
+        event_name = cmd.get('event_name', '')
+        
+        try:
+            orders = self.client.get_current_orders()
+            matched = orders.get('matched', [])
+            
+            if not matched:
+                messagebox.showinfo("Cashout", "Nessuna posizione aperta")
+                return
+            
+            abbrev_map = {
+                'united': 'utd', 'utd': 'utd',
+                'fc': '', 'ac': '', 'sc': '', 'cf': '', 'cd': '',
+                'city': 'city', 'cty': 'city',
+                'inter': 'inter', 'internazionale': 'inter',
+            }
+            
+            def normalize_name(name):
+                name = name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
+                words = name.split()
+                normalized = []
+                for word in words:
+                    mapped = abbrev_map.get(word, word)
+                    if mapped:
+                        normalized.append(mapped)
+                return set(normalized)
+            
+            positions_to_cashout = []
+            
+            for order in matched:
+                market_id = order.get('marketId')
+                selection_id = order.get('selectionId')
+                side = order.get('side')
+                stake = order.get('sizeMatched', 0)
+                price = order.get('price', 0)
+                
+                if stake <= 0:
+                    continue
+                
+                try:
+                    market_book = self.client.get_market_with_prices(market_id)
+                    market_event = market_book.get('event', {})
+                    market_event_name = market_event.get('name', '') or market_book.get('marketName', '')
+                except:
+                    continue
+                
+                if cmd_type == 'all':
+                    positions_to_cashout.append({
+                        'market_id': market_id,
+                        'selection_id': selection_id,
+                        'side': side,
+                        'stake': stake,
+                        'price': price,
+                        'event_name': market_event_name
+                    })
+                elif cmd_type == 'event':
+                    signal_words = normalize_name(event_name)
+                    market_words = normalize_name(market_event_name)
+                    common = signal_words & market_words
+                    
+                    if len(common) >= 2 or (len(signal_words) <= 2 and len(common) >= 1):
+                        positions_to_cashout.append({
+                            'market_id': market_id,
+                            'selection_id': selection_id,
+                            'side': side,
+                            'stake': stake,
+                            'price': price,
+                            'event_name': market_event_name
+                        })
+            
+            if not positions_to_cashout:
+                if cmd_type == 'event':
+                    messagebox.showinfo("Cashout", f"Nessuna posizione trovata per: {event_name}")
+                else:
+                    messagebox.showinfo("Cashout", "Nessuna posizione da chiudere")
+                return
+            
+            total_profit = 0
+            success_count = 0
+            
+            for pos in positions_to_cashout:
+                try:
+                    cashout_info = self.client.calculate_cashout(
+                        pos['market_id'],
+                        pos['selection_id'],
+                        pos['side'],
+                        pos['stake'],
+                        pos['price']
+                    )
+                    
+                    result = self.client.execute_cashout(
+                        pos['market_id'],
+                        pos['selection_id'],
+                        cashout_info['cashout_side'],
+                        cashout_info['cashout_stake'],
+                        cashout_info['current_price']
+                    )
+                    
+                    if result.get('status') == 'SUCCESS':
+                        success_count += 1
+                        total_profit += cashout_info.get('green_up', 0)
+                        
+                        self.db.save_cashout_transaction(
+                            market_id=pos['market_id'],
+                            selection_id=pos['selection_id'],
+                            original_bet_id=None,
+                            cashout_bet_id=result.get('betId'),
+                            original_side=pos['side'],
+                            original_stake=pos['stake'],
+                            original_price=pos['price'],
+                            cashout_side=cashout_info['cashout_side'],
+                            cashout_stake=cashout_info['cashout_stake'],
+                            cashout_price=result.get('averagePriceMatched') or cashout_info['current_price'],
+                            profit_loss=cashout_info.get('green_up', 0)
+                        )
+                except Exception as e:
+                    print(f"[CASHOUT ERROR] Failed for {pos['event_name']}: {e}")
+                    continue
+            
+            if success_count > 0:
+                self._update_balance()
+                if cmd_type == 'all':
+                    messagebox.showinfo("Cashout", 
+                        f"Cashout totale completato!\n\n"
+                        f"Posizioni chiuse: {success_count}/{len(positions_to_cashout)}\n"
+                        f"Profitto totale: {total_profit:+.2f} EUR")
+                else:
+                    messagebox.showinfo("Cashout", 
+                        f"Cashout completato per: {event_name}\n\n"
+                        f"Posizioni chiuse: {success_count}\n"
+                        f"Profitto: {total_profit:+.2f} EUR")
+            else:
+                messagebox.showwarning("Cashout", "Nessun cashout riuscito")
+        
+        except Exception as e:
+            messagebox.showerror("Cashout Errore", f"Errore: {str(e)}")
     
     def _show_multi_market_monitor(self):
         """Show multi-market monitor window."""

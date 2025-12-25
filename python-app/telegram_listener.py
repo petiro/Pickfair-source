@@ -39,6 +39,7 @@ class TelegramListener:
         self.signal_callback: Optional[Callable] = None
         self.message_callback: Optional[Callable] = None
         self.status_callback: Optional[Callable] = None
+        self.cashout_callback: Optional[Callable] = None
         
         self.signal_patterns = self._default_patterns()
         self.custom_patterns: List[Dict] = []
@@ -98,11 +99,38 @@ class TelegramListener:
     def set_callbacks(self, 
                       on_signal: Callable = None, 
                       on_message: Callable = None,
-                      on_status: Callable = None):
+                      on_status: Callable = None,
+                      on_cashout: Callable = None):
         """Set callback functions for events."""
         self.signal_callback = on_signal
         self.message_callback = on_message
         self.status_callback = on_status
+        self.cashout_callback = on_cashout
+    
+    def parse_cashout_command(self, text: str) -> Optional[Dict]:
+        """
+        Parse cashout command from message.
+        
+        Supported formats:
+        - CASHOUT ALL / CASHOUT TUTTO / CHIUDI TUTTO → close all positions
+        - CASHOUT [event name] / CHIUDI [event name] → close specific event
+        
+        Returns dict with 'type' ('all' or 'event') and 'event_name' if specific.
+        """
+        text_upper = text.upper().strip()
+        
+        all_pattern = r'\b(CASHOUT|CHIUDI|ESCI|CLOSE)\s+(ALL|TUTTO|TUTTI|TUTTE)\b'
+        if re.search(all_pattern, text_upper):
+            return {'type': 'all', 'raw_text': text}
+        
+        event_pattern = r'\b(CASHOUT|CHIUDI|ESCI|CLOSE)\s+(.+?)(?:\n|$)'
+        match = re.search(event_pattern, text, re.IGNORECASE)
+        if match:
+            event_name = match.group(2).strip()
+            if event_name and len(event_name) > 2:
+                return {'type': 'event', 'event_name': event_name, 'raw_text': text}
+        
+        return None
     
     def parse_signal(self, text: str) -> Optional[Dict]:
         """
@@ -382,6 +410,13 @@ class TelegramListener:
                     'text': text,
                     'timestamp': datetime.now().isoformat()
                 })
+            
+            cashout_cmd = self.parse_cashout_command(text)
+            if cashout_cmd and self.cashout_callback:
+                cashout_cmd['chat_id'] = chat_id
+                cashout_cmd['sender_id'] = sender_id
+                self.cashout_callback(cashout_cmd)
+                return
             
             signal = self.parse_signal(text)
             if signal and self.signal_callback:
