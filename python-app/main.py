@@ -5673,6 +5673,10 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         use_bankroll_percent = bool(settings.get('use_bankroll_percent', 0))
         bankroll_percent = float(settings.get('bankroll_percent', 3.0))
         
+        def round_to_betfair_stake(amount):
+            """Round stake to Betfair increment (0.05 EUR)."""
+            return round(round(amount / 0.05) * 0.05, 2)
+        
         if use_bankroll_percent:
             if self.simulation_mode:
                 sim_settings = self.db.get_simulation_settings() or {}
@@ -5684,8 +5688,9 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 except:
                     current_balance = 0
             
-            stake = round(current_balance * (bankroll_percent / 100), 2)
-            stake = max(stake, 0.01)
+            raw_stake = current_balance * (bankroll_percent / 100)
+            stake = round_to_betfair_stake(raw_stake)
+            stake = max(stake, 0.05)
         else:
             stake = float(settings.get('auto_stake', 1.0))
         
