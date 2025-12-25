@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.20"
+APP_VERSION = "3.24.21"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5698,14 +5698,46 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 all_events = self.client.get_football_events(include_inplay=True)
                 self._api_cache[cache_key_all] = {'data': all_events, 'time': now}
             
-            event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ')
+            abbrev_map = {
+                'united': 'utd', 'utd': 'utd',
+                'fc': '', 'ac': '', 'sc': '', 'cf': '', 'cd': '',
+                'sporting': 'sport', 'sport': 'sport',
+                'athletic': 'ath', 'ath': 'ath', 'atletico': 'ath',
+                'real': 'real', 'royale': 'real',
+                'inter': 'inter', 'internazionale': 'inter',
+                'city': 'city', 'cty': 'city',
+                'town': 'town', 'twn': 'town',
+                'rovers': 'rov', 'rov': 'rov',
+                'wanderers': 'wand', 'wand': 'wand',
+                'albion': 'alb', 'alb': 'alb',
+                'hotspur': 'spur', 'spurs': 'spur',
+                'wednesday': 'wed', 'wed': 'wed',
+                'dynamo': 'dyn', 'dyn': 'dyn', 'dinamo': 'dyn',
+                'olympique': 'oly', 'olympiacos': 'oly', 'olimpia': 'oly',
+                'borussia': 'bor', 'bor': 'bor',
+            }
+            
+            def normalize_name(name):
+                """Normalize team name for matching."""
+                name = name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
+                words = name.split()
+                normalized = []
+                for word in words:
+                    mapped = abbrev_map.get(word, word)
+                    if mapped:
+                        normalized.append(mapped)
+                return set(normalized)
+            
+            signal_words = normalize_name(event_name)
             league_lower = league.lower() if league else ''
             
             league_country = ''
             if league_lower:
                 for country in ['greek', 'italian', 'spanish', 'english', 'german', 'french', 
                                'portuguese', 'dutch', 'belgian', 'turkish', 'russian', 'polish',
-                               'grecia', 'italia', 'spagna', 'inghilterra', 'germania', 'francia']:
+                               'grecia', 'italia', 'spagna', 'inghilterra', 'germania', 'francia',
+                               'myanmar', 'thai', 'vietnam', 'japan', 'korea', 'china', 'india',
+                               'brazil', 'argentina', 'mexico', 'usa', 'canada', 'australia']:
                     if country in league_lower:
                         league_country = country
                         break
@@ -5713,27 +5745,33 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             def find_best_match(events_list):
                 best_match = None
                 best_score = 0
+                best_confidence = 0
+                
                 for event in events_list:
-                    event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ')
+                    event_words = normalize_name(event['name'])
                     competition = event.get('competition', {}).get('name', '').lower()
                     
-                    words_signal = set(event_lower.split())
-                    words_event = set(event_search.split())
-                    common = words_signal & words_event
+                    common = signal_words & event_words
                     match_score = len(common)
+                    
+                    total_words = max(len(signal_words), len(event_words))
+                    confidence = (match_score / total_words * 100) if total_words > 0 else 0
                     
                     if league_country and league_country in competition:
                         match_score += 1
+                        confidence += 10
                     
-                    if match_score > best_score and match_score >= 2:
+                    if match_score > best_score and match_score >= 2 and confidence >= 50:
                         best_score = match_score
                         best_match = event
-                return best_match
+                        best_confidence = confidence
+                
+                return best_match, best_confidence
             
-            matched_event = find_best_match(live_events)
+            matched_event, match_confidence = find_best_match(live_events)
             
             if not matched_event and not live_only:
-                matched_event = find_best_match(all_events)
+                matched_event, match_confidence = find_best_match(all_events)
             
             if not matched_event:
                 reason = f"Evento non trovato: {event_name}"
@@ -5999,6 +6037,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 messagebox.showwarning("Auto-Bet", reason)
                 return
             
+            confidence_str = f"Match: {match_confidence:.0f}%"
+            
             if bet_side == 'LAY':
                 liability = stake * (target_runner['price'] - 1)
                 potential_profit = stake
@@ -6009,7 +6049,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     f"Quota LAY: {target_runner['price']:.2f} (best BACK)\n"
                     f"Liability: {liability:.2f} EUR\n"
                     f"Profitto Potenziale: {potential_profit:.2f} EUR\n"
-                    f"Tipo: LAY (match istantaneo)"
+                    f"Tipo: LAY (match istantaneo)\n"
+                    f"{confidence_str}"
                 )
             else:
                 potential_profit = stake * (target_runner['price'] - 1)
@@ -6020,7 +6061,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     f"Quota BACK: {target_runner['price']:.2f} (best LAY)\n"
                     f"Stake: {stake:.2f} EUR\n"
                     f"Profitto Potenziale: {potential_profit:.2f} EUR\n"
-                    f"Tipo: BACK (match istantaneo)"
+                    f"Tipo: BACK (match istantaneo)\n"
+                    f"{confidence_str}"
                 )
             
             if self.simulation_mode:
