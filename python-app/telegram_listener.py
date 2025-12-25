@@ -42,6 +42,7 @@ class TelegramListener:
         
         self.signal_patterns = self._default_patterns()
         self.custom_patterns: List[Dict] = []
+        self.custom_patterns_only = False
         self.db = None
     
     def _default_patterns(self) -> Dict:
@@ -84,6 +85,8 @@ class TelegramListener:
         if self.db:
             try:
                 self.custom_patterns = self.db.get_signal_patterns(enabled_only=True)
+                settings = self.db.get_telegram_settings() or {}
+                self.custom_patterns_only = bool(settings.get('custom_patterns_only', 0))
             except Exception as e:
                 print(f"Error loading custom patterns: {e}")
                 self.custom_patterns = []
@@ -183,6 +186,13 @@ class TelegramListener:
                     break
             except Exception as e:
                 continue
+        
+        if self.custom_patterns_only:
+            if not signal['market_type']:
+                return None
+            if signal['event']:
+                return signal
+            return None
         
         if re.search(self.signal_patterns['next_goal'], text, re.IGNORECASE):
             signal['market_type'] = 'NEXT_GOAL'

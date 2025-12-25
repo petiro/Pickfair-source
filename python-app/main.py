@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.21"
+APP_VERSION = "3.24.22"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2685,6 +2685,12 @@ class PickfairApp:
                         fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                         text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10)
         
+        self.tg_custom_patterns_only_var = tk.BooleanVar(value=bool(settings.get('custom_patterns_only', 0)))
+        ctk.CTkCheckBox(config_frame, text="Solo pattern personalizzati (ignora predefiniti)", 
+                        variable=self.tg_custom_patterns_only_var,
+                        fg_color=COLORS['lay'], hover_color=COLORS['lay_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
+        
         auth_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
         auth_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
         ctk.CTkLabel(auth_frame, text="Codice:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
@@ -2895,7 +2901,8 @@ class PickfairApp:
             require_confirmation=self.tg_confirm_var.get(),
             auto_stake=stake,
             auto_start_listener=self.tg_auto_start_var.get(),
-            auto_stop_listener=self.tg_auto_stop_var.get()
+            auto_stop_listener=self.tg_auto_stop_var.get(),
+            custom_patterns_only=self.tg_custom_patterns_only_var.get()
         )
         messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
     
