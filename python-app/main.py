@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.22"
+APP_VERSION = "3.24.23"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2660,10 +2660,24 @@ class PickfairApp:
         ctk.CTkEntry(config_frame, textvariable=self.tg_phone_var, width=150,
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(anchor=tk.W, padx=10)
         
-        ctk.CTkLabel(config_frame, text="Stake Automatico (EUR):", text_color=COLORS['text_secondary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
+        stake_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
+        stake_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
+        
+        ctk.CTkLabel(stake_frame, text="Stake Fisso (EUR):", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
         self.tg_auto_stake_var = tk.StringVar(value=str(settings.get('auto_stake', '1.0')))
-        ctk.CTkEntry(config_frame, textvariable=self.tg_auto_stake_var, width=80,
-                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(anchor=tk.W, padx=10)
+        ctk.CTkEntry(stake_frame, textvariable=self.tg_auto_stake_var, width=60,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkLabel(stake_frame, text="oppure %:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=(10, 0))
+        self.tg_bankroll_percent_var = tk.StringVar(value=str(settings.get('bankroll_percent', '3.0')))
+        ctk.CTkEntry(stake_frame, textvariable=self.tg_bankroll_percent_var, width=50,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=5)
+        
+        self.tg_use_percent_var = tk.BooleanVar(value=bool(settings.get('use_bankroll_percent', 0)))
+        ctk.CTkCheckBox(config_frame, text="Usa % bankroll (calcola stake dal saldo)", 
+                        variable=self.tg_use_percent_var,
+                        fg_color=COLORS['success'], hover_color='#4caf50',
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
         
         self.tg_auto_bet_var = tk.BooleanVar(value=bool(settings.get('auto_bet', 0)))
         ctk.CTkCheckBox(config_frame, text="Piazza automaticamente", variable=self.tg_auto_bet_var,
@@ -2890,6 +2904,11 @@ class PickfairApp:
         except:
             stake = 1.0
         
+        try:
+            bankroll_percent = float(self.tg_bankroll_percent_var.get().replace(',', '.'))
+        except:
+            bankroll_percent = 3.0
+        
         settings = self.db.get_telegram_settings() or {}
         self.db.save_telegram_settings(
             api_id=self.tg_api_id_var.get(),
@@ -2902,7 +2921,9 @@ class PickfairApp:
             auto_stake=stake,
             auto_start_listener=self.tg_auto_start_var.get(),
             auto_stop_listener=self.tg_auto_stop_var.get(),
-            custom_patterns_only=self.tg_custom_patterns_only_var.get()
+            custom_patterns_only=self.tg_custom_patterns_only_var.get(),
+            use_bankroll_percent=self.tg_use_percent_var.get(),
+            bankroll_percent=bankroll_percent
         )
         messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
     
@@ -5649,7 +5670,25 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         market_type = signal.get('market_type', 'OVER_UNDER')
         selection = signal.get('selection', '')
         over_line = signal.get('over_line')
-        stake = float(settings.get('auto_stake', 1.0))
+        use_bankroll_percent = bool(settings.get('use_bankroll_percent', 0))
+        bankroll_percent = float(settings.get('bankroll_percent', 3.0))
+        
+        if use_bankroll_percent:
+            if self.simulation_mode:
+                sim_settings = self.db.get_simulation_settings() or {}
+                current_balance = sim_settings.get('virtual_balance', 1000.0)
+            else:
+                try:
+                    funds = self.client.get_account_funds()
+                    current_balance = funds.get('available', 0)
+                except:
+                    current_balance = 0
+            
+            stake = round(current_balance * (bankroll_percent / 100), 2)
+            stake = max(stake, 0.01)
+        else:
+            stake = float(settings.get('auto_stake', 1.0))
+        
         signal_id = signal.get('signal_id')
         bet_side = signal.get('bet_side', signal.get('side', 'BACK'))
         live_only = signal.get('live_only', False)
