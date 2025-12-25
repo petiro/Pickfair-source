@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.27"
+APP_VERSION = "3.24.28"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2861,16 +2861,18 @@ class PickfairApp:
         signals_tree_container = ctk.CTkFrame(signals_frame, fg_color='transparent')
         signals_tree_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
         
-        columns = ('data', 'evento', 'over', 'status')
+        columns = ('data', 'messaggio', 'selezione', 'tipo', 'status')
         self.tg_signals_tree = ttk.Treeview(signals_tree_container, columns=columns, show='headings', height=15)
         self.tg_signals_tree.heading('data', text='Data')
-        self.tg_signals_tree.heading('evento', text='Selezione')
-        self.tg_signals_tree.heading('over', text='Tipo')
+        self.tg_signals_tree.heading('messaggio', text='Messaggio Originale')
+        self.tg_signals_tree.heading('selezione', text='Selezione')
+        self.tg_signals_tree.heading('tipo', text='Tipo')
         self.tg_signals_tree.heading('status', text='Stato')
-        self.tg_signals_tree.column('data', width=100)
-        self.tg_signals_tree.column('evento', width=150)
-        self.tg_signals_tree.column('over', width=50)
-        self.tg_signals_tree.column('status', width=80)
+        self.tg_signals_tree.column('data', width=90)
+        self.tg_signals_tree.column('messaggio', width=200)
+        self.tg_signals_tree.column('selezione', width=120)
+        self.tg_signals_tree.column('tipo', width=50)
+        self.tg_signals_tree.column('status', width=70)
         
         self.tg_signals_tree.tag_configure('success', foreground=COLORS['success'])
         self.tg_signals_tree.tag_configure('failed', foreground=COLORS['loss'])
@@ -3117,13 +3119,17 @@ class PickfairApp:
         signals = self.db.get_recent_signals(limit=50)
         for sig in signals:
             timestamp = sig.get('received_at', '')[:16]
-            selection = sig.get('parsed_selection', '')[:25] if sig.get('parsed_selection') else 'N/A'
+            raw_text = sig.get('raw_text', '')
+            # Truncate and clean message for display (remove newlines, limit length)
+            message_display = raw_text.replace('\n', ' ').replace('\r', '')[:50] if raw_text else 'N/A'
+            selection = sig.get('parsed_selection', '')[:20] if sig.get('parsed_selection') else 'N/A'
             side = sig.get('parsed_side', '')
             status = sig.get('status', 'PENDING')
             tag = 'success' if status in ('MATCHED', 'PLACED') else 'failed' if status == 'FAILED' else ''
             
             self.tg_signals_tree.insert('', tk.END, values=(
                 timestamp,
+                message_display,
                 selection,
                 side,
                 status
