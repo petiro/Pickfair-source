@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.25"
+APP_VERSION = "3.24.26"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -6172,6 +6172,23 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 )
                 
                 if result.get('status') == 'SUCCESS':
+                    bet_id = None
+                    matched_stake = stake
+                    if result.get('instructionReports'):
+                        report = result['instructionReports'][0]
+                        bet_id = report.get('betId')
+                        matched_stake = report.get('sizeMatched', stake)
+                    
+                    self.db.save_bet(
+                        event_name=matched_event['name'],
+                        market_id=target_market['marketId'],
+                        market_name=target_market.get('marketName', ''),
+                        bet_type=bet_side,
+                        selections=target_runner['runnerName'],
+                        total_stake=stake,
+                        potential_profit=potential_profit * 0.955,
+                        status='MATCHED' if matched_stake > 0 else 'UNMATCHED'
+                    )
                     update_status('PLACED')
                     messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bet_info}")
                 else:
