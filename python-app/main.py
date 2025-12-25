@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.28"
+APP_VERSION = "3.24.29"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2882,10 +2882,25 @@ class PickfairApp:
         self.tg_signals_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
+        # Bind selection to show full message
+        self.tg_signals_tree.bind('<<TreeviewSelect>>', self._on_signal_selected)
+        
+        # Full message display area
+        msg_label = ctk.CTkLabel(signals_frame, text="Messaggio Completo (seleziona una riga):", 
+                                  font=FONTS['small'], text_color=COLORS['text_secondary'])
+        msg_label.pack(anchor=tk.W, padx=10, pady=(5, 2))
+        
+        self.signal_message_text = ctk.CTkTextbox(signals_frame, height=80, fg_color=COLORS['bg_dark'],
+                                                   text_color=COLORS['text_primary'], corner_radius=6)
+        self.signal_message_text.pack(fill=tk.X, padx=10, pady=(0, 5))
+        self.signal_message_text.configure(state='disabled')
+        
         ctk.CTkButton(signals_frame, text="Aggiorna Segnali", command=self._refresh_telegram_signals_tree,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
                       corner_radius=6).pack(pady=10)
         
+        # Store signals data for lookup
+        self.signals_data = []
         self._refresh_telegram_signals_tree()
         
         self._switch_telegram_subtab('config')
@@ -3116,8 +3131,8 @@ class PickfairApp:
     def _refresh_telegram_signals_tree(self):
         """Refresh signals tree in Telegram tab."""
         self.tg_signals_tree.delete(*self.tg_signals_tree.get_children())
-        signals = self.db.get_recent_signals(limit=50)
-        for sig in signals:
+        self.signals_data = self.db.get_recent_signals(limit=50)
+        for idx, sig in enumerate(self.signals_data):
             timestamp = sig.get('received_at', '')[:16]
             raw_text = sig.get('raw_text', '')
             # Truncate and clean message for display (remove newlines, limit length)
@@ -3127,13 +3142,30 @@ class PickfairApp:
             status = sig.get('status', 'PENDING')
             tag = 'success' if status in ('MATCHED', 'PLACED') else 'failed' if status == 'FAILED' else ''
             
-            self.tg_signals_tree.insert('', tk.END, values=(
+            self.tg_signals_tree.insert('', tk.END, iid=str(idx), values=(
                 timestamp,
                 message_display,
                 selection,
                 side,
                 status
             ), tags=(tag,) if tag else ())
+    
+    def _on_signal_selected(self, event):
+        """Show full message when a signal is selected."""
+        selected = self.tg_signals_tree.selection()
+        if not selected:
+            return
+        
+        try:
+            idx = int(selected[0])
+            if 0 <= idx < len(self.signals_data):
+                raw_text = self.signals_data[idx].get('raw_text', '')
+                self.signal_message_text.configure(state='normal')
+                self.signal_message_text.delete('1.0', tk.END)
+                self.signal_message_text.insert('1.0', raw_text if raw_text else 'Nessun messaggio')
+                self.signal_message_text.configure(state='disabled')
+        except (ValueError, IndexError):
+            pass
     
     def _refresh_rules_tree(self):
         """Refresh signal patterns tree."""
