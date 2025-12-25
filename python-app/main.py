@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.26"
+APP_VERSION = "3.24.27"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -1902,9 +1902,14 @@ class PickfairApp:
         if result.get('status') == 'SUCCESS':
             matched = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
             
+            # Get event name from current_event (current_market doesn't have eventName)
+            event_name = ''
+            if self.current_event:
+                event_name = self.current_event.get('name', '')
+            
             # Save to database
             self.db.save_bet(
-                event_name=self.current_market.get('eventName', ''),
+                event_name=event_name,
                 market_id=self.current_market['marketId'],
                 market_name=self.current_market.get('marketName', ''),
                 bet_type=bet_type,
