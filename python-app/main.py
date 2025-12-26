@@ -2310,10 +2310,15 @@ class PickfairApp:
                         else:
                             bankroll_pct = 0
                         
+                        # Get available balance, fallback to 100 to avoid division by zero
+                        available = (self.account_data or {}).get('available', 0)
+                        if available <= 0:
+                            available = 100
+                        
                         # For dutching, broadcast each selection
                         for sel in selections_with_names:
                             if sel.get('sizeMatched', 0) > 0:
-                                stake_pct = bankroll_pct if bankroll_pct > 0 else (sel['stake'] / self.account_data.get('available', 100)) * 100
+                                stake_pct = bankroll_pct if bankroll_pct > 0 else (sel['stake'] / available) * 100
                                 self._broadcast_copy_bet(
                                     event_name=self.current_event['name'],
                                     market_type=self.current_market.get('marketName', 'DUTCHING'),
@@ -6411,7 +6416,9 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     # Broadcast auto-bet to Copy Trading followers (if MASTER mode)
                     if matched_stake > 0:
                         try:
-                            stake_pct = bankroll_percent if use_bankroll_percent else (stake / self.account_data.get('available', 100)) * 100
+                            # Use current_balance already fetched, fallback to 100 to avoid division by zero
+                            available = current_balance if current_balance > 0 else 100
+                            stake_pct = bankroll_percent if use_bankroll_percent else (stake / available) * 100
                             self._broadcast_copy_bet(
                                 event_name=matched_event['name'],
                                 market_type=target_market.get('marketName', market_type),
