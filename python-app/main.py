@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.31"
+APP_VERSION = "3.24.32"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2300,6 +2300,30 @@ class PickfairApp:
                     self.calculated_results[0]['profitIfWins'],
                     bet_status
                 )
+                
+                # Broadcast dutching bets to Copy Trading followers (if MASTER mode)
+                if bet_status in ['MATCHED', 'PARTIALLY_MATCHED']:
+                    try:
+                        tg_settings = self.db.get_telegram_settings() or {}
+                        if tg_settings.get('use_bankroll_percent'):
+                            bankroll_pct = float(tg_settings.get('bankroll_percent', 3.0))
+                        else:
+                            bankroll_pct = 0
+                        
+                        # For dutching, broadcast each selection
+                        for sel in selections_with_names:
+                            if sel.get('sizeMatched', 0) > 0:
+                                stake_pct = bankroll_pct if bankroll_pct > 0 else (sel['stake'] / self.account_data.get('available', 100)) * 100
+                                self._broadcast_copy_bet(
+                                    event_name=self.current_event['name'],
+                                    market_type=self.current_market.get('marketName', 'DUTCHING'),
+                                    selection=sel['runnerName'],
+                                    side=bet_type,
+                                    odds=sel['price'],
+                                    stake_percent=stake_pct
+                                )
+                    except Exception as e:
+                        print(f"[COPY] Error broadcasting dutching: {e}")
                 
                 bet_result = result
                 self.root.after(0, lambda r=bet_result: self._on_bets_placed(r))
@@ -6383,6 +6407,22 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                         potential_profit=potential_profit * 0.955,
                         status='MATCHED' if matched_stake > 0 else 'UNMATCHED'
                     )
+                    
+                    # Broadcast auto-bet to Copy Trading followers (if MASTER mode)
+                    if matched_stake > 0:
+                        try:
+                            stake_pct = bankroll_percent if use_bankroll_percent else (stake / self.account_data.get('available', 100)) * 100
+                            self._broadcast_copy_bet(
+                                event_name=matched_event['name'],
+                                market_type=target_market.get('marketName', market_type),
+                                selection=target_runner['runnerName'],
+                                side=bet_side,
+                                odds=target_runner['price'],
+                                stake_percent=stake_pct
+                            )
+                        except Exception as e:
+                            print(f"[COPY] Error broadcasting auto-bet: {e}")
+                    
                     update_status('PLACED')
                     messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bet_info}")
                 else:
