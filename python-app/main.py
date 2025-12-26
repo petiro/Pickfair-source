@@ -2012,23 +2012,30 @@ class PickfairApp:
             )
             
             # Broadcast to Copy Trading followers (if MASTER mode)
-            try:
-                tg_settings = self.db.get_telegram_settings() or {}
-                if tg_settings.get('use_bankroll_percent'):
-                    bankroll_percent = float(tg_settings.get('bankroll_percent', 3.0))
-                else:
-                    bankroll_percent = 0
-                
-                self._broadcast_copy_bet(
-                    event_name=event_name,
-                    market_type=self.current_market.get('marketName', 'UNKNOWN'),
-                    selection=runner['runnerName'],
-                    side=bet_type,
-                    odds=price,
-                    stake_percent=bankroll_percent if bankroll_percent > 0 else (stake / self.account_data.get('available', 100)) * 100
-                )
-            except Exception as e:
-                print(f"[COPY] Error in broadcast: {e}")
+            if matched > 0:
+                try:
+                    tg_settings = self.db.get_telegram_settings() or {}
+                    if tg_settings.get('use_bankroll_percent'):
+                        bankroll_percent = float(tg_settings.get('bankroll_percent', 3.0))
+                    else:
+                        bankroll_percent = 0
+                    
+                    # Get available balance, fallback to 100 to avoid division by zero
+                    available = (self.account_data or {}).get('available', 0)
+                    if available <= 0:
+                        available = 100
+                    
+                    stake_pct = bankroll_percent if bankroll_percent > 0 else (stake / available) * 100
+                    self._broadcast_copy_bet(
+                        event_name=event_name,
+                        market_type=self.current_market.get('marketName', 'UNKNOWN'),
+                        selection=runner['runnerName'],
+                        side=bet_type,
+                        odds=price,
+                        stake_percent=stake_pct
+                    )
+                except Exception as e:
+                    print(f"[COPY] Error in broadcast: {e}")
             
             messagebox.showinfo("Successo", 
                 f"Scommessa piazzata!\n\n"
