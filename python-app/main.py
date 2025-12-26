@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.32"
+APP_VERSION = "3.24.33"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5592,7 +5592,10 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 )
                 self.root.after(0, lambda: self._notify_new_signal(signal))
                 
-                if settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
+                # Check if this is a COPY BET signal (for Follower mode)
+                if signal.get('is_copy_bet'):
+                    self.root.after(100, lambda: self._process_copy_bet(signal))
+                elif settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
                     self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
             
             def on_status(status, message):
@@ -5691,9 +5694,13 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 self.root.after(0, lambda: self._notify_new_signal(signal))
                 self.root.after(0, lambda: self._refresh_telegram_signals_tree())
                 
-                print(f"[AUTO-BET DEBUG] Signal received: event={signal.get('event')}, market_type={signal.get('market_type')}, selection={signal.get('selection')}, auto_bet={settings.get('auto_bet')}")
+                print(f"[AUTO-BET DEBUG] Signal received: event={signal.get('event')}, market_type={signal.get('market_type')}, selection={signal.get('selection')}, auto_bet={settings.get('auto_bet')}, is_copy_bet={signal.get('is_copy_bet')}")
                 
-                if settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
+                # Check if this is a COPY BET signal (for Follower mode)
+                if signal.get('is_copy_bet'):
+                    print(f"[COPY FOLLOWER] Processing COPY BET for: {signal.get('event')} - {signal.get('selection')}")
+                    self.root.after(100, lambda: self._process_copy_bet(signal))
+                elif settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
                     print(f"[AUTO-BET DEBUG] Processing auto-bet for: {signal.get('event')} - {signal.get('market_type')}")
                     self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
                 else:
@@ -6450,6 +6457,179 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             log_failed_bet(f"Eccezione: {str(e)}")
             update_status('FAILED')
             messagebox.showerror("Auto-Bet Errore", f"Errore: {str(e)}")
+    
+    def _process_copy_bet(self, signal, attempt=1, max_attempts=3, retry_delay=10000):
+        """
+        Process a COPY BET signal received from a MASTER account.
+        Retries every 10 seconds if it fails, up to 3 attempts.
+        """
+        settings = self.db.get_telegram_settings() or {}
+        copy_mode = settings.get('copy_trading_mode', 'OFF')
+        
+        # Only process if we're in FOLLOWER mode
+        if copy_mode != 'FOLLOWER':
+            return
+        
+        if not self.client and not self.simulation_mode:
+            print(f"[COPY FOLLOWER] Attempt {attempt}/{max_attempts}: Not connected to Betfair")
+            if attempt < max_attempts:
+                self.root.after(retry_delay, lambda: self._process_copy_bet(signal, attempt + 1, max_attempts, retry_delay))
+            return
+        
+        event_name = signal.get('event', '')
+        market_type_name = signal.get('market_type', '')
+        selection_name = signal.get('selection', '')
+        bet_side = signal.get('side', 'BACK')
+        target_odds = signal.get('odds', 0)
+        stake_percent = signal.get('stake_percent', 3.0)
+        
+        if not event_name or not selection_name:
+            print(f"[COPY FOLLOWER] Invalid signal: missing event or selection")
+            return
+        
+        def round_to_betfair_stake(amount):
+            """Round stake to Betfair increment (0.05 EUR)."""
+            return round(round(amount / 0.05) * 0.05, 2)
+        
+        # Calculate stake based on percentage
+        if self.simulation_mode:
+            sim_settings = self.db.get_simulation_settings() or {}
+            current_balance = sim_settings.get('virtual_balance', 1000.0)
+        else:
+            try:
+                funds = self.client.get_account_funds()
+                current_balance = funds.get('available', 0)
+            except:
+                current_balance = 0
+        
+        raw_stake = current_balance * (stake_percent / 100)
+        stake = round_to_betfair_stake(raw_stake)
+        stake = max(stake, 0.05)
+        
+        print(f"[COPY FOLLOWER] Attempt {attempt}/{max_attempts}: {event_name} - {selection_name} @ {target_odds} ({bet_side}) stake={stake}")
+        
+        try:
+            # Search for the event
+            import time as time_module
+            now = time_module.time()
+            cache_ttl = 30
+            
+            if not hasattr(self, '_api_cache'):
+                self._api_cache = {}
+            
+            cache_key_all = 'all_events'
+            if cache_key_all in self._api_cache and (now - self._api_cache[cache_key_all]['time']) < cache_ttl:
+                all_events = self._api_cache[cache_key_all]['data']
+            else:
+                all_events = self.client.get_football_events(include_inplay=True)
+                self._api_cache[cache_key_all] = {'data': all_events, 'time': now}
+            
+            # Find matching event
+            def normalize_name(name):
+                return set(name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ').split())
+            
+            signal_words = normalize_name(event_name)
+            matched_event = None
+            
+            for event in all_events:
+                event_words = normalize_name(event['name'])
+                common = signal_words & event_words
+                if len(common) >= 2:
+                    matched_event = event
+                    break
+            
+            if not matched_event:
+                print(f"[COPY FOLLOWER] Event not found: {event_name}")
+                if attempt < max_attempts:
+                    self.root.after(retry_delay, lambda: self._process_copy_bet(signal, attempt + 1, max_attempts, retry_delay))
+                else:
+                    print(f"[COPY FOLLOWER] Max attempts reached, giving up on: {event_name}")
+                return
+            
+            # Find the market and selection
+            markets = self.client.get_markets(matched_event['id'])
+            target_market = None
+            target_runner = None
+            
+            for market in markets:
+                market_name = market.get('marketName', '').lower()
+                if market_type_name.lower() in market_name or market_name in market_type_name.lower():
+                    market_book = self.client.get_market_with_prices(market['marketId'])
+                    for runner in market_book.get('runners', []):
+                        runner_name = runner.get('runnerName', '')
+                        if selection_name.lower() in runner_name.lower() or runner_name.lower() in selection_name.lower():
+                            # Get price for instant matching
+                            if bet_side == 'LAY':
+                                price = runner.get('backPrice', target_odds)
+                            else:
+                                price = runner.get('layPrice', target_odds)
+                            
+                            if price and price > 0:
+                                target_market = market
+                                target_runner = {
+                                    'selectionId': runner['selectionId'],
+                                    'runnerName': runner_name,
+                                    'price': price
+                                }
+                                break
+                    if target_runner:
+                        break
+            
+            if not target_market or not target_runner:
+                print(f"[COPY FOLLOWER] Market/selection not found: {market_type_name} - {selection_name}")
+                if attempt < max_attempts:
+                    self.root.after(retry_delay, lambda: self._process_copy_bet(signal, attempt + 1, max_attempts, retry_delay))
+                else:
+                    print(f"[COPY FOLLOWER] Max attempts reached, giving up on: {selection_name}")
+                return
+            
+            # Place the bet
+            if self.simulation_mode:
+                # Simulation mode
+                print(f"[COPY FOLLOWER] Simulation bet placed: {target_runner['runnerName']} @ {target_runner['price']}")
+            else:
+                result = self.client.place_bet(
+                    market_id=target_market['marketId'],
+                    selection_id=target_runner['selectionId'],
+                    side=bet_side,
+                    price=target_runner['price'],
+                    size=stake
+                )
+                
+                if result.get('status') == 'SUCCESS':
+                    matched_stake = stake
+                    if result.get('instructionReports'):
+                        report = result['instructionReports'][0]
+                        matched_stake = report.get('sizeMatched', stake)
+                    
+                    if matched_stake > 0:
+                        print(f"[COPY FOLLOWER] SUCCESS: {target_runner['runnerName']} @ {target_runner['price']} matched={matched_stake}")
+                        self.db.save_bet(
+                            event_name=matched_event['name'],
+                            market_id=target_market['marketId'],
+                            market_name=target_market.get('marketName', ''),
+                            bet_type=bet_side,
+                            selections=target_runner['runnerName'],
+                            total_stake=stake,
+                            potential_profit=stake * (target_runner['price'] - 1) * 0.955,
+                            status='MATCHED'
+                        )
+                    else:
+                        print(f"[COPY FOLLOWER] Bet placed but not matched, retrying...")
+                        if attempt < max_attempts:
+                            self.root.after(retry_delay, lambda: self._process_copy_bet(signal, attempt + 1, max_attempts, retry_delay))
+                else:
+                    error = result.get('errorCode', 'UNKNOWN')
+                    print(f"[COPY FOLLOWER] FAILED: {error}")
+                    if attempt < max_attempts:
+                        self.root.after(retry_delay, lambda: self._process_copy_bet(signal, attempt + 1, max_attempts, retry_delay))
+                    else:
+                        print(f"[COPY FOLLOWER] Max attempts reached, giving up")
+        
+        except Exception as e:
+            print(f"[COPY FOLLOWER] Exception: {e}")
+            if attempt < max_attempts:
+                self.root.after(retry_delay, lambda: self._process_copy_bet(signal, attempt + 1, max_attempts, retry_delay))
     
     def _process_telegram_cashout(self, cmd):
         """Process cashout command from Telegram."""
