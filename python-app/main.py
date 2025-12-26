@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.29"
+APP_VERSION = "3.24.31"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -1046,6 +1046,13 @@ class PickfairApp:
                             cashout_price=result.get('averagePriceMatched') or info['current_price'],
                             profit_loss=info['green_up']
                         )
+                        
+                        # Broadcast cashout to Copy Trading followers (if MASTER mode)
+                        event_name = ''
+                        if self.current_event:
+                            event_name = self.current_event.get('name', '')
+                        self._broadcast_copy_cashout(event_name=event_name)
+                        
                         messagebox.showinfo("Successo", f"Cashout eseguito!\nProfitto: {info['green_up']:+.2f}")
                         self._update_market_cashout_positions()
                         self._update_balance()
@@ -1335,6 +1342,91 @@ class PickfairApp:
                 print(f"Error fetching balance: {e}")
         
         threading.Thread(target=fetch, daemon=True).start()
+    
+    def _broadcast_copy_bet(self, event_name: str, market_type: str, selection: str, 
+                            side: str, odds: float, stake_percent: float):
+        """
+        Broadcast a bet to Copy Trading followers via Telegram.
+        Only sends if Copy Trading mode is MASTER and listener is running.
+        """
+        try:
+            settings = self.db.get_telegram_settings() or {}
+            copy_mode = settings.get('copy_trading_mode', 'OFF')
+            copy_chat_id = settings.get('copy_trading_chat_id')
+            
+            if copy_mode != 'MASTER' or not copy_chat_id:
+                return
+            
+            if not self.telegram_listener or not self.telegram_listener.running:
+                print("[COPY] Cannot broadcast: Telegram listener not running")
+                return
+            
+            try:
+                chat_id = int(copy_chat_id)
+            except:
+                print(f"[COPY] Invalid chat ID: {copy_chat_id}")
+                return
+            
+            message = self.telegram_listener.format_copy_bet_message(
+                event_name=event_name,
+                market_type=market_type,
+                selection=selection,
+                side=side,
+                odds=odds,
+                stake_percent=stake_percent
+            )
+            
+            def send_thread():
+                success = self.telegram_listener.send_message(chat_id, message)
+                if success:
+                    print(f"[COPY] Bet broadcasted to {chat_id}")
+                else:
+                    print(f"[COPY] Failed to broadcast bet")
+            
+            threading.Thread(target=send_thread, daemon=True).start()
+            
+        except Exception as e:
+            print(f"[COPY] Error broadcasting bet: {e}")
+    
+    def _broadcast_copy_cashout(self, event_name: str = None, cashout_all: bool = False):
+        """
+        Broadcast a cashout command to Copy Trading followers via Telegram.
+        Only sends if Copy Trading mode is MASTER and listener is running.
+        """
+        try:
+            settings = self.db.get_telegram_settings() or {}
+            copy_mode = settings.get('copy_trading_mode', 'OFF')
+            copy_chat_id = settings.get('copy_trading_chat_id')
+            
+            if copy_mode != 'MASTER' or not copy_chat_id:
+                return
+            
+            if not self.telegram_listener or not self.telegram_listener.running:
+                print("[COPY] Cannot broadcast cashout: Telegram listener not running")
+                return
+            
+            try:
+                chat_id = int(copy_chat_id)
+            except:
+                print(f"[COPY] Invalid chat ID: {copy_chat_id}")
+                return
+            
+            message = self.telegram_listener.format_copy_cashout_message(
+                event_name=event_name,
+                cashout_all=cashout_all
+            )
+            
+            def send_thread():
+                success = self.telegram_listener.send_message(chat_id, message)
+                if success:
+                    print(f"[COPY] Cashout broadcasted to {chat_id}")
+                else:
+                    print(f"[COPY] Failed to broadcast cashout")
+            
+            threading.Thread(target=send_thread, daemon=True).start()
+            
+        except Exception as e:
+            print(f"[COPY] Error broadcasting cashout: {e}")
     
     def _load_events(self):
         """Load football events."""
@@ -1918,6 +2010,25 @@ class PickfairApp:
                 potential_profit=(stake * (price - 1)) * 0.955 if bet_type == 'BACK' else stake * 0.955,
                 status='MATCHED' if matched > 0 else 'UNMATCHED'
             )
+            
+            # Broadcast to Copy Trading followers (if MASTER mode)
+            try:
+                tg_settings = self.db.get_telegram_settings() or {}
+                if tg_settings.get('use_bankroll_percent'):
+                    bankroll_percent = float(tg_settings.get('bankroll_percent', 3.0))
+                else:
+                    bankroll_percent = 0
+                
+                self._broadcast_copy_bet(
+                    event_name=event_name,
+                    market_type=self.current_market.get('marketName', 'UNKNOWN'),
+                    selection=runner['runnerName'],
+                    side=bet_type,
+                    odds=price,
+                    stake_percent=bankroll_percent if bankroll_percent > 0 else (stake / self.account_data.get('available', 100)) * 100
+                )
+            except Exception as e:
+                print(f"[COPY] Error in broadcast: {e}")
             
             messagebox.showinfo("Successo", 
                 f"Scommessa piazzata!\n\n"
@@ -2710,6 +2821,39 @@ class PickfairApp:
                         fg_color=COLORS['lay'], hover_color=COLORS['lay_hover'],
                         text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
         
+        copy_frame = ctk.CTkFrame(config_frame, fg_color=COLORS['bg_hover'], corner_radius=6)
+        copy_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
+        
+        ctk.CTkLabel(copy_frame, text="Copy Trading", font=('Segoe UI', 10, 'bold'),
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=8, pady=(5, 2))
+        
+        copy_mode_frame = ctk.CTkFrame(copy_frame, fg_color='transparent')
+        copy_mode_frame.pack(fill=tk.X, padx=8, pady=(0, 5))
+        
+        self.copy_trading_mode_var = tk.StringVar(value=settings.get('copy_trading_mode', 'OFF'))
+        
+        ctk.CTkRadioButton(copy_mode_frame, text="Off", variable=self.copy_trading_mode_var, value="OFF",
+                           fg_color=COLORS['text_secondary'], hover_color=COLORS['border'],
+                           text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=(0, 10))
+        ctk.CTkRadioButton(copy_mode_frame, text="Master", variable=self.copy_trading_mode_var, value="MASTER",
+                           fg_color=COLORS['success'], hover_color='#4caf50',
+                           text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=(0, 10))
+        ctk.CTkRadioButton(copy_mode_frame, text="Follower", variable=self.copy_trading_mode_var, value="FOLLOWER",
+                           fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                           text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        copy_chat_frame = ctk.CTkFrame(copy_frame, fg_color='transparent')
+        copy_chat_frame.pack(fill=tk.X, padx=8, pady=(0, 8))
+        
+        ctk.CTkLabel(copy_chat_frame, text="Chat ID:", text_color=COLORS['text_secondary'],
+                     font=('Segoe UI', 9)).pack(side=tk.LEFT)
+        self.copy_trading_chat_id_var = tk.StringVar(value=settings.get('copy_trading_chat_id', ''))
+        ctk.CTkEntry(copy_chat_frame, textvariable=self.copy_trading_chat_id_var, width=120,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border'],
+                     placeholder_text="-100xxxx").pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(copy_chat_frame, text="(ID chat per inviare/ricevere)", 
+                     text_color=COLORS['text_tertiary'], font=('Segoe UI', 8)).pack(side=tk.LEFT, padx=5)
+        
         auth_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
         auth_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
         ctk.CTkLabel(auth_frame, text="Codice:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
@@ -2932,6 +3076,11 @@ class PickfairApp:
             bankroll_percent = 3.0
         
         settings = self.db.get_telegram_settings() or {}
+        
+        copy_chat_id = self.copy_trading_chat_id_var.get().strip()
+        if copy_chat_id and not copy_chat_id.lstrip('-').isdigit():
+            copy_chat_id = None
+        
         self.db.save_telegram_settings(
             api_id=self.tg_api_id_var.get(),
             api_hash=self.tg_api_hash_var.get(),
@@ -2945,7 +3094,9 @@ class PickfairApp:
             auto_stop_listener=self.tg_auto_stop_var.get(),
             custom_patterns_only=self.tg_custom_patterns_only_var.get(),
             use_bankroll_percent=self.tg_use_percent_var.get(),
-            bankroll_percent=bankroll_percent
+            bankroll_percent=bankroll_percent,
+            copy_trading_mode=self.copy_trading_mode_var.get(),
+            copy_trading_chat_id=copy_chat_id
         )
         messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
     

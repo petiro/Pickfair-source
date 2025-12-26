@@ -411,11 +411,25 @@ class TelegramListener:
                     'timestamp': datetime.now().isoformat()
                 })
             
+            copy_cashout = self.parse_copy_cashout(text)
+            if copy_cashout and self.cashout_callback:
+                copy_cashout['chat_id'] = chat_id
+                copy_cashout['sender_id'] = sender_id
+                self.cashout_callback(copy_cashout)
+                return
+            
             cashout_cmd = self.parse_cashout_command(text)
             if cashout_cmd and self.cashout_callback:
                 cashout_cmd['chat_id'] = chat_id
                 cashout_cmd['sender_id'] = sender_id
                 self.cashout_callback(cashout_cmd)
+                return
+            
+            copy_bet = self.parse_copy_bet(text)
+            if copy_bet and self.signal_callback:
+                copy_bet['chat_id'] = chat_id
+                copy_bet['sender_id'] = sender_id
+                self.signal_callback(copy_bet)
                 return
             
             signal = self.parse_signal(text)
@@ -497,6 +511,167 @@ class TelegramListener:
             return True, self.client.session.save()
         except Exception as e:
             return False, str(e)
+    
+    async def _send_message_async(self, chat_id: int, message: str) -> bool:
+        """Send a message to a chat asynchronously."""
+        try:
+            if self.client and await self.client.is_user_authorized():
+                await self.client.send_message(chat_id, message)
+                return True
+            return False
+        except Exception as e:
+            print(f"[COPY] Error sending message: {e}")
+            return False
+    
+    def send_message(self, chat_id: int, message: str) -> bool:
+        """
+        Send a message to a chat (thread-safe).
+        Used for Copy Trading to broadcast bets/cashouts.
+        
+        Args:
+            chat_id: Telegram chat ID to send to
+            message: Message text to send
+            
+        Returns:
+            True if message was sent successfully
+        """
+        if not self.running or not self.client or not self.loop:
+            print("[COPY] Cannot send message: listener not running")
+            return False
+        
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                self._send_message_async(chat_id, message),
+                self.loop
+            )
+            result = future.result(timeout=10)
+            return result
+        except Exception as e:
+            print(f"[COPY] Error in send_message: {e}")
+            return False
+    
+    def format_copy_bet_message(self, event_name: str, market_type: str, selection: str, 
+                                 side: str, odds: float, stake_percent: float) -> str:
+        """
+        Format a COPY BET message for broadcasting.
+        
+        Args:
+            event_name: Name of the event (e.g., "Juventus vs Inter")
+            market_type: Market type (e.g., "OVER_UNDER", "MATCH_ODDS")
+            selection: Selection name (e.g., "Over 2.5", "1")
+            side: BACK or LAY
+            odds: Bet odds
+            stake_percent: Stake as percentage of bankroll
+            
+        Returns:
+            Formatted message string
+        """
+        return (
+            f"COPY BET\n"
+            f"Evento: {event_name}\n"
+            f"Mercato: {market_type}\n"
+            f"Selezione: {selection}\n"
+            f"Tipo: {side}\n"
+            f"Quota: {odds:.2f}\n"
+            f"Stake: {stake_percent:.1f}%"
+        )
+    
+    def format_copy_cashout_message(self, event_name: str = None, cashout_all: bool = False) -> str:
+        """
+        Format a COPY CASHOUT message for broadcasting.
+        
+        Args:
+            event_name: Name of the event to cashout (None if cashout all)
+            cashout_all: True to cashout all positions
+            
+        Returns:
+            Formatted message string
+        """
+        if cashout_all:
+            return "COPY CASHOUT ALL"
+        else:
+            return f"COPY CASHOUT\nEvento: {event_name}"
+    
+    def parse_copy_bet(self, text: str) -> Optional[Dict]:
+        """
+        Parse a COPY BET message from another Pickfair instance.
+        
+        Returns dict with: event, market_type, selection, side, odds, stake_percent
+        or None if not a valid COPY BET message.
+        """
+        if "COPY BET" not in text.upper():
+            return None
+        
+        try:
+            result = {
+                'is_copy_bet': True,
+                'raw_text': text,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            event_match = re.search(r'Evento:\s*(.+?)(?:\n|$)', text)
+            if event_match:
+                result['event'] = event_match.group(1).strip()
+            
+            market_match = re.search(r'Mercato:\s*(.+?)(?:\n|$)', text)
+            if market_match:
+                result['market_type'] = market_match.group(1).strip()
+            
+            selection_match = re.search(r'Selezione:\s*(.+?)(?:\n|$)', text)
+            if selection_match:
+                result['selection'] = selection_match.group(1).strip()
+            
+            side_match = re.search(r'Tipo:\s*(BACK|LAY)', text, re.IGNORECASE)
+            if side_match:
+                result['side'] = side_match.group(1).upper()
+            
+            odds_match = re.search(r'Quota:\s*([\d.,]+)', text)
+            if odds_match:
+                result['odds'] = float(odds_match.group(1).replace(',', '.'))
+            
+            stake_match = re.search(r'Stake:\s*([\d.,]+)%?', text)
+            if stake_match:
+                result['stake_percent'] = float(stake_match.group(1).replace(',', '.'))
+            
+            if result.get('event') and result.get('selection'):
+                return result
+            
+            return None
+            
+        except Exception as e:
+            print(f"[COPY] Error parsing COPY BET: {e}")
+            return None
+    
+    def parse_copy_cashout(self, text: str) -> Optional[Dict]:
+        """
+        Parse a COPY CASHOUT message from another Pickfair instance.
+        
+        Returns dict with: type ('all' or 'event'), event_name (if specific)
+        or None if not a valid COPY CASHOUT message.
+        """
+        text_upper = text.upper().strip()
+        
+        if "COPY CASHOUT" not in text_upper:
+            return None
+        
+        try:
+            if "COPY CASHOUT ALL" in text_upper:
+                return {'type': 'all', 'is_copy_cashout': True, 'raw_text': text}
+            
+            event_match = re.search(r'Evento:\s*(.+?)(?:\n|$)', text)
+            if event_match:
+                return {
+                    'type': 'event',
+                    'event_name': event_match.group(1).strip(),
+                    'is_copy_cashout': True,
+                    'raw_text': text
+                }
+            
+            return None
+            
+        except Exception as e:
+            print(f"[COPY] Error parsing COPY CASHOUT: {e}")
+            return None
 
 
 class SignalQueue:
