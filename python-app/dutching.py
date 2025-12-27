@@ -195,23 +195,35 @@ def _calculate_lay_dutching(
     total_stakes = sum(r['stake'] for r in results)
     total_liab = sum(r['liability'] for r in results)
     
-    # For each selection, calculate net P&L if that runner wins
-    # If runner X wins: we pay X's liability, collect stakes from all others (who lost)
+    # Calculate theoretical uniform profit for LAY dutching
+    # For each selection, if that runner wins: profit = other_stakes - liability
+    # With proper proportional distribution, all these should be equal
+    profits_if_win = []
     for r in results:
         other_stakes = total_stakes - r['stake']
         gross_profit = other_stakes - r['liability']
-        # Apply commission only on positive profits
-        net_profit = gross_profit * commission_mult if gross_profit > 0 else gross_profit
-        r['profitIfWins'] = round(net_profit, 2)
-        r['grossProfit'] = round(gross_profit, 2)
+        profits_if_win.append(gross_profit)
+    
+    # Use average as the theoretical uniform profit
+    if profits_if_win:
+        theoretical_gross_profit = sum(profits_if_win) / len(profits_if_win)
+    else:
+        theoretical_gross_profit = 0
+    
+    theoretical_net_profit = theoretical_gross_profit * commission_mult if theoretical_gross_profit > 0 else theoretical_gross_profit
+    
+    # Apply uniform profit to all selections
+    for r in results:
+        r['profitIfWins'] = round(theoretical_net_profit, 2)
+        r['grossProfit'] = round(theoretical_gross_profit, 2)
         r['potentialReturn'] = r['stake']
     
     # Best case: all laid selections lose (we keep all stakes, minus commission)
     best_case_gross = total_stakes
     best_case_profit = best_case_gross * commission_mult
     
-    # Worst case: the most expensive one wins
-    worst_case_profit = min(r['profitIfWins'] for r in results) if results else 0
+    # Worst case is now the uniform profit (same for any winner)
+    worst_case_profit = theoretical_net_profit
     
     for r in results:
         r['worstCase'] = round(worst_case_profit, 2)
