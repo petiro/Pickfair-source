@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.26.7"
+APP_VERSION = "3.27.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -6855,7 +6855,26 @@ Evento: {event_name}"""
     
     def run(self):
         """Start the application."""
+        self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
         self.root.mainloop()
+    
+    def _on_closing(self):
+        """Handle application closing - cleanup resources."""
+        try:
+            # Stop Telegram listener if running
+            if self.telegram_listener:
+                try:
+                    self.telegram_listener.stop()
+                except:
+                    pass
+            
+            # Close database connection
+            if self.db:
+                self.db.close()
+        except:
+            pass
+        finally:
+            self.root.destroy()
 
 
 def main():

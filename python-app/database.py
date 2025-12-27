@@ -28,11 +28,13 @@ class Database:
     def __init__(self):
         self.db_path = get_db_path()
         self._lock = threading.RLock()
-        self._cleanup_stale_locks()
+        self._conn = None
+        self._cleanup_stale_files()
+        self._init_connection()
         self._init_db()
     
-    def _cleanup_stale_locks(self):
-        """Remove stale WAL/SHM files if database is locked."""
+    def _cleanup_stale_files(self):
+        """Remove stale WAL/SHM files if database appears locked."""
         import time
         wal_file = self.db_path + "-wal"
         shm_file = self.db_path + "-shm"
@@ -41,26 +43,68 @@ class Database:
         try:
             test_conn = sqlite3.connect(self.db_path, timeout=2.0)
             test_conn.execute("SELECT 1")
+            # Run integrity check
+            result = test_conn.execute("PRAGMA integrity_check").fetchone()
+            if result and result[0] != 'ok':
+                print(f"[WARNING] Database integrity issue: {result[0]}")
             test_conn.close()
         except sqlite3.OperationalError:
             # Database might be locked, try to remove stale files
+            print("[WARNING] Database locked, cleaning up stale files...")
             for f in [wal_file, shm_file]:
                 if os.path.exists(f):
                     try:
                         os.remove(f)
-                    except:
-                        pass
+                        print(f"[INFO] Removed stale file: {f}")
+                    except Exception as e:
+                        print(f"[WARNING] Could not remove {f}: {e}")
             time.sleep(0.5)
+        except sqlite3.DatabaseError as e:
+            # Database might be corrupted
+            print(f"[ERROR] Database error: {e}")
+            self._backup_and_recreate()
+    
+    def _backup_and_recreate(self):
+        """Backup corrupted database and create fresh one."""
+        import shutil
+        backup_path = self.db_path + ".backup." + datetime.now().strftime("%Y%m%d_%H%M%S")
+        try:
+            if os.path.exists(self.db_path):
+                shutil.copy2(self.db_path, backup_path)
+                print(f"[INFO] Backed up corrupted database to: {backup_path}")
+                os.remove(self.db_path)
+        except Exception as e:
+            print(f"[WARNING] Could not backup database: {e}")
+    
+    def _init_connection(self):
+        """Initialize persistent database connection."""
+        self._conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA busy_timeout=30000")
+        self._conn.execute("PRAGMA synchronous=NORMAL")
     
     def _get_connection(self):
-        """Get database connection with timeout and WAL mode."""
-        conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA busy_timeout=30000")
-        return conn
+        """Get the persistent database connection."""
+        if self._conn is None:
+            self._init_connection()
+        return self._conn
+    
+    def _execute(self, func):
+        """Execute database operation with lock protection."""
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                with self._lock:
+                    return func(self._get_connection())
+            except sqlite3.OperationalError as e:
+                if "locked" in str(e).lower() and attempt < max_retries - 1:
+                    time.sleep(0.5 * (attempt + 1))
+                    continue
+                raise
     
     def _execute_with_retry(self, func, max_retries=3):
-        """Execute database operation with retry on lock."""
+        """Legacy: Execute database operation with retry on lock."""
         import time
         for attempt in range(max_retries):
             try:
@@ -71,6 +115,15 @@ class Database:
                     time.sleep(0.5 * (attempt + 1))
                     continue
                 raise
+    
+    def close(self):
+        """Close the database connection."""
+        if self._conn:
+            try:
+                self._conn.close()
+            except:
+                pass
+            self._conn = None
     
     def _init_db(self):
         """Initialize database tables."""
