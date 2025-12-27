@@ -4,7 +4,7 @@
 
 Pickfair is a Windows desktop application for automated sports betting through Betfair Exchange Italy API. Built with Python, it features advanced dutching, live betting, Telegram integration, and a modern dark trading interface.
 
-**Current Version**: v3.27.14 (Telegram Stake Types & Auto-Dutching)
+**Current Version**: v3.27.15 (Reply 100% Master)
 
 ## User Preferences
 
@@ -68,6 +68,13 @@ COLORS = {
 - **Italian Compliance**: 4.5% commission handling
 
 ## Recent Changes (December 2024)
+
+- **v3.27.15**: Reply 100% Master (Copy Trading)
+  - Nuovo checkbox "Reply 100% Master" nella sezione Copy Trading (modalità Follower)
+  - Quando attivo, il follower usa la stessa percentuale di stake del Master
+  - La percentuale viene applicata al bankroll del follower (simulazione o reale)
+  - Se disattivo, usa le impostazioni stake normali del follower
+  - Nuovo campo database: reply_100_master
 
 - **v3.27.14**: Telegram Stake Types & Auto-Dutching
   - Aggiunta selezione tipo stake nelle impostazioni Telegram: Fisso (EUR) o Percentuale Bankroll

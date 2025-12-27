@@ -6124,27 +6124,54 @@ Evento: {event_name}"""
         over_line = signal.get('over_line')
         
         # Calculate stake based on stake_type
-        stake_type = settings.get('stake_type', 'fixed')
-        if stake_type == 'percent_bankroll':
-            # Get bankroll from simulation or real balance
-            sim_settings = self.db.get_simulation_settings()
-            if self.simulation_mode and sim_settings:
-                bankroll = sim_settings.get('virtual_balance', 1000)
-            elif self.client:
-                try:
-                    balance_info = self.client.get_account_balance()
-                    bankroll = balance_info.get('available', 0)
-                except:
+        # Check if this is a COPY BET and reply_100_master is enabled
+        is_copy_bet = signal.get('is_copy_bet', False)
+        reply_100_master = settings.get('reply_100_master', False)
+        copy_mode = settings.get('copy_mode', 'OFF')
+        
+        if is_copy_bet and reply_100_master and copy_mode == 'FOLLOWER':
+            # Use Master's stake percentage
+            master_stake_percent = signal.get('stake_percent')
+            if master_stake_percent:
+                # Get follower's bankroll
+                sim_settings = self.db.get_simulation_settings()
+                if self.simulation_mode and sim_settings:
+                    bankroll = sim_settings.get('virtual_balance', 1000)
+                elif self.client:
+                    try:
+                        balance_info = self.client.get_account_balance()
+                        bankroll = balance_info.get('available', 0)
+                    except:
+                        bankroll = 0
+                else:
                     bankroll = 0
+                
+                stake = round(bankroll * master_stake_percent / 100, 2)
+                stake = max(1.0, stake)  # Minimum 1€
             else:
-                bankroll = 0
-            
-            percent = float(settings.get('stake_percent', 1.0))
-            stake = round(bankroll * percent / 100, 2)
-            stake = max(1.0, stake)  # Minimum 1€
+                stake = float(settings.get('auto_stake', 1.0))
         else:
-            # Fixed stake
-            stake = float(settings.get('auto_stake', 1.0))
+            stake_type = settings.get('stake_type', 'fixed')
+            if stake_type == 'percent_bankroll':
+                # Get bankroll from simulation or real balance
+                sim_settings = self.db.get_simulation_settings()
+                if self.simulation_mode and sim_settings:
+                    bankroll = sim_settings.get('virtual_balance', 1000)
+                elif self.client:
+                    try:
+                        balance_info = self.client.get_account_balance()
+                        bankroll = balance_info.get('available', 0)
+                    except:
+                        bankroll = 0
+                else:
+                    bankroll = 0
+                
+                percent = float(settings.get('stake_percent', 1.0))
+                stake = round(bankroll * percent / 100, 2)
+                stake = max(1.0, stake)  # Minimum 1€
+            else:
+                # Fixed stake
+                stake = float(settings.get('auto_stake', 1.0))
         
         signal_id = signal.get('signal_id')
         bet_side = signal.get('bet_side', signal.get('side', 'BACK'))
