@@ -21,9 +21,43 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.26.4"
+APP_VERSION = "3.26.5"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
+
+def check_single_instance():
+    """Ensure only one instance of Pickfair is running."""
+    import os
+    if os.name == 'nt':
+        lock_dir = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair')
+    else:
+        lock_dir = os.path.join(os.path.expanduser('~'), '.pickfair')
+    os.makedirs(lock_dir, exist_ok=True)
+    lock_file = os.path.join(lock_dir, 'pickfair.lock')
+    
+    try:
+        # Try to create/open lock file exclusively
+        if os.name == 'nt':
+            import msvcrt
+            fd = os.open(lock_file, os.O_CREAT | os.O_RDWR)
+            try:
+                msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+                return fd  # Keep file descriptor open
+            except IOError:
+                os.close(fd)
+                return None
+        else:
+            import fcntl
+            fd = open(lock_file, 'w')
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return fd
+            except IOError:
+                fd.close()
+                return None
+    except Exception:
+        return True  # Allow running if lock check fails
+
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
 
 
@@ -6818,6 +6852,17 @@ Evento: {event_name}"""
 
 
 def main():
+    # Check for single instance
+    lock = check_single_instance()
+    if lock is None:
+        import tkinter as tk
+        from tkinter import messagebox
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showerror("Pickfair", "Pickfair è già in esecuzione.\n\nChiudi l'altra finestra prima di aprirne una nuova.")
+        root.destroy()
+        return
+    
     app = PickfairApp()
     app.run()
 
