@@ -69,16 +69,28 @@ def _calculate_back_dutching(
     
     total_implied = sum(implied_probs)
     
-    # Distribute stakes proportionally
-    results = []
-    total_actual_stake = 0
-    
+    # Calculate raw stakes proportionally
+    raw_stakes = []
     for i, sel in enumerate(selections):
         stake = total_stake * implied_probs[i] / total_implied
-        
-        # Round to 2 decimal places (no minimum per selection in dutching)
-        stake = round(stake, 2)
-        
+        raw_stakes.append(stake)
+    
+    # Round stakes to 2 decimal places
+    rounded_stakes = [round(s, 2) for s in raw_stakes]
+    
+    # Distribute rounding error to maintain total stake
+    stake_diff = round(total_stake - sum(rounded_stakes), 2)
+    if stake_diff != 0 and len(rounded_stakes) > 0:
+        # Add to largest stake for least proportional impact
+        max_idx = rounded_stakes.index(max(rounded_stakes))
+        rounded_stakes[max_idx] = round(rounded_stakes[max_idx] + stake_diff, 2)
+    
+    # Build results with adjusted stakes for equal profit
+    results = []
+    total_actual_stake = sum(rounded_stakes)
+    
+    for i, sel in enumerate(selections):
+        stake = rounded_stakes[i]
         potential_return = stake * sel['price']
         
         results.append({
@@ -89,23 +101,22 @@ def _calculate_back_dutching(
             'potentialReturn': round(potential_return, 2),
             'impliedProbability': round(implied_probs[i] * 100, 2)
         })
-        
-        total_actual_stake += stake
     
-    # For dutching, profit should be calculated per winning outcome
-    # If one selection wins: profit = (stake * price) - total_stake_all
-    # Apply commission to profits
-    for r in results:
-        gross_profit = r['potentialReturn'] - total_actual_stake
-        net_profit = gross_profit * commission_mult if gross_profit > 0 else gross_profit
-        r['profitIfWins'] = round(net_profit, 2)
-        r['grossProfit'] = round(gross_profit, 2)
-    
-    # Calculate average profit
-    if results:
-        potential_profit = sum(r['profitIfWins'] for r in results) / len(results)
+    # Calculate uniform profit (theoretical profit for perfect dutching)
+    # profit = total_stake * (1/total_implied - 1)
+    if total_implied < 1:
+        theoretical_gross_profit = total_actual_stake * (1.0 / total_implied - 1)
     else:
-        potential_profit = 0
+        theoretical_gross_profit = 0
+    
+    theoretical_net_profit = theoretical_gross_profit * commission_mult
+    
+    # Apply uniform profit to all selections (this is what dutching guarantees)
+    for r in results:
+        r['profitIfWins'] = round(theoretical_net_profit, 2)
+        r['grossProfit'] = round(theoretical_gross_profit, 2)
+    
+    potential_profit = round(theoretical_net_profit, 2)
     
     # Validate max winnings
     max_return = max(r['potentialReturn'] for r in results)
