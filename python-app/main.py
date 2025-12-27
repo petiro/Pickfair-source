@@ -6439,29 +6439,45 @@ Evento: {event_name}"""
                             update_status('PLACED')
                             messagebox.showinfo("Auto-Bet Dutching (Simulazione)", f"Dutching simulato piazzato!\n\n{bet_info}")
                         else:
-                            # Place real dutching bets
-                            success_count = 0
-                            for dr in dutching_result:
-                                result = self.client.place_bet(
-                                    market_id=target_market['marketId'],
-                                    selection_id=dr['selectionId'],
-                                    side=bet_side,
-                                    price=dr['price'],
-                                    size=dr['stake']
-                                )
-                                if result.get('status') == 'SUCCESS':
-                                    success_count += 1
+                            # Place real dutching bets with retry (3 attempts, 10s delay)
+                            import time
+                            max_retries = 3
+                            retry_delay = 10
                             
-                            if success_count == len(dutching_result):
-                                update_status('PLACED')
-                                messagebox.showinfo("Auto-Bet Dutching", f"Dutching piazzato con successo!\n\n{bet_info}")
-                            elif success_count > 0:
-                                update_status('PARTIAL')
-                                messagebox.showwarning("Auto-Bet Dutching", f"Dutching parziale: {success_count}/{len(dutching_result)} scommesse piazzate")
-                            else:
-                                update_status('FAILED')
-                                log_failed_bet("Tutte le scommesse dutching fallite")
-                                messagebox.showerror("Auto-Bet Dutching Errore", "Errore piazzamento dutching")
+                            for attempt in range(max_retries):
+                                success_count = 0
+                                failed_bets = []
+                                
+                                for dr in dutching_result:
+                                    result = self.client.place_bet(
+                                        market_id=target_market['marketId'],
+                                        selection_id=dr['selectionId'],
+                                        side=bet_side,
+                                        price=dr['price'],
+                                        size=dr['stake']
+                                    )
+                                    if result.get('status') == 'SUCCESS':
+                                        success_count += 1
+                                    else:
+                                        failed_bets.append(dr)
+                                
+                                if success_count == len(dutching_result):
+                                    update_status('PLACED')
+                                    messagebox.showinfo("Auto-Bet Dutching", f"Dutching piazzato con successo!\n\n{bet_info}")
+                                    break
+                                elif attempt < max_retries - 1:
+                                    # Retry failed bets after delay
+                                    time.sleep(retry_delay)
+                                    dutching_result = failed_bets
+                                else:
+                                    # Last attempt failed
+                                    if success_count > 0:
+                                        update_status('PARTIAL')
+                                        messagebox.showwarning("Auto-Bet Dutching", f"Dutching parziale dopo {max_retries} tentativi: {success_count}/{len(matched_runners)} scommesse piazzate")
+                                    else:
+                                        update_status('FAILED')
+                                        log_failed_bet(f"Tutte le scommesse dutching fallite dopo {max_retries} tentativi")
+                                        messagebox.showerror("Auto-Bet Dutching Errore", f"Errore piazzamento dopo {max_retries} tentativi")
                         return
                     else:
                         reason = f"Nessun risultato trovato per dutching: {', '.join(dutching_selections)}"
