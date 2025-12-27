@@ -5212,9 +5212,19 @@ Evento: {event_name}"""
         # Store runner selection and offset data
         runner_selections = {}  # {selectionId: {'selected': bool, 'offset': int, 'swap': bool}}
         
+        # Check if LIVE and CORRECT_SCORE to filter impossible results
+        is_live = self.current_event and self.current_event.get('inPlayOdds', False)
+        is_correct_score = 'CORRECT_SCORE' in market_name.upper() or 'RISULTATO ESATTO' in market_name.upper()
+        
         # Populate tree with runners
         for runner in self.current_market.get('runners', []):
             sel_id = runner['selectionId']
+            runner_status = runner.get('status', 'ACTIVE')
+            
+            # In LIVE + CORRECT_SCORE, skip runners that are not ACTIVE (already closed)
+            if is_live and is_correct_score and runner_status != 'ACTIVE':
+                continue
+            
             back_price = runner.get('backPrice', 0) or 0
             lay_price = runner.get('layPrice', 0) or 0
             
