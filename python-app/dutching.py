@@ -76,12 +76,8 @@ def _calculate_back_dutching(
     for i, sel in enumerate(selections):
         stake = total_stake * implied_probs[i] / total_implied
         
-        # Round to 2 decimal places
+        # Round to 2 decimal places (no minimum per selection in dutching)
         stake = round(stake, 2)
-        
-        # Check minimum stake
-        if stake < MIN_BACK_STAKE:
-            stake = MIN_BACK_STAKE
         
         potential_return = stake * sel['price']
         
