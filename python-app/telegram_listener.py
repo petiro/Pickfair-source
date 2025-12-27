@@ -70,6 +70,7 @@ class TelegramListener:
             'half_time_full_time': r'\b(HT/FT|parziale[/\\]finale)\s*([1X2])[/\\]([1X2])\b|(?<![\d])([1X2])/([1X2])(?![\d])',
             'live_filter': r'\b(LIVE|IN\s*PLAY|IN\s*CORSO|DIRETTA)\b',
             'prematch_filter': r'\b(PRE[-\s]?MATCH|ANTE[-\s]?MATCH|PRIMA\s*PARTITA|NON\s*LIVE)\b',
+            'dutching': r'[Dd]ut(?:h)?ching\s+([\d]+-[\d]+(?:\s*,\s*[\d]+-[\d]+)*)',
         }
     
     def set_signal_patterns(self, patterns: Dict):
@@ -193,6 +194,7 @@ class TelegramListener:
             'bet_side': 'BACK',
             'live_only': False,
             'event_filter': None,  # 'LIVE', 'PRE_MATCH', or None (search both)
+            'dutching_selections': None,  # List of scores for dutching, e.g., ['2-1', '3-1', '2-2']
         }
         
         event_match = re.search(self.signal_patterns['event'], text)
@@ -351,6 +353,25 @@ class TelegramListener:
             if ht and ft:
                 signal['market_type'] = 'HALF_TIME_FULL_TIME'
                 signal['selection'] = f"{ht}/{ft}"
+                signal['side'] = signal['side'] or 'BACK'
+        
+        # Parse Dutching selections (e.g., "Dutching 2-1, 3-1, 2-2")
+        dutching_match = re.search(self.signal_patterns['dutching'], text, re.IGNORECASE)
+        if dutching_match:
+            scores_str = dutching_match.group(1)
+            # Split by comma and normalize scores
+            scores = []
+            for score in scores_str.split(','):
+                score = score.strip()
+                # Normalize: "2-1" -> "2 - 1" for Betfair format
+                parts = score.split('-')
+                if len(parts) == 2:
+                    normalized = f"{parts[0].strip()} - {parts[1].strip()}"
+                    scores.append(normalized)
+            if scores:
+                signal['dutching_selections'] = scores
+                signal['market_type'] = 'CORRECT_SCORE'
+                signal['selection'] = 'Dutching'
                 signal['side'] = signal['side'] or 'BACK'
         
         over_match = re.search(self.signal_patterns['over'], text, re.IGNORECASE)
