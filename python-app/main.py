@@ -2741,8 +2741,9 @@ class PickfairApp:
         right_frame = ctk.CTkFrame(main_frame, fg_color='transparent')
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         
-        config_frame = ctk.CTkFrame(subtab_container, fg_color=COLORS['bg_panel'], corner_radius=8)
-        self.tg_subtab_frames['config'] = config_frame
+        config_scroll = ctk.CTkScrollableFrame(subtab_container, fg_color=COLORS['bg_panel'], corner_radius=8)
+        self.tg_subtab_frames['config'] = config_scroll
+        config_frame = config_scroll
         
         ctk.CTkLabel(config_frame, text="Configurazione Telegram", font=FONTS['heading'],
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
