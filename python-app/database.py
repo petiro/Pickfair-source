@@ -27,14 +27,28 @@ def get_db_path():
 class Database:
     def __init__(self):
         self.db_path = get_db_path()
+        self._lock = threading.RLock()
         self._init_db()
     
     def _get_connection(self):
         """Get database connection with timeout and WAL mode."""
-        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA busy_timeout=30000")
         return conn
+    
+    def _execute_with_retry(self, func, max_retries=3):
+        """Execute database operation with retry on lock."""
+        import time
+        for attempt in range(max_retries):
+            try:
+                with self._lock:
+                    return func()
+            except sqlite3.OperationalError as e:
+                if "locked" in str(e).lower() and attempt < max_retries - 1:
+                    time.sleep(0.5 * (attempt + 1))
+                    continue
+                raise
     
     def _init_db(self):
         """Initialize database tables."""
@@ -730,35 +744,42 @@ class Database:
     
     def get_telegram_chats(self):
         """Get monitored Telegram chats."""
-        conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM telegram_chats ORDER BY added_at DESC')
-        rows = cursor.fetchall()
-        conn.close()
-        return [dict(row) for row in rows]
+        def do_get():
+            conn = self._get_connection()
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM telegram_chats ORDER BY added_at DESC')
+            rows = cursor.fetchall()
+            conn.close()
+            return [dict(row) for row in rows]
+        return self._execute_with_retry(do_get)
     
     def add_telegram_chat(self, chat_id, chat_name=''):
         """Add a chat to monitor."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute('''
-                INSERT INTO telegram_chats (chat_id, chat_name, enabled, added_at)
-                VALUES (?, ?, 1, ?)
-            ''', (str(chat_id), chat_name, datetime.now().isoformat()))
-            conn.commit()
-        except sqlite3.IntegrityError:
-            pass
-        conn.close()
+        def do_add():
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute('''
+                    INSERT INTO telegram_chats (chat_id, chat_name, enabled, added_at)
+                    VALUES (?, ?, 1, ?)
+                ''', (str(chat_id), chat_name, datetime.now().isoformat()))
+                conn.commit()
+            except sqlite3.IntegrityError:
+                pass
+            finally:
+                conn.close()
+        self._execute_with_retry(do_add)
     
     def remove_telegram_chat(self, chat_id):
         """Remove a chat from monitoring."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute('DELETE FROM telegram_chats WHERE chat_id = ?', (str(chat_id),))
-        conn.commit()
-        conn.close()
+        def do_remove():
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM telegram_chats WHERE chat_id = ?', (str(chat_id),))
+            conn.commit()
+            conn.close()
+        self._execute_with_retry(do_remove)
     
     def save_telegram_signal(self, chat_id, sender_id, raw_text, parsed_signal):
         """Save a received Telegram signal."""
