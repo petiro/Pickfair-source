@@ -394,7 +394,7 @@ class Database:
             cursor.execute('INSERT INTO telegram_settings (id) VALUES (1)')
         
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def get_settings(self):
         """Get Betfair settings. Strips whitespace from string values."""
@@ -403,7 +403,7 @@ class Database:
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM settings WHERE id = 1')
         row = cursor.fetchone()
-        conn.close()
+        # conn.close() - using persistent connection
         if row:
             settings = dict(row)
             for key in ['username', 'app_key', 'certificate', 'private_key']:
@@ -427,7 +427,7 @@ class Database:
             private_key.strip() if private_key else private_key
         ))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def save_session(self, session_token, session_expiry):
         """Save session token."""
@@ -438,7 +438,7 @@ class Database:
             WHERE id = 1
         ''', (session_token, session_expiry))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def clear_session(self):
         """Clear session token."""
@@ -450,7 +450,7 @@ class Database:
         cursor = conn.cursor()
         cursor.execute('UPDATE settings SET password = ? WHERE id = 1', (password,))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def save_update_url(self, update_url):
         """Save GitHub releases URL for auto-updates."""
@@ -458,7 +458,7 @@ class Database:
         cursor = conn.cursor()
         cursor.execute('UPDATE settings SET update_url = ? WHERE id = 1', (update_url,))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def save_skipped_version(self, version):
         """Save version that user chose to skip."""
@@ -466,7 +466,7 @@ class Database:
         cursor = conn.cursor()
         cursor.execute('UPDATE settings SET skipped_version = ? WHERE id = 1', (version,))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def save_bet(self, event_name, market_id, market_name, bet_type, 
                  selections, total_stake, potential_profit, status):
@@ -484,7 +484,7 @@ class Database:
             status, datetime.now().isoformat()
         ))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def get_recent_bets(self, limit=50):
         """Get recent bets."""
@@ -495,7 +495,7 @@ class Database:
             SELECT * FROM bets ORDER BY placed_at DESC LIMIT ?
         ''', (limit,))
         rows = cursor.fetchall()
-        conn.close()
+        # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
     def save_bet_order(self, bet_id, event_name, market_id, market_name, selection_id,
@@ -516,7 +516,7 @@ class Database:
             average_price, potential_profit, status, datetime.now().isoformat()
         ))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def update_bet_status(self, bet_id, status, matched_stake=None, unmatched_stake=None,
                           profit_loss=None, settled_at=None):
@@ -542,7 +542,7 @@ class Database:
             UPDATE bets SET {', '.join(updates)} WHERE bet_id = ?
         ''', params)
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def get_bets_by_status(self, status_list, limit=50):
         """Get bets by status list."""
@@ -555,7 +555,7 @@ class Database:
             ORDER BY placed_at DESC LIMIT ?
         ''', status_list + [limit])
         rows = cursor.fetchall()
-        conn.close()
+        # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
     def update_bet_outcome(self, bet_id, outcome, profit_loss=None, settled_at=None):
@@ -575,7 +575,7 @@ class Database:
             UPDATE bets SET {', '.join(updates)} WHERE bet_id = ?
         ''', params)
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def get_unsettled_bets(self, limit=100):
         """Get bets without outcome (not yet settled)."""
@@ -588,7 +588,7 @@ class Database:
             ORDER BY placed_at DESC LIMIT ?
         ''', (limit,))
         rows = cursor.fetchall()
-        conn.close()
+        # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
     def get_bet_statistics(self):
@@ -624,7 +624,7 @@ class Database:
         settled = won + lost
         win_rate = (won / settled * 100) if settled > 0 else 0.0
         
-        conn.close()
+        # conn.close() - using persistent connection
         return {
             'total': total,
             'won': won,
@@ -655,7 +655,7 @@ class Database:
         ''', (today,))
         cashout_pl = cursor.fetchone()[0] or 0.0
         
-        conn.close()
+        # conn.close() - using persistent connection
         return bets_pl + cashout_pl
     
     def save_cashout_transaction(self, market_id, selection_id, original_bet_id,
@@ -678,7 +678,7 @@ class Database:
             datetime.now().isoformat()
         ))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def get_active_bets_count(self):
         """Get count of active/pending bets."""
@@ -688,7 +688,7 @@ class Database:
             SELECT COUNT(*) FROM bets WHERE status IN ('PENDING', 'MATCHED', 'PARTIALLY_MATCHED')
         ''')
         result = cursor.fetchone()[0]
-        conn.close()
+        # conn.close() - using persistent connection
         return result
     
     def save_booking(self, event_name, market_id, market_name, selection_id,
@@ -707,7 +707,7 @@ class Database:
         ))
         booking_id = cursor.lastrowid
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
         return booking_id
     
     def get_pending_bookings(self):
@@ -719,7 +719,7 @@ class Database:
             SELECT * FROM bookings WHERE status = 'PENDING' ORDER BY created_at DESC
         ''')
         rows = cursor.fetchall()
-        conn.close()
+        # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
     def update_booking_status(self, booking_id, status, bet_id=None):
@@ -735,7 +735,7 @@ class Database:
                 UPDATE bookings SET status = ? WHERE id = ?
             ''', (status, booking_id))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def cancel_booking(self, booking_id):
         """Cancel a booking."""
@@ -752,7 +752,7 @@ class Database:
         ''', (market_id, bet_id, profit_target, loss_limit, datetime.now().isoformat()))
         rule_id = cursor.lastrowid
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
         return rule_id
     
     def get_active_auto_cashout_rules(self):
@@ -764,7 +764,7 @@ class Database:
             SELECT * FROM auto_cashout_rules WHERE status = 'ACTIVE'
         ''')
         rows = cursor.fetchall()
-        conn.close()
+        # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
     def deactivate_auto_cashout_rule(self, rule_id):
@@ -775,7 +775,7 @@ class Database:
             UPDATE auto_cashout_rules SET status = 'TRIGGERED', triggered_at = ? WHERE id = ?
         ''', (datetime.now().isoformat(), rule_id))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def get_telegram_settings(self):
         """Get Telegram settings."""
@@ -784,7 +784,7 @@ class Database:
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM telegram_settings WHERE id = 1')
         row = cursor.fetchone()
-        conn.close()
+        # conn.close() - using persistent connection
         return dict(row) if row else None
     
     def save_telegram_settings(self, api_id, api_hash, session_string=None, 
@@ -807,7 +807,7 @@ class Database:
               1 if auto_start_listener else 0, 1 if auto_stop_listener else 0,
               copy_mode, copy_chat_id))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def save_telegram_session(self, session_string):
         """Save Telegram session string."""
@@ -815,7 +815,7 @@ class Database:
         cursor = conn.cursor()
         cursor.execute('UPDATE telegram_settings SET session_string = ? WHERE id = 1', (session_string,))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def get_telegram_chats(self):
         """Get monitored Telegram chats."""
@@ -825,7 +825,6 @@ class Database:
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM telegram_chats ORDER BY added_at DESC')
             rows = cursor.fetchall()
-            conn.close()
             return [dict(row) for row in rows]
         return self._execute_with_retry(do_get)
     
@@ -842,8 +841,6 @@ class Database:
                 conn.commit()
             except sqlite3.IntegrityError:
                 pass
-            finally:
-                conn.close()
         self._execute_with_retry(do_add)
     
     def remove_telegram_chat(self, chat_id):
@@ -853,7 +850,6 @@ class Database:
             cursor = conn.cursor()
             cursor.execute('DELETE FROM telegram_chats WHERE chat_id = ?', (str(chat_id),))
             conn.commit()
-            conn.close()
         self._execute_with_retry(do_remove)
     
     def save_telegram_signal(self, chat_id, sender_id, raw_text, parsed_signal):
@@ -873,7 +869,7 @@ class Database:
         ))
         signal_id = cursor.lastrowid
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
         return signal_id
     
     def get_pending_signals(self):
@@ -885,7 +881,7 @@ class Database:
             SELECT * FROM telegram_signals WHERE status = 'PENDING' ORDER BY received_at DESC
         ''')
         rows = cursor.fetchall()
-        conn.close()
+        # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
     def update_signal_status(self, signal_id, status, bet_id=None):
@@ -901,7 +897,7 @@ class Database:
                 UPDATE telegram_signals SET status = ?, processed_at = ? WHERE id = ?
             ''', (status, datetime.now().isoformat(), signal_id))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def get_recent_signals(self, limit=50):
         """Get recent Telegram signals."""
@@ -912,7 +908,7 @@ class Database:
             SELECT * FROM telegram_signals ORDER BY received_at DESC LIMIT ?
         ''', (limit,))
         rows = cursor.fetchall()
-        conn.close()
+        # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
     # Simulation Mode Methods
@@ -923,7 +919,7 @@ class Database:
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM simulation_settings WHERE id = 1')
         row = cursor.fetchone()
-        conn.close()
+        # conn.close() - using persistent connection
         return dict(row) if row else None
     
     def update_simulation_balance(self, new_balance, bet_result=None):
@@ -953,7 +949,7 @@ class Database:
             ''', (new_balance,))
         
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def increment_simulation_bet_count(self, new_balance):
         """Increment total_bets counter and update balance when placing a simulation bet."""
@@ -966,7 +962,7 @@ class Database:
             WHERE id = 1
         ''', (new_balance,))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def reset_simulation(self, starting_balance=1000.0):
         """Reset simulation to starting balance."""
@@ -985,7 +981,7 @@ class Database:
         ''', (starting_balance, starting_balance, datetime.now().isoformat()))
         cursor.execute('DELETE FROM simulation_bets')
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def save_simulation_bet(self, event_name, market_id, market_name, side, 
                             selections, total_stake, potential_profit):
@@ -1004,7 +1000,7 @@ class Database:
         ))
         bet_id = cursor.lastrowid
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
         return bet_id
     
     def get_simulation_bets(self, limit=50):
@@ -1016,7 +1012,7 @@ class Database:
             SELECT * FROM simulation_bets ORDER BY placed_at DESC LIMIT ?
         ''', (limit,))
         rows = cursor.fetchall()
-        conn.close()
+        # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
     def get_simulation_stats(self):
@@ -1042,7 +1038,7 @@ class Database:
         cursor = conn.cursor()
         cursor.execute('SELECT auto_update FROM settings LIMIT 1')
         row = cursor.fetchone()
-        conn.close()
+        # conn.close() - using persistent connection
         return bool(row[0]) if row else True
     
     def set_auto_update_enabled(self, enabled):
@@ -1055,7 +1051,7 @@ class Database:
         else:
             cursor.execute('INSERT INTO settings (auto_update) VALUES (?)', (1 if enabled else 0,))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def get_signal_patterns(self, enabled_only=False):
         """Get all signal patterns."""
@@ -1067,7 +1063,7 @@ class Database:
         else:
             cursor.execute('SELECT * FROM signal_patterns ORDER BY name')
         rows = cursor.fetchall()
-        conn.close()
+        # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
     def save_signal_pattern(self, name, description, pattern, market_type, enabled=True, is_default=False, bet_side='BACK', live_only=False):
@@ -1080,7 +1076,7 @@ class Database:
         ''', (name, description, pattern, market_type, 1 if enabled else 0, 1 if is_default else 0, datetime.now().isoformat(), bet_side, 1 if live_only else 0))
         pattern_id = cursor.lastrowid
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
         return pattern_id
     
     def update_signal_pattern(self, pattern_id, name=None, description=None, pattern=None, market_type=None, enabled=None, bet_side=None, live_only=None):
@@ -1116,7 +1112,7 @@ class Database:
             params.append(pattern_id)
             cursor.execute(f'UPDATE signal_patterns SET {", ".join(updates)} WHERE id = ?', params)
             conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def delete_signal_pattern(self, pattern_id):
         """Delete a signal pattern."""
@@ -1124,7 +1120,7 @@ class Database:
         cursor = conn.cursor()
         cursor.execute('DELETE FROM signal_patterns WHERE id = ?', (pattern_id,))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
     
     def toggle_signal_pattern(self, pattern_id, enabled):
         """Toggle signal pattern enabled status."""
@@ -1132,4 +1128,4 @@ class Database:
         cursor = conn.cursor()
         cursor.execute('UPDATE signal_patterns SET enabled = ? WHERE id = ?', (1 if enabled else 0, pattern_id))
         conn.commit()
-        conn.close()
+        # conn.close() - using persistent connection
