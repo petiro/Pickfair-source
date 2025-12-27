@@ -9,7 +9,44 @@ from tkinter import ttk, messagebox, filedialog, scrolledtext
 import customtkinter as ctk
 import threading
 import json
+import logging
+import os
+import sys
 from datetime import datetime
+
+# Setup file logging
+def setup_logging():
+    """Setup logging to file in APPDATA folder."""
+    if os.name == 'nt':
+        log_dir = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair')
+    else:
+        log_dir = os.path.join(os.path.expanduser('~'), '.pickfair')
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, 'pickfair.log')
+    
+    # Rotate log if too large (>5MB)
+    try:
+        if os.path.exists(log_file) and os.path.getsize(log_file) > 5 * 1024 * 1024:
+            backup = log_file + '.old'
+            if os.path.exists(backup):
+                os.remove(backup)
+            os.rename(log_file, backup)
+    except:
+        pass
+    
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        handlers=[
+            logging.FileHandler(log_file, encoding='utf-8'),
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    logging.info(f"=== Pickfair started ===")
+    logging.info(f"Log file: {log_file}")
+    return log_file
+
+LOG_FILE = setup_logging()
 
 from database import Database
 from betfair_client import BetfairClient, MARKET_TYPES
@@ -21,7 +58,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.27.2"
+APP_VERSION = "3.27.3"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -1524,13 +1561,13 @@ class PickfairApp:
         
         def fetch():
             try:
-                print(f"[DEBUG] Loading markets for event: {event_id}")
+                logging.info(f"Loading markets for event: {event_id}")
                 markets = self.client.get_available_markets(event_id)
-                print(f"[DEBUG] Got {len(markets) if markets else 0} markets")
+                logging.info(f"Got {len(markets) if markets else 0} markets")
                 self.root.after(0, lambda: self._display_available_markets(markets))
             except Exception as e:
                 err_msg = str(e)
-                print(f"[DEBUG] Error loading markets: {err_msg}")
+                logging.error(f"Error loading markets: {err_msg}")
                 self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", f"Errore caricamento mercati: {msg}"))
         
         threading.Thread(target=fetch, daemon=True).start()

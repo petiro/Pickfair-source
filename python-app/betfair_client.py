@@ -446,7 +446,8 @@ class BetfairClient:
         if not self.client:
             raise Exception("Non connesso a Betfair")
         
-        print(f"[DEBUG] get_available_markets called with event_id: {event_id} (type: {type(event_id).__name__})")
+        import logging
+        logging.debug(f"get_available_markets called with event_id: {event_id} (type: {type(event_id).__name__})")
         
         # Ensure event_id is a string for the API
         event_id_str = str(event_id)
@@ -460,10 +461,12 @@ class BetfairClient:
             max_results=100
         )
         
-        print(f"[DEBUG] list_market_catalogue returned {len(markets) if markets else 0} markets")
+        logging.debug(f"list_market_catalogue returned {len(markets) if markets else 0} markets for event {event_id_str}")
         if markets:
             for m in markets[:5]:
-                print(f"[DEBUG] Market: {m.market_id} - {m.market_name} - type: {getattr(m, 'market_type', 'N/A')}")
+                logging.debug(f"Market: {m.market_id} - {m.market_name} - type: {getattr(m, 'market_type', 'N/A')}")
+        else:
+            logging.warning(f"No markets found for event {event_id_str}")
         
         # Get in-play status for these markets
         market_ids = [m.market_id for m in markets]
