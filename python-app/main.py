@@ -6177,12 +6177,24 @@ Evento: {event_name}"""
                 return
             
             # Get market for this event
-            market_type_map = {
-                'OVER_UNDER': 'OVER_UNDER_25',
-                'MATCH_ODDS': 'MATCH_ODDS',
-                'BOTH_TEAMS_TO_SCORE': 'BOTH_TEAMS_TO_SCORE'
-            }
-            bf_market_type = market_type_map.get(market_type, market_type)
+            # Map Over/Under lines to correct Betfair market codes
+            if market_type == 'OVER_UNDER' and over_line:
+                line_map = {
+                    0.5: 'OVER_UNDER_05',
+                    1.5: 'OVER_UNDER_15',
+                    2.5: 'OVER_UNDER_25',
+                    3.5: 'OVER_UNDER_35',
+                    4.5: 'OVER_UNDER_45',
+                    5.5: 'OVER_UNDER_55',
+                }
+                bf_market_type = line_map.get(over_line, 'OVER_UNDER_25')
+            else:
+                market_type_map = {
+                    'OVER_UNDER': 'OVER_UNDER_25',
+                    'MATCH_ODDS': 'MATCH_ODDS',
+                    'BOTH_TEAMS_TO_SCORE': 'BOTH_TEAMS_TO_SCORE'
+                }
+                bf_market_type = market_type_map.get(market_type, market_type)
             
             markets = self.client.list_market_catalogue(
                 event_ids=[matched_event['id']],

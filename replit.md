@@ -4,7 +4,7 @@
 
 Pickfair is a Windows desktop application for automated sports betting through Betfair Exchange Italy API. Built with Python, it features advanced dutching, live betting, Telegram integration, and a modern dark trading interface.
 
-**Current Version**: v3.27.15 (Reply 100% Master)
+**Current Version**: v3.28.0 (Telegram Booking)
 
 ## User Preferences
 
@@ -68,6 +68,16 @@ COLORS = {
 - **Italian Compliance**: 4.5% commission handling
 
 ## Recent Changes (December 2024)
+
+- **v3.28.0**: Telegram Booking System
+  - Nuovo sistema di prenotazioni scommesse da Telegram
+  - Pattern riconosciuti: "Roma Milan book over 2.5 @ 3", "Juventus Inter book 1 @ 2.5"
+  - Supporta Over/Under, 1X2, GG/NG con BACK (default) o LAY
+  - Parole chiave: "book", "prenota", "booking", "reserve"
+  - Cerca automaticamente evento su Betfair e crea prenotazione
+  - Usa stake dalle impostazioni Telegram (fisso EUR o % bankroll)
+  - Metodo parse_booking_signal in telegram_listener.py
+  - Metodo _process_telegram_booking in main.py
 
 - **v3.27.15**: Reply 100% Master (Copy Trading)
   - Nuovo checkbox "Reply 100% Master" nella sezione Copy Trading (modalità Follower)

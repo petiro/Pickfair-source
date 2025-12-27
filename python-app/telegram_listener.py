@@ -180,14 +180,22 @@ class TelegramListener:
         - "Roma Milan BOOK BACK 1 @ 2.5"
         - "Roma - Milan book under 1.5 @ 1.80"
         - "Roma Milan book lay X @ 4.0"
+        - "Roma Milan prenota over 2.5 @ 3"
+        - "Roma Milan reserve 1 @ 2.0"
+        - "Roma Milan booking over 1.5 @ 1.8"
         """
-        text_upper = text.upper()
-        if 'BOOK' not in text_upper:
+        text_lower = text.lower()
+        
+        # Check for any booking keyword
+        booking_keywords = ['book', 'booking', 'prenota', 'prenotazione', 'reserve', 'riserva']
+        has_booking = any(kw in text_lower for kw in booking_keywords)
+        if not has_booking:
             return None
         
         try:
-            # Extract event name (before "book")
-            event_match = re.search(r'^(.+?)\s+book\s+', text, re.IGNORECASE)
+            # Extract event name (before any booking keyword)
+            booking_pattern = r'^(.+?)\s+(?:book|booking|prenota|prenotazione|reserve|riserva)\s+'
+            event_match = re.search(booking_pattern, text, re.IGNORECASE)
             if not event_match:
                 return None
             event = event_match.group(1).strip()
@@ -229,16 +237,27 @@ class TelegramListener:
                 selection = 'No'
                 market_type = 'BOTH_TEAMS_TO_SCORE'
             
-            # 1X2
-            elif re.search(r'\b1\b', text_upper.split('BOOK')[1].split('@')[0]):
-                selection = 'Home'
-                market_type = 'MATCH_ODDS'
-            elif re.search(r'\bX\b', text_upper.split('BOOK')[1].split('@')[0]):
-                selection = 'Draw'
-                market_type = 'MATCH_ODDS'
-            elif re.search(r'\b2\b', text_upper.split('BOOK')[1].split('@')[0]):
-                selection = 'Away'
-                market_type = 'MATCH_ODDS'
+            # 1X2 - extract selection part after booking keyword
+            else:
+                text_upper = text.upper()
+                # Extract selection portion: after booking keyword, before @
+                selection_part = ''
+                for kw in ['BOOK', 'BOOKING', 'PRENOTA', 'PRENOTAZIONE', 'RESERVE', 'RISERVA']:
+                    if kw in text_upper:
+                        parts = text_upper.split(kw)
+                        if len(parts) > 1:
+                            selection_part = parts[1].split('@')[0]
+                            break
+                
+                if re.search(r'\b1\b', selection_part):
+                    selection = 'Home'
+                    market_type = 'MATCH_ODDS'
+                elif re.search(r'\bX\b', selection_part):
+                    selection = 'Draw'
+                    market_type = 'MATCH_ODDS'
+                elif re.search(r'\b2\b', selection_part):
+                    selection = 'Away'
+                    market_type = 'MATCH_ODDS'
             
             if event and target_odds and selection and market_type:
                 return {
