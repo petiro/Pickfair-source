@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.26.0"
+APP_VERSION = "3.26.2"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -2812,15 +2812,12 @@ class PickfairApp:
         
         btn_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
         btn_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
-        ctk.CTkButton(btn_frame, text="Salva", command=self._save_telegram_tab_settings,
-                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
-                      corner_radius=6, width=60).pack(side=tk.LEFT, padx=2)
         ctk.CTkButton(btn_frame, text="Avvia Listener", command=self._start_telegram_listener,
                       fg_color=COLORS['button_success'], hover_color='#4caf50',
-                      corner_radius=6, width=90).pack(side=tk.LEFT, padx=2)
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=2)
         ctk.CTkButton(btn_frame, text="Ferma", command=self._stop_telegram_listener,
                       fg_color=COLORS['button_danger'], hover_color='#c62828',
-                      corner_radius=6, width=55).pack(side=tk.LEFT, padx=2)
+                      corner_radius=6, width=60).pack(side=tk.LEFT, padx=2)
         
         chats_frame = ctk.CTkFrame(subtab_container, fg_color=COLORS['bg_panel'], corner_radius=8)
         self.tg_subtab_frames['chats'] = chats_frame
@@ -5766,20 +5763,19 @@ Evento: {event_name}"""
     
     def _send_telegram_code(self):
         """Send authentication code to Telegram."""
-        self._save_telegram_tab_settings()
         settings = self.db.get_telegram_settings()
         if not settings or not settings.get('api_id') or not settings.get('api_hash'):
             messagebox.showwarning("Attenzione", "Configura prima API ID e Hash")
             return
         
-        phone = self.tg_phone_var.get().strip()
+        phone = self.settings_tg_phone_var.get().strip()
         if not phone:
-            messagebox.showwarning("Attenzione", "Inserisci il numero di telefono")
+            messagebox.showwarning("Attenzione", "Inserisci il numero di telefono nelle Impostazioni")
             return
         
         if not phone.startswith('+'):
             phone = '+' + phone
-            self.tg_phone_var.set(phone)
+            self.settings_tg_phone_var.set(phone)
         
         self.tg_status_label.configure(text="Stato: Invio codice...")
         
@@ -5836,7 +5832,7 @@ Evento: {event_name}"""
             messagebox.showwarning("Attenzione", "Inserisci il codice ricevuto")
             return
         
-        phone = self.tg_phone_var.get().strip()
+        phone = self.settings_tg_phone_var.get().strip()
         password = self.tg_2fa_var.get().strip()
         phone_hash = getattr(self, 'tg_phone_code_hash', None)
         
