@@ -71,8 +71,8 @@ COLORS = {
 
 - **v3.27.15**: Reply 100% Master (Copy Trading)
   - Nuovo checkbox "Reply 100% Master" nella sezione Copy Trading (modalità Follower)
-  - Quando attivo, il follower usa la stessa percentuale di stake del Master
-  - La percentuale viene applicata al bankroll del follower (simulazione o reale)
+  - Quando attivo, il follower replica esattamente gli stessi importi EUR del Master
+  - Messaggio COPY BET ora include StakeEUR (importo esatto in euro)
   - Se disattivo, usa le impostazioni stake normali del follower
   - Nuovo campo database: reply_100_master
 

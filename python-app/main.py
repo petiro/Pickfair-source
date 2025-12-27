@@ -2025,7 +2025,8 @@ class PickfairApp:
                     selection=runner['runnerName'],
                     side=bet_type,
                     price=price,
-                    stake_percent=stake_percent
+                    stake_percent=stake_percent,
+                    stake_amount=stake
                 )
             
             messagebox.showinfo("Successo", 
@@ -2373,7 +2374,8 @@ class PickfairApp:
                         selection=r['runnerName'],
                         side=bet_type,
                         price=r['price'],
-                        stake_percent=stake_percent
+                        stake_percent=stake_percent,
+                        stake_amount=r['stake']
                     )
             
             messagebox.showinfo("Successo", f"Scommesse piazzate!\nImporto matchato: {format_currency(matched)}")
@@ -4907,7 +4909,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             except Exception:
                 pass
     
-    def _broadcast_copy_bet(self, event_name, market_name, selection, side, price, stake_percent):
+    def _broadcast_copy_bet(self, event_name, market_name, selection, side, price, stake_percent, stake_amount=None):
         """Broadcast a COPY BET message to followers (Master mode only)."""
         settings = self.db.get_telegram_settings()
         if not settings:
@@ -4929,7 +4931,8 @@ Mercato: {market_name}
 Selezione: {selection}
 Tipo: {side}
 Quota: {price:.2f}
-Stake: {stake_percent:.1f}%"""
+Stake: {stake_percent:.1f}%
+StakeEUR: {stake_amount:.2f}"""
         
         try:
             self.telegram_listener.send_message(copy_chat_id, message)
@@ -6130,25 +6133,12 @@ Evento: {event_name}"""
         copy_mode = settings.get('copy_mode', 'OFF')
         
         if is_copy_bet and reply_100_master and copy_mode == 'FOLLOWER':
-            # Use Master's stake percentage
-            master_stake_percent = signal.get('stake_percent')
-            if master_stake_percent:
-                # Get follower's bankroll
-                sim_settings = self.db.get_simulation_settings()
-                if self.simulation_mode and sim_settings:
-                    bankroll = sim_settings.get('virtual_balance', 1000)
-                elif self.client:
-                    try:
-                        balance_info = self.client.get_account_balance()
-                        bankroll = balance_info.get('available', 0)
-                    except:
-                        bankroll = 0
-                else:
-                    bankroll = 0
-                
-                stake = round(bankroll * master_stake_percent / 100, 2)
-                stake = max(1.0, stake)  # Minimum 1€
+            # Use Master's exact stake amount in EUR
+            master_stake_amount = signal.get('stake_amount')
+            if master_stake_amount:
+                stake = max(1.0, master_stake_amount)  # Minimum 1€
             else:
+                # Fallback to follower's settings if stake_amount not available
                 stake = float(settings.get('auto_stake', 1.0))
         else:
             stake_type = settings.get('stake_type', 'fixed')
@@ -6705,7 +6695,8 @@ Evento: {event_name}"""
                                 selection=target_runner['runnerName'],
                                 side=bet_side,
                                 price=target_runner['price'],
-                                stake_percent=stake_percent
+                                stake_percent=stake_percent,
+                                stake_amount=stake
                             )
                         messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bet_info}")
                         break

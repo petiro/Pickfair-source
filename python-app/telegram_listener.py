@@ -139,6 +139,7 @@ class TelegramListener:
             tipo = re.search(r'Tipo:\s*(BACK|LAY)', text, re.IGNORECASE)
             quota = re.search(r'Quota:\s*([\d.,]+)', text)
             stake = re.search(r'Stake:\s*([\d.,]+)%?', text)
+            stake_eur = re.search(r'StakeEUR:\s*([\d.,]+)', text)
             
             if evento and mercato and selezione:
                 return {
@@ -148,6 +149,7 @@ class TelegramListener:
                     'side': tipo.group(1).upper() if tipo else 'BACK',
                     'odds': float(quota.group(1).replace(',', '.')) if quota else None,
                     'stake_percent': float(stake.group(1).replace(',', '.')) if stake else None,
+                    'stake_amount': float(stake_eur.group(1).replace(',', '.')) if stake_eur else None,
                     'is_copy_bet': True
                 }
         except Exception as e:
