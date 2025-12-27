@@ -2955,7 +2955,7 @@ class PickfairApp:
         self.tg_available_status = ctk.CTkLabel(avail_btn_frame, text="", text_color=COLORS['text_secondary'])
         self.tg_available_status.pack(side=tk.RIGHT, padx=5)
         
-        avail_columns = ('select', 'type', 'name')
+        avail_columns = ('select', 'type', 'name', 'chat_id')
         avail_tree_container = ctk.CTkFrame(available_frame, fg_color='transparent')
         avail_tree_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
         
@@ -2963,9 +2963,14 @@ class PickfairApp:
         self.tg_available_tree.heading('select', text='')
         self.tg_available_tree.heading('type', text='Tipo')
         self.tg_available_tree.heading('name', text='Nome')
+        self.tg_available_tree.heading('chat_id', text='ID')
         self.tg_available_tree.column('select', width=30)
         self.tg_available_tree.column('type', width=60)
-        self.tg_available_tree.column('name', width=200)
+        self.tg_available_tree.column('name', width=180)
+        self.tg_available_tree.column('chat_id', width=120)
+        
+        # Bind click on ID column to copy to clipboard
+        self.tg_available_tree.bind('<ButtonRelease-1>', self._on_available_tree_click)
         
         avail_scroll = ttk.Scrollbar(avail_tree_container, orient=tk.VERTICAL, command=self.tg_available_tree.yview)
         self.tg_available_tree.configure(yscrollcommand=avail_scroll.set)
@@ -3186,11 +3191,31 @@ class PickfairApp:
             self.tg_available_tree.insert('', tk.END, iid=str(chat['id']), values=(
                 '',
                 chat['type'],
-                chat['name']
+                chat['name'],
+                str(chat['id'])
             ))
         
         count = len(self.tg_available_tree.get_children())
         self.tg_available_status.configure(text=f"{count} chat disponibili")
+    
+    def _on_available_tree_click(self, event):
+        """Handle click on available chats tree - copy ID to clipboard if clicked on ID column."""
+        region = self.tg_available_tree.identify_region(event.x, event.y)
+        if region != 'cell':
+            return
+        
+        column = self.tg_available_tree.identify_column(event.x)
+        # Column #4 is chat_id (columns are #1, #2, #3, #4)
+        if column == '#4':
+            item_id = self.tg_available_tree.identify_row(event.y)
+            if item_id:
+                item = self.tg_available_tree.item(item_id)
+                values = item['values']
+                if len(values) >= 4:
+                    chat_id = str(values[3])
+                    self.root.clipboard_clear()
+                    self.root.clipboard_append(chat_id)
+                    self.tg_available_status.configure(text=f"ID {chat_id} copiato!")
     
     def _add_selected_available_chats(self):
         """Add selected chats from available list to monitored."""
