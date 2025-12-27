@@ -5818,7 +5818,10 @@ Evento: {event_name}"""
                 )
                 self.root.after(0, lambda: self._notify_new_signal(signal))
                 
-                if settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
+                # Handle booking signals
+                if signal.get('is_booking') and signal.get('event'):
+                    self.root.after(100, lambda: self._process_telegram_booking(signal, settings))
+                elif settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
                     self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
             
             def on_status(status, message):
@@ -5914,7 +5917,11 @@ Evento: {event_name}"""
                 
                 print(f"[AUTO-BET DEBUG] Signal received: event={signal.get('event')}, market_type={signal.get('market_type')}, selection={signal.get('selection')}, auto_bet={settings.get('auto_bet')}")
                 
-                if settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
+                # Handle booking signals
+                if signal.get('is_booking') and signal.get('event'):
+                    print(f"[BOOKING DEBUG] Processing booking for: {signal.get('event')} @ {signal.get('target_odds')}")
+                    self.root.after(100, lambda: self._process_telegram_booking(signal, settings))
+                elif settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
                     print(f"[AUTO-BET DEBUG] Processing auto-bet for: {signal.get('event')} - {signal.get('market_type')}")
                     self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
                 else:
@@ -6113,6 +6120,145 @@ Evento: {event_name}"""
         
         if settings.get('require_confirmation') or not settings.get('auto_bet'):
             messagebox.showinfo("Segnale Telegram", msg)
+    
+    def _process_telegram_booking(self, signal, settings):
+        """Process a booking signal from Telegram to create a bet reservation."""
+        if not self.client:
+            messagebox.showwarning("Prenotazione", "Non connesso a Betfair")
+            return
+        
+        event_name = signal.get('event', '')
+        market_type = signal.get('market_type', 'OVER_UNDER')
+        selection = signal.get('selection', '')
+        side = signal.get('side', 'BACK')
+        target_odds = signal.get('target_odds')
+        over_line = signal.get('over_line')
+        
+        if not event_name or not target_odds:
+            return
+        
+        # Get stake from settings
+        stake_type = settings.get('stake_type', 'fixed')
+        if stake_type == 'percent_bankroll':
+            sim_settings = self.db.get_simulation_settings()
+            if self.simulation_mode and sim_settings:
+                bankroll = sim_settings.get('virtual_balance', 1000)
+            elif self.client:
+                try:
+                    balance_info = self.client.get_account_balance()
+                    bankroll = balance_info.get('available', 0)
+                except:
+                    bankroll = 0
+            else:
+                bankroll = 0
+            percent = float(settings.get('stake_percent', 1.0))
+            stake = round(bankroll * percent / 100, 2)
+            stake = max(1.0, stake)
+        else:
+            stake = float(settings.get('auto_stake', 1.0))
+        
+        try:
+            # Find the event on Betfair
+            all_events = self.client.get_football_events(include_inplay=True)
+            event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace(' - ', ' ')
+            
+            matched_event = None
+            for event in all_events:
+                event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ').replace(' - ', ' ')
+                words_signal = set(event_lower.split())
+                words_event = set(event_search.split())
+                common = words_signal & words_event
+                if len(common) >= 2:
+                    matched_event = event
+                    break
+            
+            if not matched_event:
+                messagebox.showwarning("Prenotazione", f"Evento non trovato: {event_name}")
+                return
+            
+            # Get market for this event
+            market_type_map = {
+                'OVER_UNDER': 'OVER_UNDER_25',
+                'MATCH_ODDS': 'MATCH_ODDS',
+                'BOTH_TEAMS_TO_SCORE': 'BOTH_TEAMS_TO_SCORE'
+            }
+            bf_market_type = market_type_map.get(market_type, market_type)
+            
+            markets = self.client.list_market_catalogue(
+                event_ids=[matched_event['id']],
+                market_type_codes=[bf_market_type]
+            )
+            
+            if not markets:
+                messagebox.showwarning("Prenotazione", f"Mercato {market_type} non trovato per {matched_event['name']}")
+                return
+            
+            target_market = markets[0]
+            market_id = target_market['marketId']
+            market_name = target_market.get('marketName', market_type)
+            
+            # Get runners
+            market_with_prices = self.client.get_market_with_prices(market_id)
+            runners = market_with_prices.get('runners', [])
+            
+            # Find matching runner
+            target_runner = None
+            selection_lower = selection.lower()
+            for runner in runners:
+                runner_name = runner.get('runnerName', '').lower()
+                if selection_lower in runner_name or runner_name in selection_lower:
+                    target_runner = runner
+                    break
+                # Check for Over/Under
+                if 'over' in selection_lower and 'over' in runner_name:
+                    target_runner = runner
+                    break
+                if 'under' in selection_lower and 'under' in runner_name:
+                    target_runner = runner
+                    break
+                # Check for 1X2
+                if selection_lower in ['home', '1'] and runner.get('sortPriority', 0) == 1:
+                    target_runner = runner
+                    break
+                if selection_lower in ['draw', 'x'] and runner.get('sortPriority', 0) == 2:
+                    target_runner = runner
+                    break
+                if selection_lower in ['away', '2'] and runner.get('sortPriority', 0) == 3:
+                    target_runner = runner
+                    break
+            
+            if not target_runner:
+                messagebox.showwarning("Prenotazione", f"Selezione '{selection}' non trovata nel mercato")
+                return
+            
+            # Get current price
+            current_price = target_runner.get('backPrice') if side == 'BACK' else target_runner.get('layPrice')
+            current_price = current_price or 0
+            
+            # Save booking
+            booking_id = self.db.save_booking(
+                event_name=matched_event['name'],
+                market_id=market_id,
+                market_name=market_name,
+                selection_id=target_runner['selectionId'],
+                runner_name=target_runner['runnerName'],
+                side=side,
+                target_price=target_odds,
+                stake=stake,
+                current_price=current_price
+            )
+            
+            messagebox.showinfo("Prenotazione", 
+                f"Prenotazione creata!\n\n"
+                f"Evento: {matched_event['name']}\n"
+                f"Selezione: {target_runner['runnerName']}\n"
+                f"Tipo: {side}\n"
+                f"Quota target: {target_odds}\n"
+                f"Quota attuale: {current_price:.2f}\n"
+                f"Stake: {stake:.2f}€")
+        
+        except Exception as e:
+            messagebox.showerror("Errore Prenotazione", f"Errore: {str(e)}")
     
     def _process_telegram_auto_bet(self, signal, settings):
         """Process automatic bet from Telegram signal."""
