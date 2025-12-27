@@ -93,28 +93,34 @@ class Database:
     def _execute(self, func):
         """Execute database operation with lock protection."""
         import time
-        max_retries = 3
+        import logging
+        max_retries = 5
         for attempt in range(max_retries):
             try:
                 with self._lock:
                     return func(self._get_connection())
             except sqlite3.OperationalError as e:
                 if "locked" in str(e).lower() and attempt < max_retries - 1:
-                    time.sleep(0.5 * (attempt + 1))
+                    logging.warning(f"Database locked, retry {attempt+1}/{max_retries}")
+                    time.sleep(0.3 * (attempt + 1))
                     continue
+                logging.error(f"Database lock error after {max_retries} retries: {e}")
                 raise
     
-    def _execute_with_retry(self, func, max_retries=3):
+    def _execute_with_retry(self, func, max_retries=5):
         """Legacy: Execute database operation with retry on lock."""
         import time
+        import logging
         for attempt in range(max_retries):
             try:
                 with self._lock:
                     return func()
             except sqlite3.OperationalError as e:
                 if "locked" in str(e).lower() and attempt < max_retries - 1:
-                    time.sleep(0.5 * (attempt + 1))
+                    logging.warning(f"Database locked, retry {attempt+1}/{max_retries}")
+                    time.sleep(0.3 * (attempt + 1))
                     continue
+                logging.error(f"Database lock error after {max_retries} retries: {e}")
                 raise
     
     def close(self):
@@ -778,12 +784,13 @@ class Database:
     
     def get_telegram_settings(self):
         """Get Telegram settings."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM telegram_settings WHERE id = 1')
-        row = cursor.fetchone()
-        # conn.close() - using persistent connection
-        return dict(row) if row else None
+        def do_get():
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM telegram_settings WHERE id = 1')
+            row = cursor.fetchone()
+            return dict(row) if row else None
+        return self._execute_with_retry(do_get)
     
     def save_telegram_settings(self, api_id, api_hash, session_string=None, 
                                 phone_number=None, enabled=False, auto_bet=False,
@@ -791,29 +798,31 @@ class Database:
                                 auto_start_listener=False, auto_stop_listener=True,
                                 copy_mode='OFF', copy_chat_id=None):
         """Save Telegram settings."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE telegram_settings SET 
-                api_id = ?, api_hash = ?, session_string = ?, phone_number = ?,
-                enabled = ?, auto_bet = ?, require_confirmation = ?, auto_stake = ?,
-                auto_start_listener = ?, auto_stop_listener = ?,
-                copy_mode = ?, copy_chat_id = ?
-            WHERE id = 1
-        ''', (api_id, api_hash, session_string, phone_number,
-              1 if enabled else 0, 1 if auto_bet else 0, 1 if require_confirmation else 0, auto_stake,
-              1 if auto_start_listener else 0, 1 if auto_stop_listener else 0,
-              copy_mode, copy_chat_id))
-        conn.commit()
-        # conn.close() - using persistent connection
+        def do_save():
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE telegram_settings SET 
+                    api_id = ?, api_hash = ?, session_string = ?, phone_number = ?,
+                    enabled = ?, auto_bet = ?, require_confirmation = ?, auto_stake = ?,
+                    auto_start_listener = ?, auto_stop_listener = ?,
+                    copy_mode = ?, copy_chat_id = ?
+                WHERE id = 1
+            ''', (api_id, api_hash, session_string, phone_number,
+                  1 if enabled else 0, 1 if auto_bet else 0, 1 if require_confirmation else 0, auto_stake,
+                  1 if auto_start_listener else 0, 1 if auto_stop_listener else 0,
+                  copy_mode, copy_chat_id))
+            conn.commit()
+        self._execute_with_retry(do_save)
     
     def save_telegram_session(self, session_string):
         """Save Telegram session string."""
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        cursor.execute('UPDATE telegram_settings SET session_string = ? WHERE id = 1', (session_string,))
-        conn.commit()
-        # conn.close() - using persistent connection
+        def do_save():
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute('UPDATE telegram_settings SET session_string = ? WHERE id = 1', (session_string,))
+            conn.commit()
+        self._execute_with_retry(do_save)
     
     def get_telegram_chats(self):
         """Get monitored Telegram chats."""

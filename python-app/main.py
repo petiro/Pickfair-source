@@ -58,7 +58,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.27.6"
+APP_VERSION = "3.27.7"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -3187,20 +3187,28 @@ class PickfairApp:
             return
         
         count = 0
+        errors = 0
         for item_id in selected:
-            item = self.tg_available_tree.item(item_id)
-            values = item['values']
-            chat_id = int(item_id)
-            chat_name = values[2] if len(values) > 2 else str(chat_id)
-            
-            self.db.add_telegram_chat(chat_id, chat_name)
-            self.tg_available_tree.delete(item_id)
-            count += 1
+            try:
+                item = self.tg_available_tree.item(item_id)
+                values = item['values']
+                chat_id = int(item_id)
+                chat_name = values[2] if len(values) > 2 else str(chat_id)
+                
+                self.db.add_telegram_chat(chat_id, chat_name)
+                self.tg_available_tree.delete(item_id)
+                count += 1
+            except Exception as e:
+                errors += 1
+                logging.error(f"Error adding chat {item_id}: {e}")
         
         self._refresh_telegram_chats_tree()
         remaining = len(self.tg_available_tree.get_children())
         self.tg_available_status.configure(text=f"{remaining} chat disponibili")
-        messagebox.showinfo("Aggiunto", f"Aggiunte {count} chat alla lista monitorata")
+        if errors > 0:
+            messagebox.showwarning("Attenzione", f"Aggiunte {count} chat, {errors} errori")
+        else:
+            messagebox.showinfo("Aggiunto", f"Aggiunte {count} chat alla lista monitorata")
     
     def _add_telegram_chat(self):
         """Add a new telegram chat to monitor."""

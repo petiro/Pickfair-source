@@ -4,7 +4,7 @@
 
 Pickfair is a Windows desktop application for automated sports betting through Betfair Exchange Italy API. Built with Python, it features advanced dutching, live betting, Telegram integration, and a modern dark trading interface.
 
-**Current Version**: v3.27.6 (Statistics Fix)
+**Current Version**: v3.27.7 (Database Lock Fix)
 
 ## User Preferences
 
@@ -68,6 +68,12 @@ COLORS = {
 - **Italian Compliance**: 4.5% commission handling
 
 ## Recent Changes (December 2024)
+
+- **v3.27.7**: Database Lock Fix (Telegram)
+  - Aggiunto pattern retry a get_telegram_settings, save_telegram_settings, save_telegram_session
+  - Aumentati retry da 3 a 5 con delay ridotto (0.3s invece di 0.5s)
+  - Migliorata gestione errori in _add_selected_available_chats con try/except
+  - Aggiunto logging per debug dei retry database
 
 - **v3.27.6**: Statistics Fix
   - Corretto bug nella tab Statistiche: ora mostra tutte le scommesse salvate
