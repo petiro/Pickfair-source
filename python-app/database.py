@@ -6,8 +6,12 @@ Stores Betfair credentials, certificates, and bet history.
 import sqlite3
 import os
 import json
+import threading
 from datetime import datetime
 from pathlib import Path
+
+# Thread lock for database access
+_db_lock = threading.Lock()
 
 def get_db_path():
     """Get database path in user's app data directory."""
@@ -25,9 +29,16 @@ class Database:
         self.db_path = get_db_path()
         self._init_db()
     
+    def _get_connection(self):
+        """Get database connection with timeout and WAL mode."""
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=30000")
+        return conn
+    
     def _init_db(self):
         """Initialize database tables."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -298,7 +309,7 @@ class Database:
     
     def get_settings(self):
         """Get Betfair settings. Strips whitespace from string values."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM settings WHERE id = 1')
@@ -314,7 +325,7 @@ class Database:
     
     def save_credentials(self, username, app_key, certificate, private_key):
         """Save Betfair credentials. Strips whitespace from username and app_key."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE settings SET 
@@ -331,7 +342,7 @@ class Database:
     
     def save_session(self, session_token, session_expiry):
         """Save session token."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE settings SET session_token = ?, session_expiry = ?
@@ -346,7 +357,7 @@ class Database:
     
     def save_password(self, password):
         """Save or clear password."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('UPDATE settings SET password = ? WHERE id = 1', (password,))
         conn.commit()
@@ -354,7 +365,7 @@ class Database:
     
     def save_update_url(self, update_url):
         """Save GitHub releases URL for auto-updates."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('UPDATE settings SET update_url = ? WHERE id = 1', (update_url,))
         conn.commit()
@@ -362,7 +373,7 @@ class Database:
     
     def save_skipped_version(self, version):
         """Save version that user chose to skip."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('UPDATE settings SET skipped_version = ? WHERE id = 1', (version,))
         conn.commit()
@@ -371,7 +382,7 @@ class Database:
     def save_bet(self, event_name, market_id, market_name, bet_type, 
                  selections, total_stake, potential_profit, status):
         """Save bet to history."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO bets 
@@ -388,7 +399,7 @@ class Database:
     
     def get_recent_bets(self, limit=50):
         """Get recent bets."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
@@ -402,7 +413,7 @@ class Database:
                        runner_name, side, price, stake, liability, status, matched_stake=0,
                        unmatched_stake=0, average_price=None, potential_profit=None):
         """Save a bet order."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO bets 
@@ -421,7 +432,7 @@ class Database:
     def update_bet_status(self, bet_id, status, matched_stake=None, unmatched_stake=None,
                           profit_loss=None, settled_at=None):
         """Update bet status."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         updates = ['status = ?']
         params = [status]
@@ -446,7 +457,7 @@ class Database:
     
     def get_bets_by_status(self, status_list, limit=50):
         """Get bets by status list."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         placeholders = ','.join(['?' for _ in status_list])
@@ -460,7 +471,7 @@ class Database:
     
     def update_bet_outcome(self, bet_id, outcome, profit_loss=None, settled_at=None):
         """Update bet outcome after settlement (WON/LOST/VOID)."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         updates = ['outcome = ?', 'status = ?']
         params = [outcome, 'SETTLED']
@@ -479,7 +490,7 @@ class Database:
     
     def get_unsettled_bets(self, limit=100):
         """Get bets without outcome (not yet settled)."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
@@ -493,7 +504,7 @@ class Database:
     
     def get_bet_statistics(self):
         """Get betting statistics (total, won, lost, pending, P/L)."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         # Total bets
@@ -537,7 +548,7 @@ class Database:
     
     def get_today_profit_loss(self):
         """Get today's total profit/loss including cashouts."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         today = datetime.now().strftime('%Y-%m-%d')
         
@@ -563,7 +574,7 @@ class Database:
                                   original_price, cashout_side, cashout_stake,
                                   cashout_price, profit_loss):
         """Save a cashout transaction."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO cashout_transactions 
@@ -582,7 +593,7 @@ class Database:
     
     def get_active_bets_count(self):
         """Get count of active/pending bets."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             SELECT COUNT(*) FROM bets WHERE status IN ('PENDING', 'MATCHED', 'PARTIALLY_MATCHED')
@@ -594,7 +605,7 @@ class Database:
     def save_booking(self, event_name, market_id, market_name, selection_id,
                      runner_name, side, target_price, stake, current_price):
         """Save a bet booking."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO bookings 
@@ -612,7 +623,7 @@ class Database:
     
     def get_pending_bookings(self):
         """Get all pending bookings."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
@@ -624,7 +635,7 @@ class Database:
     
     def update_booking_status(self, booking_id, status, bet_id=None):
         """Update booking status."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         if bet_id:
             cursor.execute('''
@@ -643,7 +654,7 @@ class Database:
     
     def save_auto_cashout_rule(self, market_id, bet_id, profit_target, loss_limit):
         """Save auto-cashout rule."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO auto_cashout_rules 
@@ -657,7 +668,7 @@ class Database:
     
     def get_active_auto_cashout_rules(self):
         """Get active auto-cashout rules."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
@@ -669,7 +680,7 @@ class Database:
     
     def deactivate_auto_cashout_rule(self, rule_id):
         """Deactivate an auto-cashout rule."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE auto_cashout_rules SET status = 'TRIGGERED', triggered_at = ? WHERE id = ?
@@ -679,7 +690,7 @@ class Database:
     
     def get_telegram_settings(self):
         """Get Telegram settings."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM telegram_settings WHERE id = 1')
@@ -693,7 +704,7 @@ class Database:
                                 auto_start_listener=False, auto_stop_listener=True,
                                 copy_mode='OFF', copy_chat_id=None):
         """Save Telegram settings."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE telegram_settings SET 
@@ -711,7 +722,7 @@ class Database:
     
     def save_telegram_session(self, session_string):
         """Save Telegram session string."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('UPDATE telegram_settings SET session_string = ? WHERE id = 1', (session_string,))
         conn.commit()
@@ -719,7 +730,7 @@ class Database:
     
     def get_telegram_chats(self):
         """Get monitored Telegram chats."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM telegram_chats ORDER BY added_at DESC')
@@ -729,7 +740,7 @@ class Database:
     
     def add_telegram_chat(self, chat_id, chat_name=''):
         """Add a chat to monitor."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute('''
@@ -743,7 +754,7 @@ class Database:
     
     def remove_telegram_chat(self, chat_id):
         """Remove a chat from monitoring."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('DELETE FROM telegram_chats WHERE chat_id = ?', (str(chat_id),))
         conn.commit()
@@ -751,7 +762,7 @@ class Database:
     
     def save_telegram_signal(self, chat_id, sender_id, raw_text, parsed_signal):
         """Save a received Telegram signal."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO telegram_signals 
@@ -771,7 +782,7 @@ class Database:
     
     def get_pending_signals(self):
         """Get pending Telegram signals."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
@@ -783,7 +794,7 @@ class Database:
     
     def update_signal_status(self, signal_id, status, bet_id=None):
         """Update signal status."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         if bet_id:
             cursor.execute('''
@@ -798,7 +809,7 @@ class Database:
     
     def get_recent_signals(self, limit=50):
         """Get recent Telegram signals."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
@@ -811,7 +822,7 @@ class Database:
     # Simulation Mode Methods
     def get_simulation_settings(self):
         """Get simulation settings and balance."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM simulation_settings WHERE id = 1')
@@ -821,7 +832,7 @@ class Database:
     
     def update_simulation_balance(self, new_balance, bet_result=None):
         """Update virtual balance after a bet."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         if bet_result == 'won':
@@ -850,7 +861,7 @@ class Database:
     
     def increment_simulation_bet_count(self, new_balance):
         """Increment total_bets counter and update balance when placing a simulation bet."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE simulation_settings SET 
@@ -863,7 +874,7 @@ class Database:
     
     def reset_simulation(self, starting_balance=1000.0):
         """Reset simulation to starting balance."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE simulation_settings SET 
@@ -883,7 +894,7 @@ class Database:
     def save_simulation_bet(self, event_name, market_id, market_name, side, 
                             selections, total_stake, potential_profit):
         """Save a simulation bet."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO simulation_bets 
@@ -902,7 +913,7 @@ class Database:
     
     def get_simulation_bets(self, limit=50):
         """Get simulation bet history."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
@@ -931,7 +942,7 @@ class Database:
     
     def get_auto_update_enabled(self):
         """Get auto-update enabled setting."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('SELECT auto_update FROM settings LIMIT 1')
         row = cursor.fetchone()
@@ -940,7 +951,7 @@ class Database:
     
     def set_auto_update_enabled(self, enabled):
         """Set auto-update enabled setting."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('SELECT COUNT(*) FROM settings')
         if cursor.fetchone()[0] > 0:
@@ -952,7 +963,7 @@ class Database:
     
     def get_signal_patterns(self, enabled_only=False):
         """Get all signal patterns."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         if enabled_only:
@@ -965,7 +976,7 @@ class Database:
     
     def save_signal_pattern(self, name, description, pattern, market_type, enabled=True, is_default=False, bet_side='BACK', live_only=False):
         """Save a new signal pattern."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO signal_patterns (name, description, pattern, market_type, enabled, is_default, created_at, bet_side, live_only)
@@ -978,7 +989,7 @@ class Database:
     
     def update_signal_pattern(self, pattern_id, name=None, description=None, pattern=None, market_type=None, enabled=None, bet_side=None, live_only=None):
         """Update an existing signal pattern."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         updates = []
@@ -1013,7 +1024,7 @@ class Database:
     
     def delete_signal_pattern(self, pattern_id):
         """Delete a signal pattern."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('DELETE FROM signal_patterns WHERE id = ?', (pattern_id,))
         conn.commit()
@@ -1021,7 +1032,7 @@ class Database:
     
     def toggle_signal_pattern(self, pattern_id, enabled):
         """Toggle signal pattern enabled status."""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('UPDATE signal_patterns SET enabled = ? WHERE id = ?', (1 if enabled else 0, pattern_id))
         conn.commit()
