@@ -3989,10 +3989,39 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         ctk.CTkEntry(tg_grid, textvariable=self.settings_tg_phone_var, width=150,
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=2, column=1, pady=2, padx=5, sticky=tk.W)
         
-        ctk.CTkLabel(tg_grid, text="Stake Auto (EUR):", text_color=COLORS['text_secondary']).grid(row=3, column=0, sticky=tk.W, pady=2)
+        # Stake Type Section
+        stake_frame = ctk.CTkFrame(tg_frame, fg_color='transparent')
+        stake_frame.pack(fill=tk.X, padx=15, pady=5)
+        
+        ctk.CTkLabel(stake_frame, text="Tipo Stake:", font=('Segoe UI', 10, 'bold'),
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W)
+        
+        self.settings_tg_stake_type_var = tk.StringVar(value=tg_settings.get('stake_type', 'fixed'))
+        
+        stake_options = ctk.CTkFrame(stake_frame, fg_color='transparent')
+        stake_options.pack(fill=tk.X, pady=2)
+        
+        # Stake Fisso
+        fixed_frame = ctk.CTkFrame(stake_options, fg_color='transparent')
+        fixed_frame.pack(anchor=tk.W, pady=2)
+        ctk.CTkRadioButton(fixed_frame, text="Stake Fisso (EUR):", variable=self.settings_tg_stake_type_var, value='fixed',
+                          fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                          text_color=COLORS['text_primary']).pack(side=tk.LEFT)
         self.settings_tg_stake_var = tk.StringVar(value=str(tg_settings.get('auto_stake', '1.0')))
-        ctk.CTkEntry(tg_grid, textvariable=self.settings_tg_stake_var, width=80,
-                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=3, column=1, pady=2, padx=5, sticky=tk.W)
+        ctk.CTkEntry(fixed_frame, textvariable=self.settings_tg_stake_var, width=60,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=5)
+        
+        # Percentuale Bankroll
+        percent_br_frame = ctk.CTkFrame(stake_options, fg_color='transparent')
+        percent_br_frame.pack(anchor=tk.W, pady=2)
+        ctk.CTkRadioButton(percent_br_frame, text="% Bankroll:", variable=self.settings_tg_stake_type_var, value='percent_bankroll',
+                          fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                          text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        self.settings_tg_percent_var = tk.StringVar(value=str(tg_settings.get('stake_percent', '1.0')))
+        ctk.CTkEntry(percent_br_frame, textvariable=self.settings_tg_percent_var, width=50,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(percent_br_frame, text="% (es. 3 = 3% del saldo)", 
+                     text_color=COLORS['text_tertiary']).pack(side=tk.LEFT, padx=5)
         
         tg_checks = ctk.CTkFrame(tg_frame, fg_color='transparent')
         tg_checks.pack(fill=tk.X, padx=15, pady=5)
@@ -4028,6 +4057,11 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         except:
             stake = 1.0
         
+        try:
+            stake_percent = float(self.settings_tg_percent_var.get().replace(',', '.'))
+        except:
+            stake_percent = 1.0
+        
         settings = self.db.get_telegram_settings() or {}
         self.db.save_telegram_settings(
             api_id=self.settings_tg_api_id_var.get(),
@@ -4041,7 +4075,10 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             auto_start_listener=self.settings_tg_auto_start_var.get(),
             auto_stop_listener=self.settings_tg_auto_stop_var.get(),
             copy_mode=settings.get('copy_mode', 'OFF'),
-            copy_chat_id=settings.get('copy_chat_id', '')
+            copy_chat_id=settings.get('copy_chat_id', ''),
+            stake_type=self.settings_tg_stake_type_var.get(),
+            stake_percent=stake_percent,
+            dutching_enabled=settings.get('dutching_enabled', 0)
         )
         messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
     
