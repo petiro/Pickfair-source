@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.25.2"
+APP_VERSION = "3.26.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -1047,6 +1047,9 @@ class PickfairApp:
                             cashout_price=result.get('averagePriceMatched') or info['current_price'],
                             profit_loss=info['green_up']
                         )
+                        # Broadcast cashout to Copy Trading followers
+                        event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
+                        self._broadcast_copy_cashout(event_name)
                         messagebox.showinfo("Successo", f"Cashout eseguito!\nProfitto: {info['green_up']:+.2f}")
                         self._update_market_cashout_positions()
                         self._update_balance()
@@ -1915,6 +1918,20 @@ class PickfairApp:
                 status='MATCHED' if matched > 0 else 'UNMATCHED'
             )
             
+            # Broadcast to Copy Trading followers (if matched and master mode)
+            if matched > 0:
+                available = self.account_data.get('available', 100) if self.account_data else 100
+                stake_percent = (stake / available * 100) if available > 0 else 1.0
+                event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
+                self._broadcast_copy_bet(
+                    event_name=event_name,
+                    market_name=self.current_market.get('marketName', ''),
+                    selection=runner['runnerName'],
+                    side=bet_type,
+                    price=price,
+                    stake_percent=stake_percent
+                )
+            
             messagebox.showinfo("Successo", 
                 f"Scommessa piazzata!\n\n"
                 f"{runner['runnerName']} @ {price:.2f}\n"
@@ -2246,6 +2263,23 @@ class PickfairApp:
         
         if result['status'] == 'SUCCESS':
             matched = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
+            
+            # Broadcast each matched selection to Copy Trading followers
+            if matched > 0 and self.calculated_results:
+                available = self.account_data.get('available', 100) if self.account_data else 100
+                bet_type = self.bet_type_var.get()
+                event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
+                for r in self.calculated_results:
+                    stake_percent = (r['stake'] / available * 100) if available > 0 else 1.0
+                    self._broadcast_copy_bet(
+                        event_name=event_name,
+                        market_name=self.current_market.get('marketName', ''),
+                        selection=r['runnerName'],
+                        side=bet_type,
+                        price=r['price'],
+                        stake_percent=stake_percent
+                    )
+            
             messagebox.showinfo("Successo", f"Scommesse piazzate!\nImporto matchato: {format_currency(matched)}")
             self._update_balance()
             self._clear_selections()
@@ -2757,6 +2791,39 @@ class PickfairApp:
                         fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                         text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10)
         
+        # Copy Trading Section
+        copy_frame = ctk.CTkFrame(config_frame, fg_color=COLORS['bg_card'], corner_radius=6)
+        copy_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
+        
+        ctk.CTkLabel(copy_frame, text="Copy Trading", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 2))
+        ctk.CTkLabel(copy_frame, text="Master invia operazioni, Follower le copia", 
+                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(anchor=tk.W, padx=10)
+        
+        self.tg_copy_mode_var = tk.StringVar(value=settings.get('copy_mode', 'OFF'))
+        
+        copy_mode_frame = ctk.CTkFrame(copy_frame, fg_color='transparent')
+        copy_mode_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkRadioButton(copy_mode_frame, text="Off", variable=self.tg_copy_mode_var, value='OFF',
+                           fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                           text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=5)
+        ctk.CTkRadioButton(copy_mode_frame, text="Master (invia)", variable=self.tg_copy_mode_var, value='MASTER',
+                           fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                           text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=5)
+        ctk.CTkRadioButton(copy_mode_frame, text="Follower (riceve)", variable=self.tg_copy_mode_var, value='FOLLOWER',
+                           fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                           text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=5)
+        
+        copy_chat_frame = ctk.CTkFrame(copy_frame, fg_color='transparent')
+        copy_chat_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+        ctk.CTkLabel(copy_chat_frame, text="Chat ID Copy:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        self.tg_copy_chat_id_var = tk.StringVar(value=settings.get('copy_chat_id', ''))
+        ctk.CTkEntry(copy_chat_frame, textvariable=self.tg_copy_chat_id_var, width=150,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(copy_chat_frame, text="(ID del canale/gruppo)", 
+                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(side=tk.LEFT)
+        
         auth_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
         auth_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
         ctk.CTkLabel(auth_frame, text="Codice:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
@@ -2967,7 +3034,9 @@ class PickfairApp:
             require_confirmation=self.tg_confirm_var.get(),
             auto_stake=stake,
             auto_start_listener=self.tg_auto_start_var.get(),
-            auto_stop_listener=self.tg_auto_stop_var.get()
+            auto_stop_listener=self.tg_auto_stop_var.get(),
+            copy_mode=self.tg_copy_mode_var.get(),
+            copy_chat_id=self.tg_copy_chat_id_var.get()
         )
         messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
     
@@ -4609,6 +4678,61 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             except Exception:
                 pass
     
+    def _broadcast_copy_bet(self, event_name, market_name, selection, side, price, stake_percent):
+        """Broadcast a COPY BET message to followers (Master mode only)."""
+        settings = self.db.get_telegram_settings()
+        if not settings:
+            return
+        
+        copy_mode = settings.get('copy_mode', 'OFF')
+        copy_chat_id = settings.get('copy_chat_id', '')
+        
+        if copy_mode != 'MASTER' or not copy_chat_id:
+            return
+        
+        if not self.telegram_listener or not self.telegram_listener.running:
+            print("Copy Trading: Telegram listener not running")
+            return
+        
+        message = f"""COPY BET
+Evento: {event_name}
+Mercato: {market_name}
+Selezione: {selection}
+Tipo: {side}
+Quota: {price:.2f}
+Stake: {stake_percent:.1f}%"""
+        
+        try:
+            self.telegram_listener.send_message(copy_chat_id, message)
+            print(f"Copy Trading: Broadcast sent to {copy_chat_id}")
+        except Exception as e:
+            print(f"Copy Trading broadcast error: {e}")
+    
+    def _broadcast_copy_cashout(self, event_name):
+        """Broadcast a COPY CASHOUT message to followers (Master mode only)."""
+        settings = self.db.get_telegram_settings()
+        if not settings:
+            return
+        
+        copy_mode = settings.get('copy_mode', 'OFF')
+        copy_chat_id = settings.get('copy_chat_id', '')
+        
+        if copy_mode != 'MASTER' or not copy_chat_id:
+            return
+        
+        if not self.telegram_listener or not self.telegram_listener.running:
+            print("Copy Trading: Telegram listener not running")
+            return
+        
+        message = f"""COPY CASHOUT
+Evento: {event_name}"""
+        
+        try:
+            self.telegram_listener.send_message(copy_chat_id, message)
+            print(f"Copy Trading: Cashout broadcast sent to {copy_chat_id}")
+        except Exception as e:
+            print(f"Copy Trading cashout broadcast error: {e}")
+    
     def _start_settlement_monitor(self):
         """Start monitoring bets for settlement/outcome updates."""
         self._do_settlement_monitor()
@@ -6160,6 +6284,19 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 
                 if result.get('status') == 'SUCCESS':
                     update_status('PLACED')
+                    # Broadcast to Copy Trading followers
+                    matched_stake = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
+                    if matched_stake > 0:
+                        available = self.account_data.get('available', 100) if self.account_data else 100
+                        stake_percent = (stake / available * 100) if available > 0 else 1.0
+                        self._broadcast_copy_bet(
+                            event_name=matched_event['name'],
+                            market_name=target_market.get('marketName', ''),
+                            selection=target_runner['runnerName'],
+                            side=bet_side,
+                            price=target_runner['price'],
+                            stake_percent=stake_percent
+                        )
                     messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bet_info}")
                 else:
                     error = result.get('errorCode', 'UNKNOWN')

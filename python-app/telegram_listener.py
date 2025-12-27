@@ -103,6 +103,72 @@ class TelegramListener:
         self.message_callback = on_message
         self.status_callback = on_status
     
+    def send_message(self, chat_id: str, message: str):
+        """Send a message to a Telegram chat (for Copy Trading MASTER mode)."""
+        if not self.client or not self.running:
+            print("Telegram client not connected, cannot send message")
+            return False
+        
+        async def _send():
+            try:
+                await self.client.send_message(int(chat_id), message)
+                return True
+            except Exception as e:
+                print(f"Error sending Telegram message: {e}")
+                return False
+        
+        if self.loop and self.loop.is_running():
+            future = asyncio.run_coroutine_threadsafe(_send(), self.loop)
+            try:
+                return future.result(timeout=10)
+            except Exception as e:
+                print(f"Error sending message: {e}")
+                return False
+        return False
+    
+    def parse_copy_bet(self, text: str) -> Optional[Dict]:
+        """Parse a COPY BET message from master."""
+        if 'COPY BET' not in text.upper():
+            return None
+        
+        try:
+            evento = re.search(r'Evento:\s*(.+)', text)
+            mercato = re.search(r'Mercato:\s*(.+)', text)
+            selezione = re.search(r'Selezione:\s*(.+)', text)
+            tipo = re.search(r'Tipo:\s*(BACK|LAY)', text, re.IGNORECASE)
+            quota = re.search(r'Quota:\s*([\d.,]+)', text)
+            stake = re.search(r'Stake:\s*([\d.,]+)%?', text)
+            
+            if evento and mercato and selezione:
+                return {
+                    'event': evento.group(1).strip(),
+                    'market_type': mercato.group(1).strip(),
+                    'selection': selezione.group(1).strip(),
+                    'side': tipo.group(1).upper() if tipo else 'BACK',
+                    'odds': float(quota.group(1).replace(',', '.')) if quota else None,
+                    'stake_percent': float(stake.group(1).replace(',', '.')) if stake else None,
+                    'is_copy_bet': True
+                }
+        except Exception as e:
+            print(f"Error parsing COPY BET: {e}")
+        return None
+    
+    def parse_copy_cashout(self, text: str) -> Optional[Dict]:
+        """Parse a COPY CASHOUT message from master."""
+        if 'COPY CASHOUT' not in text.upper():
+            return None
+        
+        try:
+            evento = re.search(r'Evento:\s*(.+)', text)
+            if evento:
+                return {
+                    'event': evento.group(1).strip(),
+                    'is_copy_cashout': True
+                }
+        except Exception as e:
+            print(f"Error parsing COPY CASHOUT: {e}")
+        return None
+    
     def parse_signal(self, text: str) -> Optional[Dict]:
         """
         Parse a message text to extract betting signal.
@@ -383,6 +449,24 @@ class TelegramListener:
                     'timestamp': datetime.now().isoformat()
                 })
             
+            # Check for COPY BET/CASHOUT first (Copy Trading)
+            copy_bet = self.parse_copy_bet(text)
+            if copy_bet and self.signal_callback:
+                copy_bet['chat_id'] = chat_id
+                copy_bet['sender_id'] = sender_id
+                copy_bet['raw_text'] = text
+                self.signal_callback(copy_bet)
+                return
+            
+            copy_cashout = self.parse_copy_cashout(text)
+            if copy_cashout and self.signal_callback:
+                copy_cashout['chat_id'] = chat_id
+                copy_cashout['sender_id'] = sender_id
+                copy_cashout['raw_text'] = text
+                self.signal_callback(copy_cashout)
+                return
+            
+            # Parse normal signals
             signal = self.parse_signal(text)
             if signal and self.signal_callback:
                 signal['chat_id'] = chat_id
