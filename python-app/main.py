@@ -2863,6 +2863,16 @@ class PickfairApp:
                            fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                            text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=5)
         
+        # Follower option: Reply 100% Master
+        follower_options_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
+        follower_options_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        self.tg_reply_master_var = tk.BooleanVar(value=settings.get('reply_100_master', False))
+        self.reply_master_checkbox = ctk.CTkCheckBox(follower_options_frame, text="Reply 100% Master (usa stake % del Master)", 
+                                                      variable=self.tg_reply_master_var,
+                                                      fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                                                      text_color=COLORS['text_primary'])
+        self.reply_master_checkbox.pack(side=tk.LEFT, padx=5)
+        
         copy_chat_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
         copy_chat_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
         ctk.CTkLabel(copy_chat_frame, text="Chat ID Copy:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
@@ -3088,7 +3098,11 @@ class PickfairApp:
             auto_start_listener=settings.get('auto_start_listener', False),
             auto_stop_listener=settings.get('auto_stop_listener', True),
             copy_mode=self.tg_copy_mode_var.get(),
-            copy_chat_id=self.tg_copy_chat_id_var.get()
+            copy_chat_id=self.tg_copy_chat_id_var.get(),
+            stake_type=settings.get('stake_type', 'fixed'),
+            stake_percent=settings.get('stake_percent', 1.0),
+            dutching_enabled=settings.get('dutching_enabled', False),
+            reply_100_master=self.tg_reply_master_var.get()
         )
         messagebox.showinfo("Salvato", "Impostazioni Copy Trading salvate")
     
