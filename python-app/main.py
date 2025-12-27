@@ -2721,7 +2721,7 @@ class PickfairApp:
         self.tg_subtab_buttons = {}
         
         subtab_names = [
-            ("config", "Configurazione"),
+            ("config", "Copy Trading"),
             ("chats", "Chat Monitorate"),
             ("available", "Chat Disponibili"),
             ("rules", "Regole Parsing")
@@ -2741,70 +2741,21 @@ class PickfairApp:
         right_frame = ctk.CTkFrame(main_frame, fg_color='transparent')
         right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
         
-        config_scroll = ctk.CTkScrollableFrame(subtab_container, fg_color=COLORS['bg_panel'], corner_radius=8)
-        self.tg_subtab_frames['config'] = config_scroll
-        config_frame = config_scroll
-        
-        ctk.CTkLabel(config_frame, text="Configurazione Telegram", font=FONTS['heading'],
-                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
-        ctk.CTkLabel(config_frame, text="Ottieni API ID e Hash su my.telegram.org", 
-                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(anchor=tk.W, padx=10)
+        config_frame = ctk.CTkFrame(subtab_container, fg_color=COLORS['bg_panel'], corner_radius=8)
+        self.tg_subtab_frames['config'] = config_frame
         
         settings = self.db.get_telegram_settings() or {}
         
-        ctk.CTkLabel(config_frame, text="API ID:", text_color=COLORS['text_secondary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
-        self.tg_api_id_var = tk.StringVar(value=settings.get('api_id', ''))
-        ctk.CTkEntry(config_frame, textvariable=self.tg_api_id_var, width=200,
-                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(anchor=tk.W, padx=10)
-        
-        ctk.CTkLabel(config_frame, text="API Hash:", text_color=COLORS['text_secondary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
-        self.tg_api_hash_var = tk.StringVar(value=settings.get('api_hash', ''))
-        ctk.CTkEntry(config_frame, textvariable=self.tg_api_hash_var, width=200,
-                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(anchor=tk.W, padx=10)
-        
-        ctk.CTkLabel(config_frame, text="Numero di Telefono (+39...):", text_color=COLORS['text_secondary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
-        self.tg_phone_var = tk.StringVar(value=settings.get('phone_number', ''))
-        ctk.CTkEntry(config_frame, textvariable=self.tg_phone_var, width=150,
-                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(anchor=tk.W, padx=10)
-        
-        ctk.CTkLabel(config_frame, text="Stake Automatico (EUR):", text_color=COLORS['text_secondary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
-        self.tg_auto_stake_var = tk.StringVar(value=str(settings.get('auto_stake', '1.0')))
-        ctk.CTkEntry(config_frame, textvariable=self.tg_auto_stake_var, width=80,
-                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(anchor=tk.W, padx=10)
-        
-        self.tg_auto_bet_var = tk.BooleanVar(value=bool(settings.get('auto_bet', 0)))
-        ctk.CTkCheckBox(config_frame, text="Piazza automaticamente", variable=self.tg_auto_bet_var,
-                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
-                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
-        
-        self.tg_confirm_var = tk.BooleanVar(value=bool(settings.get('require_confirmation', 1)))
-        ctk.CTkCheckBox(config_frame, text="Richiedi conferma (solo se auto OFF)", variable=self.tg_confirm_var,
-                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
-                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10)
-        
-        self.tg_auto_start_var = tk.BooleanVar(value=bool(settings.get('auto_start_listener', 0)))
-        ctk.CTkCheckBox(config_frame, text="Avvia listener automaticamente all'avvio", variable=self.tg_auto_start_var,
-                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
-                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 0))
-        
-        self.tg_auto_stop_var = tk.BooleanVar(value=bool(settings.get('auto_stop_listener', 1)))
-        ctk.CTkCheckBox(config_frame, text="Ferma listener automaticamente alla chiusura", variable=self.tg_auto_stop_var,
-                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
-                        text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10)
-        
-        # Copy Trading Section
-        copy_frame = ctk.CTkFrame(config_frame, fg_color=COLORS['bg_card'], corner_radius=6)
-        copy_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
-        
-        ctk.CTkLabel(copy_frame, text="Copy Trading", font=FONTS['heading'],
-                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 2))
-        ctk.CTkLabel(copy_frame, text="Master invia operazioni, Follower le copia", 
+        # Copy Trading Section (main content of this tab now)
+        ctk.CTkLabel(config_frame, text="Copy Trading", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 2))
+        ctk.CTkLabel(config_frame, text="Master invia operazioni ai follower, Follower le riceve e copia", 
                      font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(anchor=tk.W, padx=10)
         
         self.tg_copy_mode_var = tk.StringVar(value=settings.get('copy_mode', 'OFF'))
         
-        copy_mode_frame = ctk.CTkFrame(copy_frame, fg_color='transparent')
-        copy_mode_frame.pack(fill=tk.X, padx=10, pady=5)
+        copy_mode_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
+        copy_mode_frame.pack(fill=tk.X, padx=10, pady=10)
         
         ctk.CTkRadioButton(copy_mode_frame, text="Off", variable=self.tg_copy_mode_var, value='OFF',
                            fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
@@ -2816,7 +2767,7 @@ class PickfairApp:
                            fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                            text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=5)
         
-        copy_chat_frame = ctk.CTkFrame(copy_frame, fg_color='transparent')
+        copy_chat_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
         copy_chat_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
         ctk.CTkLabel(copy_chat_frame, text="Chat ID Copy:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
         self.tg_copy_chat_id_var = tk.StringVar(value=settings.get('copy_chat_id', ''))
@@ -2824,6 +2775,13 @@ class PickfairApp:
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=5)
         ctk.CTkLabel(copy_chat_frame, text="(ID del canale/gruppo)", 
                      font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(side=tk.LEFT)
+        
+        ctk.CTkButton(config_frame, text="Salva Copy Trading", command=self._save_copy_trading_settings,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=150).pack(anchor=tk.W, padx=10, pady=10)
+        
+        ctk.CTkLabel(config_frame, text="Le impostazioni Telegram (API, telefono, stake) sono nella tab Impostazioni", 
+                     font=('Segoe UI', 9), text_color=COLORS['text_tertiary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
         auth_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
         auth_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
@@ -3017,29 +2975,24 @@ class PickfairApp:
             else:
                 btn.configure(fg_color=COLORS['button_secondary'])
     
-    def _save_telegram_tab_settings(self):
-        """Save Telegram settings from tab."""
-        try:
-            stake = float(self.tg_auto_stake_var.get().replace(',', '.'))
-        except:
-            stake = 1.0
-        
+    def _save_copy_trading_settings(self):
+        """Save Copy Trading settings from Telegram tab."""
         settings = self.db.get_telegram_settings() or {}
         self.db.save_telegram_settings(
-            api_id=self.tg_api_id_var.get(),
-            api_hash=self.tg_api_hash_var.get(),
+            api_id=settings.get('api_id', ''),
+            api_hash=settings.get('api_hash', ''),
             session_string=settings.get('session_string'),
-            phone_number=self.tg_phone_var.get(),
-            enabled=True,
-            auto_bet=self.tg_auto_bet_var.get(),
-            require_confirmation=self.tg_confirm_var.get(),
-            auto_stake=stake,
-            auto_start_listener=self.tg_auto_start_var.get(),
-            auto_stop_listener=self.tg_auto_stop_var.get(),
+            phone_number=settings.get('phone_number', ''),
+            enabled=settings.get('enabled', True),
+            auto_bet=settings.get('auto_bet', False),
+            require_confirmation=settings.get('require_confirmation', True),
+            auto_stake=settings.get('auto_stake', 1.0),
+            auto_start_listener=settings.get('auto_start_listener', False),
+            auto_stop_listener=settings.get('auto_stop_listener', True),
             copy_mode=self.tg_copy_mode_var.get(),
             copy_chat_id=self.tg_copy_chat_id_var.get()
         )
-        messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
+        messagebox.showinfo("Salvato", "Impostazioni Copy Trading salvate")
     
     def _load_available_chats(self):
         """Load available chats from Telegram account into the tree."""
@@ -3867,6 +3820,91 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         ctk.CTkButton(app_frame, text="Esci dall'Applicazione", command=self._on_close,
                       fg_color=COLORS['button_danger'], hover_color='#c62828',
                       corner_radius=6, width=180).pack(anchor=tk.W, padx=15, pady=(0, 15))
+        
+        # Telegram Settings Section
+        tg_frame = ctk.CTkFrame(main_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
+        tg_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        ctk.CTkLabel(tg_frame, text="Telegram", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=15, pady=(15, 5))
+        ctk.CTkLabel(tg_frame, text="Ottieni API ID e Hash su my.telegram.org", 
+                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(anchor=tk.W, padx=15)
+        
+        tg_settings = self.db.get_telegram_settings() or {}
+        
+        tg_grid = ctk.CTkFrame(tg_frame, fg_color='transparent')
+        tg_grid.pack(fill=tk.X, padx=15, pady=5)
+        
+        ctk.CTkLabel(tg_grid, text="API ID:", text_color=COLORS['text_secondary']).grid(row=0, column=0, sticky=tk.W, pady=2)
+        self.settings_tg_api_id_var = tk.StringVar(value=tg_settings.get('api_id', ''))
+        ctk.CTkEntry(tg_grid, textvariable=self.settings_tg_api_id_var, width=200,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=0, column=1, pady=2, padx=5)
+        
+        ctk.CTkLabel(tg_grid, text="API Hash:", text_color=COLORS['text_secondary']).grid(row=1, column=0, sticky=tk.W, pady=2)
+        self.settings_tg_api_hash_var = tk.StringVar(value=tg_settings.get('api_hash', ''))
+        ctk.CTkEntry(tg_grid, textvariable=self.settings_tg_api_hash_var, width=280,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=1, column=1, pady=2, padx=5)
+        
+        ctk.CTkLabel(tg_grid, text="Telefono (+39...):", text_color=COLORS['text_secondary']).grid(row=2, column=0, sticky=tk.W, pady=2)
+        self.settings_tg_phone_var = tk.StringVar(value=tg_settings.get('phone_number', ''))
+        ctk.CTkEntry(tg_grid, textvariable=self.settings_tg_phone_var, width=150,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=2, column=1, pady=2, padx=5, sticky=tk.W)
+        
+        ctk.CTkLabel(tg_grid, text="Stake Auto (EUR):", text_color=COLORS['text_secondary']).grid(row=3, column=0, sticky=tk.W, pady=2)
+        self.settings_tg_stake_var = tk.StringVar(value=str(tg_settings.get('auto_stake', '1.0')))
+        ctk.CTkEntry(tg_grid, textvariable=self.settings_tg_stake_var, width=80,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=3, column=1, pady=2, padx=5, sticky=tk.W)
+        
+        tg_checks = ctk.CTkFrame(tg_frame, fg_color='transparent')
+        tg_checks.pack(fill=tk.X, padx=15, pady=5)
+        
+        self.settings_tg_auto_bet_var = tk.BooleanVar(value=bool(tg_settings.get('auto_bet', 0)))
+        ctk.CTkCheckBox(tg_checks, text="Piazza automaticamente", variable=self.settings_tg_auto_bet_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W)
+        
+        self.settings_tg_confirm_var = tk.BooleanVar(value=bool(tg_settings.get('require_confirmation', 1)))
+        ctk.CTkCheckBox(tg_checks, text="Richiedi conferma (solo se auto OFF)", variable=self.settings_tg_confirm_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W)
+        
+        self.settings_tg_auto_start_var = tk.BooleanVar(value=bool(tg_settings.get('auto_start_listener', 0)))
+        ctk.CTkCheckBox(tg_checks, text="Avvia listener all'avvio", variable=self.settings_tg_auto_start_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W)
+        
+        self.settings_tg_auto_stop_var = tk.BooleanVar(value=bool(tg_settings.get('auto_stop_listener', 1)))
+        ctk.CTkCheckBox(tg_checks, text="Ferma listener alla chiusura", variable=self.settings_tg_auto_stop_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W)
+        
+        ctk.CTkButton(tg_frame, text="Salva Impostazioni Telegram", command=self._save_telegram_settings_from_impostazioni,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=200).pack(anchor=tk.W, padx=15, pady=(10, 15))
+    
+    def _save_telegram_settings_from_impostazioni(self):
+        """Save Telegram settings from Impostazioni tab."""
+        try:
+            stake = float(self.settings_tg_stake_var.get().replace(',', '.'))
+        except:
+            stake = 1.0
+        
+        settings = self.db.get_telegram_settings() or {}
+        self.db.save_telegram_settings(
+            api_id=self.settings_tg_api_id_var.get(),
+            api_hash=self.settings_tg_api_hash_var.get(),
+            session_string=settings.get('session_string'),
+            phone_number=self.settings_tg_phone_var.get(),
+            enabled=True,
+            auto_bet=self.settings_tg_auto_bet_var.get(),
+            require_confirmation=self.settings_tg_confirm_var.get(),
+            auto_stake=stake,
+            auto_start_listener=self.settings_tg_auto_start_var.get(),
+            auto_stop_listener=self.settings_tg_auto_stop_var.get(),
+            copy_mode=settings.get('copy_mode', 'OFF'),
+            copy_chat_id=settings.get('copy_chat_id', '')
+        )
+        messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
     
     def _create_simulazione_tab(self):
         """Create Simulazione tab content."""
