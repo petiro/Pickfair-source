@@ -79,6 +79,9 @@ COLORS = {
   - Parser estrae lista risultati esatti (es. "Dutching 2-1, 3-1, 2-2" -> ["2 - 1", "3 - 1", "2 - 2"])
   - Piazzamento automatico scommesse dutching sul mercato CORRECT_SCORE
   - Calcolo stake proporzionali usando dutching.py per profitto uniforme
+  - Sistema retry per piazzamento scommesse: 3 tentativi con 10 secondi di attesa
+  - Retry applicato a scommesse singole (BACK/LAY) e dutching
+  - Validazione completa dutching: annulla se non tutti i risultati sono trovati
   - Nuovi campi database: stake_type, stake_percent, dutching_enabled (per uso futuro)
 
 - **v3.27.8**: Telegram Session Lock Fix
