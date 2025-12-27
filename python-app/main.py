@@ -6637,36 +6637,47 @@ Evento: {event_name}"""
                 update_status('PLACED')
                 messagebox.showinfo("Auto-Bet (Simulazione)", f"Scommessa simulata piazzata!\n\n{bet_info}")
             else:
-                result = self.client.place_bet(
-                    market_id=target_market['marketId'],
-                    selection_id=target_runner['selectionId'],
-                    side=bet_side,
-                    price=target_runner['price'],
-                    size=stake
-                )
+                # Place bet with retry (3 attempts, 10s delay)
+                import time
+                max_retries = 3
+                retry_delay = 10
                 
-                if result.get('status') == 'SUCCESS':
-                    update_status('PLACED')
-                    # Broadcast to Copy Trading followers
-                    matched_stake = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
-                    if matched_stake > 0:
-                        available = self.account_data.get('available', 100) if self.account_data else 100
-                        stake_percent = (stake / available * 100) if available > 0 else 1.0
-                        self._broadcast_copy_bet(
-                            event_name=matched_event['name'],
-                            market_name=target_market.get('marketName', ''),
-                            selection=target_runner['runnerName'],
-                            side=bet_side,
-                            price=target_runner['price'],
-                            stake_percent=stake_percent
-                        )
-                    messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bet_info}")
-                else:
-                    error = result.get('errorCode', 'UNKNOWN')
-                    reason = f"Errore Betfair: {error}"
-                    update_status('FAILED')
-                    log_failed_bet(reason)
-                    messagebox.showerror("Auto-Bet Errore", f"Errore piazzamento: {error}")
+                for attempt in range(max_retries):
+                    result = self.client.place_bet(
+                        market_id=target_market['marketId'],
+                        selection_id=target_runner['selectionId'],
+                        side=bet_side,
+                        price=target_runner['price'],
+                        size=stake
+                    )
+                    
+                    if result.get('status') == 'SUCCESS':
+                        update_status('PLACED')
+                        # Broadcast to Copy Trading followers
+                        matched_stake = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
+                        if matched_stake > 0:
+                            available = self.account_data.get('available', 100) if self.account_data else 100
+                            stake_percent = (stake / available * 100) if available > 0 else 1.0
+                            self._broadcast_copy_bet(
+                                event_name=matched_event['name'],
+                                market_name=target_market.get('marketName', ''),
+                                selection=target_runner['runnerName'],
+                                side=bet_side,
+                                price=target_runner['price'],
+                                stake_percent=stake_percent
+                            )
+                        messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bet_info}")
+                        break
+                    elif attempt < max_retries - 1:
+                        # Retry after delay
+                        time.sleep(retry_delay)
+                    else:
+                        # Last attempt failed
+                        error = result.get('errorCode', 'UNKNOWN')
+                        reason = f"Errore Betfair dopo {max_retries} tentativi: {error}"
+                        update_status('FAILED')
+                        log_failed_bet(reason)
+                        messagebox.showerror("Auto-Bet Errore", f"Errore piazzamento dopo {max_retries} tentativi: {error}")
         
         except Exception as e:
             log_failed_bet(f"Eccezione: {str(e)}")
