@@ -79,6 +79,7 @@ class Database:
     def _init_connection(self):
         """Initialize persistent database connection."""
         self._conn = sqlite3.connect(self.db_path, timeout=30.0, check_same_thread=False)
+        self._conn.row_factory = sqlite3.Row  # Set once for all queries
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA busy_timeout=30000")
         self._conn.execute("PRAGMA synchronous=NORMAL")
@@ -399,7 +400,6 @@ class Database:
     def get_settings(self):
         """Get Betfair settings. Strips whitespace from string values."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM settings WHERE id = 1')
         row = cursor.fetchone()
@@ -489,7 +489,6 @@ class Database:
     def get_recent_bets(self, limit=50):
         """Get recent bets."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
             SELECT * FROM bets ORDER BY placed_at DESC LIMIT ?
@@ -547,7 +546,6 @@ class Database:
     def get_bets_by_status(self, status_list, limit=50):
         """Get bets by status list."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         placeholders = ','.join(['?' for _ in status_list])
         cursor.execute(f'''
@@ -580,7 +578,6 @@ class Database:
     def get_unsettled_bets(self, limit=100):
         """Get bets without outcome (not yet settled)."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
             SELECT * FROM bets 
@@ -713,7 +710,6 @@ class Database:
     def get_pending_bookings(self):
         """Get all pending bookings."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
             SELECT * FROM bookings WHERE status = 'PENDING' ORDER BY created_at DESC
@@ -758,7 +754,6 @@ class Database:
     def get_active_auto_cashout_rules(self):
         """Get active auto-cashout rules."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
             SELECT * FROM auto_cashout_rules WHERE status = 'ACTIVE'
@@ -780,7 +775,6 @@ class Database:
     def get_telegram_settings(self):
         """Get Telegram settings."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM telegram_settings WHERE id = 1')
         row = cursor.fetchone()
@@ -821,7 +815,6 @@ class Database:
         """Get monitored Telegram chats."""
         def do_get():
             conn = self._get_connection()
-            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM telegram_chats ORDER BY added_at DESC')
             rows = cursor.fetchall()
@@ -875,7 +868,6 @@ class Database:
     def get_pending_signals(self):
         """Get pending Telegram signals."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
             SELECT * FROM telegram_signals WHERE status = 'PENDING' ORDER BY received_at DESC
@@ -902,7 +894,6 @@ class Database:
     def get_recent_signals(self, limit=50):
         """Get recent Telegram signals."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
             SELECT * FROM telegram_signals ORDER BY received_at DESC LIMIT ?
@@ -915,7 +906,6 @@ class Database:
     def get_simulation_settings(self):
         """Get simulation settings and balance."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM simulation_settings WHERE id = 1')
         row = cursor.fetchone()
@@ -1006,7 +996,6 @@ class Database:
     def get_simulation_bets(self, limit=50):
         """Get simulation bet history."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute('''
             SELECT * FROM simulation_bets ORDER BY placed_at DESC LIMIT ?
@@ -1056,7 +1045,6 @@ class Database:
     def get_signal_patterns(self, enabled_only=False):
         """Get all signal patterns."""
         conn = self._get_connection()
-        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         if enabled_only:
             cursor.execute('SELECT * FROM signal_patterns WHERE enabled = 1 ORDER BY name')
