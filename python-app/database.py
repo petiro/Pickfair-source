@@ -501,6 +501,8 @@ class Database:
                        runner_name, side, price, stake, liability, status, matched_stake=0,
                        unmatched_stake=0, average_price=None, potential_profit=None):
         """Save a bet order."""
+        import logging
+        logging.info(f"save_bet_order called: bet_id={bet_id}, event={event_name}, stake={stake}")
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('''
@@ -590,12 +592,14 @@ class Database:
     
     def get_bet_statistics(self):
         """Get betting statistics (total, won, lost, pending, P/L)."""
+        import logging
         conn = self._get_connection()
         cursor = conn.cursor()
         
-        # Total bets
-        cursor.execute('SELECT COUNT(*) FROM bets WHERE bet_id IS NOT NULL')
+        # Total bets (include all bets, not just those with bet_id)
+        cursor.execute('SELECT COUNT(*) FROM bets')
         total = cursor.fetchone()[0] or 0
+        logging.debug(f"get_bet_statistics: total={total}")
         
         # Won bets
         cursor.execute("SELECT COUNT(*) FROM bets WHERE outcome = 'WON'")
@@ -610,7 +614,7 @@ class Database:
         void = cursor.fetchone()[0] or 0
         
         # Pending bets (no outcome yet)
-        cursor.execute("SELECT COUNT(*) FROM bets WHERE outcome IS NULL AND bet_id IS NOT NULL")
+        cursor.execute("SELECT COUNT(*) FROM bets WHERE outcome IS NULL")
         pending = cursor.fetchone()[0] or 0
         
         # Total P/L from settled bets
