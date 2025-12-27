@@ -58,7 +58,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.27.3"
+APP_VERSION = "3.27.4"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -1395,7 +1395,7 @@ class PickfairApp:
         
         self.events_tree.delete(*self.events_tree.get_children())
         self.runners_tree.delete(*self.runners_tree.get_children())
-        self.market_combo['values'] = []
+        self.market_combo.configure(values=[])
         self._clear_selections()
     
     def _update_balance(self):
@@ -1553,7 +1553,7 @@ class PickfairApp:
     def _load_available_markets(self, event_id):
         """Load all available markets for an event."""
         self.runners_tree.delete(*self.runners_tree.get_children())
-        self.market_combo['values'] = []
+        self.market_combo.configure(values=[])
         
         if not self.client:
             messagebox.showwarning("Attenzione", "Non sei connesso a Betfair")
@@ -1575,9 +1575,11 @@ class PickfairApp:
     def _display_available_markets(self, markets):
         """Display available markets in dropdown."""
         self.available_markets = markets
+        logging.debug(f"_display_available_markets called with {len(markets) if markets else 0} markets")
         
         if not markets:
-            self.market_combo['values'] = ["Nessun mercato disponibile"]
+            self.market_combo.configure(values=["Nessun mercato disponibile"])
+            self.market_combo.set("Nessun mercato disponibile")
             return
         
         display_names = []
@@ -1587,15 +1589,31 @@ class PickfairApp:
                 name = f"[LIVE] {name}"
             display_names.append(name)
         
-        self.market_combo['values'] = display_names
+        logging.debug(f"Setting combobox values: {display_names[:3]}...")
+        self.market_combo.configure(values=display_names)
+        logging.debug(f"Combobox values set, count: {len(display_names)}")
         
         if display_names:
-            self.market_combo.current(0)
+            self.market_combo.set(display_names[0])
+            logging.debug(f"Selected first market: {display_names[0]}")
             self._on_market_type_selected(None)
     
     def _on_market_type_selected(self, event):
         """Handle market type selection from dropdown."""
-        selection = self.market_combo.current()
+        current_value = self.market_combo.get()
+        if not current_value or current_value == "Nessun mercato disponibile":
+            return
+        
+        # Find the index of the selected market
+        selection = -1
+        for i, m in enumerate(self.available_markets):
+            name = m.get('displayName') or m.get('marketName', 'Sconosciuto')
+            if m.get('inPlay'):
+                name = f"[LIVE] {name}"
+            if name == current_value:
+                selection = i
+                break
+        
         if selection < 0 or selection >= len(self.available_markets):
             return
         
