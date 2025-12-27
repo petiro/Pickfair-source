@@ -6364,6 +6364,8 @@ Evento: {event_name}"""
                             break
             
             elif market_type == 'CORRECT_SCORE':
+                dutching_selections = signal.get('dutching_selections')
+                
                 for market in markets:
                     market_type_api = market.get('marketType', '')
                     market_name = market.get('marketName', '').lower()
@@ -6371,7 +6373,105 @@ Evento: {event_name}"""
                         target_market = market
                         break
                 
-                if target_market:
+                if target_market and dutching_selections:
+                    # Dutching mode: place bets on multiple correct scores
+                    market_book = self.client.get_market_with_prices(target_market['marketId'])
+                    matched_runners = []
+                    missing_selections = []
+                    
+                    for score in dutching_selections:
+                        score_normalized = score.replace('-', ' - ').strip()
+                        found = False
+                        for runner in market_book.get('runners', []):
+                            runner_name = runner.get('runnerName', '')
+                            runner_normalized = runner_name.replace('-', ' - ').replace('  ', ' ').strip()
+                            if score_normalized in runner_normalized or score.replace(' ', '') in runner_name.replace(' ', ''):
+                                price = get_runner_price(runner, bet_side)
+                                if price:
+                                    matched_runners.append({
+                                        'selectionId': runner['selectionId'],
+                                        'runnerName': runner_name,
+                                        'price': price
+                                    })
+                                    found = True
+                                    break
+                        if not found:
+                            missing_selections.append(score)
+                    
+                    # Verify ALL selections were found - abort if any missing
+                    if missing_selections:
+                        reason = f"Dutching incompleto - risultati non trovati: {', '.join(missing_selections)}"
+                        log_failed_bet(reason)
+                        update_status('FAILED')
+                        messagebox.showwarning("Auto-Bet Dutching", reason)
+                        return
+                    
+                    if matched_runners and len(matched_runners) == len(dutching_selections):
+                        # Use dutching calculation
+                        from dutching import calculate_dutching_stakes
+                        dutching_result, total_profit, _ = calculate_dutching_stakes(
+                            matched_runners, stake, bet_side, commission=4.5
+                        )
+                        
+                        bet_details = []
+                        for dr in dutching_result:
+                            bet_details.append(f"  {dr['runnerName']}: €{dr['stake']:.2f} @ {dr['price']:.2f}")
+                        bet_info = (
+                            f"Evento: {matched_event['name']}\n"
+                            f"Mercato: {target_market.get('marketName', 'N/A')}\n"
+                            f"Tipo: DUTCHING {bet_side}\n"
+                            f"Stake Totale: €{stake:.2f}\n"
+                            f"Selezioni:\n" + "\n".join(bet_details) + f"\n"
+                            f"Profitto Potenziale: €{total_profit:.2f}"
+                        )
+                        
+                        if self.simulation_mode:
+                            self.db.save_simulation_bet(
+                                event_name=matched_event['name'],
+                                market_id=target_market['marketId'],
+                                market_name=target_market.get('marketName', ''),
+                                bet_type=f'DUTCHING_{bet_side}',
+                                selections=', '.join([r['runnerName'] for r in matched_runners]),
+                                total_stake=stake,
+                                potential_profit=total_profit,
+                                status='MATCHED'
+                            )
+                            update_status('PLACED')
+                            messagebox.showinfo("Auto-Bet Dutching (Simulazione)", f"Dutching simulato piazzato!\n\n{bet_info}")
+                        else:
+                            # Place real dutching bets
+                            success_count = 0
+                            for dr in dutching_result:
+                                result = self.client.place_bet(
+                                    market_id=target_market['marketId'],
+                                    selection_id=dr['selectionId'],
+                                    side=bet_side,
+                                    price=dr['price'],
+                                    size=dr['stake']
+                                )
+                                if result.get('status') == 'SUCCESS':
+                                    success_count += 1
+                            
+                            if success_count == len(dutching_result):
+                                update_status('PLACED')
+                                messagebox.showinfo("Auto-Bet Dutching", f"Dutching piazzato con successo!\n\n{bet_info}")
+                            elif success_count > 0:
+                                update_status('PARTIAL')
+                                messagebox.showwarning("Auto-Bet Dutching", f"Dutching parziale: {success_count}/{len(dutching_result)} scommesse piazzate")
+                            else:
+                                update_status('FAILED')
+                                log_failed_bet("Tutte le scommesse dutching fallite")
+                                messagebox.showerror("Auto-Bet Dutching Errore", "Errore piazzamento dutching")
+                        return
+                    else:
+                        reason = f"Nessun risultato trovato per dutching: {', '.join(dutching_selections)}"
+                        log_failed_bet(reason)
+                        update_status('FAILED')
+                        messagebox.showwarning("Auto-Bet", reason)
+                        return
+                
+                elif target_market:
+                    # Single correct score bet (non-dutching)
                     market_book = self.client.get_market_with_prices(target_market['marketId'])
                     score_normalized = selection.replace('-', ' - ')
                     for runner in market_book.get('runners', []):

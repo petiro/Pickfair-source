@@ -69,12 +69,16 @@ COLORS = {
 
 ## Recent Changes (December 2024)
 
-- **v3.27.14**: Telegram Stake Types
+- **v3.27.14**: Telegram Stake Types & Auto-Dutching
   - Aggiunta selezione tipo stake nelle impostazioni Telegram: Fisso (EUR) o Percentuale Bankroll
   - Stake Fisso: importo EUR specificato (come prima)
   - % Bankroll: calcola automaticamente stake come percentuale del saldo disponibile
   - In modalità simulazione usa il saldo virtuale, altrimenti il saldo reale Betfair
   - Minimo 1€ per stake calcolato con percentuale
+  - Auto-Dutching da messaggi Telegram: riconosce pattern "Dutching X-X, Y-Y, Z-Z"
+  - Parser estrae lista risultati esatti (es. "Dutching 2-1, 3-1, 2-2" -> ["2 - 1", "3 - 1", "2 - 2"])
+  - Piazzamento automatico scommesse dutching sul mercato CORRECT_SCORE
+  - Calcolo stake proporzionali usando dutching.py per profitto uniforme
   - Nuovi campi database: stake_type, stake_percent, dutching_enabled (per uso futuro)
 
 - **v3.27.8**: Telegram Session Lock Fix
