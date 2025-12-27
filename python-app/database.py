@@ -28,7 +28,29 @@ class Database:
     def __init__(self):
         self.db_path = get_db_path()
         self._lock = threading.RLock()
+        self._cleanup_stale_locks()
         self._init_db()
+    
+    def _cleanup_stale_locks(self):
+        """Remove stale WAL/SHM files if database is locked."""
+        import time
+        wal_file = self.db_path + "-wal"
+        shm_file = self.db_path + "-shm"
+        
+        # Try to open database briefly to check if locked
+        try:
+            test_conn = sqlite3.connect(self.db_path, timeout=2.0)
+            test_conn.execute("SELECT 1")
+            test_conn.close()
+        except sqlite3.OperationalError:
+            # Database might be locked, try to remove stale files
+            for f in [wal_file, shm_file]:
+                if os.path.exists(f):
+                    try:
+                        os.remove(f)
+                    except:
+                        pass
+            time.sleep(0.5)
     
     def _get_connection(self):
         """Get database connection with timeout and WAL mode."""
