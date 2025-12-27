@@ -69,6 +69,14 @@ COLORS = {
 
 ## Recent Changes (December 2024)
 
+- **v3.27.14**: Telegram Stake Types
+  - Aggiunta selezione tipo stake nelle impostazioni Telegram: Fisso (EUR) o Percentuale Bankroll
+  - Stake Fisso: importo EUR specificato (come prima)
+  - % Bankroll: calcola automaticamente stake come percentuale del saldo disponibile
+  - In modalità simulazione usa il saldo virtuale, altrimenti il saldo reale Betfair
+  - Minimo 1€ per stake calcolato con percentuale
+  - Nuovi campi database: stake_type, stake_percent, dutching_enabled (per uso futuro)
+
 - **v3.27.8**: Telegram Session Lock Fix
   - Risolto errore "database is locked" in Chat Disponibili quando listener Telegram attivo
   - Aggiunto metodo get_available_dialogs a TelegramListener per riutilizzare il client esistente
