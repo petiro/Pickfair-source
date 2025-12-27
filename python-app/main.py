@@ -3098,6 +3098,18 @@ class PickfairApp:
         self.tg_available_tree.delete(*self.tg_available_tree.get_children())
         self.available_chats_data = []
         
+        # If listener is running, use its existing client to avoid session conflicts
+        if self.telegram_listener and self.telegram_listener.running:
+            def on_dialogs_result(result):
+                if result is None:
+                    self.root.after(0, lambda: self.tg_available_status.configure(text="Errore caricamento"))
+                else:
+                    self.root.after(0, lambda: self._populate_available_chats(result))
+            
+            self.telegram_listener.get_available_dialogs(on_dialogs_result)
+            return
+        
+        # Listener not running, create temporary client
         def fetch_dialogs():
             try:
                 import asyncio
@@ -3154,6 +3166,7 @@ class PickfairApp:
                 
             except Exception as e:
                 err = str(e)
+                logging.error(f"Error loading available chats: {e}")
                 self.root.after(0, lambda: self.tg_available_status.configure(text=f"Errore: {err[:30]}"))
         
         threading.Thread(target=fetch_dialogs, daemon=True).start()

@@ -4,7 +4,7 @@
 
 Pickfair is a Windows desktop application for automated sports betting through Betfair Exchange Italy API. Built with Python, it features advanced dutching, live betting, Telegram integration, and a modern dark trading interface.
 
-**Current Version**: v3.27.7 (Database Lock Fix)
+**Current Version**: v3.27.8 (Telegram Session Lock Fix)
 
 ## User Preferences
 
@@ -68,6 +68,12 @@ COLORS = {
 - **Italian Compliance**: 4.5% commission handling
 
 ## Recent Changes (December 2024)
+
+- **v3.27.8**: Telegram Session Lock Fix
+  - Risolto errore "database is locked" in Chat Disponibili quando listener Telegram attivo
+  - Aggiunto metodo get_available_dialogs a TelegramListener per riutilizzare il client esistente
+  - _load_available_chats ora usa il client del listener se attivo, evitando conflitti sessione SQLite
+  - Prevenuto conflitto tra sessione Telethon in uso dal listener e nuova connessione temporanea
 
 - **v3.27.7**: Database Lock Fix (Telegram)
   - Aggiunto pattern retry a get_telegram_settings, save_telegram_settings, save_telegram_session

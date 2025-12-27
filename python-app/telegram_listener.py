@@ -527,6 +527,55 @@ class TelegramListener:
             return self.client.session.save()
         return None
     
+    def get_available_dialogs(self, callback):
+        """Get available dialogs using the existing connected client.
+        
+        Args:
+            callback: Function to call with list of chat dicts or None on error
+        """
+        if not self.client or not self.loop or not self.running:
+            callback(None)
+            return
+        
+        async def _fetch_dialogs():
+            try:
+                from telethon.tl.types import Channel, Chat, User
+                dialogs = await self.client.get_dialogs()
+                chat_list = []
+                
+                for d in dialogs:
+                    entity = d.entity
+                    chat_type = 'Altro'
+                    
+                    if isinstance(entity, Channel):
+                        chat_type = 'Canale' if entity.broadcast else 'Gruppo'
+                    elif isinstance(entity, Chat):
+                        chat_type = 'Gruppo'
+                    elif isinstance(entity, User):
+                        chat_type = 'Bot' if entity.bot else 'Utente'
+                    
+                    chat_list.append({
+                        'id': d.id,
+                        'name': d.name or str(d.id),
+                        'type': chat_type
+                    })
+                
+                return chat_list
+            except Exception as e:
+                logging.error(f"Error fetching dialogs: {e}")
+                return None
+        
+        def run_fetch():
+            try:
+                future = asyncio.run_coroutine_threadsafe(_fetch_dialogs(), self.loop)
+                result = future.result(timeout=30)
+                callback(result)
+            except Exception as e:
+                logging.error(f"Error in get_available_dialogs: {e}")
+                callback(None)
+        
+        threading.Thread(target=run_fetch, daemon=True).start()
+    
     async def request_code(self, phone: str):
         """Request authentication code."""
         if not self.client:
