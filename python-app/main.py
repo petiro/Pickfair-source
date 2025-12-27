@@ -4046,6 +4046,12 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                         fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                         text_color=COLORS['text_primary']).pack(anchor=tk.W)
         
+        self.settings_tg_dutching_var = tk.BooleanVar(value=bool(tg_settings.get('dutching_enabled', 0)))
+        ctk.CTkCheckBox(tg_checks, text="Dutching su Risultati Esatti (Over/Under -> Correct Score)", 
+                        variable=self.settings_tg_dutching_var,
+                        fg_color=COLORS['lay'], hover_color=COLORS['lay_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(5, 0))
+        
         ctk.CTkButton(tg_frame, text="Salva Impostazioni Telegram", command=self._save_telegram_settings_from_impostazioni,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
                       corner_radius=6, width=200).pack(anchor=tk.W, padx=15, pady=(10, 15))
@@ -4078,7 +4084,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             copy_chat_id=settings.get('copy_chat_id', ''),
             stake_type=self.settings_tg_stake_type_var.get(),
             stake_percent=stake_percent,
-            dutching_enabled=settings.get('dutching_enabled', 0)
+            dutching_enabled=self.settings_tg_dutching_var.get()
         )
         messagebox.showinfo("Salvato", "Impostazioni Telegram salvate")
     
@@ -6097,6 +6103,33 @@ Evento: {event_name}"""
         if settings.get('require_confirmation') or not settings.get('auto_bet'):
             messagebox.showinfo("Segnale Telegram", msg)
     
+    def _get_correct_scores_for_over_under(self, line: float, selection: str = 'over') -> list:
+        """
+        Get correct score results compatible with Over/Under line.
+        
+        Args:
+            line: The over/under line (e.g., 2.5)
+            selection: 'over' or 'under'
+        
+        Returns:
+            List of score strings like ['2-1', '1-2', '3-0', ...]
+        """
+        scores = []
+        # Generate scores up to 6-6 (reasonable max for football)
+        for home in range(0, 7):
+            for away in range(0, 7):
+                total_goals = home + away
+                score_str = f"{home} - {away}"
+                
+                if selection.lower() == 'over':
+                    if total_goals > line:
+                        scores.append(score_str)
+                else:  # under
+                    if total_goals < line:
+                        scores.append(score_str)
+        
+        return scores
+    
     def _process_telegram_auto_bet(self, signal, settings):
         """Process automatic bet from Telegram signal."""
         if not self.client:
@@ -6226,29 +6259,148 @@ Evento: {event_name}"""
             target_market = None
             target_runner = None
             
+            # Check if dutching is enabled for Over/Under
+            dutching_enabled = settings.get('dutching_enabled', False)
+            
             if market_type == 'OVER_UNDER':
                 target_line = over_line
-                for market in markets:
-                    market_name = market.get('marketName', '').lower()
-                    if 'over' in market_name and 'under' in market_name:
-                        line_str = str(target_line).replace('.', '')
-                        if line_str in market_name.replace('.', '').replace(',', ''):
-                            target_market = market
-                            break
+                selection_type = 'over' if 'over' in selection.lower() or not selection else 'under'
                 
-                if target_market:
-                    market_book = self.client.get_market_with_prices(target_market['marketId'])
-                    for runner in market_book.get('runners', []):
-                        runner_name = runner.get('runnerName', '').lower()
-                        if 'over' in runner_name:
-                            price = get_runner_price(runner, bet_side)
-                            if price:
-                                target_runner = {
-                                    'selectionId': runner['selectionId'],
-                                    'runnerName': runner.get('runnerName'),
-                                    'price': price
-                                }
+                # If dutching enabled, use CORRECT_SCORE market
+                if dutching_enabled:
+                    # Find CORRECT_SCORE market
+                    cs_market = None
+                    for market in markets:
+                        market_type_api = market.get('marketType', '')
+                        market_name = market.get('marketName', '').lower()
+                        if market_type_api == 'CORRECT_SCORE' or 'correct score' in market_name or 'risultato esatto' in market_name:
+                            cs_market = market
+                            break
+                    
+                    if cs_market:
+                        # Get compatible scores
+                        compatible_scores = self._get_correct_scores_for_over_under(target_line, selection_type)
+                        
+                        # Get market prices
+                        cs_book = self.client.get_market_with_prices(cs_market['marketId'])
+                        
+                        # Find matching runners with prices
+                        dutching_selections = []
+                        for runner in cs_book.get('runners', []):
+                            runner_name = runner.get('runnerName', '')
+                            # Normalize score format for comparison
+                            normalized_name = runner_name.replace(' - ', '-').replace('-', ' - ')
+                            
+                            for score in compatible_scores:
+                                if score == normalized_name or score.replace(' ', '') == runner_name.replace(' ', ''):
+                                    price = get_runner_price(runner, bet_side)
+                                    if price and price > 1.0:
+                                        dutching_selections.append({
+                                            'selectionId': runner['selectionId'],
+                                            'runnerName': runner_name,
+                                            'price': price
+                                        })
+                                    break
+                        
+                        if dutching_selections:
+                            # Apply dutching calculation
+                            try:
+                                from dutching import calculate_dutching_stakes
+                                results, profit, implied_prob = calculate_dutching_stakes(
+                                    dutching_selections, stake, bet_side, commission=4.5
+                                )
+                                
+                                # Place dutching bets
+                                success_count = 0
+                                total_stake_used = sum(r['stake'] for r in results)
+                                
+                                for sel in results:
+                                    if sel['stake'] >= 1.0:  # Min 1€
+                                        if self.simulation_mode:
+                                            self.db.save_simulation_bet(
+                                                event_name=matched_event['name'],
+                                                market_id=cs_market['marketId'],
+                                                market_name=cs_market.get('marketName', ''),
+                                                bet_type=bet_side,
+                                                selections=sel['runnerName'],
+                                                total_stake=sel['stake'],
+                                                potential_profit=profit,
+                                                status='MATCHED'
+                                            )
+                                            success_count += 1
+                                        else:
+                                            result = self.client.place_bet(
+                                                market_id=cs_market['marketId'],
+                                                selection_id=sel['selectionId'],
+                                                side=bet_side,
+                                                price=sel['price'],
+                                                size=sel['stake']
+                                            )
+                                            if result.get('status') == 'SUCCESS':
+                                                success_count += 1
+                                
+                                if success_count > 0:
+                                    update_status('PLACED')
+                                    sel_names = ', '.join([f"{s['runnerName']}@{s['price']}" for s in results[:5]])
+                                    if len(results) > 5:
+                                        sel_names += f" (+{len(results)-5} altri)"
+                                    messagebox.showinfo(
+                                        "Dutching Auto-Bet",
+                                        f"Dutching piazzato su {success_count} risultati esatti!\n\n"
+                                        f"Evento: {matched_event['name']}\n"
+                                        f"Linea: Over {target_line}\n"
+                                        f"Stake Totale: {total_stake_used:.2f} EUR\n"
+                                        f"Profitto Potenziale: {profit:.2f} EUR\n"
+                                        f"Selezioni: {sel_names}"
+                                    )
+                                    return
+                                else:
+                                    reason = "Nessuna selezione dutching piazzata (stake < 1€)"
+                                    log_failed_bet(reason)
+                                    update_status('FAILED')
+                                    messagebox.showwarning("Auto-Bet", reason)
+                                    return
+                            except Exception as e:
+                                reason = f"Errore dutching: {str(e)}"
+                                log_failed_bet(reason)
+                                update_status('FAILED')
+                                messagebox.showwarning("Auto-Bet", reason)
+                                return
+                        else:
+                            reason = f"Nessun risultato esatto disponibile per Over {target_line}"
+                            log_failed_bet(reason)
+                            update_status('FAILED')
+                            messagebox.showwarning("Auto-Bet", reason)
+                            return
+                    else:
+                        reason = "Mercato Risultato Esatto non trovato per dutching"
+                        log_failed_bet(reason)
+                        update_status('FAILED')
+                        messagebox.showwarning("Auto-Bet", reason)
+                        return
+                else:
+                    # Normal Over/Under bet (no dutching)
+                    for market in markets:
+                        market_name = market.get('marketName', '').lower()
+                        if 'over' in market_name and 'under' in market_name:
+                            line_str = str(target_line).replace('.', '')
+                            if line_str in market_name.replace('.', '').replace(',', ''):
+                                target_market = market
                                 break
+                    
+                    if target_market:
+                        market_book = self.client.get_market_with_prices(target_market['marketId'])
+                        for runner in market_book.get('runners', []):
+                            runner_name = runner.get('runnerName', '').lower()
+                            if 'over' in runner_name:
+                                price = get_runner_price(runner, bet_side)
+                                if price:
+                                    target_runner = {
+                                        'selectionId': runner['selectionId'],
+                                        'runnerName': runner.get('runnerName'),
+                                        'price': price
+                                    }
+                                    break
             
             elif market_type == 'BOTH_TEAMS_TO_SCORE':
                 for market in markets:
