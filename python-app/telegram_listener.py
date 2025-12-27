@@ -215,49 +215,128 @@ class TelegramListener:
             market_type = None
             selection = None
             over_line = None
+            handicap_line = None
             
-            # Over/Under
-            over_match = re.search(r'over\s*([\d.,]+)', text, re.IGNORECASE)
-            under_match = re.search(r'under\s*([\d.,]+)', text, re.IGNORECASE)
+            text_lower = text.lower()
+            text_upper = text.upper()
             
-            if over_match:
+            # Extract selection portion: after booking keyword, before @
+            selection_part = ''
+            for kw in ['BOOK', 'BOOKING', 'PRENOTA', 'PRENOTAZIONE', 'RESERVE', 'RISERVA']:
+                if kw in text_upper:
+                    parts = text_upper.split(kw)
+                    if len(parts) > 1:
+                        selection_part = parts[1].split('@')[0]
+                        break
+            
+            # CORRECT SCORE (Risultato Esatto) - e.g., "book 2-1", "book 0-0", "book 3-2"
+            score_match = re.search(r'\b(\d+)\s*[-:]\s*(\d+)\b', selection_part)
+            if score_match:
+                home_goals = score_match.group(1)
+                away_goals = score_match.group(2)
+                selection = f"{home_goals} - {away_goals}"
+                market_type = 'CORRECT_SCORE'
+            
+            # Over/Under (all lines)
+            elif re.search(r'over\s*([\d.,]+)', text, re.IGNORECASE):
+                over_match = re.search(r'over\s*([\d.,]+)', text, re.IGNORECASE)
                 over_line = float(over_match.group(1).replace(',', '.'))
                 selection = f"Over {over_line}"
                 market_type = 'OVER_UNDER'
-            elif under_match:
+            elif re.search(r'under\s*([\d.,]+)', text, re.IGNORECASE):
+                under_match = re.search(r'under\s*([\d.,]+)', text, re.IGNORECASE)
                 over_line = float(under_match.group(1).replace(',', '.'))
                 selection = f"Under {over_line}"
                 market_type = 'OVER_UNDER'
             
-            # GG/NG (BTTS)
-            elif re.search(r'\bgg\b|\bbtts\b', text, re.IGNORECASE):
+            # First Half Over/Under - e.g., "1t over 0.5", "primo tempo under 1.5"
+            elif re.search(r'(1t|primo\s*tempo|1h|first\s*half)\s*over\s*([\d.,]+)', text, re.IGNORECASE):
+                fh_over = re.search(r'(1t|primo\s*tempo|1h|first\s*half)\s*over\s*([\d.,]+)', text, re.IGNORECASE)
+                over_line = float(fh_over.group(2).replace(',', '.'))
+                selection = f"Over {over_line}"
+                market_type = 'OVER_UNDER_FH'
+            elif re.search(r'(1t|primo\s*tempo|1h|first\s*half)\s*under\s*([\d.,]+)', text, re.IGNORECASE):
+                fh_under = re.search(r'(1t|primo\s*tempo|1h|first\s*half)\s*under\s*([\d.,]+)', text, re.IGNORECASE)
+                over_line = float(fh_under.group(2).replace(',', '.'))
+                selection = f"Under {over_line}"
+                market_type = 'OVER_UNDER_FH'
+            
+            # GG/NG (BTTS - Both Teams To Score)
+            elif re.search(r'\bgg\b|\bbtts\b|\bgol\s*gol\b', text, re.IGNORECASE):
                 selection = 'Yes'
                 market_type = 'BOTH_TEAMS_TO_SCORE'
-            elif re.search(r'\bng\b|\bno\s*gol\b', text, re.IGNORECASE):
+            elif re.search(r'\bng\b|\bno\s*gol\b|\bnogol\b', text, re.IGNORECASE):
                 selection = 'No'
                 market_type = 'BOTH_TEAMS_TO_SCORE'
             
-            # 1X2 - extract selection part after booking keyword
-            else:
-                text_upper = text.upper()
-                # Extract selection portion: after booking keyword, before @
-                selection_part = ''
-                for kw in ['BOOK', 'BOOKING', 'PRENOTA', 'PRENOTAZIONE', 'RESERVE', 'RISERVA']:
-                    if kw in text_upper:
-                        parts = text_upper.split(kw)
-                        if len(parts) > 1:
-                            selection_part = parts[1].split('@')[0]
-                            break
-                
-                if re.search(r'\b1\b', selection_part):
+            # Double Chance - e.g., "1X", "X2", "12"
+            elif re.search(r'\b1X\b|\bX1\b', selection_part, re.IGNORECASE):
+                selection = '1X'
+                market_type = 'DOUBLE_CHANCE'
+            elif re.search(r'\bX2\b|\b2X\b', selection_part, re.IGNORECASE):
+                selection = 'X2'
+                market_type = 'DOUBLE_CHANCE'
+            elif re.search(r'\b12\b', selection_part):
+                selection = '12'
+                market_type = 'DOUBLE_CHANCE'
+            
+            # Draw No Bet - e.g., "dnb 1", "dnb casa"
+            elif re.search(r'\bdnb\b', text, re.IGNORECASE):
+                if re.search(r'\b(1|home|casa)\b', selection_part, re.IGNORECASE):
                     selection = 'Home'
-                    market_type = 'MATCH_ODDS'
-                elif re.search(r'\bX\b', selection_part):
-                    selection = 'Draw'
-                    market_type = 'MATCH_ODDS'
-                elif re.search(r'\b2\b', selection_part):
+                    market_type = 'DRAW_NO_BET'
+                elif re.search(r'\b(2|away|trasferta)\b', selection_part, re.IGNORECASE):
                     selection = 'Away'
-                    market_type = 'MATCH_ODDS'
+                    market_type = 'DRAW_NO_BET'
+            
+            # Asian Handicap - e.g., "ah +0.5", "handicap -1.5"
+            elif re.search(r'(ah|asian|handicap)\s*([+-]?\s*[\d.,]+)', text, re.IGNORECASE):
+                ah_match = re.search(r'(ah|asian|handicap)\s*([+-]?\s*[\d.,]+)', text, re.IGNORECASE)
+                handicap_line = float(ah_match.group(2).replace(',', '.').replace(' ', ''))
+                if re.search(r'\b(1|home|casa)\b', selection_part, re.IGNORECASE):
+                    selection = f"Home {handicap_line:+.1f}"
+                else:
+                    selection = f"Away {-handicap_line:+.1f}"
+                market_type = 'ASIAN_HANDICAP'
+            
+            # Half Time / Full Time - e.g., "1/1", "X/2", "1/X"
+            elif re.search(r'\b([1X2])\s*/\s*([1X2])\b', selection_part, re.IGNORECASE):
+                htft_match = re.search(r'\b([1X2])\s*/\s*([1X2])\b', selection_part, re.IGNORECASE)
+                ht = htft_match.group(1).upper()
+                ft = htft_match.group(2).upper()
+                selection = f"{ht}/{ft}"
+                market_type = 'HALF_TIME_FULL_TIME'
+            
+            # Half Time Result - e.g., "1t 1", "primo tempo X"
+            elif re.search(r'(1t|primo\s*tempo|1h|first\s*half)\s+([1X2])\b', text, re.IGNORECASE):
+                ht_match = re.search(r'(1t|primo\s*tempo|1h|first\s*half)\s+([1X2])\b', text, re.IGNORECASE)
+                ht_result = ht_match.group(2).upper()
+                if ht_result == '1':
+                    selection = 'Home'
+                elif ht_result == 'X':
+                    selection = 'Draw'
+                else:
+                    selection = 'Away'
+                market_type = 'HALF_TIME'
+            
+            # First Half Correct Score - e.g., "1t 1-0", "primo tempo 0-0"
+            elif re.search(r'(1t|primo\s*tempo|1h|first\s*half)\s*(\d+)\s*[-:]\s*(\d+)', text, re.IGNORECASE):
+                fh_score = re.search(r'(1t|primo\s*tempo|1h|first\s*half)\s*(\d+)\s*[-:]\s*(\d+)', text, re.IGNORECASE)
+                home_goals = fh_score.group(2)
+                away_goals = fh_score.group(3)
+                selection = f"{home_goals} - {away_goals}"
+                market_type = 'HALF_TIME_SCORE'
+            
+            # 1X2 (Match Odds)
+            elif re.search(r'\b1\b', selection_part) and not re.search(r'\b12\b', selection_part):
+                selection = 'Home'
+                market_type = 'MATCH_ODDS'
+            elif re.search(r'\bX\b', selection_part, re.IGNORECASE):
+                selection = 'Draw'
+                market_type = 'MATCH_ODDS'
+            elif re.search(r'\b2\b', selection_part) and not re.search(r'\b12\b', selection_part):
+                selection = 'Away'
+                market_type = 'MATCH_ODDS'
             
             if event and target_odds and selection and market_type:
                 return {

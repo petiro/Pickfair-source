@@ -6177,8 +6177,11 @@ Evento: {event_name}"""
                 return
             
             # Get market for this event
-            # Map Over/Under lines to correct Betfair market codes
+            # Map market types to correct Betfair market codes
+            bf_market_type = market_type  # Default to same
+            
             if market_type == 'OVER_UNDER' and over_line:
+                # Map Over/Under lines to correct Betfair market codes
                 line_map = {
                     0.5: 'OVER_UNDER_05',
                     1.5: 'OVER_UNDER_15',
@@ -6186,13 +6189,31 @@ Evento: {event_name}"""
                     3.5: 'OVER_UNDER_35',
                     4.5: 'OVER_UNDER_45',
                     5.5: 'OVER_UNDER_55',
+                    6.5: 'OVER_UNDER_65',
+                    7.5: 'OVER_UNDER_75',
                 }
                 bf_market_type = line_map.get(over_line, 'OVER_UNDER_25')
+            elif market_type == 'OVER_UNDER_FH' and over_line:
+                # First Half Over/Under
+                fh_line_map = {
+                    0.5: 'OVER_UNDER_05_FH',
+                    1.5: 'OVER_UNDER_15_FH',
+                    2.5: 'OVER_UNDER_25_FH',
+                }
+                bf_market_type = fh_line_map.get(over_line, 'OVER_UNDER_05_FH')
             else:
+                # All other markets
                 market_type_map = {
                     'OVER_UNDER': 'OVER_UNDER_25',
                     'MATCH_ODDS': 'MATCH_ODDS',
-                    'BOTH_TEAMS_TO_SCORE': 'BOTH_TEAMS_TO_SCORE'
+                    'BOTH_TEAMS_TO_SCORE': 'BOTH_TEAMS_TO_SCORE',
+                    'CORRECT_SCORE': 'CORRECT_SCORE',
+                    'DOUBLE_CHANCE': 'DOUBLE_CHANCE',
+                    'DRAW_NO_BET': 'DRAW_NO_BET',
+                    'ASIAN_HANDICAP': 'ASIAN_HANDICAP',
+                    'HALF_TIME': 'HALF_TIME',
+                    'HALF_TIME_SCORE': 'HALF_TIME_SCORE',
+                    'HALF_TIME_FULL_TIME': 'HALF_TIME_FULL_TIME',
                 }
                 bf_market_type = market_type_map.get(market_type, market_type)
             
@@ -6216,19 +6237,35 @@ Evento: {event_name}"""
             # Find matching runner
             target_runner = None
             selection_lower = selection.lower()
+            selection_upper = selection.upper()
+            
             for runner in runners:
                 runner_name = runner.get('runnerName', '').lower()
+                runner_name_upper = runner.get('runnerName', '').upper()
+                
+                # Direct match
                 if selection_lower in runner_name or runner_name in selection_lower:
                     target_runner = runner
                     break
-                # Check for Over/Under
+                
+                # Correct Score - match exact score format
+                if market_type == 'CORRECT_SCORE':
+                    # Normalize score format: "2 - 1" matches "2-1" or "2 - 1"
+                    sel_normalized = selection.replace(' ', '').replace(':', '-')
+                    runner_normalized = runner.get('runnerName', '').replace(' ', '').replace(':', '-')
+                    if sel_normalized == runner_normalized:
+                        target_runner = runner
+                        break
+                
+                # Over/Under
                 if 'over' in selection_lower and 'over' in runner_name:
                     target_runner = runner
                     break
                 if 'under' in selection_lower and 'under' in runner_name:
                     target_runner = runner
                     break
-                # Check for 1X2
+                
+                # 1X2 / Match Odds
                 if selection_lower in ['home', '1'] and runner.get('sortPriority', 0) == 1:
                     target_runner = runner
                     break
@@ -6238,6 +6275,33 @@ Evento: {event_name}"""
                 if selection_lower in ['away', '2'] and runner.get('sortPriority', 0) == 3:
                     target_runner = runner
                     break
+                
+                # BTTS (Both Teams To Score)
+                if market_type == 'BOTH_TEAMS_TO_SCORE':
+                    if selection_lower == 'yes' and ('yes' in runner_name or 'si' in runner_name):
+                        target_runner = runner
+                        break
+                    if selection_lower == 'no' and 'no' in runner_name:
+                        target_runner = runner
+                        break
+                
+                # Double Chance
+                if market_type == 'DOUBLE_CHANCE':
+                    if selection_upper == '1X' and ('1x' in runner_name or 'home or draw' in runner_name):
+                        target_runner = runner
+                        break
+                    if selection_upper == 'X2' and ('x2' in runner_name or 'draw or away' in runner_name):
+                        target_runner = runner
+                        break
+                    if selection_upper == '12' and ('12' in runner_name or 'home or away' in runner_name):
+                        target_runner = runner
+                        break
+                
+                # Half Time / Full Time
+                if market_type == 'HALF_TIME_FULL_TIME':
+                    if selection_upper in runner_name_upper:
+                        target_runner = runner
+                        break
             
             if not target_runner:
                 messagebox.showwarning("Prenotazione", f"Selezione '{selection}' non trovata nel mercato")

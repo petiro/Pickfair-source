@@ -69,11 +69,22 @@ COLORS = {
 
 ## Recent Changes (December 2024)
 
-- **v3.28.0**: Telegram Booking System
+- **v3.28.0**: Telegram Booking System (Full Markets)
   - Nuovo sistema di prenotazioni scommesse da Telegram
-  - Pattern riconosciuti: "Roma Milan book over 2.5 @ 3", "Juventus Inter book 1 @ 2.5"
-  - Supporta Over/Under, 1X2, GG/NG con BACK (default) o LAY
-  - Parole chiave: "book", "prenota", "booking", "reserve"
+  - Parole chiave: "book", "booking", "prenota", "prenotazione", "reserve", "riserva"
+  - **Tutti i mercati Betfair supportati:**
+    - **Risultato Esatto (CORRECT_SCORE)**: "Roma Milan book 2-1 @ 15"
+    - **Over/Under (0.5-7.5)**: "Roma Milan book over 2.5 @ 1.8"
+    - **Primo Tempo Over/Under**: "Roma Milan book 1t over 0.5 @ 1.5"
+    - **1X2 (MATCH_ODDS)**: "Roma Milan book 1 @ 2.0"
+    - **Gol/No Gol (BTTS)**: "Roma Milan book gg @ 1.9"
+    - **Doppia Chance**: "Roma Milan book 1X @ 1.4"
+    - **Pareggio No Scommessa (DNB)**: "Roma Milan book dnb 1 @ 1.6"
+    - **Handicap Asiatico**: "Roma Milan book ah +0.5 casa @ 1.8"
+    - **Primo Tempo/Finale**: "Roma Milan book 1/1 @ 3.5"
+    - **Risultato Primo Tempo**: "Roma Milan book 1t X @ 2.2"
+    - **Risultato Esatto Primo Tempo**: "Roma Milan book 1t 1-0 @ 8.0"
+  - Supporta BACK (default) e LAY
   - Cerca automaticamente evento su Betfair e crea prenotazione
   - Usa stake dalle impostazioni Telegram (fisso EUR o % bankroll)
   - Metodo parse_booking_signal in telegram_listener.py
