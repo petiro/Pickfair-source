@@ -69,6 +69,17 @@ COLORS = {
 
 ## Recent Changes (December 2024)
 
+- **v3.25.2**: LIVE/PRE-MATCH Filter + Refertazione Automatica
+  - Nuovo filtro evento nel parser Telegram: riconosce LIVE, IN PLAY, DIRETTA per eventi live
+  - Riconosce PRE-MATCH, ANTE-MATCH, NON LIVE per eventi pre-match
+  - Ricerca mirata su Betfair: se specificato LIVE cerca solo negli eventi in corso
+  - Se specificato PRE-MATCH cerca solo negli eventi futuri (esclude live)
+  - Refertazione automatica: controlla ogni 60 secondi le scommesse settate su Betfair
+  - Metodo `get_cleared_orders` in betfair_client.py per ottenere scommesse settate
+  - Metodo `get_market_status` per monitorare stato mercati
+  - Nuova colonna `outcome` nel database (WON/LOST/VOID)
+  - Nuova sub-tab "Statistiche" nella Dashboard con totali/vinte/perse/win rate/P&L
+
 - **v3.24.0**: Custom Parsing Rules
   - Nuova sezione "Regole di Parsing" nella tab Telegram
   - Tabella database `signal_patterns` per salvare regole personalizzate

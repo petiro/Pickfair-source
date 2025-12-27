@@ -110,6 +110,7 @@ class PickfairApp:
         self._configure_styles()
         self._start_booking_monitor()
         self._start_auto_cashout_monitor()
+        self._start_settlement_monitor()
         self._check_for_updates_on_startup()
         
         self.root.after(2000, self._auto_start_telegram_listener)
@@ -2460,11 +2461,13 @@ class PickfairApp:
         self.dashboard_notebook.add("Ordini Correnti")
         self.dashboard_notebook.add("Prenotazioni")
         self.dashboard_notebook.add("Cashout")
+        self.dashboard_notebook.add("Statistiche")
         
         self.dashboard_recent_frame = self.dashboard_notebook.tab("Scommesse Recenti")
         self.dashboard_orders_frame = self.dashboard_notebook.tab("Ordini Correnti")
         self.dashboard_bookings_frame = self.dashboard_notebook.tab("Prenotazioni")
         self.dashboard_cashout_frame = self.dashboard_notebook.tab("Cashout")
+        self.dashboard_stats_tab_frame = self.dashboard_notebook.tab("Statistiche")
     
     def _refresh_dashboard_tab(self):
         """Refresh dashboard tab data."""
@@ -2542,8 +2545,77 @@ class PickfairApp:
             for widget in self.dashboard_cashout_frame.winfo_children():
                 widget.destroy()
             self._create_cashout_view(self.dashboard_cashout_frame, None)
+            
+            for widget in self.dashboard_stats_tab_frame.winfo_children():
+                widget.destroy()
+            self._create_statistics_view(self.dashboard_stats_tab_frame)
         
         threading.Thread(target=fetch_data, daemon=True).start()
+    
+    def _create_statistics_view(self, parent):
+        """Create statistics view with bet outcomes."""
+        stats = self.db.get_bet_statistics()
+        
+        # Title
+        ctk.CTkLabel(parent, text="Statistiche Scommesse", 
+                     font=FONTS['title'], text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(10, 20))
+        
+        # Stats cards grid
+        cards_frame = ctk.CTkFrame(parent, fg_color='transparent')
+        cards_frame.pack(fill=tk.X, pady=10)
+        
+        def create_stat_card(parent, title, value, color, col):
+            card = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+            card.grid(row=0, column=col, padx=5, sticky='nsew')
+            ctk.CTkLabel(card, text=title, font=('Segoe UI', 10), 
+                        text_color=COLORS['text_secondary']).pack(pady=(15, 5))
+            ctk.CTkLabel(card, text=str(value), font=('Segoe UI Bold', 24), 
+                        text_color=color).pack()
+            card.grid_columnconfigure(0, weight=1)
+            return card
+        
+        # Stats cards
+        create_stat_card(cards_frame, "Totali", stats['total'], COLORS['text_primary'], 0)
+        create_stat_card(cards_frame, "Vinte", stats['won'], COLORS['success'], 1)
+        create_stat_card(cards_frame, "Perse", stats['lost'], COLORS['loss'], 2)
+        create_stat_card(cards_frame, "Void", stats['void'], COLORS['text_secondary'], 3)
+        create_stat_card(cards_frame, "In Attesa", stats['pending'], COLORS['warning'], 4)
+        
+        for i in range(5):
+            cards_frame.columnconfigure(i, weight=1)
+        
+        # P/L and Win Rate section
+        summary_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+        summary_frame.pack(fill=tk.X, pady=20, padx=5)
+        
+        pl_color = COLORS['success'] if stats['total_pl'] >= 0 else COLORS['loss']
+        pl_text = f"+{stats['total_pl']:.2f}" if stats['total_pl'] >= 0 else f"{stats['total_pl']:.2f}"
+        
+        pl_frame = ctk.CTkFrame(summary_frame, fg_color='transparent')
+        pl_frame.pack(side=tk.LEFT, padx=30, pady=15)
+        ctk.CTkLabel(pl_frame, text="Profitto/Perdita Totale", 
+                     font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack()
+        ctk.CTkLabel(pl_frame, text=f"{pl_text} EUR", 
+                     font=('Segoe UI Bold', 20), text_color=pl_color).pack()
+        
+        wr_frame = ctk.CTkFrame(summary_frame, fg_color='transparent')
+        wr_frame.pack(side=tk.LEFT, padx=30, pady=15)
+        ctk.CTkLabel(wr_frame, text="Win Rate", 
+                     font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack()
+        ctk.CTkLabel(wr_frame, text=f"{stats['win_rate']:.1f}%", 
+                     font=('Segoe UI Bold', 20), text_color=COLORS['text_primary']).pack()
+        
+        # Refresh button
+        ctk.CTkButton(parent, text="Aggiorna Statistiche", 
+                      command=lambda: self._refresh_statistics_view(parent),
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6).pack(anchor=tk.E, pady=10)
+    
+    def _refresh_statistics_view(self, parent):
+        """Refresh the statistics view."""
+        for widget in parent.winfo_children():
+            widget.destroy()
+        self._create_statistics_view(parent)
     
     def _create_simulation_bets_list(self, parent):
         """Create list of simulation bets."""
@@ -4536,6 +4608,52 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                             break
             except Exception:
                 pass
+    
+    def _start_settlement_monitor(self):
+        """Start monitoring bets for settlement/outcome updates."""
+        self._do_settlement_monitor()
+    
+    def _do_settlement_monitor(self):
+        """Single settlement monitor cycle - check for settled bets."""
+        if self.client and not self.simulation_mode:
+            threading.Thread(target=self._check_bet_settlements, daemon=True).start()
+        # Schedule next check every 60 seconds
+        self.settlement_monitor_id = self.root.after(60000, self._do_settlement_monitor)
+    
+    def _check_bet_settlements(self):
+        """Check unsettled bets for outcomes (runs in background thread)."""
+        if not self.client:
+            return
+        
+        try:
+            # Get unsettled bets from database
+            unsettled = self.db.get_unsettled_bets(limit=50)
+            if not unsettled:
+                return
+            
+            # Get bet IDs to check
+            bet_ids = [bet['bet_id'] for bet in unsettled if bet.get('bet_id')]
+            if not bet_ids:
+                return
+            
+            # Get cleared orders from Betfair
+            cleared = self.client.get_cleared_orders(bet_ids=bet_ids)
+            
+            # Update database with outcomes
+            for settled_bet in cleared:
+                bet_id = settled_bet.get('bet_id')
+                outcome = settled_bet.get('outcome')
+                profit = settled_bet.get('profit')
+                settled_date = settled_bet.get('settled_date')
+                
+                if bet_id and outcome:
+                    self.db.update_bet_outcome(bet_id, outcome, profit, settled_date)
+            
+            # Refresh statistics view if visible
+            if hasattr(self, 'dashboard_stats_tab_frame'):
+                self.root.after(0, lambda: self._refresh_statistics_view(self.dashboard_stats_tab_frame))
+        except Exception as e:
+            print(f"Settlement monitor error: {e}")
     
     def _start_auto_cashout_monitor(self):
         """Start monitoring positions for auto-cashout triggers."""

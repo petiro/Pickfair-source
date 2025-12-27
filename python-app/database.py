@@ -94,9 +94,16 @@ class Database:
                 status TEXT,
                 placed_at TEXT,
                 settled_at TEXT,
-                profit_loss REAL
+                profit_loss REAL,
+                outcome TEXT
             )
         ''')
+        
+        # Add outcome column for bet settlement (WON/LOST/VOID)
+        try:
+            cursor.execute('ALTER TABLE bets ADD COLUMN outcome TEXT')
+        except sqlite3.OperationalError:
+            pass  # Column already exists
         
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
@@ -440,6 +447,83 @@ class Database:
         rows = cursor.fetchall()
         conn.close()
         return [dict(row) for row in rows]
+    
+    def update_bet_outcome(self, bet_id, outcome, profit_loss=None, settled_at=None):
+        """Update bet outcome after settlement (WON/LOST/VOID)."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        updates = ['outcome = ?', 'status = ?']
+        params = [outcome, 'SETTLED']
+        if profit_loss is not None:
+            updates.append('profit_loss = ?')
+            params.append(profit_loss)
+        if settled_at is not None:
+            updates.append('settled_at = ?')
+            params.append(settled_at)
+        params.append(bet_id)
+        cursor.execute(f'''
+            UPDATE bets SET {', '.join(updates)} WHERE bet_id = ?
+        ''', params)
+        conn.commit()
+        conn.close()
+    
+    def get_unsettled_bets(self, limit=100):
+        """Get bets without outcome (not yet settled)."""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM bets 
+            WHERE outcome IS NULL AND bet_id IS NOT NULL
+            ORDER BY placed_at DESC LIMIT ?
+        ''', (limit,))
+        rows = cursor.fetchall()
+        conn.close()
+        return [dict(row) for row in rows]
+    
+    def get_bet_statistics(self):
+        """Get betting statistics (total, won, lost, pending, P/L)."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Total bets
+        cursor.execute('SELECT COUNT(*) FROM bets WHERE bet_id IS NOT NULL')
+        total = cursor.fetchone()[0] or 0
+        
+        # Won bets
+        cursor.execute("SELECT COUNT(*) FROM bets WHERE outcome = 'WON'")
+        won = cursor.fetchone()[0] or 0
+        
+        # Lost bets
+        cursor.execute("SELECT COUNT(*) FROM bets WHERE outcome = 'LOST'")
+        lost = cursor.fetchone()[0] or 0
+        
+        # Void bets
+        cursor.execute("SELECT COUNT(*) FROM bets WHERE outcome = 'VOID'")
+        void = cursor.fetchone()[0] or 0
+        
+        # Pending bets (no outcome yet)
+        cursor.execute("SELECT COUNT(*) FROM bets WHERE outcome IS NULL AND bet_id IS NOT NULL")
+        pending = cursor.fetchone()[0] or 0
+        
+        # Total P/L from settled bets
+        cursor.execute("SELECT COALESCE(SUM(profit_loss), 0) FROM bets WHERE outcome IS NOT NULL")
+        total_pl = cursor.fetchone()[0] or 0.0
+        
+        # Win rate
+        settled = won + lost
+        win_rate = (won / settled * 100) if settled > 0 else 0.0
+        
+        conn.close()
+        return {
+            'total': total,
+            'won': won,
+            'lost': lost,
+            'void': void,
+            'pending': pending,
+            'total_pl': total_pl,
+            'win_rate': win_rate
+        }
     
     def get_today_profit_loss(self):
         """Get today's total profit/loss including cashouts."""

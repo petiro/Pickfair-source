@@ -247,6 +247,136 @@ class BetfairClient:
         }
     
     @with_retry
+    def get_cleared_orders(self, bet_ids=None, from_date=None):
+        """Get settled/cleared orders to check bet outcomes.
+        
+        Args:
+            bet_ids: Optional list of bet IDs to check
+            from_date: Optional datetime to filter from (defaults to 7 days ago)
+        
+        Returns:
+            List of settled bets with profit/loss and outcome
+        """
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        if from_date is None:
+            from_date = datetime.now() - timedelta(days=7)
+        
+        settled_date_range = filters.time_range(
+            from_=from_date,
+            to=datetime.now()
+        )
+        
+        results = []
+        
+        # Get SETTLED orders
+        try:
+            cleared_orders = self.client.betting.list_cleared_orders(
+                bet_status='SETTLED',
+                settled_date_range=settled_date_range
+            )
+            
+            for order in cleared_orders.cleared_orders:
+                bet_data = {
+                    'bet_id': order.bet_id,
+                    'market_id': order.market_id,
+                    'selection_id': order.selection_id,
+                    'placed_date': order.placed_date.isoformat() if order.placed_date else None,
+                    'settled_date': order.settled_date.isoformat() if order.settled_date else None,
+                    'profit': order.profit,
+                    'side': order.side,
+                    'price_requested': order.price_requested,
+                    'price_matched': order.price_matched,
+                    'size_settled': order.size_settled,
+                }
+                
+                # Determine outcome from profit
+                # Note: profit=0 means stake returned (rule 4.4.1 void selection) = VOID
+                if order.profit > 0:
+                    bet_data['outcome'] = 'WON'
+                elif order.profit < 0:
+                    bet_data['outcome'] = 'LOST'
+                else:
+                    # Stake returned (dead heat, void selection, etc.)
+                    bet_data['outcome'] = 'VOID'
+                
+                # Filter by bet_ids if provided
+                if bet_ids is None or order.bet_id in bet_ids:
+                    results.append(bet_data)
+        except Exception as e:
+            print(f"Error getting settled orders: {e}")
+        
+        # Get VOIDED orders (cancelled markets, etc.)
+        try:
+            voided_orders = self.client.betting.list_cleared_orders(
+                bet_status='VOIDED',
+                settled_date_range=settled_date_range
+            )
+            
+            for order in voided_orders.cleared_orders:
+                bet_data = {
+                    'bet_id': order.bet_id,
+                    'market_id': order.market_id,
+                    'selection_id': order.selection_id,
+                    'placed_date': order.placed_date.isoformat() if order.placed_date else None,
+                    'settled_date': order.settled_date.isoformat() if order.settled_date else None,
+                    'profit': 0.0,  # Voided bets have no profit/loss
+                    'side': order.side,
+                    'price_requested': order.price_requested,
+                    'price_matched': order.price_matched,
+                    'size_settled': order.size_settled,
+                    'outcome': 'VOID',  # Always VOID for voided bets
+                }
+                
+                # Filter by bet_ids if provided
+                if bet_ids is None or order.bet_id in bet_ids:
+                    results.append(bet_data)
+        except Exception as e:
+            print(f"Error getting voided orders: {e}")
+        
+        return results
+    
+    @with_retry
+    def get_market_status(self, market_ids):
+        """Get market status (OPEN, SUSPENDED, CLOSED).
+        
+        Args:
+            market_ids: List of market IDs to check
+        
+        Returns:
+            Dict mapping market_id to status info
+        """
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        if not market_ids:
+            return {}
+        
+        try:
+            market_books = self.client.betting.list_market_book(
+                market_ids=market_ids,
+                price_projection=filters.price_projection(
+                    price_data=['EX_BEST_OFFERS']
+                )
+            )
+            
+            results = {}
+            for book in market_books:
+                results[book.market_id] = {
+                    'status': book.status,
+                    'is_market_data_delayed': book.is_market_data_delayed,
+                    'complete': book.complete,
+                    'inplay': book.inplay,
+                    'version': book.version
+                }
+            
+            return results
+        except Exception as e:
+            print(f"Error getting market status: {e}")
+            return {}
+    
+    @with_retry
     def get_football_events(self, include_inplay=True):
         """Get upcoming and in-play football events."""
         if not self.client:
