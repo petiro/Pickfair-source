@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.26.6"
+APP_VERSION = "3.26.7"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -1518,12 +1518,19 @@ class PickfairApp:
         self.runners_tree.delete(*self.runners_tree.get_children())
         self.market_combo['values'] = []
         
+        if not self.client:
+            messagebox.showwarning("Attenzione", "Non sei connesso a Betfair")
+            return
+        
         def fetch():
             try:
+                print(f"[DEBUG] Loading markets for event: {event_id}")
                 markets = self.client.get_available_markets(event_id)
+                print(f"[DEBUG] Got {len(markets) if markets else 0} markets")
                 self.root.after(0, lambda: self._display_available_markets(markets))
             except Exception as e:
                 err_msg = str(e)
+                print(f"[DEBUG] Error loading markets: {err_msg}")
                 self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", f"Errore caricamento mercati: {msg}"))
         
         threading.Thread(target=fetch, daemon=True).start()
