@@ -21,7 +21,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.24.18"
+APP_VERSION = "3.25.2"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
@@ -5646,6 +5646,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         signal_id = signal.get('signal_id')
         bet_side = signal.get('bet_side', signal.get('side', 'BACK'))
         live_only = signal.get('live_only', False)
+        event_filter = signal.get('event_filter')  # 'LIVE', 'PRE_MATCH', or None
         
         if not event_name:
             return
@@ -5708,10 +5709,19 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                         best_match = event
                 return best_match
             
-            matched_event = find_best_match(live_events)
-            
-            if not matched_event and not live_only:
-                matched_event = find_best_match(all_events)
+            # Search based on event_filter for targeted lookup
+            if event_filter == 'PRE_MATCH':
+                # Only search pre-match events (exclude live)
+                prematch_events = [e for e in all_events if e.get('id') not in [le.get('id') for le in live_events]]
+                matched_event = find_best_match(prematch_events)
+            elif event_filter == 'LIVE' or live_only:
+                # Only search live events
+                matched_event = find_best_match(live_events)
+            else:
+                # Default: search live first, then all events
+                matched_event = find_best_match(live_events)
+                if not matched_event:
+                    matched_event = find_best_match(all_events)
             
             if not matched_event:
                 reason = f"Evento non trovato: {event_name}"

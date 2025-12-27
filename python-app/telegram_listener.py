@@ -68,6 +68,8 @@ class TelegramListener:
             'asian_handicap': r'(?:AH|handicap\s*asiatico)\s*(home|away|casa|ospiti|1|2)\s*([+-]?\d+(?:[.,]\d)?)',
             'draw_no_bet': r'\b(DNB|draw\s*no\s*bet|pareggio\s*no\s*scommessa)\s*(1|2|home|away|casa|ospiti)\b',
             'half_time_full_time': r'\b(HT/FT|parziale[/\\]finale)\s*([1X2])[/\\]([1X2])\b|(?<![\d])([1X2])/([1X2])(?![\d])',
+            'live_filter': r'\b(LIVE|IN\s*PLAY|IN\s*CORSO|DIRETTA)\b',
+            'prematch_filter': r'\b(PRE[-\s]?MATCH|ANTE[-\s]?MATCH|PRIMA\s*PARTITA|NON\s*LIVE)\b',
         }
     
     def set_signal_patterns(self, patterns: Dict):
@@ -124,6 +126,7 @@ class TelegramListener:
             'minute': None,
             'bet_side': 'BACK',
             'live_only': False,
+            'event_filter': None,  # 'LIVE', 'PRE_MATCH', or None (search both)
         }
         
         event_match = re.search(self.signal_patterns['event'], text)
@@ -149,6 +152,13 @@ class TelegramListener:
             signal['side'] = 'BACK'
         elif re.search(self.signal_patterns['lay'], text, re.IGNORECASE):
             signal['side'] = 'LAY'
+        
+        # Check for event filter (LIVE or PRE-MATCH)
+        if re.search(self.signal_patterns['live_filter'], text, re.IGNORECASE):
+            signal['event_filter'] = 'LIVE'
+            signal['live_only'] = True
+        elif re.search(self.signal_patterns['prematch_filter'], text, re.IGNORECASE):
+            signal['event_filter'] = 'PRE_MATCH'
         
         for custom in self.custom_patterns:
             try:
