@@ -172,6 +172,88 @@ class TelegramListener:
             print(f"Error parsing COPY CASHOUT: {e}")
         return None
     
+    def parse_booking_signal(self, text: str) -> Optional[Dict]:
+        """Parse a BOOK message for bet booking.
+        
+        Formats supported:
+        - "Roma - Milan book over 2.5 @ 3"
+        - "Roma Milan BOOK BACK 1 @ 2.5"
+        - "Roma - Milan book under 1.5 @ 1.80"
+        - "Roma Milan book lay X @ 4.0"
+        """
+        text_upper = text.upper()
+        if 'BOOK' not in text_upper:
+            return None
+        
+        try:
+            # Extract event name (before "book")
+            event_match = re.search(r'^(.+?)\s+book\s+', text, re.IGNORECASE)
+            if not event_match:
+                return None
+            event = event_match.group(1).strip()
+            
+            # Extract target odds (after @)
+            odds_match = re.search(r'@\s*([\d.,]+)', text)
+            if not odds_match:
+                return None
+            target_odds = float(odds_match.group(1).replace(',', '.'))
+            
+            # Determine bet side (BACK default, LAY if specified)
+            side = 'BACK'
+            if re.search(r'\blay\b', text, re.IGNORECASE):
+                side = 'LAY'
+            
+            # Determine market type and selection
+            market_type = None
+            selection = None
+            over_line = None
+            
+            # Over/Under
+            over_match = re.search(r'over\s*([\d.,]+)', text, re.IGNORECASE)
+            under_match = re.search(r'under\s*([\d.,]+)', text, re.IGNORECASE)
+            
+            if over_match:
+                over_line = float(over_match.group(1).replace(',', '.'))
+                selection = f"Over {over_line}"
+                market_type = 'OVER_UNDER'
+            elif under_match:
+                over_line = float(under_match.group(1).replace(',', '.'))
+                selection = f"Under {over_line}"
+                market_type = 'OVER_UNDER'
+            
+            # GG/NG (BTTS)
+            elif re.search(r'\bgg\b|\bbtts\b', text, re.IGNORECASE):
+                selection = 'Yes'
+                market_type = 'BOTH_TEAMS_TO_SCORE'
+            elif re.search(r'\bng\b|\bno\s*gol\b', text, re.IGNORECASE):
+                selection = 'No'
+                market_type = 'BOTH_TEAMS_TO_SCORE'
+            
+            # 1X2
+            elif re.search(r'\b1\b', text_upper.split('BOOK')[1].split('@')[0]):
+                selection = 'Home'
+                market_type = 'MATCH_ODDS'
+            elif re.search(r'\bX\b', text_upper.split('BOOK')[1].split('@')[0]):
+                selection = 'Draw'
+                market_type = 'MATCH_ODDS'
+            elif re.search(r'\b2\b', text_upper.split('BOOK')[1].split('@')[0]):
+                selection = 'Away'
+                market_type = 'MATCH_ODDS'
+            
+            if event and target_odds and selection and market_type:
+                return {
+                    'event': event,
+                    'market_type': market_type,
+                    'selection': selection,
+                    'side': side,
+                    'target_odds': target_odds,
+                    'over_line': over_line,
+                    'is_booking': True
+                }
+        except Exception as e:
+            print(f"Error parsing BOOK signal: {e}")
+        return None
+    
     def parse_signal(self, text: str) -> Optional[Dict]:
         """
         Parse a message text to extract betting signal.
@@ -487,6 +569,15 @@ class TelegramListener:
                 copy_cashout['sender_id'] = sender_id
                 copy_cashout['raw_text'] = text
                 self.signal_callback(copy_cashout)
+                return
+            
+            # Check for booking signals (e.g., "Roma - Milan book over 2.5 @ 3")
+            booking = self.parse_booking_signal(text)
+            if booking and self.signal_callback:
+                booking['chat_id'] = chat_id
+                booking['sender_id'] = sender_id
+                booking['raw_text'] = text
+                self.signal_callback(booking)
                 return
             
             # Parse normal signals
