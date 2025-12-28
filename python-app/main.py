@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.39.8"
+APP_VERSION = "3.39.9"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -6503,13 +6503,20 @@ Evento: {event_name}"""
                         results, profit, _ = calculate_dutching_stakes(selections, amount, bet_type)
                 else:  # PROFIT mode
                     target_profit = float(profit_var.get().replace(',', '.'))
-                    implied_dec = sum(1.0 / s['price'] for s in selections)
-                    if implied_dec >= 1:
-                        raise ValueError("Book value >= 100%, profitto non garantito")
-                    # Include commission (4.5%) in target profit calculation
                     commission_mult = 1 - (commission / 100)  # 0.955
-                    gross_profit_needed = target_profit / commission_mult
-                    required_stake = gross_profit_needed / (1.0 / implied_dec - 1)
+                    
+                    if bet_type == 'BACK' or has_swapped:
+                        # BACK dutching: profit = stake * (1/implied - 1)
+                        implied_dec = sum(1.0 / s['price'] for s in selections)
+                        if implied_dec >= 1:
+                            raise ValueError("Book value >= 100%, profitto non garantito")
+                        gross_profit_needed = target_profit / commission_mult
+                        required_stake = gross_profit_needed / (1.0 / implied_dec - 1)
+                    else:
+                        # LAY dutching: target is best case (all lose)
+                        # profit = total_stake * commission_mult
+                        required_stake = target_profit / commission_mult
+                    
                     if has_swapped:
                         results, profit, _ = calculate_mixed_dutching(selections, required_stake, commission)
                     else:
