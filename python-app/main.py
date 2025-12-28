@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.39.9"
+APP_VERSION = "3.39.10"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -5489,20 +5489,69 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         self._create_orders_list(partial_frame, orders['partiallyMatched'])
     
     def _create_orders_list(self, parent, orders, show_cancel=False):
-        """Create list of orders."""
-        columns = ('mercato', 'tipo', 'quota', 'stake', 'abbinato')
-        tree = ttk.Treeview(parent, columns=columns, show='headings', height=8)
+        """Create list of orders with event and market names."""
+        # Create container with scrollbar
+        scroll_frame = ttk.Frame(parent)
+        scroll_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Columns with evento and mercato names
+        columns = ('evento', 'mercato', 'selezione', 'tipo', 'quota', 'stake', 'abbinato')
+        tree = ttk.Treeview(scroll_frame, columns=columns, show='headings', height=12)
+        tree.heading('evento', text='Evento')
         tree.heading('mercato', text='Mercato')
+        tree.heading('selezione', text='Selezione')
         tree.heading('tipo', text='Tipo')
         tree.heading('quota', text='Quota')
         tree.heading('stake', text='Stake')
         tree.heading('abbinato', text='Abbinato')
+        tree.column('evento', width=180)
+        tree.column('mercato', width=120)
+        tree.column('selezione', width=100)
+        tree.column('tipo', width=50)
+        tree.column('quota', width=60)
+        tree.column('stake', width=60)
+        tree.column('abbinato', width=60)
         
-        tree.pack(fill=tk.BOTH, expand=True)
+        scrollbar = ttk.Scrollbar(scroll_frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Get market details for better display
+        market_cache = {}
         
         for order in orders:
+            market_id = order.get('marketId', '')
+            selection_id = order.get('selectionId', '')
+            
+            # Try to get event/market names from cache or API
+            event_name = ''
+            market_name = ''
+            runner_name = str(selection_id)
+            
+            if market_id and market_id not in market_cache:
+                try:
+                    if self.client:
+                        catalogue = self.client.get_market_catalogue([market_id])
+                        if catalogue:
+                            market_cache[market_id] = catalogue[0]
+                except:
+                    pass
+            
+            if market_id in market_cache:
+                cat = market_cache[market_id]
+                event_name = cat.get('event', {}).get('name', '')[:25]
+                market_name = cat.get('marketName', '')[:20]
+                # Find runner name
+                for runner in cat.get('runners', []):
+                    if runner.get('selectionId') == selection_id:
+                        runner_name = runner.get('runnerName', str(selection_id))[:20]
+                        break
+            
             tree.insert('', tk.END, iid=order.get('betId'), values=(
-                order.get('marketId', '')[:15],
+                event_name,
+                market_name,
+                runner_name,
                 order.get('side', ''),
                 f"{order.get('price', 0):.2f}",
                 f"{order.get('size', 0):.2f}",
@@ -5577,36 +5626,43 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         # Header
         ttk.Label(parent, text="Posizioni Aperte con Cashout", style='Title.TLabel').pack(anchor=tk.W, pady=(0, 10))
         
-        # Positions list
-        columns = ('mercato', 'selezione', 'tipo', 'quota', 'stake', 'p/l_attuale', 'azione')
-        tree = ttk.Treeview(parent, columns=columns, show='headings', height=10)
+        # Create container with scrollbar
+        scroll_frame = ttk.Frame(parent)
+        scroll_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Positions list with event and market names
+        columns = ('evento', 'mercato', 'selezione', 'tipo', 'quota', 'stake', 'p/l_attuale')
+        tree = ttk.Treeview(scroll_frame, columns=columns, show='headings', height=15)
+        tree.heading('evento', text='Evento')
         tree.heading('mercato', text='Mercato')
         tree.heading('selezione', text='Selezione')
         tree.heading('tipo', text='Tipo')
         tree.heading('quota', text='Quota')
         tree.heading('stake', text='Stake')
         tree.heading('p/l_attuale', text='P/L Attuale')
-        tree.heading('azione', text='Azione')
-        tree.column('mercato', width=100)
+        tree.column('evento', width=180)
+        tree.column('mercato', width=120)
         tree.column('selezione', width=100)
         tree.column('tipo', width=50)
         tree.column('quota', width=60)
         tree.column('stake', width=60)
         tree.column('p/l_attuale', width=80)
-        tree.column('azione', width=80)
         
         # Configure tags for P/L colors
         tree.tag_configure('profit', foreground=COLORS['success'])
         tree.tag_configure('loss', foreground=COLORS['loss'])
         
-        tree.pack(fill=tk.BOTH, expand=True)
+        scrollbar = ttk.Scrollbar(scroll_frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         # Store position data for cashout
         positions_data = {}
         no_positions_label = [None]  # Use list to allow modification in nested function
         
         def load_positions():
-            """Load matched orders and calculate P/L."""
+            """Load matched orders and calculate P/L with event/market names."""
             # Clear previous no-positions label if exists
             if no_positions_label[0]:
                 no_positions_label[0].destroy()
@@ -5620,6 +5676,9 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     tree.delete(item)
                 positions_data.clear()
                 
+                # Cache market catalogues for event/market names
+                market_cache = {}
+                
                 for order in matched:
                     market_id = order.get('marketId')
                     selection_id = order.get('selectionId')
@@ -5628,6 +5687,28 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     stake = order.get('sizeMatched', 0)
                     
                     if stake > 0:
+                        # Get event/market names
+                        event_name = ''
+                        market_name = ''
+                        runner_name = str(selection_id)
+                        
+                        if market_id and market_id not in market_cache:
+                            try:
+                                catalogue = self.client.get_market_catalogue([market_id])
+                                if catalogue:
+                                    market_cache[market_id] = catalogue[0]
+                            except:
+                                pass
+                        
+                        if market_id in market_cache:
+                            cat = market_cache[market_id]
+                            event_name = cat.get('event', {}).get('name', '')[:25]
+                            market_name = cat.get('marketName', '')[:20]
+                            for runner in cat.get('runners', []):
+                                if runner.get('selectionId') == selection_id:
+                                    runner_name = runner.get('runnerName', str(selection_id))[:20]
+                                    break
+                        
                         try:
                             cashout_info = self.client.calculate_cashout(
                                 market_id, selection_id, side, stake, price
@@ -5643,13 +5724,13 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                         item_id = f"{order.get('betId')}"
                         tags = (pl_tag,) if pl_tag else ()
                         tree.insert('', tk.END, iid=item_id, values=(
-                            market_id[:12] if market_id else '',
-                            order.get('runnerName', str(selection_id))[:15],
+                            event_name,
+                            market_name,
+                            runner_name,
                             side,
                             f"{price:.2f}",
                             f"{stake:.2f}",
-                            pl_display,
-                            "Cashout"
+                            pl_display
                         ), tags=tags)
                         
                         positions_data[item_id] = {
@@ -5658,7 +5739,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                             'side': side,
                             'price': price,
                             'stake': stake,
-                            'cashout_info': cashout_info
+                            'cashout_info': cashout_info,
+                            'event_name': event_name
                         }
                 
                 if not positions_data:
