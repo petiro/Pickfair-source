@@ -58,7 +58,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.30.0"
+APP_VERSION = "3.30.1"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -2378,8 +2378,11 @@ class PickfairApp:
     
     def _on_quick_bet_result(self, result, runner, bet_type, price, stake):
         """Handle quick bet result."""
+        logging.info(f"Quick bet result: status={result.get('status')}, runner={runner['runnerName']}")
+        
         if result.get('status') == 'SUCCESS':
             matched = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
+            logging.info(f"Quick bet matched: {matched}, will broadcast: {matched > 0}")
             
             # Save to database
             self.db.save_bet(
@@ -5290,18 +5293,24 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
     
     def _broadcast_copy_bet(self, event_name, market_name, selection, side, price, stake_percent, stake_amount=None):
         """Broadcast a COPY BET message to followers (Master mode only)."""
+        logging.info(f"_broadcast_copy_bet called: {event_name}, {selection}, {side}")
+        
         settings = self.db.get_telegram_settings()
         if not settings:
+            logging.warning("Copy Trading: No telegram settings found")
             return
         
         copy_mode = settings.get('copy_mode', 'OFF')
         copy_chat_id = settings.get('copy_chat_id', '')
         
+        logging.info(f"Copy Trading settings: mode={copy_mode}, chat_id={copy_chat_id}")
+        
         if copy_mode != 'MASTER' or not copy_chat_id:
+            logging.info(f"Copy Trading: Not in MASTER mode or no chat_id (mode={copy_mode})")
             return
         
         if not self.telegram_listener or not self.telegram_listener.running:
-            print("Copy Trading: Telegram listener not running")
+            logging.warning("Copy Trading: Telegram listener not running")
             return
         
         message = f"""COPY BET
@@ -5315,9 +5324,9 @@ StakeEUR: {stake_amount:.2f}"""
         
         try:
             self.telegram_listener.send_message(copy_chat_id, message)
-            print(f"Copy Trading: Broadcast sent to {copy_chat_id}")
+            logging.info(f"Copy Trading: Broadcast BET sent to {copy_chat_id}")
         except Exception as e:
-            print(f"Copy Trading broadcast error: {e}")
+            logging.error(f"Copy Trading broadcast error: {e}")
     
     def _broadcast_copy_cashout(self, event_name):
         """Broadcast a COPY CASHOUT message to followers (Master mode only)."""
