@@ -58,7 +58,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.30.1"
+APP_VERSION = "3.30.2"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -2101,23 +2101,139 @@ class PickfairApp:
         if stake < 1.0:
             stake = 1.0
         
-        # Confirmation dialog (popup)
-        tipo_text = "Back (Punta)" if bet_type == 'BACK' else "Lay (Banca)"
-        mode_text = "[SIMULAZIONE] " if self.simulation_mode else ""
+        # Show editable quick bet dialog
+        self._show_quick_bet_dialog(runner, bet_type, price, stake)
+    
+    def _show_quick_bet_dialog(self, runner, bet_type, initial_price, initial_stake):
+        """Show editable quick bet confirmation dialog."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Scommessa Rapida")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        dialog.resizable(False, False)
         
-        if not messagebox.askyesno("Conferma Scommessa Rapida",
-            f"{mode_text}Vuoi piazzare questa scommessa?\n\n"
-            f"Selezione: {runner['runnerName']}\n"
-            f"Tipo: {tipo_text}\n"
-            f"Quota: {price:.2f}\n"
-            f"Stake: {stake:.2f} EUR"):
-            return
+        # Center dialog
+        dialog.geometry("320x280")
+        dialog.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() - 320) // 2
+        y = self.root.winfo_y() + (self.root.winfo_height() - 280) // 2
+        dialog.geometry(f"+{x}+{y}")
         
-        # Place the bet
+        # Configure dark theme
+        dialog.configure(bg=COLORS['bg_dark'])
+        
+        # Mode indicator
         if self.simulation_mode:
-            self._place_quick_simulation_bet(runner, bet_type, price, stake)
-        else:
-            self._place_quick_real_bet(runner, bet_type, price, stake)
+            mode_label = ctk.CTkLabel(dialog, text="[MODALITA SIMULAZIONE]", 
+                                       text_color=COLORS['warning'], font=('Segoe UI', 10, 'bold'))
+            mode_label.pack(pady=(10, 5))
+        
+        # Selection name
+        tipo_text = "BACK (Punta)" if bet_type == 'BACK' else "LAY (Banca)"
+        tipo_color = COLORS['back'] if bet_type == 'BACK' else COLORS['lay']
+        
+        ctk.CTkLabel(dialog, text=runner['runnerName'], font=('Segoe UI', 12, 'bold'),
+                     text_color=COLORS['text_primary']).pack(pady=(10, 5))
+        
+        ctk.CTkLabel(dialog, text=tipo_text, font=('Segoe UI', 11, 'bold'),
+                     text_color=tipo_color).pack(pady=2)
+        
+        # Input frame
+        input_frame = ctk.CTkFrame(dialog, fg_color=COLORS['bg_panel'])
+        input_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        # Quota (editable)
+        quota_frame = ctk.CTkFrame(input_frame, fg_color='transparent')
+        quota_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkLabel(quota_frame, text="Quota:", width=80, anchor='w',
+                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        
+        price_var = tk.StringVar(value=f"{initial_price:.2f}")
+        price_entry = ctk.CTkEntry(quota_frame, textvariable=price_var, width=100,
+                                    fg_color=COLORS['bg_card'], text_color=COLORS['text_primary'])
+        price_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Stake (editable)
+        stake_frame = ctk.CTkFrame(input_frame, fg_color='transparent')
+        stake_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkLabel(stake_frame, text="Stake (EUR):", width=80, anchor='w',
+                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        
+        stake_var = tk.StringVar(value=f"{initial_stake:.2f}")
+        stake_entry = ctk.CTkEntry(stake_frame, textvariable=stake_var, width=100,
+                                    fg_color=COLORS['bg_card'], text_color=COLORS['text_primary'])
+        stake_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Potential profit/liability label
+        pl_label = ctk.CTkLabel(dialog, text="", font=('Segoe UI', 10),
+                                 text_color=COLORS['text_secondary'])
+        pl_label.pack(pady=5)
+        
+        def update_pl(*args):
+            try:
+                p = float(price_var.get().replace(',', '.'))
+                s = float(stake_var.get().replace(',', '.'))
+                if bet_type == 'BACK':
+                    profit = s * (p - 1) * 0.955
+                    pl_label.configure(text=f"Profitto potenziale: {profit:.2f} EUR")
+                else:
+                    liability = s * (p - 1)
+                    pl_label.configure(text=f"Liability: {liability:.2f} EUR")
+            except:
+                pl_label.configure(text="")
+        
+        price_var.trace('w', update_pl)
+        stake_var.trace('w', update_pl)
+        update_pl()
+        
+        # Buttons
+        btn_frame = ctk.CTkFrame(dialog, fg_color='transparent')
+        btn_frame.pack(fill=tk.X, padx=20, pady=15)
+        
+        def confirm():
+            try:
+                final_price = float(price_var.get().replace(',', '.'))
+                final_stake = float(stake_var.get().replace(',', '.'))
+            except ValueError:
+                messagebox.showwarning("Errore", "Valori non validi")
+                return
+            
+            if final_stake < 1.0:
+                messagebox.showwarning("Errore", "Stake minimo: 1.00 EUR")
+                return
+            
+            if final_price <= 1.0:
+                messagebox.showwarning("Errore", "Quota deve essere > 1.00")
+                return
+            
+            dialog.destroy()
+            
+            # Place the bet
+            if self.simulation_mode:
+                self._place_quick_simulation_bet(runner, bet_type, final_price, final_stake)
+            else:
+                self._place_quick_real_bet(runner, bet_type, final_price, final_stake)
+        
+        def cancel():
+            dialog.destroy()
+        
+        ctk.CTkButton(btn_frame, text="PIAZZA", width=100, height=35,
+                      fg_color=COLORS['success'], hover_color='#1a5f2a',
+                      command=confirm).pack(side=tk.LEFT, padx=10, expand=True)
+        
+        ctk.CTkButton(btn_frame, text="Annulla", width=100, height=35,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      command=cancel).pack(side=tk.LEFT, padx=10, expand=True)
+        
+        # Focus on stake entry
+        stake_entry.focus_set()
+        stake_entry.select_range(0, tk.END)
+        
+        # Handle Enter key
+        dialog.bind('<Return>', lambda e: confirm())
+        dialog.bind('<Escape>', lambda e: cancel())
     
     def _show_quick_bet_panel(self, runner, selection_id, bet_type, price, stake):
         """Show the quick bet inline panel with runner data."""
