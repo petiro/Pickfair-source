@@ -212,6 +212,18 @@ class Database:
         except sqlite3.OperationalError:
             pass  # Column already exists
         
+        # Add selections column for dutching bets
+        try:
+            cursor.execute('ALTER TABLE bets ADD COLUMN selections TEXT')
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+        
+        # Add total_stake column for dutching bets
+        try:
+            cursor.execute('ALTER TABLE bets ADD COLUMN total_stake REAL')
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+        
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

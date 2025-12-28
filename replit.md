@@ -69,10 +69,10 @@ COLORS = {
 
 ## Recent Changes (December 2024)
 
-- **v3.29.2**: Quick Bet Panel Visibility Fix
-  - Pannello Scommessa Rapida ora appare in posizione fissa (sempre visibile)
-  - Spostato sopra l'area scrollabile per essere sempre accessibile
-  - Clicca su quota Back/Lay per aprire il pannello
+- **v3.29.3**: Quick Bet Popup Restored + Database Fix
+  - Ripristinato popup di conferma scommessa rapida (come richiesto)
+  - Corretto errore database "table bets has no column named selections"
+  - Aggiunte colonne mancanti: selections, total_stake
 
 - **v3.29.1**: Polling Fallback for Delayed API Keys
   - Aggiunto polling automatico ogni 5 secondi per aggiornare le quote

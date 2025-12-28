@@ -58,7 +58,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.29.2"
+APP_VERSION = "3.29.3"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -2010,7 +2010,7 @@ class PickfairApp:
         self._recalculate()
     
     def _quick_bet(self, selection_id, bet_type):
-        """Show quick bet panel for a runner (no popup)."""
+        """Place a quick single bet on a runner at current price."""
         if not self.client and not self.simulation_mode:
             messagebox.showwarning("Attenzione", "Devi prima connetterti")
             return
@@ -2052,8 +2052,23 @@ class PickfairApp:
         if stake < 1.0:
             stake = 1.0
         
-        # Show quick bet panel with data
-        self._show_quick_bet_panel(runner, selection_id, bet_type, price, stake)
+        # Confirmation dialog (popup)
+        tipo_text = "Back (Punta)" if bet_type == 'BACK' else "Lay (Banca)"
+        mode_text = "[SIMULAZIONE] " if self.simulation_mode else ""
+        
+        if not messagebox.askyesno("Conferma Scommessa Rapida",
+            f"{mode_text}Vuoi piazzare questa scommessa?\n\n"
+            f"Selezione: {runner['runnerName']}\n"
+            f"Tipo: {tipo_text}\n"
+            f"Quota: {price:.2f}\n"
+            f"Stake: {stake:.2f} EUR"):
+            return
+        
+        # Place the bet
+        if self.simulation_mode:
+            self._place_quick_simulation_bet(runner, bet_type, price, stake)
+        else:
+            self._place_quick_real_bet(runner, bet_type, price, stake)
     
     def _show_quick_bet_panel(self, runner, selection_id, bet_type, price, stake):
         """Show the quick bet inline panel with runner data."""
