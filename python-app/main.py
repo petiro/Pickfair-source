@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.39.3"
+APP_VERSION = "3.39.4"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -185,7 +185,8 @@ class PickfairApp:
         self._start_settlement_monitor()
         self._check_for_updates_on_startup()
         
-        self.root.after(2000, self._auto_start_telegram_listener)
+        # Telegram listener: manual start only (user preference)
+        # self.root.after(2000, self._auto_start_telegram_listener)
     
     def _create_activation_screen(self):
         """Create the license activation screen."""
