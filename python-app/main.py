@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.39.0"
+APP_VERSION = "3.39.1"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -1759,6 +1759,11 @@ class PickfairApp:
                 # For perfect hedge: profit_if_win == profit_if_lose
                 # Average handles rounding differences
                 green_up = (profit_if_win + profit_if_lose) / 2
+                
+                # Apply commission ONLY on positive profit (Betfair Italia 4.5%)
+                commission = 0.045
+                if green_up > 0:
+                    green_up = green_up * (1 - commission)
                 
                 # Update position data
                 pos['green_up'] = round(green_up, 2)
