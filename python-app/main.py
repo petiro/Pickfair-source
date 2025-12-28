@@ -58,7 +58,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.29.3"
+APP_VERSION = "3.30.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -638,6 +638,10 @@ class PickfairApp:
         # Style for odds cells to show they're clickable
         self.runners_tree.tag_configure('clickable_back', foreground=COLORS['clickable_back'])
         self.runners_tree.tag_configure('clickable_lay', foreground=COLORS['clickable_lay'])
+        
+        # Price movement highlight tags (real-time visual feedback)
+        self.runners_tree.tag_configure('price_up', background='#1a472a')  # Dark green highlight
+        self.runners_tree.tag_configure('price_down', background='#4a1a1a')  # Dark red highlight
         
         # Context menu for runners
         self.runner_context_menu = tk.Menu(self.root, tearoff=0)
@@ -1815,7 +1819,7 @@ class PickfairApp:
     def _start_polling_fallback(self):
         """Start polling fallback when streaming is not available."""
         self._stop_polling_fallback()
-        self.stream_label.configure(text="POLLING (5s)")
+        self.stream_label.configure(text="POLLING (2s)")
         self._polling_loop()
     
     def _polling_loop(self):
@@ -1827,8 +1831,8 @@ class PickfairApp:
         # Refresh prices silently
         self._refresh_prices_silent()
         
-        # Schedule next poll
-        self.polling_fallback_id = self.root.after(5000, self._polling_loop)
+        # Schedule next poll (2 seconds for real-time feel)
+        self.polling_fallback_id = self.root.after(2000, self._polling_loop)
     
     def _refresh_prices_silent(self):
         """Refresh prices without reloading entire market."""
@@ -1875,9 +1879,13 @@ class PickfairApp:
         self.stream_label.configure(text="")
     
     def _on_price_update(self, market_id, runners_data):
-        """Handle streaming price update."""
+        """Handle streaming price update with visual highlights."""
         if not self.current_market or market_id != self.current_market['marketId']:
             return
+        
+        # Initialize previous prices cache if not exists
+        if not hasattr(self, '_prev_prices'):
+            self._prev_prices = {}
         
         def update_ui():
             for runner_update in runners_data:
@@ -1893,6 +1901,27 @@ class PickfairApp:
                     back_prices = runner_update.get('backPrices', [])
                     lay_prices = runner_update.get('layPrices', [])
                     
+                    # Get previous prices for comparison
+                    prev = self._prev_prices.get(selection_id, {'back': 0, 'lay': 0})
+                    new_back = back_prices[0][0] if back_prices else 0
+                    new_lay = lay_prices[0][0] if lay_prices else 0
+                    
+                    # Determine highlight color based on price movement
+                    highlight_tag = None
+                    if prev['back'] > 0 and new_back > 0:
+                        if new_back > prev['back']:
+                            highlight_tag = 'price_up'  # Green - quote sale
+                        elif new_back < prev['back']:
+                            highlight_tag = 'price_down'  # Red - quote scende
+                    elif prev['lay'] > 0 and new_lay > 0:
+                        if new_lay > prev['lay']:
+                            highlight_tag = 'price_up'
+                        elif new_lay < prev['lay']:
+                            highlight_tag = 'price_down'
+                    
+                    # Store new prices
+                    self._prev_prices[selection_id] = {'back': new_back, 'lay': new_lay}
+                    
                     if back_prices:
                         best_back = back_prices[0]
                         current_values[2] = f"{best_back[0]:.2f}"
@@ -1904,6 +1933,12 @@ class PickfairApp:
                         current_values[5] = f"{best_lay[1]:.0f}" if len(best_lay) > 1 else "-"
                     
                     self.runners_tree.item(selection_id, values=current_values)
+                    
+                    # Apply highlight if price changed
+                    if highlight_tag:
+                        self.runners_tree.item(selection_id, tags=(highlight_tag,))
+                        # Remove highlight after 500ms
+                        self.root.after(500, lambda sid=selection_id: self._clear_price_highlight(sid))
                     
                     if selection_id in self.selected_runners:
                         if back_prices:
@@ -1922,6 +1957,13 @@ class PickfairApp:
                     pass
         
         self.root.after(0, update_ui)
+    
+    def _clear_price_highlight(self, selection_id):
+        """Clear price highlight from a runner row."""
+        try:
+            self.runners_tree.item(selection_id, tags=())
+        except:
+            pass
     
     def _show_runner_context_menu(self, event):
         """Show context menu on right-click."""
