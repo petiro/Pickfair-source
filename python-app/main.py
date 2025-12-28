@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.35.1"
+APP_VERSION = "3.36.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -1575,7 +1575,7 @@ class PickfairApp:
         logging.error(f"Order Stream error: {error}")
     
     def _on_market_stream_update(self, market_data: dict):
-        """Handle real-time market price update from stream."""
+        """Handle real-time market price update from stream - accumulate in buffer."""
         if not self.current_market:
             return
         
@@ -1583,59 +1583,87 @@ class PickfairApp:
         if market_data.get('market_id') != self.current_market.get('marketId'):
             return
         
+        # Accumulate updates in thread-safe buffer (instead of updating UI directly)
         selection_id = str(market_data.get('selection_id'))
         
-        def update_runner_prices():
-            try:
-                # Find the runner row in the tree
-                if not self.runners_tree.exists(selection_id):
-                    return
-                
-                # Get current values
-                current_values = list(self.runners_tree.item(selection_id)['values'])
-                
-                # Get old prices for comparison (for flash effect)
-                old_back = current_values[2] if current_values[2] != '-' else None
-                old_lay = current_values[4] if current_values[4] != '-' else None
-                
-                # Update with new prices
-                back_price = market_data.get('back_price')
-                back_size = market_data.get('back_size', 0)
-                lay_price = market_data.get('lay_price')
-                lay_size = market_data.get('lay_size', 0)
-                
-                new_back = f"{back_price:.2f}" if back_price else "-"
-                new_lay = f"{lay_price:.2f}" if lay_price else "-"
-                new_back_size = f"{back_size:.0f}" if back_size else "-"
-                new_lay_size = f"{lay_size:.0f}" if lay_size else "-"
-                
-                current_values[2] = new_back
-                current_values[3] = new_back_size
-                current_values[4] = new_lay
-                current_values[5] = new_lay_size
-                
-                # Update tree
-                self.runners_tree.item(selection_id, values=current_values)
-                
-                # Flash effect for price changes
-                flash_tag = None
-                if old_back and new_back != old_back:
-                    try:
-                        if float(new_back) > float(old_back):
-                            flash_tag = 'price_up'
-                        elif float(new_back) < float(old_back):
-                            flash_tag = 'price_down'
-                    except ValueError:
-                        pass
-                
-                if flash_tag:
-                    self.runners_tree.item(selection_id, tags=(flash_tag,))
-                    self.root.after(500, lambda: self._reset_runner_tag(selection_id))
-                    
-            except Exception as e:
-                logging.debug(f"Market stream UI update error: {e}")
+        # Initialize buffer if needed
+        if not hasattr(self, '_market_update_buffer'):
+            self._market_update_buffer = {}
+            self._market_update_dirty = False
         
-        self.root.after(0, update_runner_prices)
+        # Store latest data for each selection (overwrites previous - we only need latest)
+        self._market_update_buffer[selection_id] = {
+            'back_price': market_data.get('back_price'),
+            'back_size': market_data.get('back_size', 0),
+            'lay_price': market_data.get('lay_price'),
+            'lay_size': market_data.get('lay_size', 0),
+            'ltp': market_data.get('ltp'),
+            'tv': market_data.get('tv', 0)
+        }
+        self._market_update_dirty = True
+        
+        # Start throttled UI refresh loop if not running
+        if not hasattr(self, '_stream_ui_loop_running') or not self._stream_ui_loop_running:
+            self._stream_ui_loop_running = True
+            self.root.after(30, self._process_stream_buffer)
+    
+    def _process_stream_buffer(self):
+        """Process accumulated stream updates at throttled interval (30ms)."""
+        if not hasattr(self, '_market_update_buffer'):
+            self._stream_ui_loop_running = False
+            return
+        
+        # Only update UI if there are changes
+        if self._market_update_dirty and self._market_update_buffer:
+            self._market_update_dirty = False
+            
+            # Take snapshot of current buffer
+            buffer_snapshot = dict(self._market_update_buffer)
+            
+            # Update all changed runners in one batch
+            for selection_id, data in buffer_snapshot.items():
+                try:
+                    if not self.runners_tree.exists(selection_id):
+                        continue
+                    
+                    current_values = list(self.runners_tree.item(selection_id)['values'])
+                    
+                    # Get old prices for flash effect
+                    old_back = current_values[2] if current_values[2] != '-' else None
+                    
+                    # Format new values
+                    back_price = data['back_price']
+                    lay_price = data['lay_price']
+                    new_back = f"{back_price:.2f}" if back_price else "-"
+                    new_lay = f"{lay_price:.2f}" if lay_price else "-"
+                    new_back_size = f"{data['back_size']:.0f}" if data['back_size'] else "-"
+                    new_lay_size = f"{data['lay_size']:.0f}" if data['lay_size'] else "-"
+                    
+                    current_values[2] = new_back
+                    current_values[3] = new_back_size
+                    current_values[4] = new_lay
+                    current_values[5] = new_lay_size
+                    
+                    # Update tree
+                    self.runners_tree.item(selection_id, values=current_values)
+                    
+                    # Flash effect for price changes
+                    if old_back and new_back != old_back:
+                        try:
+                            flash_tag = 'price_up' if float(new_back) > float(old_back) else 'price_down'
+                            self.runners_tree.item(selection_id, tags=(flash_tag,))
+                            self.root.after(500, lambda sid=selection_id: self._reset_runner_tag(sid))
+                        except ValueError:
+                            pass
+                            
+                except Exception as e:
+                    logging.debug(f"Stream buffer UI error: {e}")
+        
+        # Continue loop if streaming is active
+        if self.streaming_active and self.stream_var.get():
+            self.root.after(30, self._process_stream_buffer)
+        else:
+            self._stream_ui_loop_running = False
     
     def _reset_runner_tag(self, selection_id):
         """Reset runner row tag after flash effect."""
