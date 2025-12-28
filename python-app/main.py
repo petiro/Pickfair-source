@@ -5890,6 +5890,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
     
     def _broadcast_copy_bet(self, event_name, market_name, selection, side, price, stake_percent, stake_amount=None):
         """Broadcast a COPY BET message to followers (Master mode only)."""
+        logging.info(f"=== COPY TRADING BROADCAST ===")
         logging.info(f"_broadcast_copy_bet called: {event_name}, {selection}, {side}")
         
         settings = self.db.get_telegram_settings()
@@ -5906,8 +5907,17 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             logging.info(f"Copy Trading: Not in MASTER mode or no chat_id (mode={copy_mode})")
             return
         
-        if not self.telegram_listener or not self.telegram_listener.running:
-            logging.warning("Copy Trading: Telegram listener not running")
+        # Check telegram listener status with detailed logging
+        if not self.telegram_listener:
+            logging.warning("Copy Trading: Telegram listener object is None")
+            return
+        
+        logging.info(f"Copy Trading: telegram_listener.running = {self.telegram_listener.running}")
+        logging.info(f"Copy Trading: telegram_listener.loop = {self.telegram_listener.loop}")
+        logging.info(f"Copy Trading: telegram_listener.client = {self.telegram_listener.client}")
+        
+        if not self.telegram_listener.running:
+            logging.warning("Copy Trading: Telegram listener not running - start it manually from Telegram tab!")
             return
         
         message = f"""COPY BET
