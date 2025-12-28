@@ -288,15 +288,17 @@ class BetfairStream:
             
             if op == "connection":
                 self.connection_id = msg.get("connectionId")
-                logging.info(f"Stream connected: {self.connection_id}")
-                if self.on_status_change:
-                    self.on_status_change("CONNECTED")
+                logging.info(f"Stream socket connected: {self.connection_id}")
+                # Don't notify CONNECTED yet - wait for authentication success
                     
             elif op == "status":
                 status_code = msg.get("statusCode")
                 if status_code == "SUCCESS":
                     self.authenticated = True
-                    logging.info("Stream: Status SUCCESS")
+                    logging.info("Stream: Authenticated successfully")
+                    # Notify CONNECTED only after authentication is complete
+                    if self.on_status_change:
+                        self.on_status_change("CONNECTED")
                 else:
                     error_msg = msg.get("errorMessage", "Unknown error")
                     logging.error(f"Stream status error: {status_code} - {error_msg}")
