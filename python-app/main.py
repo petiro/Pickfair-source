@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.38.0"
+APP_VERSION = "3.39.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -1586,10 +1586,13 @@ class PickfairApp:
         # Accumulate updates in thread-safe buffer (instead of updating UI directly)
         selection_id = str(market_data.get('selection_id'))
         
-        # Initialize buffer if needed
+        # Initialize buffers if needed
         if not hasattr(self, '_market_update_buffer'):
             self._market_update_buffer = {}
             self._market_update_dirty = False
+        
+        if not hasattr(self, '_cashout_dirty'):
+            self._cashout_dirty = False
         
         # Store latest data for each selection (overwrites previous - we only need latest)
         self._market_update_buffer[selection_id] = {
@@ -1601,6 +1604,10 @@ class PickfairApp:
             'tv': market_data.get('tv', 0)
         }
         self._market_update_dirty = True
+        
+        # Mark cashout dirty if we have positions (for realtime cashout update)
+        if hasattr(self, 'market_cashout_positions') and self.market_cashout_positions:
+            self._cashout_dirty = True
         
         # Start throttled UI refresh loop if not running
         if not hasattr(self, '_stream_ui_loop_running') or not self._stream_ui_loop_running:
@@ -1659,6 +1666,11 @@ class PickfairApp:
                 except Exception as e:
                     logging.debug(f"Stream buffer UI error: {e}")
         
+        # Update cashout values in realtime using buffered prices
+        if hasattr(self, '_cashout_dirty') and self._cashout_dirty:
+            self._cashout_dirty = False
+            self._update_cashout_from_buffer()
+        
         # Continue loop if streaming is active
         if self.streaming_active and self.stream_var.get():
             self.root.after(30, self._process_stream_buffer)
@@ -1672,6 +1684,87 @@ class PickfairApp:
                 self.runners_tree.item(selection_id, tags=('runner_row',))
         except:
             pass
+    
+    def _update_cashout_from_buffer(self):
+        """Update cashout values using realtime prices from stream buffer.
+        
+        Uses formula:
+        - BACK position: cashout by LAY at current_lay_price
+        - LAY position: cashout by BACK at current_back_price
+        
+        Green-up = guaranteed profit regardless of outcome
+        """
+        if not hasattr(self, 'market_cashout_positions') or not self.market_cashout_positions:
+            return
+        
+        if not hasattr(self, '_market_update_buffer') or not self._market_update_buffer:
+            return
+        
+        buffer = self._market_update_buffer
+        
+        for bet_id, pos in self.market_cashout_positions.items():
+            try:
+                selection_id = str(pos.get('selection_id'))
+                if selection_id not in buffer:
+                    continue
+                
+                price_data = buffer[selection_id]
+                side = pos.get('side')
+                matched_stake = pos.get('stake', 0)
+                matched_price = pos.get('price', 0)
+                
+                if matched_stake <= 0 or matched_price <= 0:
+                    continue
+                
+                # Get current price for cashout direction
+                if side == 'BACK':
+                    # BACK position: cashout by LAYing
+                    current_price = price_data.get('lay_price')
+                    available_liquidity = price_data.get('lay_size', 0)
+                else:
+                    # LAY position: cashout by BACKing
+                    current_price = price_data.get('back_price')
+                    available_liquidity = price_data.get('back_size', 0)
+                
+                if not current_price or current_price <= 1:
+                    continue
+                
+                # Calculate cashout stake using hedge formula
+                cashout_stake = (matched_stake * matched_price) / current_price
+                
+                # Calculate green-up (guaranteed profit)
+                if side == 'BACK':
+                    profit_if_win = matched_stake * (matched_price - 1) - cashout_stake * (current_price - 1)
+                    profit_if_lose = -matched_stake + cashout_stake
+                else:
+                    original_liability = matched_stake * (matched_price - 1)
+                    profit_if_win = -original_liability + cashout_stake * (current_price - 1)
+                    profit_if_lose = matched_stake - cashout_stake
+                
+                green_up = (profit_if_win + profit_if_lose) / 2
+                
+                # Update position data
+                pos['green_up'] = round(green_up, 2)
+                pos['cashout_stake'] = round(cashout_stake, 2)
+                pos['current_price'] = current_price
+                pos['available_liquidity'] = available_liquidity
+                
+                # Update tree display
+                if self.market_cashout_tree.exists(bet_id):
+                    old_values = list(self.market_cashout_tree.item(bet_id)['values'])
+                    old_pl = old_values[2] if len(old_values) > 2 else "0"
+                    new_pl = f"{green_up:+.2f}"
+                    
+                    # Update value
+                    pl_tag = 'profit' if green_up > 0 else 'loss'
+                    self.market_cashout_tree.item(bet_id, values=(
+                        old_values[0],  # selection name
+                        old_values[1],  # side
+                        new_pl
+                    ), tags=(pl_tag,))
+                    
+            except Exception as e:
+                logging.debug(f"Cashout buffer update error: {e}")
     
     def _subscribe_to_market_stream(self, market_id: str):
         """Subscribe to real-time market data for a specific market."""
