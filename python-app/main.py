@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.39.2"
+APP_VERSION = "3.39.3"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -2530,8 +2530,8 @@ class PickfairApp:
                                     fg_color=COLORS['bg_card'], text_color=COLORS['text_primary'])
         price_entry.pack(side=tk.LEFT, padx=5)
         
-        # Market price checkbox (for immediate match)
-        market_price_var = tk.BooleanVar(value=True)
+        # Market price checkbox (for immediate match) - Default OFF to use exact clicked price
+        market_price_var = tk.BooleanVar(value=False)
         market_check = ctk.CTkCheckBox(input_frame, text="Accetta quota mercato (match immediato)",
                                         variable=market_price_var, 
                                         text_color=COLORS['text_secondary'],
