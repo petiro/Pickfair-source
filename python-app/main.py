@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.39.6"
+APP_VERSION = "3.39.7"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -2919,7 +2919,10 @@ class PickfairApp:
         Args:
             use_market_price: If True, uses betTargetType=PAYOUT for immediate match at best price
         """
+        logging.info(f"🎯 _place_quick_real_bet CALLED: runner={runner['runnerName']}, type={bet_type}, price={price}, stake={stake}")
+        
         def place_thread():
+            logging.info(f"🎯 place_thread STARTED")
             try:
                 if use_market_price:
                     # Use market order for immediate match
