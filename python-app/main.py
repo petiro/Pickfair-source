@@ -1688,11 +1688,14 @@ class PickfairApp:
     def _update_cashout_from_buffer(self):
         """Update cashout values using realtime prices from stream buffer.
         
-        Uses formula:
+        Uses formula (same as betfair_client.py calculate_cashout):
         - BACK position: cashout by LAY at current_lay_price
+          cashout_stake = (stake * back_price) / lay_price
         - LAY position: cashout by BACK at current_back_price
+          cashout_stake = (stake * lay_price) / back_price
         
         Green-up = guaranteed profit regardless of outcome
+        With proper hedge: profit_if_win == profit_if_lose
         """
         if not hasattr(self, 'market_cashout_positions') or not self.market_cashout_positions:
             return
@@ -1729,33 +1732,53 @@ class PickfairApp:
                 if not current_price or current_price <= 1:
                     continue
                 
-                # Calculate cashout stake using hedge formula
-                cashout_stake = (matched_stake * matched_price) / current_price
+                # Calculate ideal cashout stake using hedge formula
+                # Formula: cashout_stake = (stake * original_price) / current_price
+                ideal_cashout_stake = (matched_stake * matched_price) / current_price
                 
-                # Calculate green-up (guaranteed profit)
+                # Check liquidity - clamp to available if needed (partial cashout)
+                is_partial = False
+                if available_liquidity and ideal_cashout_stake > available_liquidity:
+                    cashout_stake = available_liquidity
+                    is_partial = True
+                else:
+                    cashout_stake = ideal_cashout_stake
+                
+                # Calculate green-up (guaranteed profit) with actual cashout stake
                 if side == 'BACK':
+                    # profit_if_win = back_profit - lay_liability
+                    # profit_if_lose = -back_stake + lay_stake
                     profit_if_win = matched_stake * (matched_price - 1) - cashout_stake * (current_price - 1)
                     profit_if_lose = -matched_stake + cashout_stake
                 else:
+                    # LAY: hedge by BACKing
                     original_liability = matched_stake * (matched_price - 1)
                     profit_if_win = -original_liability + cashout_stake * (current_price - 1)
                     profit_if_lose = matched_stake - cashout_stake
                 
+                # For perfect hedge: profit_if_win == profit_if_lose
+                # Average handles rounding differences
                 green_up = (profit_if_win + profit_if_lose) / 2
                 
                 # Update position data
                 pos['green_up'] = round(green_up, 2)
                 pos['cashout_stake'] = round(cashout_stake, 2)
+                pos['ideal_cashout_stake'] = round(ideal_cashout_stake, 2)
                 pos['current_price'] = current_price
                 pos['available_liquidity'] = available_liquidity
+                pos['is_partial'] = is_partial
                 
                 # Update tree display
                 if self.market_cashout_tree.exists(bet_id):
                     old_values = list(self.market_cashout_tree.item(bet_id)['values'])
-                    old_pl = old_values[2] if len(old_values) > 2 else "0"
-                    new_pl = f"{green_up:+.2f}"
                     
-                    # Update value
+                    # Format P/L with partial indicator
+                    if is_partial:
+                        new_pl = f"{green_up:+.2f}*"  # * indicates partial cashout
+                    else:
+                        new_pl = f"{green_up:+.2f}"
+                    
+                    # Update value with profit/loss tag
                     pl_tag = 'profit' if green_up > 0 else 'loss'
                     self.market_cashout_tree.item(bet_id, values=(
                         old_values[0],  # selection name
