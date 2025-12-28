@@ -852,6 +852,7 @@ class PickfairApp:
         # Store live tracking timer ID and fetch state
         self.market_live_tracking_id = None
         self.market_cashout_fetch_in_progress = False
+        self.polling_fallback_id = None
         self.market_cashout_fetch_cancelled = False  # Cancellation flag
         self.market_cashout_positions = {}
         
@@ -1815,7 +1816,7 @@ class PickfairApp:
             self._stop_streaming()
     
     def _start_streaming(self):
-        """Start streaming prices for current market."""
+        """Start streaming prices for current market (with polling fallback)."""
         if not self.client or not self.current_market:
             self.stream_var.set(False)
             return
@@ -1828,13 +1829,69 @@ class PickfairApp:
             self.streaming_active = True
             self.stream_label.configure(text="STREAMING ATTIVO")
         except Exception as e:
-            self.stream_var.set(False)
-            messagebox.showerror("Errore Streaming", str(e))
+            # Streaming failed (likely Delayed API Key) - use polling fallback
+            logging.warning(f"Streaming non disponibile, uso polling: {e}")
+            self.streaming_active = False
+            self._start_polling_fallback()
+    
+    def _start_polling_fallback(self):
+        """Start polling fallback when streaming is not available."""
+        self._stop_polling_fallback()
+        self.stream_label.configure(text="POLLING (5s)")
+        self._polling_loop()
+    
+    def _polling_loop(self):
+        """Polling loop to refresh prices every 5 seconds."""
+        if not self.stream_var.get() or not self.current_market:
+            self.polling_fallback_id = None
+            return
+        
+        # Refresh prices silently
+        self._refresh_prices_silent()
+        
+        # Schedule next poll
+        self.polling_fallback_id = self.root.after(5000, self._polling_loop)
+    
+    def _refresh_prices_silent(self):
+        """Refresh prices without reloading entire market."""
+        if not self.client or not self.current_market:
+            return
+        
+        def fetch_and_update():
+            try:
+                market_id = self.current_market['marketId']
+                book = self.client.get_market_book(market_id)
+                if book and book.get('runners'):
+                    runners_data = []
+                    for runner in book['runners']:
+                        back_prices = [[runner.get('backPrice', 0), runner.get('backSize', 0)]] if runner.get('backPrice') else []
+                        lay_prices = [[runner.get('layPrice', 0), runner.get('laySize', 0)]] if runner.get('layPrice') else []
+                        runners_data.append({
+                            'selectionId': runner['selectionId'],
+                            'backPrices': back_prices,
+                            'layPrices': lay_prices
+                        })
+                    self.root.after(0, lambda: self._on_price_update(market_id, runners_data))
+            except Exception as e:
+                logging.debug(f"Polling refresh error: {e}")
+        
+        import threading
+        threading.Thread(target=fetch_and_update, daemon=True).start()
+    
+    def _stop_polling_fallback(self):
+        """Stop polling fallback."""
+        if hasattr(self, 'polling_fallback_id') and self.polling_fallback_id:
+            try:
+                self.root.after_cancel(self.polling_fallback_id)
+            except:
+                pass
+            self.polling_fallback_id = None
     
     def _stop_streaming(self):
-        """Stop streaming."""
+        """Stop streaming and polling."""
         if self.client:
             self.client.stop_streaming()
+        self._stop_polling_fallback()
         self.streaming_active = False
         self.stream_var.set(False)
         self.stream_label.configure(text="")

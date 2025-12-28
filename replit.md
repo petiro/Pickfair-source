@@ -69,6 +69,12 @@ COLORS = {
 
 ## Recent Changes (December 2024)
 
+- **v3.29.1**: Polling Fallback for Delayed API Keys
+  - Aggiunto fallback polling automatico quando streaming non disponibile
+  - Con Delayed API Key (gratuita), le quote si aggiornano ogni 5 secondi automaticamente
+  - Label mostra "POLLING (5s)" invece di "STREAMING ATTIVO"
+  - Lo streaming funziona solo con Live API Key (£299)
+
 - **v3.29.0**: Quick Bet Panel (Inline, No Popup)
   - Nuovo pannello Scommessa Rapida inline nel pannello destro (nessun popup)
   - Cliccando su quota Back/Lay appare pannello con:
