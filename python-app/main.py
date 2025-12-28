@@ -95,7 +95,7 @@ def check_single_instance():
     except Exception:
         return True  # Allow running if lock check fails
 
-LIVE_REFRESH_INTERVAL = 5000  # 5 seconds for live odds
+LIVE_REFRESH_INTERVAL = 2000  # 2 seconds for real-time odds
 
 
 class PickfairApp:
@@ -1146,10 +1146,10 @@ class PickfairApp:
             if not self.market_live_tracking_var.get():
                 return
             self._update_market_cashout_positions()
-            self.market_live_tracking_id = self.root.after(5000, update)
+            self.market_live_tracking_id = self.root.after(LIVE_REFRESH_INTERVAL, update)
         
         self._update_market_cashout_positions()
-        self.market_live_tracking_id = self.root.after(5000, update)
+        self.market_live_tracking_id = self.root.after(LIVE_REFRESH_INTERVAL, update)
         self.market_live_status.configure(text="LIVE", text_color=COLORS['success'])
     
     def _stop_market_live_tracking(self):
@@ -1934,9 +1934,13 @@ class PickfairApp:
                     
                     self.runners_tree.item(selection_id, values=current_values)
                     
-                    # Apply highlight if price changed
+                    # Apply highlight if price changed (preserve existing tags)
                     if highlight_tag:
-                        self.runners_tree.item(selection_id, tags=(highlight_tag,))
+                        existing_tags = list(self.runners_tree.item(selection_id, 'tags') or ())
+                        # Remove old highlight tags
+                        existing_tags = [t for t in existing_tags if t not in ('price_up', 'price_down')]
+                        existing_tags.append(highlight_tag)
+                        self.runners_tree.item(selection_id, tags=tuple(existing_tags))
                         # Remove highlight after 500ms
                         self.root.after(500, lambda sid=selection_id: self._clear_price_highlight(sid))
                     
@@ -1959,9 +1963,12 @@ class PickfairApp:
         self.root.after(0, update_ui)
     
     def _clear_price_highlight(self, selection_id):
-        """Clear price highlight from a runner row."""
+        """Clear price highlight from a runner row (preserve other tags)."""
         try:
-            self.runners_tree.item(selection_id, tags=())
+            existing_tags = list(self.runners_tree.item(selection_id, 'tags') or ())
+            # Remove only highlight tags, keep others
+            clean_tags = [t for t in existing_tags if t not in ('price_up', 'price_down')]
+            self.runners_tree.item(selection_id, tags=tuple(clean_tags))
         except:
             pass
     
@@ -5147,9 +5154,9 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     load_positions()
                 except:
                     pass
-                live_tracking_id[0] = parent.after(5000, update_pl)
+                live_tracking_id[0] = parent.after(LIVE_REFRESH_INTERVAL, update_pl)
             
-            live_tracking_id[0] = parent.after(5000, update_pl)
+            live_tracking_id[0] = parent.after(LIVE_REFRESH_INTERVAL, update_pl)
             live_status_label.config(text="LIVE", foreground='#28a745')
         
         def stop_live_tracking():
