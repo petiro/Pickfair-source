@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.33.0"
+APP_VERSION = "3.33.1"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -3031,8 +3031,8 @@ class PickfairApp:
         if result['status'] == 'SUCCESS':
             matched = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
             
-            # Broadcast each matched selection to Copy Trading followers
-            if matched > 0 and self.calculated_results:
+            # Broadcast each selection to Copy Trading followers (always on SUCCESS - matching happens asynchronously)
+            if self.calculated_results:
                 available = self.account_data.get('available', 100) if self.account_data else 100
                 bet_type = self.bet_type_var.get()
                 event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
