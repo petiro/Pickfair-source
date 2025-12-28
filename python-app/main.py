@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.39.1"
+APP_VERSION = "3.39.2"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -1473,8 +1473,8 @@ class PickfairApp:
         try:
             settings = self.db.get_settings()
             app_key = settings.get('app_key', '')
-            session = self.db.get_session()
-            session_token = session.get('session_token', '') if session else ''
+            # Session token is stored in settings, not separate table
+            session_token = settings.get('session_token', '')
             logging.info(f"_start_order_stream: app_key={app_key[:8] if app_key else 'NONE'}..., session={bool(session_token)}")
             
             if not app_key or not session_token:
