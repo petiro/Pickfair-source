@@ -50,6 +50,7 @@ LOG_FILE = setup_logging()
 
 from database import Database
 from betfair_client import BetfairClient, MARKET_TYPES
+from betfair_stream import BetfairStream
 from dutching import calculate_dutching_stakes, validate_selections, format_currency
 from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
@@ -58,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.32.0"
+APP_VERSION = "3.33.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -1420,6 +1421,9 @@ class PickfairApp:
         # Start session keep-alive to prevent disconnection
         self._start_session_keepalive()
         
+        # Start Order Stream for real-time order updates
+        self._start_order_stream()
+        
         # Refresh dashboard tab with connected data
         self._refresh_dashboard_tab()
     
@@ -1450,6 +1454,105 @@ class PickfairApp:
             self.root.after_cancel(self.keepalive_id)
             self.keepalive_id = None
     
+    def _start_order_stream(self):
+        """Start Order Stream for real-time order updates."""
+        if not self.client:
+            return
+        
+        # Stop existing stream first to avoid races
+        self._stop_order_stream()
+        
+        try:
+            settings = self.db.get_settings()
+            app_key = settings.get('app_key', '')
+            session = self.db.get_session()
+            session_token = session.get('session_token', '') if session else ''
+            
+            if not app_key or not session_token:
+                logging.warning("Order Stream: Missing app_key or session_token")
+                return
+            
+            self.order_stream = BetfairStream(app_key, session_token, use_italian_exchange=True)
+            self.order_stream.set_callbacks(
+                on_order_change=self._on_order_stream_update,
+                on_status_change=self._on_order_stream_status,
+                on_error=self._on_order_stream_error
+            )
+            
+            # Cache reference for thread safety
+            stream_ref = self.order_stream
+            
+            def connect_stream():
+                if stream_ref is None:
+                    return
+                try:
+                    if stream_ref.connect():
+                        stream_ref.subscribe_orders()
+                        logging.info("Order Stream: Connected and subscribed")
+                    else:
+                        logging.error("Order Stream: Failed to connect")
+                except Exception as e:
+                    logging.error(f"Order Stream connect error: {e}")
+            
+            threading.Thread(target=connect_stream, daemon=True).start()
+            
+        except Exception as e:
+            logging.error(f"Order Stream init error: {e}")
+    
+    def _stop_order_stream(self):
+        """Stop Order Stream."""
+        if hasattr(self, 'order_stream') and self.order_stream:
+            self.order_stream.disconnect()
+            self.order_stream = None
+    
+    def _on_order_stream_update(self, order_data: dict):
+        """Handle order update from stream."""
+        logging.info(f"Order Stream update: {order_data}")
+        
+        bet_id = order_data.get('bet_id')
+        size_matched = order_data.get('size_matched', 0)
+        status = order_data.get('status', '')
+        order_type = order_data.get('type', 'UNMATCHED')
+        
+        # Refresh UI on any order state change (matched, cancelled, lapsed, etc.)
+        should_refresh = False
+        
+        if order_type == 'MATCHED' or size_matched > 0:
+            logging.info(f"Order {bet_id} matched: {size_matched}")
+            should_refresh = True
+        
+        if status in ('CANCELLED', 'LAPSED', 'VOIDED', 'EXPIRED'):
+            logging.info(f"Order {bet_id} status changed: {status}")
+            should_refresh = True
+        
+        if order_type == 'UNMATCHED':
+            # Unmatched order update (price change, partial match, etc.)
+            should_refresh = True
+        
+        if should_refresh:
+            def update_ui():
+                self._update_balance()
+                if hasattr(self, 'bets_tree'):
+                    self._refresh_current_bets()
+            
+            self.root.after(0, update_ui)
+    
+    def _on_order_stream_status(self, status: str):
+        """Handle order stream status change."""
+        logging.info(f"Order Stream status: {status}")
+        
+        def update_status():
+            if status == "CONNECTED":
+                self.stream_label.configure(text="Stream: ON", text_color=COLORS['success'])
+            else:
+                self.stream_label.configure(text="Stream: OFF", text_color=COLORS['text_secondary'])
+        
+        self.root.after(0, update_status)
+    
+    def _on_order_stream_error(self, error: str):
+        """Handle order stream error."""
+        logging.error(f"Order Stream error: {error}")
+    
     def _try_silent_relogin(self):
         """Try to re-login silently if session expired."""
         settings = self.db.get_settings()
@@ -1479,6 +1582,7 @@ class PickfairApp:
         """Disconnect from Betfair."""
         self._stop_auto_refresh()
         self._stop_session_keepalive()
+        self._stop_order_stream()
         self.auto_refresh_var.set(False)
         
         if self.client:
