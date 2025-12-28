@@ -105,8 +105,16 @@ class TelegramListener:
         self.status_callback = on_status
     
     def send_message(self, chat_id: str, message: str):
-        """Send a message to a Telegram chat (for Copy Trading MASTER mode)."""
+        """Send a message to a Telegram chat (for Copy Trading MASTER mode).
+        
+        Uses async queue pattern for reliable delivery without blocking.
+        """
         import logging
+        import time
+        
+        # Add timestamp to message to avoid Telegram flood detection (same message filter)
+        timestamped_message = f"{message}\n\n[{int(time.time())}]"
+        
         logging.info(f"send_message called: chat_id={chat_id}, message_preview={message[:50]}...")
         
         # Check basic requirements
@@ -122,40 +130,53 @@ class TelegramListener:
             logging.warning("Event loop not available, cannot send message")
             return False
         
-        async def _send():
-            try:
-                # Ensure client is connected before sending
-                if not self.client.is_connected():
-                    logging.info("Client not connected, attempting reconnect...")
-                    await self.client.connect()
-                
-                logging.info(f"Sending to Telegram chat {chat_id}...")
-                # Resolve entity first to ensure it works from external thread
-                entity = await self.client.get_entity(int(chat_id))
-                await self.client.send_message(entity, message)
-                logging.info(f"Message sent successfully to {chat_id}")
+        # Use queue for reliable async delivery
+        if hasattr(self, '_send_queue') and self._send_queue:
+            async def _enqueue():
+                await self._send_queue.put({
+                    'chat_id': chat_id,
+                    'message': timestamped_message
+                })
                 return True
+            
+            try:
+                future = asyncio.run_coroutine_threadsafe(_enqueue(), self.loop)
+                result = future.result(timeout=5)
+                logging.info(f"Message queued for delivery to {chat_id}")
+                return result
             except Exception as e:
-                logging.error(f"Error sending Telegram message: {e}")
-                import traceback
-                traceback.print_exc()
+                logging.error(f"Error queueing message: {e}")
                 return False
-        
-        # Don't check is_running() - it's unreliable from external thread
-        # Just check that loop exists and submit the coroutine
-        try:
-            future = asyncio.run_coroutine_threadsafe(_send(), self.loop)
-            result = future.result(timeout=15)  # Increased timeout for reconnect
-            logging.info(f"send_message result: {result}")
-            return result
-        except asyncio.TimeoutError:
-            logging.error("send_message timed out after 15 seconds")
-            return False
-        except Exception as e:
-            logging.error(f"Error sending message: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+        else:
+            # Fallback: direct send if queue not available
+            async def _send():
+                try:
+                    if not self.client.is_connected():
+                        logging.info("Client not connected, attempting reconnect...")
+                        await self.client.connect()
+                    
+                    logging.info(f"Sending to Telegram chat {chat_id}...")
+                    entity = await self.client.get_entity(int(chat_id))
+                    await self.client.send_message(entity, timestamped_message)
+                    logging.info(f"Message sent successfully to {chat_id}")
+                    return True
+                except Exception as e:
+                    logging.error(f"Error sending Telegram message: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    return False
+            
+            try:
+                future = asyncio.run_coroutine_threadsafe(_send(), self.loop)
+                result = future.result(timeout=15)
+                logging.info(f"send_message result: {result}")
+                return result
+            except asyncio.TimeoutError:
+                logging.error("send_message timed out after 15 seconds")
+                return False
+            except Exception as e:
+                logging.error(f"Error sending message: {e}")
+                return False
     
     def parse_copy_bet(self, text: str) -> Optional[Dict]:
         """Parse a COPY BET message from master."""
@@ -722,28 +743,88 @@ class TelegramListener:
         await self.client.run_until_disconnected()
     
     def _run_loop(self):
-        """Run the asyncio event loop in a thread."""
+        """Run the asyncio event loop in a thread with run_forever pattern."""
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         
+        # Initialize message queue for Copy Trading
+        self._send_queue = asyncio.Queue()
+        
+        async def _main():
+            """Main async function that runs connect, listen, and message sender."""
+            connected = await self._connect()
+            if not connected:
+                return
+            
+            # Start message sender consumer
+            sender_task = asyncio.create_task(self._message_sender_loop())
+            
+            # Run listener (blocks until disconnected)
+            await self._start_listening()
+            
+            # Cleanup
+            sender_task.cancel()
+        
         try:
-            connected = self.loop.run_until_complete(self._connect())
-            if connected:
-                self.loop.run_until_complete(self._start_listening())
+            self.loop.run_until_complete(_main())
         except Exception as e:
+            import logging
+            logging.error(f"Telegram loop error: {e}")
             if self.status_callback:
                 self.status_callback('ERROR', str(e))
         finally:
             self.running = False
-            if self.loop:
+            # Don't close loop immediately - allow pending sends to complete
+            try:
+                self.loop.run_until_complete(asyncio.sleep(0.5))
+            except:
+                pass
+            if self.loop and not self.loop.is_closed():
                 self.loop.close()
     
+    async def _message_sender_loop(self):
+        """Async consumer loop for sending queued messages (Copy Trading)."""
+        import logging
+        while self.running:
+            try:
+                # Wait for message with timeout to allow periodic checks
+                try:
+                    msg_data = await asyncio.wait_for(self._send_queue.get(), timeout=1.0)
+                except asyncio.TimeoutError:
+                    continue
+                
+                chat_id = msg_data.get('chat_id')
+                message = msg_data.get('message')
+                
+                try:
+                    # Ensure connected
+                    if not self.client.is_connected():
+                        logging.info("Sender: Client not connected, reconnecting...")
+                        await self.client.connect()
+                    
+                    # Resolve entity and send
+                    entity = await self.client.get_entity(int(chat_id))
+                    await self.client.send_message(entity, message)
+                    logging.info(f"Sender: Message delivered to {chat_id}")
+                    
+                    # Small delay between messages to avoid flood
+                    await asyncio.sleep(0.3)
+                    
+                except Exception as e:
+                    logging.error(f"Sender: Failed to send to {chat_id}: {e}")
+                    
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logging.error(f"Sender loop error: {e}")
+    
     def start(self):
-        """Start the listener in a background thread."""
+        """Start the listener in a background thread (non-daemon for reliability)."""
         if self.running:
             return
         
-        self.thread = threading.Thread(target=self._run_loop, daemon=True)
+        # CRITICAL: daemon=False ensures thread survives main thread issues
+        self.thread = threading.Thread(target=self._run_loop, daemon=False)
         self.thread.start()
     
     def stop(self):
