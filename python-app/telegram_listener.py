@@ -106,25 +106,34 @@ class TelegramListener:
     
     def send_message(self, chat_id: str, message: str):
         """Send a message to a Telegram chat (for Copy Trading MASTER mode)."""
+        import logging
+        logging.info(f"send_message called: chat_id={chat_id}, message_preview={message[:50]}...")
+        
         if not self.client or not self.running:
-            print("Telegram client not connected, cannot send message")
+            logging.warning("Telegram client not connected, cannot send message")
             return False
         
         async def _send():
             try:
+                logging.info(f"Sending to Telegram chat {chat_id}...")
                 await self.client.send_message(int(chat_id), message)
+                logging.info(f"Message sent successfully to {chat_id}")
                 return True
             except Exception as e:
-                print(f"Error sending Telegram message: {e}")
+                logging.error(f"Error sending Telegram message: {e}")
                 return False
         
         if self.loop and self.loop.is_running():
             future = asyncio.run_coroutine_threadsafe(_send(), self.loop)
             try:
-                return future.result(timeout=10)
+                result = future.result(timeout=10)
+                logging.info(f"send_message result: {result}")
+                return result
             except Exception as e:
-                print(f"Error sending message: {e}")
+                logging.error(f"Error sending message: {e}")
                 return False
+        else:
+            logging.warning("Event loop not running")
         return False
     
     def parse_copy_bet(self, text: str) -> Optional[Dict]:
