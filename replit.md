@@ -17,7 +17,7 @@ Pickfair is a Python-based Windows desktop application designed for automated sp
 The application utilizes a dark trading interface with professional aesthetics, employing `CustomTkinter` for modern widgets and `ttk` for complex elements like Treeview. The interface is tab-based, ensuring no popup windows, with a consistent dark theme defined in `theme.py`. Specific color preferences are set for BACK bets (blue), LAY bets (pink), profit indicators (green), and loss indicators (red).
 
 ### Technical Implementations
-The core application logic is managed by `main.py`, integrating with `betfair_client.py` for API interactions, `betfair_stream.py` for real-time order updates via Betfair Stream API, and `telegram_listener.py` for Telegram chat monitoring and signal processing. `database.py` handles SQLite operations, while `dutching.py` manages complex dutching calculations. An `auto_updater.py` is in place for seamless updates. A `plugin_manager.py` offers a secure sandbox environment for extending functionality, complemented by `license_manager.py` for hardware-based license validation.
+The core application logic is managed by `main.py`, integrating with `betfair_client.py` for API interactions, `betfair_stream.py` for real-time order and market updates via Betfair Stream API (OCM for orders, MCM for quotes), and `telegram_listener.py` for Telegram chat monitoring and signal processing. `database.py` handles SQLite operations, while `dutching.py` manages complex dutching calculations. An `auto_updater.py` is in place for seamless updates. A `plugin_manager.py` offers a secure sandbox environment for extending functionality, complemented by `license_manager.py` for hardware-based license validation.
 
 ### Feature Specifications
 Key features include:
