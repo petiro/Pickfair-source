@@ -59,13 +59,45 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.39.4"
+APP_VERSION = "3.39.5"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
 def check_single_instance():
-    """Ensure only one instance of Pickfair is running."""
+    """Ensure only one instance of Pickfair is running using Windows mutex."""
     import os
+    
+    if os.name == 'nt':
+        # Use Windows mutex for reliable single instance check
+        try:
+            import ctypes
+            from ctypes import wintypes
+            
+            kernel32 = ctypes.windll.kernel32
+            
+            # CreateMutexW returns handle if created, or existing handle
+            mutex_name = "Global\\PickfairSingleInstanceMutex"
+            handle = kernel32.CreateMutexW(None, True, mutex_name)
+            
+            if handle == 0:
+                logging.error("Failed to create mutex")
+                return None
+            
+            # ERROR_ALREADY_EXISTS = 183
+            last_error = kernel32.GetLastError()
+            if last_error == 183:
+                logging.warning("Another instance of Pickfair is already running (mutex exists)")
+                kernel32.CloseHandle(handle)
+                return None
+            
+            logging.info("Single instance check passed - mutex acquired")
+            return handle  # Keep handle open
+            
+        except Exception as e:
+            logging.error(f"Mutex check failed: {e}, trying fallback lock file")
+            # Fall through to lock file method
+    
+    # Fallback: Lock file method for non-Windows or if mutex fails
     if os.name == 'nt':
         lock_dir = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair')
     else:
@@ -74,14 +106,15 @@ def check_single_instance():
     lock_file = os.path.join(lock_dir, 'pickfair.lock')
     
     try:
-        # Try to create/open lock file exclusively
         if os.name == 'nt':
             import msvcrt
             fd = os.open(lock_file, os.O_CREAT | os.O_RDWR)
             try:
                 msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
-                return fd  # Keep file descriptor open
+                logging.info("Single instance check passed - lock file acquired")
+                return fd
             except IOError:
+                logging.warning("Another instance is running (lock file busy)")
                 os.close(fd)
                 return None
         else:
@@ -89,12 +122,15 @@ def check_single_instance():
             fd = open(lock_file, 'w')
             try:
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                logging.info("Single instance check passed - flock acquired")
                 return fd
             except IOError:
+                logging.warning("Another instance is running (flock busy)")
                 fd.close()
                 return None
-    except Exception:
-        return True  # Allow running if lock check fails
+    except Exception as e:
+        logging.error(f"Single instance check failed: {e}")
+        return None  # Block execution on error instead of allowing
 
 LIVE_REFRESH_INTERVAL = 2000  # 2 seconds for real-time odds
 
