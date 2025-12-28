@@ -58,7 +58,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.30.3"
+APP_VERSION = "3.31.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -2113,10 +2113,10 @@ class PickfairApp:
         dialog.resizable(False, False)
         
         # Center dialog
-        dialog.geometry("320x280")
+        dialog.geometry("340x330")
         dialog.update_idletasks()
-        x = self.root.winfo_x() + (self.root.winfo_width() - 320) // 2
-        y = self.root.winfo_y() + (self.root.winfo_height() - 280) // 2
+        x = self.root.winfo_x() + (self.root.winfo_width() - 340) // 2
+        y = self.root.winfo_y() + (self.root.winfo_height() - 330) // 2
         dialog.geometry(f"+{x}+{y}")
         
         # Configure dark theme
@@ -2153,6 +2153,25 @@ class PickfairApp:
         price_entry = ctk.CTkEntry(quota_frame, textvariable=price_var, width=100,
                                     fg_color=COLORS['bg_card'], text_color=COLORS['text_primary'])
         price_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Market price checkbox (for immediate match)
+        market_price_var = tk.BooleanVar(value=True)
+        market_check = ctk.CTkCheckBox(input_frame, text="Accetta quota mercato (match immediato)",
+                                        variable=market_price_var, 
+                                        text_color=COLORS['text_secondary'],
+                                        fg_color=COLORS['success'],
+                                        hover_color=COLORS['success'])
+        market_check.pack(padx=10, pady=5, anchor='w')
+        
+        def on_market_check_change():
+            if market_price_var.get():
+                price_entry.configure(state='disabled')
+                price_var.set(f"{initial_price:.2f}")
+            else:
+                price_entry.configure(state='normal')
+        
+        market_check.configure(command=on_market_check_change)
+        on_market_check_change()
         
         # Stake (editable)
         stake_frame = ctk.CTkFrame(input_frame, fg_color='transparent')
@@ -2194,27 +2213,37 @@ class PickfairApp:
         
         def confirm():
             try:
-                final_price = float(price_var.get().replace(',', '.'))
                 final_stake = float(stake_var.get().replace(',', '.'))
             except ValueError:
-                messagebox.showwarning("Errore", "Valori non validi")
+                messagebox.showwarning("Errore", "Stake non valido")
                 return
             
             if final_stake < 1.0:
                 messagebox.showwarning("Errore", "Stake minimo: 1.00 EUR")
                 return
             
-            if final_price <= 1.0:
-                messagebox.showwarning("Errore", "Quota deve essere > 1.00")
-                return
+            # Get price based on market checkbox
+            if market_price_var.get():
+                # Use current market price for immediate match
+                final_price = initial_price
+            else:
+                try:
+                    final_price = float(price_var.get().replace(',', '.'))
+                except ValueError:
+                    messagebox.showwarning("Errore", "Quota non valida")
+                    return
+                
+                if final_price <= 1.0:
+                    messagebox.showwarning("Errore", "Quota deve essere > 1.00")
+                    return
             
             dialog.destroy()
             
-            # Place the bet
+            # Place the bet (use_market_price affects how bet is placed)
             if self.simulation_mode:
                 self._place_quick_simulation_bet(runner, bet_type, final_price, final_stake)
             else:
-                self._place_quick_real_bet(runner, bet_type, final_price, final_stake)
+                self._place_quick_real_bet(runner, bet_type, final_price, final_stake, use_market_price=market_price_var.get())
         
         def cancel():
             dialog.destroy()
@@ -2471,15 +2500,35 @@ class PickfairApp:
         except Exception as e:
             messagebox.showerror("Errore", str(e))
     
-    def _place_quick_real_bet(self, runner, bet_type, price, stake):
-        """Place a quick real bet via Betfair API."""
+    def _place_quick_real_bet(self, runner, bet_type, price, stake, use_market_price=False):
+        """Place a quick real bet via Betfair API.
+        
+        Args:
+            use_market_price: If True, uses betTargetType=PAYOUT for immediate match at best price
+        """
         def place_thread():
             try:
+                if use_market_price:
+                    # Use market order for immediate match
+                    # For BACK: we want to get matched at best available back price
+                    # For LAY: we want to get matched at best available lay price
+                    # We use a very generous price to ensure match
+                    if bet_type == 'BACK':
+                        # For BACK, use a high price (1000) to accept any available price
+                        match_price = 1000.0
+                    else:
+                        # For LAY, use a low price (1.01) to accept any available price
+                        match_price = 1.01
+                    
+                    logging.info(f"Quick bet using market price: requested={price}, match_price={match_price}")
+                else:
+                    match_price = price
+                
                 result = self.client.place_bet(
                     market_id=self.current_market['marketId'],
                     selection_id=runner['selectionId'],
                     side=bet_type,
-                    price=price,
+                    price=match_price,
                     size=stake,
                     persistence_type='LAPSE'
                 )
@@ -2488,6 +2537,7 @@ class PickfairApp:
                 self.root.after(0, lambda r=bet_result, rn=runner, bt=bet_type, p=price, s=stake: self._on_quick_bet_result(r, rn, bt, p, s))
             except Exception as e:
                 err_msg = str(e)
+                logging.error(f"Quick bet error: {err_msg}")
                 self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", msg))
         
         threading.Thread(target=place_thread, daemon=True).start()
