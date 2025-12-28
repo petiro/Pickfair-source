@@ -209,7 +209,8 @@ class BetfairStream:
             "marketDataFilter": {
                 "fields": fields,
                 "ladderLevels": 3  # Get top 3 price levels
-            }
+            },
+            "conflateMs": 0  # No delay - instant updates for realtime trading
         }
         
         logging.info(f"Betfair Stream: Subscribing to markets: {market_ids}")
