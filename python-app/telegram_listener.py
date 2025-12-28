@@ -109,32 +109,53 @@ class TelegramListener:
         import logging
         logging.info(f"send_message called: chat_id={chat_id}, message_preview={message[:50]}...")
         
-        if not self.client or not self.running:
-            logging.warning("Telegram client not connected, cannot send message")
+        # Check basic requirements
+        if not self.client:
+            logging.warning("Telegram client not created, cannot send message")
+            return False
+        
+        if not self.running:
+            logging.warning("Telegram listener not running, cannot send message")
+            return False
+        
+        if not self.loop:
+            logging.warning("Event loop not available, cannot send message")
             return False
         
         async def _send():
             try:
+                # Ensure client is connected before sending
+                if not self.client.is_connected():
+                    logging.info("Client not connected, attempting reconnect...")
+                    await self.client.connect()
+                
                 logging.info(f"Sending to Telegram chat {chat_id}...")
-                await self.client.send_message(int(chat_id), message)
+                # Resolve entity first to ensure it works from external thread
+                entity = await self.client.get_entity(int(chat_id))
+                await self.client.send_message(entity, message)
                 logging.info(f"Message sent successfully to {chat_id}")
                 return True
             except Exception as e:
                 logging.error(f"Error sending Telegram message: {e}")
+                import traceback
+                traceback.print_exc()
                 return False
         
-        if self.loop and self.loop.is_running():
+        # Don't check is_running() - it's unreliable from external thread
+        # Just check that loop exists and submit the coroutine
+        try:
             future = asyncio.run_coroutine_threadsafe(_send(), self.loop)
-            try:
-                result = future.result(timeout=10)
-                logging.info(f"send_message result: {result}")
-                return result
-            except Exception as e:
-                logging.error(f"Error sending message: {e}")
-                return False
-        else:
-            logging.warning("Event loop not running")
-        return False
+            result = future.result(timeout=15)  # Increased timeout for reconnect
+            logging.info(f"send_message result: {result}")
+            return result
+        except asyncio.TimeoutError:
+            logging.error("send_message timed out after 15 seconds")
+            return False
+        except Exception as e:
+            logging.error(f"Error sending message: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
     
     def parse_copy_bet(self, text: str) -> Optional[Dict]:
         """Parse a COPY BET message from master."""

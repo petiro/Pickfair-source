@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.36.0"
+APP_VERSION = "3.37.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
