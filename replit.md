@@ -69,6 +69,20 @@ COLORS = {
 
 ## Recent Changes (December 2024)
 
+- **v3.29.0**: Quick Bet Panel (Inline, No Popup)
+  - Nuovo pannello Scommessa Rapida inline nel pannello destro (nessun popup)
+  - Cliccando su quota Back/Lay appare pannello con:
+    - Selezione (nome runner)
+    - Tipo scommessa (BACK/LAY) con bottoni colorati
+    - Quota modificabile manualmente
+    - Quote Live in tempo reale (aggiornamento ogni 2 secondi)
+    - Bottone "Usa Live" per impostare quota corrente
+    - Stake modificabile
+    - P/L potenziale calcolato automaticamente
+    - Indicatore modalita simulazione
+  - Pulsanti Annulla e PIAZZA SCOMMESSA
+  - Nessun popup di conferma - tutto inline nel pannello
+
 - **v3.28.0**: Telegram Booking System (Full Markets)
   - Nuovo sistema di prenotazioni scommesse da Telegram
   - Parole chiave: "book", "booking", "prenota", "prenotazione", "reserve", "riserva"

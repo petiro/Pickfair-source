@@ -854,6 +854,116 @@ class PickfairApp:
         self.market_cashout_fetch_in_progress = False
         self.market_cashout_fetch_cancelled = False  # Cancellation flag
         self.market_cashout_positions = {}
+        
+        # ========== QUICK BET PANEL (inline, no popup) ==========
+        separator2 = ctk.CTkFrame(dutch_frame, fg_color=COLORS['border'], height=2)
+        separator2.pack(fill=tk.X, padx=10, pady=10)
+        
+        self.quick_bet_frame = ctk.CTkFrame(dutch_frame, fg_color=COLORS['bg_card'], corner_radius=8)
+        self.quick_bet_frame.pack(fill=tk.X, padx=10, pady=5)
+        self.quick_bet_frame.pack_forget()  # Hidden by default
+        
+        # Quick bet title
+        qb_title_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_title_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
+        
+        ctk.CTkLabel(qb_title_frame, text="Scommessa Rapida", font=('Segoe UI', 11, 'bold'),
+                     text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        # Close button
+        ctk.CTkButton(qb_title_frame, text="X", width=30, height=24,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      command=self._hide_quick_bet_panel).pack(side=tk.RIGHT)
+        
+        # Selection name
+        self.qb_selection_label = ctk.CTkLabel(self.quick_bet_frame, text="Selezione: -",
+                                                font=('Segoe UI', 10, 'bold'),
+                                                text_color=COLORS['text_primary'])
+        self.qb_selection_label.pack(anchor=tk.W, padx=10, pady=2)
+        
+        # Bet type (BACK/LAY)
+        qb_type_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_type_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkLabel(qb_type_frame, text="Tipo:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        
+        self.qb_bet_type_var = tk.StringVar(value='BACK')
+        self.qb_back_btn = ctk.CTkButton(qb_type_frame, text="Back", 
+                                          fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                                          corner_radius=6, width=80,
+                                          command=lambda: self._set_qb_type('BACK'))
+        self.qb_back_btn.pack(side=tk.LEFT, padx=5)
+        
+        self.qb_lay_btn = ctk.CTkButton(qb_type_frame, text="Lay", 
+                                         fg_color=COLORS['lay'], hover_color=COLORS['lay_hover'],
+                                         corner_radius=6, width=80,
+                                         command=lambda: self._set_qb_type('LAY'))
+        self.qb_lay_btn.pack(side=tk.LEFT)
+        
+        # Odds (editable with real-time update)
+        qb_odds_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_odds_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkLabel(qb_odds_frame, text="Quota:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        self.qb_odds_var = tk.StringVar(value='1.00')
+        self.qb_odds_entry = ctk.CTkEntry(qb_odds_frame, textvariable=self.qb_odds_var, width=80,
+                                           fg_color=COLORS['bg_panel'], border_color=COLORS['border'])
+        self.qb_odds_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Live odds label (shows current market price)
+        self.qb_live_odds_label = ctk.CTkLabel(qb_odds_frame, text="(Live: -)", 
+                                                font=('Segoe UI', 9),
+                                                text_color=COLORS['text_tertiary'])
+        self.qb_live_odds_label.pack(side=tk.LEFT, padx=5)
+        
+        # Use live odds button
+        ctk.CTkButton(qb_odds_frame, text="Usa Live", width=70,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6, command=self._use_live_odds).pack(side=tk.LEFT, padx=2)
+        
+        # Stake
+        qb_stake_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_stake_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkLabel(qb_stake_frame, text="Stake (EUR):", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        self.qb_stake_var = tk.StringVar(value='1.00')
+        self.qb_stake_entry = ctk.CTkEntry(qb_stake_frame, textvariable=self.qb_stake_var, width=80,
+                                            fg_color=COLORS['bg_panel'], border_color=COLORS['border'])
+        self.qb_stake_entry.pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkLabel(qb_stake_frame, text="(min. 1 EUR)", 
+                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(side=tk.LEFT, padx=5)
+        
+        # Potential P/L display
+        self.qb_pl_label = ctk.CTkLabel(self.quick_bet_frame, text="P/L Potenziale: -",
+                                         font=('Segoe UI', 10),
+                                         text_color=COLORS['success'])
+        self.qb_pl_label.pack(anchor=tk.W, padx=10, pady=5)
+        
+        # Simulation mode indicator
+        self.qb_mode_label = ctk.CTkLabel(self.quick_bet_frame, text="",
+                                           font=('Segoe UI', 9, 'bold'),
+                                           text_color=COLORS['warning'])
+        self.qb_mode_label.pack(anchor=tk.W, padx=10)
+        
+        # Action buttons
+        qb_btn_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_btn_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        ctk.CTkButton(qb_btn_frame, text="Annulla", 
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6, command=self._hide_quick_bet_panel).pack(side=tk.LEFT, padx=2)
+        
+        self.qb_confirm_btn = ctk.CTkButton(qb_btn_frame, text="PIAZZA SCOMMESSA", 
+                                            fg_color=COLORS['button_success'], hover_color='#4caf50',
+                                            font=('Segoe UI', 10, 'bold'),
+                                            corner_radius=6, command=self._confirm_quick_bet)
+        self.qb_confirm_btn.pack(side=tk.RIGHT, padx=2)
+        
+        # Store current quick bet data
+        self.qb_current_runner = None
+        self.qb_current_selection_id = None
+        self.qb_live_update_id = None
     
     def _update_placed_bets(self):
         """Update placed bets list for current market."""
@@ -1865,7 +1975,7 @@ class PickfairApp:
         self._recalculate()
     
     def _quick_bet(self, selection_id, bet_type):
-        """Place a quick single bet on a runner at current price."""
+        """Show quick bet panel for a runner (no popup)."""
         if not self.client and not self.simulation_mode:
             messagebox.showwarning("Attenzione", "Devi prima connetterti")
             return
@@ -1907,17 +2017,187 @@ class PickfairApp:
         if stake < 1.0:
             stake = 1.0
         
-        # Confirmation dialog
-        tipo_text = "Back (Punta)" if bet_type == 'BACK' else "Lay (Banca)"
-        mode_text = "[SIMULAZIONE] " if self.simulation_mode else ""
+        # Show quick bet panel with data
+        self._show_quick_bet_panel(runner, selection_id, bet_type, price, stake)
+    
+    def _show_quick_bet_panel(self, runner, selection_id, bet_type, price, stake):
+        """Show the quick bet inline panel with runner data."""
+        self.qb_current_runner = runner
+        self.qb_current_selection_id = selection_id
         
-        if not messagebox.askyesno("Conferma Scommessa Rapida",
-            f"{mode_text}Vuoi piazzare questa scommessa?\n\n"
-            f"Selezione: {runner['runnerName']}\n"
-            f"Tipo: {tipo_text}\n"
-            f"Quota: {price:.2f}\n"
-            f"Stake: {stake:.2f} EUR"):
+        # Set selection name
+        self.qb_selection_label.configure(text=f"Selezione: {runner['runnerName']}")
+        
+        # Set bet type
+        self.qb_bet_type_var.set(bet_type)
+        self._update_qb_type_buttons()
+        
+        # Set odds and stake
+        self.qb_odds_var.set(f"{price:.2f}")
+        self.qb_stake_var.set(f"{stake:.2f}")
+        
+        # Show simulation mode indicator
+        if self.simulation_mode:
+            self.qb_mode_label.configure(text="[MODALITA SIMULAZIONE]")
+        else:
+            self.qb_mode_label.configure(text="")
+        
+        # Update P/L
+        self._update_qb_pl()
+        
+        # Show the panel
+        self.quick_bet_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        # Start live odds updates
+        self._start_qb_live_updates()
+    
+    def _hide_quick_bet_panel(self):
+        """Hide the quick bet panel."""
+        self.quick_bet_frame.pack_forget()
+        self._stop_qb_live_updates()
+        self.qb_current_runner = None
+        self.qb_current_selection_id = None
+    
+    def _set_qb_type(self, bet_type):
+        """Set quick bet type (BACK/LAY)."""
+        self.qb_bet_type_var.set(bet_type)
+        self._update_qb_type_buttons()
+        self._update_qb_live_odds()
+        self._update_qb_pl()
+    
+    def _update_qb_type_buttons(self):
+        """Update visual state of BACK/LAY buttons."""
+        bet_type = self.qb_bet_type_var.get()
+        if bet_type == 'BACK':
+            self.qb_back_btn.configure(fg_color=COLORS['back'])
+            self.qb_lay_btn.configure(fg_color=COLORS['button_secondary'])
+        else:
+            self.qb_back_btn.configure(fg_color=COLORS['button_secondary'])
+            self.qb_lay_btn.configure(fg_color=COLORS['lay'])
+    
+    def _update_qb_pl(self):
+        """Update potential P/L display."""
+        try:
+            odds = float(self.qb_odds_var.get().replace(',', '.'))
+            stake = float(self.qb_stake_var.get().replace(',', '.'))
+            bet_type = self.qb_bet_type_var.get()
+            
+            commission = 0.045  # 4.5% Betfair Italia
+            if bet_type == 'BACK':
+                gross_profit = stake * (odds - 1)
+                net_profit = gross_profit * (1 - commission)
+                liability = stake
+            else:
+                gross_profit = stake
+                net_profit = gross_profit * (1 - commission)
+                liability = stake * (odds - 1)
+            
+            self.qb_pl_label.configure(
+                text=f"P/L: +{net_profit:.2f} EUR | Liab: {liability:.2f} EUR",
+                text_color=COLORS['success']
+            )
+        except (ValueError, ZeroDivisionError):
+            self.qb_pl_label.configure(text="P/L: -", text_color=COLORS['text_secondary'])
+    
+    def _start_qb_live_updates(self):
+        """Start updating live odds in the quick bet panel."""
+        # Cancel any existing scheduled update
+        if self.qb_live_update_id:
+            try:
+                self.root.after_cancel(self.qb_live_update_id)
+            except:
+                pass
+            self.qb_live_update_id = None
+        
+        # Schedule the update loop
+        self._qb_live_update_loop()
+    
+    def _qb_live_update_loop(self):
+        """Live update loop for quick bet panel."""
+        # Check if panel is visible and we have a selection
+        if not self.qb_current_selection_id:
+            self.qb_live_update_id = None
             return
+        
+        # Update odds
+        self._update_qb_live_odds()
+        
+        # Schedule next update
+        self.qb_live_update_id = self.root.after(2000, self._qb_live_update_loop)
+    
+    def _stop_qb_live_updates(self):
+        """Stop live odds updates."""
+        if self.qb_live_update_id:
+            try:
+                self.root.after_cancel(self.qb_live_update_id)
+            except:
+                pass
+            self.qb_live_update_id = None
+    
+    def _update_qb_live_odds(self):
+        """Update live odds display from current market data."""
+        if not self.qb_current_selection_id:
+            return
+        
+        try:
+            values = list(self.runners_tree.item(self.qb_current_selection_id)['values'])
+            bet_type = self.qb_bet_type_var.get()
+            
+            if bet_type == 'BACK':
+                live_price = float(str(values[2]).replace(',', '.')) if values[2] and values[2] != '-' else 0
+            else:
+                live_price = float(str(values[4]).replace(',', '.')) if values[4] and values[4] != '-' else 0
+            
+            if live_price > 0:
+                self.qb_live_odds_label.configure(text=f"(Live: {live_price:.2f})")
+            else:
+                self.qb_live_odds_label.configure(text="(Live: -)")
+        except:
+            self.qb_live_odds_label.configure(text="(Live: -)")
+    
+    def _use_live_odds(self):
+        """Set the odds entry to current live odds."""
+        if not self.qb_current_selection_id:
+            return
+        
+        try:
+            values = list(self.runners_tree.item(self.qb_current_selection_id)['values'])
+            bet_type = self.qb_bet_type_var.get()
+            
+            if bet_type == 'BACK':
+                live_price = float(str(values[2]).replace(',', '.')) if values[2] and values[2] != '-' else 0
+            else:
+                live_price = float(str(values[4]).replace(',', '.')) if values[4] and values[4] != '-' else 0
+            
+            if live_price > 0:
+                self.qb_odds_var.set(f"{live_price:.2f}")
+        except:
+            pass
+    
+    def _confirm_quick_bet(self):
+        """Confirm and place the quick bet."""
+        if not self.qb_current_runner:
+            return
+        
+        try:
+            price = float(self.qb_odds_var.get().replace(',', '.'))
+            stake = float(self.qb_stake_var.get().replace(',', '.'))
+        except ValueError:
+            messagebox.showwarning("Attenzione", "Quota o stake non validi")
+            return
+        
+        if price <= 1.0:
+            messagebox.showwarning("Attenzione", "Quota deve essere maggiore di 1.00")
+            return
+        
+        if stake < 1.0:
+            stake = 1.0
+        
+        bet_type = self.qb_bet_type_var.get()
+        runner = self.qb_current_runner
+        
+        # Hide panel
+        self._hide_quick_bet_panel()
         
         # Place the bet
         if self.simulation_mode:
