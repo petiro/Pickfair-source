@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.34.0"
+APP_VERSION = "3.34.1"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -6639,35 +6639,39 @@ Evento: {event_name}"""
         messagebox.showinfo("Telegram", "Listener Telegram fermato")
     
     def _auto_start_telegram_listener(self):
-        """Auto-start Telegram listener if enabled in settings."""
+        """Auto-start Telegram listener when credentials are configured."""
         try:
             settings = self.db.get_telegram_settings()
             if not settings:
                 return
             
-            # Check if auto-start is enabled and credentials are configured
-            if not settings.get('auto_start_listener', 0):
-                return
-            
+            # Check if credentials are configured
             if not settings.get('api_id') or not settings.get('api_hash'):
                 return
             
-            # Check if there's a valid session
+            # Check if there's a valid session (means user already authenticated once)
             import os
             session_path = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'telegram_session.session')
             if not os.path.exists(session_path):
                 return
             
-            # Check if there are chats to monitor
+            # Auto-start if:
+            # 1. Copy Trading is in MASTER or FOLLOWER mode, OR
+            # 2. There are chats to monitor
+            copy_mode = settings.get('copy_mode', 'OFF')
             chats = self.db.get_telegram_chats()
-            if not chats:
+            
+            should_start = copy_mode in ('MASTER', 'FOLLOWER') or (chats and len([c for c in chats if c.get('enabled')]) > 0)
+            
+            if not should_start:
                 return
             
             # Start the listener silently
+            logging.info(f"Auto-starting Telegram listener (copy_mode={copy_mode}, chats={len(chats) if chats else 0})")
             self._start_telegram_listener_silent()
             
         except Exception as e:
-            print(f"[DEBUG] Auto-start Telegram listener failed: {e}")
+            logging.error(f"Auto-start Telegram listener failed: {e}")
     
     def _start_telegram_listener_silent(self):
         """Start Telegram listener without showing message boxes."""
