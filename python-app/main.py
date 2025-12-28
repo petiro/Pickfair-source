@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.39.7"
+APP_VERSION = "3.39.8"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -6506,7 +6506,10 @@ Evento: {event_name}"""
                     implied_dec = sum(1.0 / s['price'] for s in selections)
                     if implied_dec >= 1:
                         raise ValueError("Book value >= 100%, profitto non garantito")
-                    required_stake = target_profit / (1.0 / implied_dec - 1)
+                    # Include commission (4.5%) in target profit calculation
+                    commission_mult = 1 - (commission / 100)  # 0.955
+                    gross_profit_needed = target_profit / commission_mult
+                    required_stake = gross_profit_needed / (1.0 / implied_dec - 1)
                     if has_swapped:
                         results, profit, _ = calculate_mixed_dutching(selections, required_stake, commission)
                     else:
