@@ -58,7 +58,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.30.2"
+APP_VERSION = "3.30.3"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -2495,6 +2495,7 @@ class PickfairApp:
     def _on_quick_bet_result(self, result, runner, bet_type, price, stake):
         """Handle quick bet result."""
         logging.info(f"Quick bet result: status={result.get('status')}, runner={runner['runnerName']}")
+        logging.info(f"Full bet result: {result}")
         
         if result.get('status') == 'SUCCESS':
             matched = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
@@ -2534,7 +2535,24 @@ class PickfairApp:
             
             self._update_balance()
         else:
-            messagebox.showwarning("Attenzione", f"Stato: {result.get('status')}")
+            # Log detailed error info
+            error_code = result.get('errorCode', 'N/A')
+            instruction_reports = result.get('instructionReports', [])
+            error_details = []
+            for ir in instruction_reports:
+                if ir.get('errorCode'):
+                    error_details.append(ir.get('errorCode'))
+            
+            logging.warning(f"Quick bet failed: status={result.get('status')}, errorCode={error_code}, details={error_details}")
+            
+            # Show user-friendly error message
+            error_msg = f"Stato: {result.get('status')}"
+            if error_code != 'N/A':
+                error_msg += f"\nErrore: {error_code}"
+            if error_details:
+                error_msg += f"\nDettagli: {', '.join(error_details)}"
+            
+            messagebox.showwarning("Attenzione", error_msg)
     
     def _set_bet_type(self, bet_type):
         """Set the bet type and update button colors."""
