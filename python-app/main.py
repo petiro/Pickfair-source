@@ -1544,7 +1544,18 @@ class PickfairApp:
         
         def update_status():
             if status == "CONNECTED":
-                self.stream_label.configure(text="Stream: ON", text_color=COLORS['success'])
+                # Try to subscribe to pending market when stream connects
+                if hasattr(self, '_pending_market_subscription') and self._pending_market_subscription:
+                    market_id = self._pending_market_subscription
+                    if self._subscribe_to_market_stream(market_id):
+                        self.streaming_active = True
+                        self._stop_polling_fallback()
+                        self.stream_label.configure(text="STREAM LIVE", text_color=COLORS['success'])
+                        logging.info(f"Market Stream: Subscribed on connect to {market_id}")
+                    else:
+                        self.stream_label.configure(text="Stream: ON", text_color=COLORS['success'])
+                else:
+                    self.stream_label.configure(text="Stream: ON", text_color=COLORS['success'])
             else:
                 self.stream_label.configure(text="Stream: OFF", text_color=COLORS['text_secondary'])
         
@@ -2007,13 +2018,17 @@ class PickfairApp:
         
         market_id = self.current_market['marketId']
         
-        # Try to use real-time Market Stream first
+        # Store pending market for subscription when stream connects
+        self._pending_market_subscription = market_id
+        
+        # Try to use real-time Market Stream if already connected
         if self._subscribe_to_market_stream(market_id):
             self.streaming_active = True
+            self._stop_polling_fallback()
             self.stream_label.configure(text="STREAM LIVE", text_color=COLORS['success'])
             logging.info(f"Market Stream: Subscribed to {market_id}")
         else:
-            # Fall back to polling if stream not available
+            # Start polling as fallback, will switch to stream when connected
             self.streaming_active = False
             self._start_polling_fallback()
     
@@ -2076,6 +2091,7 @@ class PickfairApp:
             self.client.stop_streaming()
         self._stop_polling_fallback()
         self._unsubscribe_from_market_stream()
+        self._pending_market_subscription = None
         self.streaming_active = False
         self.stream_var.set(False)
         self.stream_label.configure(text="")
