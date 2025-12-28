@@ -58,7 +58,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.29.1"
+APP_VERSION = "3.29.2"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -654,6 +654,101 @@ class PickfairApp:
         ctk.CTkLabel(dutch_outer, text="Calcolo Dutching", font=FONTS['heading'],
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
+        # ========== QUICK BET PANEL (fixed position, always visible) ==========
+        self.quick_bet_frame = ctk.CTkFrame(dutch_outer, fg_color=COLORS['bg_card'], corner_radius=8)
+        # Hidden by default - don't pack yet
+        
+        # Quick bet title
+        qb_title_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_title_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
+        
+        ctk.CTkLabel(qb_title_frame, text="Scommessa Rapida", font=('Segoe UI', 11, 'bold'),
+                     text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        ctk.CTkButton(qb_title_frame, text="X", width=30, height=24,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      command=self._hide_quick_bet_panel).pack(side=tk.RIGHT)
+        
+        self.qb_selection_label = ctk.CTkLabel(self.quick_bet_frame, text="Selezione: -",
+                                                font=('Segoe UI', 10, 'bold'),
+                                                text_color=COLORS['text_primary'])
+        self.qb_selection_label.pack(anchor=tk.W, padx=10, pady=2)
+        
+        qb_type_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_type_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkLabel(qb_type_frame, text="Tipo:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        
+        self.qb_bet_type_var = tk.StringVar(value='BACK')
+        self.qb_back_btn = ctk.CTkButton(qb_type_frame, text="Back", 
+                                          fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                                          corner_radius=6, width=80,
+                                          command=lambda: self._set_qb_type('BACK'))
+        self.qb_back_btn.pack(side=tk.LEFT, padx=5)
+        
+        self.qb_lay_btn = ctk.CTkButton(qb_type_frame, text="Lay", 
+                                         fg_color=COLORS['lay'], hover_color=COLORS['lay_hover'],
+                                         corner_radius=6, width=80,
+                                         command=lambda: self._set_qb_type('LAY'))
+        self.qb_lay_btn.pack(side=tk.LEFT)
+        
+        qb_odds_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_odds_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkLabel(qb_odds_frame, text="Quota:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        self.qb_odds_var = tk.StringVar(value='1.00')
+        self.qb_odds_entry = ctk.CTkEntry(qb_odds_frame, textvariable=self.qb_odds_var, width=80,
+                                           fg_color=COLORS['bg_panel'], border_color=COLORS['border'])
+        self.qb_odds_entry.pack(side=tk.LEFT, padx=5)
+        
+        self.qb_live_odds_label = ctk.CTkLabel(qb_odds_frame, text="(Live: -)", 
+                                                font=('Segoe UI', 9),
+                                                text_color=COLORS['text_tertiary'])
+        self.qb_live_odds_label.pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(qb_odds_frame, text="Usa Live", width=70,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6, command=self._use_live_odds).pack(side=tk.LEFT, padx=2)
+        
+        qb_stake_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_stake_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkLabel(qb_stake_frame, text="Stake (EUR):", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        self.qb_stake_var = tk.StringVar(value='1.00')
+        self.qb_stake_entry = ctk.CTkEntry(qb_stake_frame, textvariable=self.qb_stake_var, width=80,
+                                            fg_color=COLORS['bg_panel'], border_color=COLORS['border'])
+        self.qb_stake_entry.pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkLabel(qb_stake_frame, text="(min. 1 EUR)", 
+                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(side=tk.LEFT, padx=5)
+        
+        self.qb_pl_label = ctk.CTkLabel(self.quick_bet_frame, text="P/L Potenziale: -",
+                                         font=('Segoe UI', 10),
+                                         text_color=COLORS['success'])
+        self.qb_pl_label.pack(anchor=tk.W, padx=10, pady=5)
+        
+        self.qb_mode_label = ctk.CTkLabel(self.quick_bet_frame, text="",
+                                           font=('Segoe UI', 9, 'bold'),
+                                           text_color=COLORS['warning'])
+        self.qb_mode_label.pack(anchor=tk.W, padx=10)
+        
+        qb_btn_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_btn_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        ctk.CTkButton(qb_btn_frame, text="Annulla", 
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6, command=self._hide_quick_bet_panel).pack(side=tk.LEFT, padx=2)
+        
+        self.qb_confirm_btn = ctk.CTkButton(qb_btn_frame, text="PIAZZA SCOMMESSA", 
+                                            fg_color=COLORS['button_success'], hover_color='#4caf50',
+                                            font=('Segoe UI', 10, 'bold'),
+                                            corner_radius=6, command=self._confirm_quick_bet)
+        self.qb_confirm_btn.pack(side=tk.RIGHT, padx=2)
+        
+        self.qb_current_runner = None
+        self.qb_current_selection_id = None
+        self.qb_live_update_id = None
+        
         # Create scrollable canvas
         canvas = tk.Canvas(dutch_outer, highlightthickness=0, bg=COLORS['bg_panel'])
         scrollbar = ttk.Scrollbar(dutch_outer, orient=tk.VERTICAL, command=canvas.yview)
@@ -856,115 +951,6 @@ class PickfairApp:
         self.market_cashout_fetch_cancelled = False  # Cancellation flag
         self.market_cashout_positions = {}
         
-        # ========== QUICK BET PANEL (inline, no popup) ==========
-        separator2 = ctk.CTkFrame(dutch_frame, fg_color=COLORS['border'], height=2)
-        separator2.pack(fill=tk.X, padx=10, pady=10)
-        
-        self.quick_bet_frame = ctk.CTkFrame(dutch_frame, fg_color=COLORS['bg_card'], corner_radius=8)
-        self.quick_bet_frame.pack(fill=tk.X, padx=10, pady=5)
-        self.quick_bet_frame.pack_forget()  # Hidden by default
-        
-        # Quick bet title
-        qb_title_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
-        qb_title_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
-        
-        ctk.CTkLabel(qb_title_frame, text="Scommessa Rapida", font=('Segoe UI', 11, 'bold'),
-                     text_color=COLORS['text_primary']).pack(side=tk.LEFT)
-        
-        # Close button
-        ctk.CTkButton(qb_title_frame, text="X", width=30, height=24,
-                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
-                      command=self._hide_quick_bet_panel).pack(side=tk.RIGHT)
-        
-        # Selection name
-        self.qb_selection_label = ctk.CTkLabel(self.quick_bet_frame, text="Selezione: -",
-                                                font=('Segoe UI', 10, 'bold'),
-                                                text_color=COLORS['text_primary'])
-        self.qb_selection_label.pack(anchor=tk.W, padx=10, pady=2)
-        
-        # Bet type (BACK/LAY)
-        qb_type_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
-        qb_type_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        ctk.CTkLabel(qb_type_frame, text="Tipo:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
-        
-        self.qb_bet_type_var = tk.StringVar(value='BACK')
-        self.qb_back_btn = ctk.CTkButton(qb_type_frame, text="Back", 
-                                          fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
-                                          corner_radius=6, width=80,
-                                          command=lambda: self._set_qb_type('BACK'))
-        self.qb_back_btn.pack(side=tk.LEFT, padx=5)
-        
-        self.qb_lay_btn = ctk.CTkButton(qb_type_frame, text="Lay", 
-                                         fg_color=COLORS['lay'], hover_color=COLORS['lay_hover'],
-                                         corner_radius=6, width=80,
-                                         command=lambda: self._set_qb_type('LAY'))
-        self.qb_lay_btn.pack(side=tk.LEFT)
-        
-        # Odds (editable with real-time update)
-        qb_odds_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
-        qb_odds_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        ctk.CTkLabel(qb_odds_frame, text="Quota:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
-        self.qb_odds_var = tk.StringVar(value='1.00')
-        self.qb_odds_entry = ctk.CTkEntry(qb_odds_frame, textvariable=self.qb_odds_var, width=80,
-                                           fg_color=COLORS['bg_panel'], border_color=COLORS['border'])
-        self.qb_odds_entry.pack(side=tk.LEFT, padx=5)
-        
-        # Live odds label (shows current market price)
-        self.qb_live_odds_label = ctk.CTkLabel(qb_odds_frame, text="(Live: -)", 
-                                                font=('Segoe UI', 9),
-                                                text_color=COLORS['text_tertiary'])
-        self.qb_live_odds_label.pack(side=tk.LEFT, padx=5)
-        
-        # Use live odds button
-        ctk.CTkButton(qb_odds_frame, text="Usa Live", width=70,
-                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
-                      corner_radius=6, command=self._use_live_odds).pack(side=tk.LEFT, padx=2)
-        
-        # Stake
-        qb_stake_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
-        qb_stake_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        ctk.CTkLabel(qb_stake_frame, text="Stake (EUR):", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
-        self.qb_stake_var = tk.StringVar(value='1.00')
-        self.qb_stake_entry = ctk.CTkEntry(qb_stake_frame, textvariable=self.qb_stake_var, width=80,
-                                            fg_color=COLORS['bg_panel'], border_color=COLORS['border'])
-        self.qb_stake_entry.pack(side=tk.LEFT, padx=5)
-        
-        ctk.CTkLabel(qb_stake_frame, text="(min. 1 EUR)", 
-                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(side=tk.LEFT, padx=5)
-        
-        # Potential P/L display
-        self.qb_pl_label = ctk.CTkLabel(self.quick_bet_frame, text="P/L Potenziale: -",
-                                         font=('Segoe UI', 10),
-                                         text_color=COLORS['success'])
-        self.qb_pl_label.pack(anchor=tk.W, padx=10, pady=5)
-        
-        # Simulation mode indicator
-        self.qb_mode_label = ctk.CTkLabel(self.quick_bet_frame, text="",
-                                           font=('Segoe UI', 9, 'bold'),
-                                           text_color=COLORS['warning'])
-        self.qb_mode_label.pack(anchor=tk.W, padx=10)
-        
-        # Action buttons
-        qb_btn_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
-        qb_btn_frame.pack(fill=tk.X, padx=10, pady=10)
-        
-        ctk.CTkButton(qb_btn_frame, text="Annulla", 
-                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
-                      corner_radius=6, command=self._hide_quick_bet_panel).pack(side=tk.LEFT, padx=2)
-        
-        self.qb_confirm_btn = ctk.CTkButton(qb_btn_frame, text="PIAZZA SCOMMESSA", 
-                                            fg_color=COLORS['button_success'], hover_color='#4caf50',
-                                            font=('Segoe UI', 10, 'bold'),
-                                            corner_radius=6, command=self._confirm_quick_bet)
-        self.qb_confirm_btn.pack(side=tk.RIGHT, padx=2)
-        
-        # Store current quick bet data
-        self.qb_current_runner = None
-        self.qb_current_selection_id = None
-        self.qb_live_update_id = None
     
     def _update_placed_bets(self):
         """Update placed bets list for current market."""
