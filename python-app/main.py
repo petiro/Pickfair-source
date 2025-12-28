@@ -1821,18 +1821,10 @@ class PickfairApp:
             self.stream_var.set(False)
             return
         
-        try:
-            self.client.start_streaming(
-                [self.current_market['marketId']],
-                self._on_price_update
-            )
-            self.streaming_active = True
-            self.stream_label.configure(text="STREAMING ATTIVO")
-        except Exception as e:
-            # Streaming failed (likely Delayed API Key) - use polling fallback
-            logging.warning(f"Streaming non disponibile, uso polling: {e}")
-            self.streaming_active = False
-            self._start_polling_fallback()
+        # Always use polling for reliable updates
+        # Streaming API is unreliable with some configurations
+        self.streaming_active = False
+        self._start_polling_fallback()
     
     def _start_polling_fallback(self):
         """Start polling fallback when streaming is not available."""
