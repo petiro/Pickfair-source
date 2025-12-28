@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.34.2"
+APP_VERSION = "3.34.3"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -1045,14 +1045,19 @@ class PickfairApp:
                 
                 orders = self.client.get_current_orders()
                 matched = orders.get('matched', [])
+                unmatched = orders.get('unmatched', [])
+                
+                logging.info(f"Cashout: Total matched={len(matched)}, unmatched={len(unmatched)}, market_id={current_market_id}")
                 
                 # Check cancellation after API call
                 if self.market_cashout_fetch_cancelled:
                     self.market_cashout_fetch_in_progress = False
                     return
                 
-                # Filter orders for current market
-                market_orders = [o for o in matched if o.get('marketId') == current_market_id]
+                # Filter orders for current market (include both matched and unmatched)
+                all_orders = matched + unmatched
+                market_orders = [o for o in all_orders if o.get('marketId') == current_market_id]
+                logging.info(f"Cashout: Found {len(market_orders)} orders for current market")
                 
                 positions = []
                 for order in market_orders:
