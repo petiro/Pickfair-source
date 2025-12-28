@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.33.1"
+APP_VERSION = "3.34.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -1476,7 +1476,8 @@ class PickfairApp:
             self.order_stream.set_callbacks(
                 on_order_change=self._on_order_stream_update,
                 on_status_change=self._on_order_stream_status,
-                on_error=self._on_order_stream_error
+                on_error=self._on_order_stream_error,
+                on_market_change=self._on_market_stream_update
             )
             
             # Cache reference for thread safety
@@ -1552,6 +1553,95 @@ class PickfairApp:
     def _on_order_stream_error(self, error: str):
         """Handle order stream error."""
         logging.error(f"Order Stream error: {error}")
+    
+    def _on_market_stream_update(self, market_data: dict):
+        """Handle real-time market price update from stream."""
+        if not self.current_market:
+            return
+        
+        # Only process updates for current market
+        if market_data.get('market_id') != self.current_market.get('marketId'):
+            return
+        
+        selection_id = str(market_data.get('selection_id'))
+        
+        def update_runner_prices():
+            try:
+                # Find the runner row in the tree
+                if not self.runners_tree.exists(selection_id):
+                    return
+                
+                # Get current values
+                current_values = list(self.runners_tree.item(selection_id)['values'])
+                
+                # Get old prices for comparison (for flash effect)
+                old_back = current_values[2] if current_values[2] != '-' else None
+                old_lay = current_values[4] if current_values[4] != '-' else None
+                
+                # Update with new prices
+                back_price = market_data.get('back_price')
+                back_size = market_data.get('back_size', 0)
+                lay_price = market_data.get('lay_price')
+                lay_size = market_data.get('lay_size', 0)
+                
+                new_back = f"{back_price:.2f}" if back_price else "-"
+                new_lay = f"{lay_price:.2f}" if lay_price else "-"
+                new_back_size = f"{back_size:.0f}" if back_size else "-"
+                new_lay_size = f"{lay_size:.0f}" if lay_size else "-"
+                
+                current_values[2] = new_back
+                current_values[3] = new_back_size
+                current_values[4] = new_lay
+                current_values[5] = new_lay_size
+                
+                # Update tree
+                self.runners_tree.item(selection_id, values=current_values)
+                
+                # Flash effect for price changes
+                flash_tag = None
+                if old_back and new_back != old_back:
+                    try:
+                        if float(new_back) > float(old_back):
+                            flash_tag = 'price_up'
+                        elif float(new_back) < float(old_back):
+                            flash_tag = 'price_down'
+                    except ValueError:
+                        pass
+                
+                if flash_tag:
+                    self.runners_tree.item(selection_id, tags=(flash_tag,))
+                    self.root.after(500, lambda: self._reset_runner_tag(selection_id))
+                    
+            except Exception as e:
+                logging.debug(f"Market stream UI update error: {e}")
+        
+        self.root.after(0, update_runner_prices)
+    
+    def _reset_runner_tag(self, selection_id):
+        """Reset runner row tag after flash effect."""
+        try:
+            if self.runners_tree.exists(selection_id):
+                self.runners_tree.item(selection_id, tags=('runner_row',))
+        except:
+            pass
+    
+    def _subscribe_to_market_stream(self, market_id: str):
+        """Subscribe to real-time market data for a specific market."""
+        if not hasattr(self, 'order_stream') or not self.order_stream:
+            logging.debug("Market Stream: No stream connection available")
+            return False
+        
+        if not self.order_stream.is_connected():
+            logging.debug("Market Stream: Stream not connected")
+            return False
+        
+        logging.info(f"Subscribing to market stream: {market_id}")
+        return self.order_stream.subscribe_markets([market_id])
+    
+    def _unsubscribe_from_market_stream(self):
+        """Unsubscribe from market data."""
+        if hasattr(self, 'order_stream') and self.order_stream and self.order_stream.is_connected():
+            self.order_stream.unsubscribe_markets()
     
     def _try_silent_relogin(self):
         """Try to re-login silently if session expired."""
@@ -1915,10 +2005,17 @@ class PickfairApp:
             self.stream_var.set(False)
             return
         
-        # Always use polling for reliable updates
-        # Streaming API is unreliable with some configurations
-        self.streaming_active = False
-        self._start_polling_fallback()
+        market_id = self.current_market['marketId']
+        
+        # Try to use real-time Market Stream first
+        if self._subscribe_to_market_stream(market_id):
+            self.streaming_active = True
+            self.stream_label.configure(text="STREAM LIVE", text_color=COLORS['success'])
+            logging.info(f"Market Stream: Subscribed to {market_id}")
+        else:
+            # Fall back to polling if stream not available
+            self.streaming_active = False
+            self._start_polling_fallback()
     
     def _start_polling_fallback(self):
         """Start polling fallback when streaming is not available."""
@@ -1978,6 +2075,7 @@ class PickfairApp:
         if self.client:
             self.client.stop_streaming()
         self._stop_polling_fallback()
+        self._unsubscribe_from_market_stream()
         self.streaming_active = False
         self.stream_var.set(False)
         self.stream_label.configure(text="")
