@@ -58,7 +58,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.31.1"
+APP_VERSION = "3.32.0"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -2549,7 +2549,8 @@ class PickfairApp:
         
         if result.get('status') == 'SUCCESS':
             matched = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
-            logging.info(f"Quick bet matched: {matched}, will broadcast: {matched > 0}")
+            bet_id = result.get('instructionReports', [{}])[0].get('betId', '')
+            logging.info(f"Quick bet SUCCESS: betId={bet_id}, matched={matched}")
             
             # Save to database
             self.db.save_bet(
@@ -2560,28 +2561,27 @@ class PickfairApp:
                 selections=runner['runnerName'],
                 total_stake=stake,
                 potential_profit=(stake * (price - 1)) * 0.955 if bet_type == 'BACK' else stake * 0.955,
-                status='MATCHED' if matched > 0 else 'UNMATCHED'
+                status='PLACED'
             )
             
-            # Broadcast to Copy Trading followers (if matched and master mode)
-            if matched > 0:
-                available = self.account_data.get('available', 100) if self.account_data else 100
-                stake_percent = (stake / available * 100) if available > 0 else 1.0
-                event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
-                self._broadcast_copy_bet(
-                    event_name=event_name,
-                    market_name=self.current_market.get('marketName', ''),
-                    selection=runner['runnerName'],
-                    side=bet_type,
-                    price=price,
-                    stake_percent=stake_percent,
-                    stake_amount=stake
-                )
+            # Broadcast to Copy Trading followers (always on SUCCESS - matched status comes later)
+            available = self.account_data.get('available', 100) if self.account_data else 100
+            stake_percent = (stake / available * 100) if available > 0 else 1.0
+            event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
+            self._broadcast_copy_bet(
+                event_name=event_name,
+                market_name=self.current_market.get('marketName', ''),
+                selection=runner['runnerName'],
+                side=bet_type,
+                price=price,
+                stake_percent=stake_percent,
+                stake_amount=stake
+            )
             
             messagebox.showinfo("Successo", 
                 f"Scommessa piazzata!\n\n"
                 f"{runner['runnerName']} @ {price:.2f}\n"
-                f"Importo matchato: {format_currency(matched)}")
+                f"Stake: {format_currency(stake)}")
             
             self._update_balance()
         else:
