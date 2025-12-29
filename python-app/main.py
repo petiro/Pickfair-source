@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.42.1"
+APP_VERSION = "3.42.2"
 
 # Setup file logging
 def setup_logging():

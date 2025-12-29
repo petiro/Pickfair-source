@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.42.2
+- Version sync with git tag
+
 ## v3.42.1
 - Fix LAY dutching: use min() for guaranteed profit instead of average
 
