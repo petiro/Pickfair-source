@@ -800,11 +800,17 @@ class TelegramListener:
     
     async def _start_listening(self):
         """Start listening for messages."""
+        import logging
+        
         if not self.client:
+            logging.warning("_start_listening: No client!")
             return
+        
+        logging.info(f"_start_listening: Setting up handler for {len(self.monitored_chats)} chats: {self.monitored_chats}")
         
         @self.client.on(events.NewMessage(chats=self.monitored_chats if self.monitored_chats else None))
         async def handler(event):
+            logging.debug(f"NewMessage event from chat {event.chat_id}")
             message = event.message
             text = message.text or ''
             
@@ -853,6 +859,7 @@ class TelegramListener:
                 self.signal_callback(signal)
         
         self.running = True
+        logging.info(f"Telegram listener STARTED - monitoring {len(self.monitored_chats)} chats")
         if self.status_callback:
             self.status_callback('LISTENING', f'In ascolto su {len(self.monitored_chats)} chat')
         
@@ -941,8 +948,13 @@ class TelegramListener:
     
     def start(self):
         """Start the listener in a background thread (non-daemon for reliability)."""
+        import logging
+        
         if self.running:
+            logging.debug("start() called but already running")
             return
+        
+        logging.info(f"Telegram listener start() called - will monitor chats: {self.monitored_chats}")
         
         # Block send client creation during startup
         self._listener_starting = True
