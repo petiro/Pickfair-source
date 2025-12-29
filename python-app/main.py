@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.40.1"
+APP_VERSION = "3.40.2"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -6921,6 +6921,19 @@ Evento: {event_name}"""
             
             chats = self.db.get_telegram_chats()
             chat_ids = [int(c['chat_id']) for c in chats if c.get('enabled')]
+            
+            # In FOLLOWER mode, ensure copy_chat_id is monitored for receiving COPY BET signals
+            copy_mode = settings.get('copy_mode', 'OFF')
+            copy_chat_id = settings.get('copy_chat_id', '')
+            if copy_mode == 'FOLLOWER' and copy_chat_id:
+                try:
+                    follower_chat = int(copy_chat_id)
+                    if follower_chat not in chat_ids:
+                        chat_ids.append(follower_chat)
+                        logging.info(f"[COPY] FOLLOWER mode: added copy_chat_id {follower_chat} to monitored chats")
+                except ValueError:
+                    logging.warning(f"[COPY] Invalid copy_chat_id: {copy_chat_id}")
+            
             self.telegram_listener.set_monitored_chats(chat_ids)
             
             def on_signal(signal):
@@ -7020,6 +7033,19 @@ Evento: {event_name}"""
             
             chats = self.db.get_telegram_chats()
             chat_ids = [int(c['chat_id']) for c in chats if c.get('enabled')]
+            
+            # In FOLLOWER mode, ensure copy_chat_id is monitored for receiving COPY BET signals
+            copy_mode = settings.get('copy_mode', 'OFF')
+            copy_chat_id = settings.get('copy_chat_id', '')
+            if copy_mode == 'FOLLOWER' and copy_chat_id:
+                try:
+                    follower_chat = int(copy_chat_id)
+                    if follower_chat not in chat_ids:
+                        chat_ids.append(follower_chat)
+                        logging.info(f"[COPY] FOLLOWER mode: added copy_chat_id {follower_chat} to monitored chats")
+                except ValueError:
+                    logging.warning(f"[COPY] Invalid copy_chat_id: {copy_chat_id}")
+            
             self.telegram_listener.set_monitored_chats(chat_ids)
             
             def on_signal(signal):
