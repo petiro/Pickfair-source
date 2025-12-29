@@ -185,8 +185,8 @@ def _calculate_lay_dutching(
         gross_profit = (other_stakes - r['liability'])
         profits_if_win.append(gross_profit)
     
-    # Profitto teorico uniforme
-    theoretical_profit = sum(profits_if_win) / len(profits_if_win) if profits_if_win else 0
+    # Profitto garantito uniforme: usa min() per worst case (non average!)
+    theoretical_profit = min(profits_if_win) if profits_if_win else 0
     net_profit = theoretical_profit * commission_mult if theoretical_profit > 0 else theoretical_profit
     
     # Best case: tutti perdono
