@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.39.17"
+APP_VERSION = "3.39.18"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -6015,18 +6015,14 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             logging.info(f"Copy Trading: Not in MASTER mode or no chat_id (mode={copy_mode})")
             return
         
-        # Check telegram listener status with detailed logging
+        # Check telegram listener exists
         if not self.telegram_listener:
             logging.warning("Copy Trading: Telegram listener object is None")
             return
         
         logging.info(f"Copy Trading: telegram_listener.running = {self.telegram_listener.running}")
-        logging.info(f"Copy Trading: telegram_listener.loop = {self.telegram_listener.loop}")
-        logging.info(f"Copy Trading: telegram_listener.client = {self.telegram_listener.client}")
-        
-        if not self.telegram_listener.running:
-            logging.warning("Copy Trading: Telegram listener not running - start it manually from Telegram tab!")
-            return
+        logging.info(f"Copy Trading: sending_connected = {self.telegram_listener.sending_connected}")
+        # NOTE: Don't check self.running - send_message() auto-connects dedicated send client if needed
         
         message = f"""COPY BET
 Evento: {event_name}
@@ -6055,9 +6051,12 @@ StakeEUR: {stake_amount:.2f}"""
         if copy_mode != 'MASTER' or not copy_chat_id:
             return
         
-        if not self.telegram_listener or not self.telegram_listener.running:
-            print("Copy Trading: Telegram listener not running")
+        if not self.telegram_listener:
+            logging.warning("Copy Trading Cashout: Telegram listener object is None")
             return
+        
+        # NOTE: Don't check self.running - send_message() auto-connects dedicated send client if needed
+        logging.info(f"Copy Trading Cashout: broadcasting to {copy_chat_id}")
         
         message = f"""COPY CASHOUT
 Evento: {event_name}"""
