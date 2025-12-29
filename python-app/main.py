@@ -5519,10 +5519,16 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         
         # Get market details for better display
         market_cache = {}
+        bet_to_market = {}  # Map bet_id -> market_id for cancel
         
         for order in orders:
             market_id = order.get('marketId', '')
             selection_id = order.get('selectionId', '')
+            bet_id = order.get('betId', '')
+            
+            # Store mapping for cancel
+            if bet_id and market_id:
+                bet_to_market[bet_id] = market_id
             
             # Try to get event/market names from cache or API
             event_name = ''
@@ -5548,7 +5554,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                         runner_name = runner.get('runnerName', str(selection_id))[:20]
                         break
             
-            tree.insert('', tk.END, iid=order.get('betId'), values=(
+            tree.insert('', tk.END, iid=bet_id, values=(
                 event_name,
                 market_name,
                 runner_name,
@@ -5563,8 +5569,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 selected = tree.selection()
                 if selected and self.client:
                     for bet_id in selected:
-                        item = tree.item(bet_id)
-                        market_id = item['values'][0] if item['values'] else None
+                        market_id = bet_to_market.get(bet_id)
                         if market_id:
                             try:
                                 self.client.cancel_orders(market_id, [bet_id])
