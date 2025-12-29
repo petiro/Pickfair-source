@@ -50,8 +50,7 @@ class TelegramListener:
         self.sending_connected = False
         self._send_lock = threading.Lock()  # Prevent concurrent connect attempts
         self._listener_starting = False  # Blocks send client creation during listener startup
-        self._startup_message_buffer = []  # Buffer for messages during startup
-        self._buffer_lock = threading.Lock()  # Protect buffer access from multiple threads
+        # Note: No message buffering - Copy Trading requires instant delivery
         
         self.monitored_chats: List[int] = []
         self.signal_callback: Optional[Callable] = None
@@ -211,139 +210,11 @@ class TelegramListener:
         self.send_client = None
         self.send_loop = None
     
-    def _flush_buffered_via_send_client(self):
-        """Flush buffered messages using dedicated send client (fallback on listener failure).
-        
-        Messages are only removed from buffer after successful send to prevent loss.
-        """
-        with self._buffer_lock:
-            if not self._startup_message_buffer:
-                return
-            buffer_size = len(self._startup_message_buffer)
-        
-        logging.info(f"Listener failed, flushing {buffer_size} buffered messages via send client...")
-        
-        # Send messages directly via dedicated send client (bypass send_message to avoid re-buffering)
-        def _send_buffered():
-            import time
-            time.sleep(1)  # Brief delay to ensure listener cleanup is complete
-            
-            # Retry connection up to 3 times
-            for attempt in range(3):
-                if self.connect_for_sending():
-                    break
-                logging.warning(f"Send client connection attempt {attempt + 1} failed, retrying...")
-                time.sleep(2)
-            else:
-                logging.error("Failed to connect send client for buffered messages after 3 attempts")
-                return  # Keep messages in buffer for next opportunity
-            
-            # Wait for send loop to be ready (up to 5 seconds)
-            for _ in range(50):
-                if self.send_loop and self.send_loop.is_running():
-                    break
-                time.sleep(0.1)
-            else:
-                logging.error("Send loop not ready for buffered messages")
-                return  # Keep messages in buffer
-            
-            # Send messages one by one, removing only after successful send
-            while True:
-                with self._buffer_lock:
-                    if not self._startup_message_buffer:
-                        break
-                    msg = self._startup_message_buffer[0]
-                
-                try:
-                    # Direct send via send_client
-                    async def _direct_send(chat_id, message):
-                        try:
-                            if not self.send_client.is_connected():
-                                await self.send_client.connect()
-                            entity = await self.send_client.get_entity(int(chat_id))
-                            await self.send_client.send_message(entity, message)
-                            logging.info(f"Buffered message sent to {chat_id}")
-                            return True
-                        except Exception as e:
-                            logging.error(f"Failed to send buffered message to {chat_id}: {e}")
-                            return False
-                    
-                    future = asyncio.run_coroutine_threadsafe(
-                        _direct_send(msg['chat_id'], msg['message']),
-                        self.send_loop
-                    )
-                    if future.result(timeout=15):
-                        # Only remove from buffer if successfully sent
-                        with self._buffer_lock:
-                            if self._startup_message_buffer and self._startup_message_buffer[0] == msg:
-                                self._startup_message_buffer.pop(0)
-                    else:
-                        logging.warning(f"Failed to send buffered message, will retry later")
-                        break  # Stop on failure, leave remaining in buffer
-                except Exception as e:
-                    logging.error(f"Failed to send buffered message: {e}")
-                    break  # Stop on exception, leave remaining in buffer
-        
-        threading.Thread(target=_send_buffered, daemon=True).start()
-    
-    def _try_flush_leftover_buffer(self):
-        """Opportunistically flush leftover buffered messages when send_message is called."""
-        with self._buffer_lock:
-            if not self._startup_message_buffer:
-                return
-            
-            buffer_size = len(self._startup_message_buffer)
-        
-        logging.info(f"Attempting to flush {buffer_size} leftover buffered messages...")
-        
-        # Determine which client/loop to use
-        if self.running and self.client and self.loop and self.loop.is_running():
-            active_client = self.client
-            active_loop = self.loop
-        elif self.sending_connected and self.send_client and self.send_loop and self.send_loop.is_running():
-            active_client = self.send_client
-            active_loop = self.send_loop
-        else:
-            return  # No active connection, can't flush yet
-        
-        # Flush messages synchronously before continuing with new message
-        while True:
-            with self._buffer_lock:
-                if not self._startup_message_buffer:
-                    break
-                msg = self._startup_message_buffer[0]
-            
-            try:
-                async def _direct_send(chat_id, message):
-                    try:
-                        if not active_client.is_connected():
-                            await active_client.connect()
-                        entity = await active_client.get_entity(int(chat_id))
-                        await active_client.send_message(entity, message)
-                        return True
-                    except Exception:
-                        return False
-                
-                future = asyncio.run_coroutine_threadsafe(
-                    _direct_send(msg['chat_id'], msg['message']),
-                    active_loop
-                )
-                if future.result(timeout=10):
-                    with self._buffer_lock:
-                        if self._startup_message_buffer and self._startup_message_buffer[0] == msg:
-                            self._startup_message_buffer.pop(0)
-                    logging.info(f"Leftover buffered message sent successfully")
-                else:
-                    break  # Stop on failure
-            except Exception as e:
-                logging.error(f"Failed to flush leftover message: {e}")
-                break
-    
     def send_message(self, chat_id: str, message: str):
         """Send a message to a Telegram chat (for Copy Trading MASTER mode).
         
         Uses main listener if running, otherwise auto-connects dedicated send client.
-        Also flushes any leftover buffered messages from previous failed attempts.
+        Messages must be delivered instantly - fails immediately if not possible.
         """
         import time
         
@@ -351,12 +222,6 @@ class TelegramListener:
         timestamped_message = f"{message}\n\n[{int(time.time())}]"
         
         logging.info(f"send_message called: chat_id={chat_id}, message_preview={message[:50]}...")
-        
-        # Try to flush any leftover buffered messages first (recovery from failed flush)
-        with self._buffer_lock:
-            has_buffered = bool(self._startup_message_buffer)
-        if has_buffered and not self._listener_starting:
-            self._try_flush_leftover_buffer()
         
         # Determine which client/loop to use
         if self.running and self.client and self.loop and self.loop.is_running():
@@ -368,12 +233,10 @@ class TelegramListener:
             # Try to connect for sending
             connect_result = self.connect_for_sending()
             
-            # If listener is starting, buffer the message for later
+            # If listener is starting, fail immediately - no delayed messages allowed
             if connect_result == "PENDING":
-                logging.info("Buffering message during listener startup...")
-                with self._buffer_lock:
-                    self._startup_message_buffer.append({'chat_id': chat_id, 'message': timestamped_message})
-                return True  # Return success - message will be sent later
+                logging.warning("Cannot send message: listener starting, instant delivery required")
+                return False  # Fail - delayed messages not acceptable for Copy Trading
             
             if not connect_result:
                 logging.error("Failed to auto-connect Telegram for sending")
@@ -398,53 +261,38 @@ class TelegramListener:
             logging.warning("Event loop not available, cannot send message")
             return False
         
-        # Use queue for reliable async delivery (only available with full listener)
-        if self.running and hasattr(self, '_send_queue') and self._send_queue:
-            async def _enqueue():
-                await self._send_queue.put({
-                    'chat_id': chat_id,
-                    'message': timestamped_message
-                })
+        # Always use direct synchronous send - no queuing for instant delivery guarantee
+        async def _send():
+            try:
+                if not active_client.is_connected():
+                    logging.info("Client not connected, attempting reconnect...")
+                    await asyncio.wait_for(active_client.connect(), timeout=5)
+                
+                logging.info(f"Sending to Telegram chat {chat_id}...")
+                entity = await asyncio.wait_for(active_client.get_entity(int(chat_id)), timeout=5)
+                await asyncio.wait_for(active_client.send_message(entity, timestamped_message), timeout=5)
+                logging.info(f"Message sent successfully to {chat_id}")
                 return True
-            
-            try:
-                future = asyncio.run_coroutine_threadsafe(_enqueue(), active_loop)
-                result = future.result(timeout=5)
-                logging.info(f"Message queued for delivery to {chat_id}")
-                return result
-            except Exception as e:
-                logging.error(f"Error queueing message: {e}")
-                return False
-        else:
-            # Direct send (used by dedicated send client or when queue not available)
-            async def _send():
-                try:
-                    if not active_client.is_connected():
-                        logging.info("Client not connected, attempting reconnect...")
-                        await active_client.connect()
-                    
-                    logging.info(f"Sending to Telegram chat {chat_id}...")
-                    entity = await active_client.get_entity(int(chat_id))
-                    await active_client.send_message(entity, timestamped_message)
-                    logging.info(f"Message sent successfully to {chat_id}")
-                    return True
-                except Exception as e:
-                    logging.error(f"Error sending Telegram message: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    return False
-            
-            try:
-                future = asyncio.run_coroutine_threadsafe(_send(), active_loop)
-                result = future.result(timeout=15)
-                logging.info(f"send_message result: {result}")
-                return result
             except asyncio.TimeoutError:
-                logging.error("send_message timed out after 15 seconds")
+                logging.error("Telegram operation timed out - instant delivery failed")
                 return False
             except Exception as e:
-                logging.error(f"Error sending message: {e}")
+                logging.error(f"Error sending Telegram message: {e}")
+                import traceback
+                traceback.print_exc()
                 return False
+        
+        try:
+            future = asyncio.run_coroutine_threadsafe(_send(), active_loop)
+            result = future.result(timeout=10)  # Max 10s total for send operation
+            logging.info(f"send_message result: {result}")
+            return result
+        except asyncio.TimeoutError:
+            logging.error("send_message timed out - instant delivery failed")
+            return False
+        except Exception as e:
+            logging.error(f"Error sending message: {e}")
+            return False
     
     def parse_copy_bet(self, text: str) -> Optional[Dict]:
         """Parse a COPY BET message from master."""
@@ -1024,15 +872,10 @@ class TelegramListener:
             if not connected:
                 self._listener_starting = False  # Clear on failure too
                 self.running = False  # Mark as not running so send client can work
-                # Try to send buffered messages via dedicated send client
-                self._flush_buffered_via_send_client()
                 return
             
             # Clear startup flag now that connection is established
             self._listener_starting = False
-            
-            # Flush any buffered messages from startup
-            await self._flush_startup_buffer()
             
             # Start message sender consumer
             sender_task = asyncio.create_task(self._message_sender_loop())
@@ -1042,21 +885,6 @@ class TelegramListener:
             
             # Cleanup
             sender_task.cancel()
-        
-        async def _flush_startup_buffer_impl():
-            """Flush messages buffered during startup to the send queue."""
-            # Copy and clear under lock to prevent race conditions
-            with self._buffer_lock:
-                if not self._startup_message_buffer:
-                    return
-                messages = self._startup_message_buffer.copy()
-                self._startup_message_buffer.clear()
-            
-            logging.info(f"Flushing {len(messages)} buffered messages to send queue...")
-            for msg in messages:
-                await self._send_queue.put(msg)
-        
-        self._flush_startup_buffer = _flush_startup_buffer_impl
         
         try:
             self.loop.run_until_complete(_main())
