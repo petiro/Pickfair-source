@@ -218,21 +218,28 @@ class TelegramListener:
         self._broadcast_worker_running = False
         self._broadcast_queue = None
     
-    async def _safe_send(self, client, chat_id: str, message: str, retries: int = 3) -> bool:
-        """Send message with retry logic and rate limiting.
+    async def _safe_send(self, client, chat_id: str, message: str, retries: int = 3, audit_id: int = None) -> bool:
+        """Send message with retry logic, rate limiting, and audit tracking.
         
         Args:
             client: TelegramClient to use
             chat_id: Target chat ID
             message: Message to send
             retries: Number of retry attempts (default 3)
+            audit_id: Database audit row ID for status tracking
             
         Returns:
             True if sent successfully, False otherwise
         """
         import time as time_module
+        from telethon.errors import FloodWaitError
         
-        for attempt in range(retries):
+        last_error = None
+        last_error_code = None
+        attempt = 0
+        
+        # Use while loop so FloodWait doesn't consume retry attempts
+        while attempt < retries:
             try:
                 # Rate limiting: ensure 0.4s between sends (flood protection)
                 now = time_module.time()
@@ -247,30 +254,61 @@ class TelegramListener:
                 
                 # Resolve entity and send
                 entity = await asyncio.wait_for(client.get_entity(int(chat_id)), timeout=5)
-                await asyncio.wait_for(client.send_message(entity, message), timeout=5)
+                result = await asyncio.wait_for(client.send_message(entity, message), timeout=5)
                 
                 self._last_send_time = time_module.time()
                 logging.info(f"_safe_send: SUCCESS to {chat_id} (attempt {attempt + 1})")
+                
+                # Update audit: SENT
+                if audit_id and self.db:
+                    telegram_msg_id = result.id if hasattr(result, 'id') else None
+                    self.db.update_telegram_audit_sent(audit_id, telegram_msg_id, attempt + 1)
+                
                 return True
                 
+            except FloodWaitError as e:
+                # FloodWait: wait EXACTLY the required time, DON'T increment attempt
+                wait_seconds = e.seconds + 1
+                logging.warning(f"_safe_send: FloodWait {wait_seconds}s (not counting as retry)")
+                
+                # Record flood wait in audit
+                if audit_id and self.db:
+                    self.db.update_telegram_audit_flood_wait(audit_id, wait_seconds)
+                
+                await asyncio.sleep(wait_seconds)
+                # Don't increment attempt - continue to next iteration without consuming retry
+                continue
+                
             except asyncio.TimeoutError:
+                last_error = "Timeout"
+                last_error_code = "TIMEOUT"
                 logging.warning(f"_safe_send: timeout (attempt {attempt + 1}/{retries})")
+                attempt += 1  # Consume retry
             except Exception as e:
+                last_error = str(e)
+                last_error_code = type(e).__name__
                 logging.warning(f"_safe_send: error (attempt {attempt + 1}/{retries}): {e}")
+                attempt += 1  # Consume retry
             
             # Wait before retry (exponential backoff: 1.5s, 3s, 4.5s)
-            if attempt < retries - 1:
-                delay = 1.5 * (attempt + 1)
+            if attempt < retries:
+                delay = 1.5 * attempt
                 logging.info(f"_safe_send: waiting {delay}s before retry")
                 await asyncio.sleep(delay)
         
         logging.error(f"_safe_send: FAILED after {retries} attempts to {chat_id}")
+        
+        # Update audit: FAILED
+        if audit_id and self.db:
+            self.db.update_telegram_audit_failed(audit_id, last_error_code, last_error, retries)
+        
         return False
     
     async def _broadcast_worker(self, client):
         """Async worker that processes broadcast queue with retry and rate limiting.
         
         Runs continuously, consuming messages from queue and sending them.
+        Tracks audit status (QUEUED → SENT/FAILED).
         """
         logging.info("Broadcast worker started")
         self._broadcast_worker_running = True
@@ -285,9 +323,10 @@ class TelegramListener:
                 
                 chat_id = msg_data.get('chat_id')
                 message = msg_data.get('message')
+                audit_id = msg_data.get('audit_id')
                 
                 if chat_id and message:
-                    await self._safe_send(client, chat_id, message)
+                    await self._safe_send(client, chat_id, message, audit_id=audit_id)
                 
                 self._broadcast_queue.task_done()
                 
@@ -396,10 +435,19 @@ class TelegramListener:
             return False
         
         try:
+            # Insert audit record: QUEUED
+            audit_id = None
+            if self.db:
+                try:
+                    audit_id = self.db.insert_telegram_audit(chat_id, message[:500], dedup_key)
+                except Exception as e:
+                    logging.warning(f"Failed to insert audit record: {e}")
+            
             async def _enqueue():
                 await self._broadcast_queue.put({
                     'chat_id': chat_id,
-                    'message': timestamped_message
+                    'message': timestamped_message,
+                    'audit_id': audit_id
                 })
             
             future = asyncio.run_coroutine_threadsafe(_enqueue(), active_loop)
@@ -409,7 +457,7 @@ class TelegramListener:
             if dedup_key:
                 self._sent_notifications.add(dedup_key)
             
-            logging.info(f"Message queued for broadcast to {chat_id}")
+            logging.info(f"Message queued for broadcast to {chat_id} (audit_id={audit_id})")
             return True
             
         except Exception as e:
@@ -492,6 +540,26 @@ class TelegramListener:
                 }
         except Exception as e:
             print(f"Error parsing COPY CASHOUT: {e}")
+        return None
+    
+    def _parse_ack(self, text: str) -> Optional[int]:
+        """Parse ACK message from follower.
+        
+        Formats supported:
+        - "ACK 12345" (message ID)
+        - "ack 12345"
+        
+        Returns telegram_msg_id if valid ACK, None otherwise.
+        """
+        if not text:
+            return None
+        
+        match = re.match(r'^ACK\s+(\d+)\s*$', text.strip(), re.IGNORECASE)
+        if match:
+            try:
+                return int(match.group(1))
+            except ValueError:
+                pass
         return None
     
     def parse_booking_signal(self, text: str) -> Optional[Dict]:
@@ -979,6 +1047,17 @@ class TelegramListener:
                     'text': text,
                     'timestamp': datetime.now().isoformat()
                 })
+            
+            # Check for ACK message from follower (Copy Trading acknowledgement)
+            ack_msg_id = self._parse_ack(text)
+            if ack_msg_id:
+                if self.db:
+                    updated = self.db.update_telegram_audit_acked(ack_msg_id)
+                    if updated:
+                        logging.info(f"ACK received for message {ack_msg_id}")
+                    else:
+                        logging.debug(f"ACK ignored (no matching audit): {ack_msg_id}")
+                return  # Don't process ACK as signal
             
             # Check for COPY BET/CASHOUT first (Copy Trading)
             copy_bet = self.parse_copy_bet(text)

@@ -428,6 +428,34 @@ class Database:
         if cursor.fetchone()[0] == 0:
             cursor.execute('INSERT INTO telegram_settings (id) VALUES (1)')
         
+        # Telegram audit table for Copy Trading broadcast tracking
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS telegram_audit (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                dedup_key TEXT,
+                chat_id TEXT NOT NULL,
+                telegram_msg_id INTEGER,
+                payload TEXT,
+                status TEXT CHECK(status IN ('QUEUED','SENT','FAILED','ACKED')) DEFAULT 'QUEUED',
+                attempts INTEGER DEFAULT 0,
+                error_code TEXT,
+                error_message TEXT,
+                flood_wait_seconds INTEGER,
+                queued_at TEXT NOT NULL,
+                sent_at TEXT,
+                failed_at TEXT,
+                acked_at TEXT
+            )
+        ''')
+        
+        # Indexes for performance
+        try:
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_telegram_audit_status ON telegram_audit(status)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_telegram_audit_dedup ON telegram_audit(dedup_key)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_telegram_audit_msgid ON telegram_audit(telegram_msg_id)')
+        except sqlite3.OperationalError:
+            pass
+        
         conn.commit()
         # conn.close() - using persistent connection
     
@@ -1164,3 +1192,126 @@ class Database:
         cursor.execute('UPDATE signal_patterns SET enabled = ? WHERE id = ?', (1 if enabled else 0, pattern_id))
         conn.commit()
         # conn.close() - using persistent connection
+    
+    # ==================== TELEGRAM AUDIT METHODS ====================
+    
+    def insert_telegram_audit(self, chat_id: str, payload: str, dedup_key: str = None) -> int:
+        """Insert a new audit record when message is queued.
+        
+        Returns the audit row ID for tracking.
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO telegram_audit (chat_id, payload, dedup_key, status, queued_at)
+            VALUES (?, ?, ?, 'QUEUED', ?)
+        ''', (chat_id, payload, dedup_key, datetime.now().isoformat()))
+        audit_id = cursor.lastrowid
+        conn.commit()
+        return audit_id
+    
+    def update_telegram_audit_sent(self, audit_id: int, telegram_msg_id: int = None, attempts: int = 1):
+        """Mark audit record as successfully sent."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE telegram_audit 
+            SET status = 'SENT', telegram_msg_id = ?, attempts = ?, sent_at = ?,
+                error_code = NULL, error_message = NULL
+            WHERE id = ?
+        ''', (telegram_msg_id, attempts, datetime.now().isoformat(), audit_id))
+        conn.commit()
+    
+    def update_telegram_audit_failed(self, audit_id: int, error_code: str = None, error_message: str = None, attempts: int = 0):
+        """Mark audit record as failed after all retries."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE telegram_audit 
+            SET status = 'FAILED', error_code = ?, error_message = ?, attempts = ?, failed_at = ?
+            WHERE id = ?
+        ''', (error_code, error_message, attempts, datetime.now().isoformat(), audit_id))
+        conn.commit()
+    
+    def update_telegram_audit_flood_wait(self, audit_id: int, wait_seconds: int):
+        """Record flood wait event on audit record."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE telegram_audit 
+            SET flood_wait_seconds = ?
+            WHERE id = ?
+        ''', (wait_seconds, audit_id))
+        conn.commit()
+    
+    def update_telegram_audit_acked(self, telegram_msg_id: int):
+        """Mark audit record as acknowledged by follower.
+        
+        Returns True if a record was updated, False otherwise.
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE telegram_audit 
+            SET status = 'ACKED', acked_at = ?
+            WHERE telegram_msg_id = ? AND status = 'SENT'
+        ''', (datetime.now().isoformat(), telegram_msg_id))
+        updated = cursor.rowcount > 0
+        conn.commit()
+        return updated
+    
+    def get_telegram_audit_metrics(self, hours: int = 24) -> dict:
+        """Get delivery metrics for the last N hours.
+        
+        Returns dict with:
+            - queued: total messages queued
+            - sent: successfully sent
+            - failed: failed after retries
+            - acked: acknowledged by followers
+            - delivery_rate: sent/queued * 100
+            - ack_rate: acked/sent * 100
+            - failure_rate: failed/queued * 100
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Calculate cutoff time
+        from datetime import timedelta
+        cutoff = (datetime.now() - timedelta(hours=hours)).isoformat()
+        
+        cursor.execute('''
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN status IN ('SENT', 'ACKED') THEN 1 ELSE 0 END) as sent,
+                SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed,
+                SUM(CASE WHEN status = 'ACKED' THEN 1 ELSE 0 END) as acked
+            FROM telegram_audit
+            WHERE queued_at >= ?
+        ''', (cutoff,))
+        
+        row = cursor.fetchone()
+        total = row['total'] or 0
+        sent = row['sent'] or 0
+        failed = row['failed'] or 0
+        acked = row['acked'] or 0
+        
+        return {
+            'queued': total,
+            'sent': sent,
+            'failed': failed,
+            'acked': acked,
+            'delivery_rate': round((sent / total * 100) if total > 0 else 0, 1),
+            'ack_rate': round((acked / sent * 100) if sent > 0 else 0, 1),
+            'failure_rate': round((failed / total * 100) if total > 0 else 0, 1)
+        }
+    
+    def get_telegram_audit_recent(self, limit: int = 50) -> list:
+        """Get recent audit records for display/debugging."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM telegram_audit 
+            ORDER BY queued_at DESC 
+            LIMIT ?
+        ''', (limit,))
+        return [dict(row) for row in cursor.fetchall()]
