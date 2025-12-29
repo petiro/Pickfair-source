@@ -14,6 +14,9 @@ import os
 import sys
 from datetime import datetime
 
+APP_NAME = "Pickfair"
+APP_VERSION = "3.40.3"
+
 # Setup file logging
 def setup_logging():
     """Setup logging to file in APPDATA folder."""
@@ -42,7 +45,7 @@ def setup_logging():
             logging.StreamHandler(sys.stdout)
         ]
     )
-    logging.info(f"=== Pickfair started ===")
+    logging.info(f"=== Pickfair v{APP_VERSION} started ===")
     logging.info(f"Log file: {log_file}")
     return log_file
 
@@ -58,8 +61,6 @@ from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_the
 from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
-APP_NAME = "Pickfair"
-APP_VERSION = "3.40.2"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
