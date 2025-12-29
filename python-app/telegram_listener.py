@@ -7,10 +7,18 @@ import re
 import os
 import asyncio
 import threading
+import logging
 from datetime import datetime
 from typing import Optional, Callable, Dict, List
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
+
+# Try to import cryptg for faster encryption (optional)
+try:
+    import cryptg
+    logging.info("cryptg available - using accelerated encryption")
+except ImportError:
+    logging.debug("cryptg not available - using standard encryption")
 
 
 class TelegramListener:

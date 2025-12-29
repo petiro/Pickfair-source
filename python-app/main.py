@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.39.10"
+APP_VERSION = "3.39.11"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -1052,30 +1052,20 @@ class PickfairApp:
             ), tags=(tag,))
     
     def _update_market_cashout_positions(self):
-        """Update cashout positions for current market."""
+        """Update cashout positions for ALL markets with matched orders."""
         # Prevent spawning multiple fetch threads
         if self.market_cashout_fetch_in_progress:
             return
         
-        # Don't clear existing items - keep old data visible until new data is ready
-        
-        if not self.client or not self.current_market:
+        if not self.client:
             self.market_cashout_btn.configure(state=tk.DISABLED)
             return
         
-        market_id = self.current_market.get('marketId')
-        if not market_id:
-            return
-        
         self.market_cashout_fetch_in_progress = True
-        self.market_cashout_fetch_cancelled = False  # Reset cancellation flag
-        
-        # Capture current tracking state to check if still active when thread completes
-        current_market_id = market_id
+        self.market_cashout_fetch_cancelled = False
         
         def fetch_positions():
             try:
-                # Check cancellation before API call
                 if self.market_cashout_fetch_cancelled:
                     self.market_cashout_fetch_in_progress = False
                     return
@@ -1084,51 +1074,67 @@ class PickfairApp:
                 matched = orders.get('matched', [])
                 unmatched = orders.get('unmatched', [])
                 
-                logging.info(f"Cashout: Total matched={len(matched)}, unmatched={len(unmatched)}, market_id={current_market_id}")
+                logging.debug(f"Cashout: Total matched={len(matched)}, unmatched={len(unmatched)}")
                 
-                # Check cancellation after API call
                 if self.market_cashout_fetch_cancelled:
                     self.market_cashout_fetch_in_progress = False
                     return
                 
-                # Filter orders for current market (include both matched and unmatched)
+                # Get ALL orders (matched + unmatched) - no market filter
                 all_orders = matched + unmatched
-                market_orders = [o for o in all_orders if o.get('marketId') == current_market_id]
-                logging.info(f"Cashout: Found {len(market_orders)} orders for current market")
-                
                 positions = []
-                for order in market_orders:
-                    # Check cancellation during processing
+                market_cache = {}
+                
+                for order in all_orders:
                     if self.market_cashout_fetch_cancelled:
                         self.market_cashout_fetch_in_progress = False
                         return
                     
+                    market_id = order.get('marketId')
                     selection_id = order.get('selectionId')
                     side = order.get('side')
                     price = order.get('price', 0)
                     stake = order.get('sizeMatched', 0)
                     
                     if stake > 0:
+                        # Get event/market/runner names
+                        event_name = ''
+                        market_name = ''
+                        runner_name = str(selection_id)
+                        
+                        if market_id and market_id not in market_cache:
+                            try:
+                                catalogue = self.client.get_market_catalogue([market_id])
+                                if catalogue:
+                                    market_cache[market_id] = catalogue[0]
+                            except:
+                                pass
+                        
+                        if market_id in market_cache:
+                            cat = market_cache[market_id]
+                            event_name = cat.get('event', {}).get('name', '')[:20]
+                            market_name = cat.get('marketName', '')[:15]
+                            for r in cat.get('runners', []):
+                                if r.get('selectionId') == selection_id:
+                                    runner_name = r.get('runnerName', str(selection_id))[:15]
+                                    break
+                        
+                        # Calculate cashout
                         try:
                             cashout_info = self.client.calculate_cashout(
-                                current_market_id, selection_id, side, stake, price
+                                market_id, selection_id, side, stake, price
                             )
                             green_up = cashout_info.get('green_up', 0)
                         except:
                             cashout_info = None
                             green_up = 0
                         
-                        # Get runner name from current market if still same
-                        runner_name = str(selection_id)
-                        if self.current_market and self.current_market.get('marketId') == current_market_id:
-                            for r in self.current_market.get('runners', []):
-                                if str(r.get('selectionId')) == str(selection_id):
-                                    runner_name = r.get('runnerName', runner_name)[:15]
-                                    break
-                        
                         positions.append({
                             'bet_id': order.get('betId'),
+                            'market_id': market_id,
                             'selection_id': selection_id,
+                            'event_name': event_name,
+                            'market_name': market_name,
                             'runner_name': runner_name,
                             'side': side,
                             'price': price,
@@ -1137,22 +1143,20 @@ class PickfairApp:
                             'cashout_info': cashout_info
                         })
                 
-                # Only update UI if not cancelled and still on same market
                 def update_ui():
                     self.market_cashout_fetch_in_progress = False
                     if not self.market_cashout_fetch_cancelled:
-                        if self.current_market and self.current_market.get('marketId') == current_market_id:
-                            self._display_market_cashout_positions(positions)
+                        self._display_market_cashout_positions(positions)
                 
                 self.root.after(0, update_ui)
             except Exception as e:
                 self.market_cashout_fetch_in_progress = False
-                print(f"Error fetching cashout positions: {e}")
+                logging.error(f"Error fetching cashout positions: {e}")
         
         threading.Thread(target=fetch_positions, daemon=True).start()
     
     def _display_market_cashout_positions(self, positions):
-        """Display cashout positions in market view."""
+        """Display cashout positions in market view (all markets)."""
         for item in self.market_cashout_tree.get_children():
             self.market_cashout_tree.delete(item)
         
@@ -1163,9 +1167,16 @@ class PickfairApp:
             green_up = pos['green_up']
             pl_tag = 'profit' if green_up > 0 else 'loss'
             
+            # Show event/runner combined in sel column for compact display
+            display_name = pos.get('event_name', '')
+            if display_name:
+                display_name = f"{display_name[:10]}-{pos['runner_name'][:10]}"
+            else:
+                display_name = pos['runner_name']
+            
             self.market_cashout_tree.insert('', tk.END, iid=str(bet_id), values=(
-                pos['runner_name'],
-                pos['side'],
+                display_name[:20],
+                pos['side'][:1],
                 f"{green_up:+.2f}"
             ), tags=(pl_tag,))
             
@@ -1240,8 +1251,13 @@ class PickfairApp:
             
             if confirm:
                 try:
+                    market_id = pos.get('market_id')
+                    if not market_id:
+                        messagebox.showerror("Errore", "Market ID non trovato")
+                        continue
+                    
                     result = self.client.execute_cashout(
-                        self.current_market['marketId'],
+                        market_id,
                         pos['selection_id'],
                         info['cashout_side'],
                         info['cashout_stake'],
@@ -1250,7 +1266,7 @@ class PickfairApp:
                     
                     if result.get('status') == 'SUCCESS':
                         self.db.save_cashout_transaction(
-                            market_id=self.current_market['marketId'],
+                            market_id=market_id,
                             selection_id=pos['selection_id'],
                             original_bet_id=bet_id,
                             cashout_bet_id=result.get('betId'),
