@@ -55,6 +55,8 @@ class TelegramListener:
         self._broadcast_queue = None  # asyncio.Queue, created when send loop starts
         self._broadcast_worker_running = False
         self._last_send_time = 0  # For rate limiting (flood protection)
+        self._sent_notifications = set()  # Deduplication: tracks sent order_ids
+        self._sent_notifications_max = 1000  # Max size before cleanup
         
         self.monitored_chats: List[int] = []
         self.signal_callback: Optional[Callable] = None
@@ -309,13 +311,33 @@ class TelegramListener:
         asyncio.run_coroutine_threadsafe(self._broadcast_worker(client), loop)
         logging.info("Broadcast worker scheduled")
     
-    def send_message(self, chat_id: str, message: str):
+    def send_message(self, chat_id: str, message: str, dedup_key: str = None):
         """Send a message to a Telegram chat (for Copy Trading MASTER mode).
         
         Uses async queue for burst handling, retry, and rate limiting.
         First message sends immediately, subsequent messages respect 0.4s rate limit.
+        
+        Args:
+            chat_id: Target chat ID
+            message: Message to send
+            dedup_key: Optional key for deduplication (e.g., order_id). If provided and
+                       already sent, message is skipped.
         """
         import time
+        
+        # Deduplication check
+        if dedup_key:
+            if dedup_key in self._sent_notifications:
+                logging.debug(f"Skipping duplicate notification: {dedup_key}")
+                return True  # Already sent, consider success
+            
+            # Cleanup if too many entries
+            if len(self._sent_notifications) >= self._sent_notifications_max:
+                # Remove oldest half
+                to_remove = list(self._sent_notifications)[:self._sent_notifications_max // 2]
+                for key in to_remove:
+                    self._sent_notifications.discard(key)
+                logging.debug(f"Cleaned up {len(to_remove)} old notification keys")
         
         # Add timestamp to message to avoid Telegram flood detection (same message filter)
         timestamped_message = f"{message}\n\n[{int(time.time())}]"
@@ -383,12 +405,49 @@ class TelegramListener:
             future = asyncio.run_coroutine_threadsafe(_enqueue(), active_loop)
             future.result(timeout=2)  # Should be near-instant
             
+            # Track dedup key if provided
+            if dedup_key:
+                self._sent_notifications.add(dedup_key)
+            
             logging.info(f"Message queued for broadcast to {chat_id}")
             return True
             
         except Exception as e:
             logging.error(f"Error queuing message: {e}")
             return False
+    
+    def shutdown_broadcast_queue(self, timeout: float = 5.0):
+        """Graceful shutdown: wait for queue to empty before stopping worker.
+        
+        Args:
+            timeout: Max seconds to wait for queue to drain (default 5s)
+        """
+        if not self._broadcast_queue or not self._broadcast_worker_running:
+            return
+        
+        logging.info("Shutting down broadcast queue...")
+        
+        # Get active loop
+        active_loop = self.loop if (self.running and self.loop) else self.send_loop
+        if not active_loop or not active_loop.is_running():
+            self._broadcast_worker_running = False
+            return
+        
+        try:
+            async def _drain():
+                try:
+                    await asyncio.wait_for(self._broadcast_queue.join(), timeout=timeout)
+                    logging.info("Broadcast queue drained successfully")
+                except asyncio.TimeoutError:
+                    logging.warning(f"Broadcast queue drain timed out after {timeout}s")
+            
+            future = asyncio.run_coroutine_threadsafe(_drain(), active_loop)
+            future.result(timeout=timeout + 1)
+        except Exception as e:
+            logging.error(f"Error draining broadcast queue: {e}")
+        finally:
+            self._broadcast_worker_running = False
+            logging.info("Broadcast worker stopped")
     
     def parse_copy_bet(self, text: str) -> Optional[Dict]:
         """Parse a COPY BET message from master."""
@@ -1096,6 +1155,9 @@ class TelegramListener:
     def stop(self):
         """Stop the listener."""
         self.running = False
+        
+        # Graceful shutdown: drain broadcast queue first
+        self.shutdown_broadcast_queue(timeout=5.0)
         
         if self.client and self.loop:
             try:
