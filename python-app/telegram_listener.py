@@ -43,6 +43,12 @@ class TelegramListener:
         self.loop = None
         self.thread = None
         
+        # Separate client/loop for Master mode sending (doesn't interfere with listener)
+        self.send_client: Optional[TelegramClient] = None
+        self.send_loop = None
+        self.send_thread = None
+        self.sending_connected = False
+        
         self.monitored_chats: List[int] = []
         self.signal_callback: Optional[Callable] = None
         self.message_callback: Optional[Callable] = None
@@ -112,12 +118,58 @@ class TelegramListener:
         self.message_callback = on_message
         self.status_callback = on_status
     
+    def connect_for_sending(self):
+        """Connect to Telegram only for sending messages (Master mode).
+        
+        Uses separate client/loop from main listener to avoid conflicts.
+        """
+        # If full listener is running, use that instead
+        if self.running and self.client and self.loop:
+            return True
+        
+        if self.sending_connected and self.send_client and self.send_loop:
+            return True
+        
+        def _connect_thread():
+            try:
+                self.send_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(self.send_loop)
+                
+                # Create separate client for sending (use different session name)
+                session_name = f"{self.session_path}_send" if self.session_path else None
+                if session_name:
+                    self.send_client = TelegramClient(session_name, self.api_id, self.api_hash)
+                elif self.session_string:
+                    self.send_client = TelegramClient(StringSession(self.session_string), self.api_id, self.api_hash)
+                else:
+                    self.send_client = TelegramClient(StringSession(), self.api_id, self.api_hash)
+                
+                self.send_loop.run_until_complete(self.send_client.connect())
+                self.sending_connected = True
+                logging.info("Telegram connected for sending (Master mode)")
+                
+                # Keep loop running for async operations
+                self.send_loop.run_forever()
+            except Exception as e:
+                logging.error(f"Error connecting Telegram for sending: {e}")
+                self.sending_connected = False
+        
+        self.send_thread = threading.Thread(target=_connect_thread, daemon=True)
+        self.send_thread.start()
+        
+        # Wait for connection
+        import time
+        for _ in range(50):  # 5 seconds max
+            time.sleep(0.1)
+            if self.sending_connected:
+                return True
+        return False
+    
     def send_message(self, chat_id: str, message: str):
         """Send a message to a Telegram chat (for Copy Trading MASTER mode).
         
-        Uses async queue pattern for reliable delivery without blocking.
+        Uses main listener if running, otherwise auto-connects dedicated send client.
         """
-        import logging
         import time
         
         # Add timestamp to message to avoid Telegram flood detection (same message filter)
@@ -125,21 +177,35 @@ class TelegramListener:
         
         logging.info(f"send_message called: chat_id={chat_id}, message_preview={message[:50]}...")
         
+        # Determine which client/loop to use
+        if self.running and self.client and self.loop:
+            # Use main listener
+            active_client = self.client
+            active_loop = self.loop
+            logging.info("Using main listener for sending")
+        else:
+            # Auto-connect dedicated send client
+            if not self.sending_connected:
+                logging.info("Auto-connecting Telegram for Master mode sending...")
+                if not self.connect_for_sending():
+                    logging.error("Failed to auto-connect Telegram for sending")
+                    return False
+            
+            active_client = self.send_client
+            active_loop = self.send_loop
+            logging.info("Using dedicated send client for Master mode")
+        
         # Check basic requirements
-        if not self.client:
-            logging.warning("Telegram client not created, cannot send message")
+        if not active_client:
+            logging.warning("Telegram client not available, cannot send message")
             return False
         
-        if not self.running:
-            logging.warning("Telegram listener not running, cannot send message")
-            return False
-        
-        if not self.loop:
+        if not active_loop:
             logging.warning("Event loop not available, cannot send message")
             return False
         
-        # Use queue for reliable async delivery
-        if hasattr(self, '_send_queue') and self._send_queue:
+        # Use queue for reliable async delivery (only available with full listener)
+        if self.running and hasattr(self, '_send_queue') and self._send_queue:
             async def _enqueue():
                 await self._send_queue.put({
                     'chat_id': chat_id,
@@ -148,7 +214,7 @@ class TelegramListener:
                 return True
             
             try:
-                future = asyncio.run_coroutine_threadsafe(_enqueue(), self.loop)
+                future = asyncio.run_coroutine_threadsafe(_enqueue(), active_loop)
                 result = future.result(timeout=5)
                 logging.info(f"Message queued for delivery to {chat_id}")
                 return result
@@ -156,16 +222,16 @@ class TelegramListener:
                 logging.error(f"Error queueing message: {e}")
                 return False
         else:
-            # Fallback: direct send if queue not available
+            # Direct send (used by dedicated send client or when queue not available)
             async def _send():
                 try:
-                    if not self.client.is_connected():
+                    if not active_client.is_connected():
                         logging.info("Client not connected, attempting reconnect...")
-                        await self.client.connect()
+                        await active_client.connect()
                     
                     logging.info(f"Sending to Telegram chat {chat_id}...")
-                    entity = await self.client.get_entity(int(chat_id))
-                    await self.client.send_message(entity, timestamped_message)
+                    entity = await active_client.get_entity(int(chat_id))
+                    await active_client.send_message(entity, timestamped_message)
                     logging.info(f"Message sent successfully to {chat_id}")
                     return True
                 except Exception as e:
@@ -175,7 +241,7 @@ class TelegramListener:
                     return False
             
             try:
-                future = asyncio.run_coroutine_threadsafe(_send(), self.loop)
+                future = asyncio.run_coroutine_threadsafe(_send(), active_loop)
                 result = future.result(timeout=15)
                 logging.info(f"send_message result: {result}")
                 return result
