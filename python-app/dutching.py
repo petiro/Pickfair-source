@@ -4,6 +4,9 @@ Calculates optimal stake distribution for equal profit on selected outcomes.
 """
 
 from typing import List, Dict, Tuple
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Italian regulations
 MIN_BACK_STAKE = 1.00  # EUR - Italian regulatory minimum
@@ -27,6 +30,10 @@ def calculate_dutching_stakes(
     Returns:
         Tuple of (selections_with_stakes, potential_profit, implied_probability)
     """
+    logger.info(f"[DUTCHING] calculate_dutching_stakes: type={bet_type}, total_stake={total_stake}, selections={len(selections)}")
+    for s in selections:
+        logger.info(f"[DUTCHING] Input: {s.get('runnerName', 'N/A')} @ {s.get('price', 0)}")
+    
     if not selections:
         raise ValueError("Nessuna selezione")
     
@@ -116,6 +123,12 @@ def _calculate_back_dutching(
     
     # Uniform profit is the same for all selections (verify with min)
     uniform_profit = min(r['profitIfWins'] for r in results) if results else 0
+    
+    # Log results
+    logger.info(f"[DUTCHING] BACK Results (total_stake={total_actual_stake:.2f}):")
+    for r in results:
+        logger.info(f"[DUTCHING] Output: {r['runnerName']} @ {r['price']:.2f} -> stake={r['stake']:.2f}, profit={r['profitIfWins']:.2f}")
+    logger.info(f"[DUTCHING] Uniform profit: {uniform_profit:.2f}")
     
     # Validate max winnings
     max_return = max(r['potentialReturn'] for r in results)

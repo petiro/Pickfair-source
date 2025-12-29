@@ -3153,15 +3153,24 @@ class PickfairApp:
     
     def _place_bets(self):
         """Place the calculated bets (real or simulated)."""
+        logging.info("[DUTCHING] _place_bets called")
+        
         # Reentrancy guard - prevent double placement
         if hasattr(self, '_placing_in_progress') and self._placing_in_progress:
+            logging.warning("[DUTCHING] Placement already in progress, skipping")
             return
         
         if not hasattr(self, 'calculated_results') or not self.calculated_results:
+            logging.warning("[DUTCHING] No calculated_results available")
             return
         
         if not self.current_market:
+            logging.warning("[DUTCHING] No current_market selected")
             return
+        
+        logging.info(f"[DUTCHING] Placing {len(self.calculated_results)} bets:")
+        for r in self.calculated_results:
+            logging.info(f"[DUTCHING]   {r.get('runnerName', 'N/A')} @ {r.get('price', 0):.2f} -> stake={r.get('stake', 0):.2f}")
         
         # Check if market is suspended
         if self.market_status == 'SUSPENDED':
@@ -3257,10 +3266,18 @@ class PickfairApp:
                             'size': r['stake']
                         })
                 
+                logging.info(f"[DUTCHING] Calling place_bets with {len(instructions)} instructions")
+                for inst in instructions:
+                    logging.info(f"[DUTCHING]   Instruction: selId={inst['selectionId']}, side={inst['side']}, price={inst['price']}, size={inst['size']}")
+                
                 result = self.client.place_bets(market_id, instructions)
+                logging.info(f"[DUTCHING] place_bets response: status={result.get('status')}")
                 
                 # Process each instruction report individually
                 reports = result.get('instructionReports', [])
+                logging.info(f"[DUTCHING] instructionReports count: {len(reports)}")
+                for i, rep in enumerate(reports):
+                    logging.info(f"[DUTCHING]   Report[{i}]: status={rep.get('status')}, sizeMatched={rep.get('sizeMatched', 0)}, betId={rep.get('betId')}")
                 
                 # Determine overall bet status from instruction statuses
                 all_matched = all(r.get('status') == 'SUCCESS' and r.get('sizeMatched', 0) > 0 for r in reports)
