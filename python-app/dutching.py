@@ -404,3 +404,323 @@ def calculate_mixed_dutching(
     implied_back = sum(1/s['price'] for s in back_sels) * 100 if back_sels else 0
     
     return results, round(avg_profit, 2), round(implied_back, 2)
+
+
+# =============================================================================
+# ADVANCED TRADING FUNCTIONS
+# =============================================================================
+
+def adjust_for_slippage(
+    matched_bets: List[Dict],
+    target_profit: float,
+    live_odds: List[Dict],
+    bet_type: str = 'BACK',
+    commission: float = 4.5
+) -> Tuple[List[Dict], float, float]:
+    """
+    Adjust dutching for partial fills (slippage).
+    
+    When bets are partially matched, this recalculates remaining stakes
+    using current live odds to maintain target profit.
+    
+    Args:
+        matched_bets: List of already matched bets with 'stake', 'price', 'selectionId'
+        target_profit: Original target profit
+        live_odds: Current live odds for remaining selections
+        bet_type: 'BACK' or 'LAY'
+        commission: Commission percentage
+        
+    Returns:
+        Tuple of (new_stakes_for_unmatched, remaining_profit_target, locked_profit)
+    """
+    commission_mult = 1 - (commission / 100.0)
+    
+    # Calculate profit already locked from matched bets
+    locked_profit = 0.0
+    for bet in matched_bets:
+        if bet_type == 'BACK':
+            locked_profit += bet['stake'] * (bet['price'] - 1)
+        else:  # LAY
+            locked_profit += bet['stake']
+    
+    locked_profit *= commission_mult
+    
+    # Calculate remaining profit needed
+    remaining_profit = target_profit - locked_profit
+    
+    if remaining_profit <= 0:
+        # Already achieved target, no more bets needed
+        return [], remaining_profit, locked_profit
+    
+    # Filter out already matched selections
+    matched_ids = {bet['selectionId'] for bet in matched_bets}
+    remaining_odds = [o for o in live_odds if o['selectionId'] not in matched_ids]
+    
+    if not remaining_odds:
+        return [], remaining_profit, locked_profit
+    
+    # Calculate new stakes for remaining selections
+    if bet_type == 'BACK':
+        # For BACK: stake = profit / (odds - 1)
+        new_stakes = []
+        for sel in remaining_odds:
+            stake = remaining_profit / (sel['price'] - 1) / commission_mult
+            new_stakes.append({
+                'selectionId': sel['selectionId'],
+                'runnerName': sel.get('runnerName', ''),
+                'price': sel['price'],
+                'stake': round(stake, 2),
+                'side': 'BACK'
+            })
+    else:  # LAY
+        # For LAY: distribute to maintain uniform outcome
+        inv_sum = sum(1 / (s['price'] - 1) for s in remaining_odds if s['price'] > 1)
+        new_stakes = []
+        for sel in remaining_odds:
+            weight = 1 / (sel['price'] - 1) if sel['price'] > 1 else 0
+            stake = (remaining_profit / commission_mult) * weight / inv_sum if inv_sum > 0 else 0
+            new_stakes.append({
+                'selectionId': sel['selectionId'],
+                'runnerName': sel.get('runnerName', ''),
+                'price': sel['price'],
+                'stake': round(stake, 2),
+                'liability': round(stake * (sel['price'] - 1), 2),
+                'side': 'LAY'
+            })
+    
+    return new_stakes, round(remaining_profit, 2), round(locked_profit, 2)
+
+
+def multi_market_swap(
+    markets: List[Dict],
+    target_profit: float,
+    commission: float = 4.5
+) -> Dict:
+    """
+    Calculate exposure across multiple markets for the same event.
+    
+    Enables hedging between different market types:
+    - Match Odds
+    - Correct Score
+    - Over/Under
+    - BTTS
+    
+    Args:
+        markets: List of dicts with 'marketId', 'odds', 'side', 'selectionId'
+        target_profit: Desired profit
+        commission: Commission percentage
+        
+    Returns:
+        Dict with total exposure and individual stakes
+    """
+    commission_mult = 1 - (commission / 100.0)
+    
+    total_exposure = 0.0
+    stakes = []
+    
+    for m in markets:
+        odds = m['odds']
+        side = m.get('side', 'BACK')
+        
+        if side == 'BACK':
+            # BACK: stake needed = profit / (odds - 1)
+            stake = target_profit / (odds - 1) / commission_mult if odds > 1 else 0
+            exposure = stake
+        else:  # LAY
+            # LAY: stake needed = profit / odds (liability perspective)
+            stake = target_profit / odds / commission_mult if odds > 0 else 0
+            exposure = stake * (odds - 1)  # liability
+        
+        total_exposure += exposure
+        stakes.append({
+            'marketId': m.get('marketId', ''),
+            'selectionId': m.get('selectionId', ''),
+            'side': side,
+            'odds': odds,
+            'stake': round(stake, 2),
+            'exposure': round(exposure, 2)
+        })
+    
+    return {
+        'totalExposure': round(total_exposure, 2),
+        'targetProfit': round(target_profit * commission_mult, 2),
+        'stakes': stakes
+    }
+
+
+def dynamic_cashout(
+    orders: List[Dict],
+    live_odds: Dict[str, float],
+    commission: float = 4.5
+) -> Dict:
+    """
+    Calculate dynamic cashout value based on current live odds.
+    
+    This is the core cashout engine used by professional trading software.
+    
+    Args:
+        orders: List of placed orders with 'selectionId', 'side', 'stake', 'price'
+        live_odds: Dict mapping selectionId -> current live odds
+        commission: Commission percentage
+        
+    Returns:
+        Dict with cashout value, hedge stakes, and P&L breakdown
+    """
+    commission_mult = 1 - (commission / 100.0)
+    
+    hedges = []
+    total_gross_profit = 0.0
+    total_hedge_stake = 0.0
+    
+    for order in orders:
+        sel_id = order['selectionId']
+        side = order['side']
+        stake = order['stake']
+        entry_price = order['price']
+        current_price = live_odds.get(sel_id, entry_price)
+        
+        if side == 'BACK':
+            # Original BACK bet: profit if wins = stake * (entry_price - 1)
+            # To lock profit: LAY at current price
+            # Hedge stake = (entry_price / current_price) * stake
+            hedge_stake = (entry_price / current_price) * stake if current_price > 0 else 0
+            hedge_liability = hedge_stake * (current_price - 1)
+            
+            # Profit scenarios after hedge:
+            # If wins: stake * (entry_price - 1) - hedge_liability
+            # If loses: hedge_stake - stake
+            profit_if_wins = stake * (entry_price - 1) - hedge_liability
+            profit_if_loses = hedge_stake - stake
+            
+            # Uniform profit (cashout value)
+            cashout_gross = min(profit_if_wins, profit_if_loses)
+            
+            hedges.append({
+                'selectionId': sel_id,
+                'originalSide': 'BACK',
+                'hedgeSide': 'LAY',
+                'originalStake': stake,
+                'originalPrice': entry_price,
+                'hedgeStake': round(hedge_stake, 2),
+                'hedgePrice': current_price,
+                'hedgeLiability': round(hedge_liability, 2),
+                'profitIfWins': round(profit_if_wins, 2),
+                'profitIfLoses': round(profit_if_loses, 2),
+                'cashoutGross': round(cashout_gross, 2)
+            })
+            
+            total_gross_profit += cashout_gross
+            total_hedge_stake += hedge_stake
+            
+        else:  # LAY
+            # Original LAY bet: profit if loses = stake, loss if wins = liability
+            # To lock profit: BACK at current price
+            # Hedge stake = (entry_price / current_price) * stake (liability ratio)
+            entry_liability = stake * (entry_price - 1)
+            hedge_stake = entry_liability / (current_price - 1) if current_price > 1 else 0
+            
+            # Profit scenarios after hedge:
+            # If loses: stake - hedge_stake
+            # If wins: hedge_stake * (current_price - 1) - entry_liability
+            profit_if_loses = stake - hedge_stake
+            profit_if_wins = hedge_stake * (current_price - 1) - entry_liability
+            
+            # Uniform profit (cashout value)
+            cashout_gross = min(profit_if_wins, profit_if_loses)
+            
+            hedges.append({
+                'selectionId': sel_id,
+                'originalSide': 'LAY',
+                'hedgeSide': 'BACK',
+                'originalStake': stake,
+                'originalPrice': entry_price,
+                'originalLiability': round(entry_liability, 2),
+                'hedgeStake': round(hedge_stake, 2),
+                'hedgePrice': current_price,
+                'profitIfWins': round(profit_if_wins, 2),
+                'profitIfLoses': round(profit_if_loses, 2),
+                'cashoutGross': round(cashout_gross, 2)
+            })
+            
+            total_gross_profit += cashout_gross
+            total_hedge_stake += hedge_stake
+    
+    # Apply commission to positive profit only
+    if total_gross_profit > 0:
+        total_net_profit = total_gross_profit * commission_mult
+    else:
+        total_net_profit = total_gross_profit
+    
+    return {
+        'cashoutValue': round(total_net_profit, 2),
+        'grossProfit': round(total_gross_profit, 2),
+        'totalHedgeStake': round(total_hedge_stake, 2),
+        'hedges': hedges,
+        'commission': commission
+    }
+
+
+def calculate_green_up(
+    entry_price: float,
+    entry_stake: float,
+    current_price: float,
+    side: str = 'BACK',
+    commission: float = 4.5
+) -> Dict:
+    """
+    Calculate green-up (lock in profit) for a single position.
+    
+    Green-up means placing opposite bet to lock uniform profit regardless of outcome.
+    
+    Args:
+        entry_price: Original bet price
+        entry_stake: Original stake
+        current_price: Current live price
+        side: Original bet side ('BACK' or 'LAY')
+        commission: Commission percentage
+        
+    Returns:
+        Dict with hedge details and locked profit
+    """
+    commission_mult = 1 - (commission / 100.0)
+    
+    if side == 'BACK':
+        # BACK green-up: LAY at current price
+        # hedge_stake = entry_stake * entry_price / current_price
+        hedge_stake = entry_stake * entry_price / current_price if current_price > 0 else 0
+        hedge_liability = hedge_stake * (current_price - 1)
+        
+        # If original wins: entry_stake * (entry_price - 1) - hedge_liability
+        # If original loses: hedge_stake - entry_stake
+        profit_if_wins = entry_stake * (entry_price - 1) - hedge_liability
+        profit_if_loses = hedge_stake - entry_stake
+        
+        # For perfect green: both should be equal
+        green_profit = (profit_if_wins + profit_if_loses) / 2
+        
+    else:  # LAY
+        # LAY green-up: BACK at current price
+        entry_liability = entry_stake * (entry_price - 1)
+        hedge_stake = entry_liability / (current_price - 1) if current_price > 1 else 0
+        
+        # If original loses: entry_stake - hedge_stake
+        # If original wins: hedge_stake * (current_price - 1) - entry_liability
+        profit_if_loses = entry_stake - hedge_stake
+        profit_if_wins = hedge_stake * (current_price - 1) - entry_liability
+        
+        green_profit = (profit_if_wins + profit_if_loses) / 2
+        hedge_liability = 0  # BACK has no liability
+    
+    net_profit = green_profit * commission_mult if green_profit > 0 else green_profit
+    
+    return {
+        'hedgeSide': 'LAY' if side == 'BACK' else 'BACK',
+        'hedgeStake': round(hedge_stake, 2),
+        'hedgePrice': current_price,
+        'hedgeLiability': round(hedge_liability, 2) if side == 'BACK' else 0,
+        'profitIfWins': round(profit_if_wins, 2),
+        'profitIfLoses': round(profit_if_loses, 2),
+        'greenProfit': round(net_profit, 2),
+        'grossProfit': round(green_profit, 2),
+        'isProfitable': green_profit > 0
+    }
