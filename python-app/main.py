@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.40.5"
+APP_VERSION = "3.40.6"
 
 # Setup file logging
 def setup_logging():
@@ -3388,7 +3388,22 @@ class PickfairApp:
             self._update_balance()
             self._clear_selections()
         else:
-            messagebox.showwarning("Attenzione", f"Stato: {result['status']}")
+            # Log detailed error info
+            logging.warning(f"[DUTCHING] Bet placement failed: {result}")
+            error_code = result.get('errorCode', 'N/A')
+            instruction_reports = result.get('instructionReports', [])
+            error_details = []
+            for ir in instruction_reports:
+                if ir.get('errorCode'):
+                    error_details.append(f"{ir.get('errorCode')}")
+            
+            error_msg = f"Stato: {result['status']}"
+            if error_code != 'N/A':
+                error_msg += f"\nErrore: {error_code}"
+            if error_details:
+                error_msg += f"\nDettagli: {', '.join(error_details)}"
+            
+            messagebox.showwarning("Attenzione", error_msg)
     
     def _on_bets_error(self, error):
         """Handle bet placement error."""
