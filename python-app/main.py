@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.40.4"
+APP_VERSION = "3.40.5"
 
 # Setup file logging
 def setup_logging():
@@ -2982,8 +2982,9 @@ class PickfairApp:
         
         if result.get('status') == 'SUCCESS':
             logging.info(f"[DEBUG] Entering SUCCESS block...")
-            matched = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
-            bet_id = result.get('instructionReports', [{}])[0].get('betId', '')
+            instruction_reports = result.get('instructionReports', [])
+            matched = sum(r.get('sizeMatched', 0) for r in instruction_reports)
+            bet_id = instruction_reports[0].get('betId', '') if instruction_reports else ''
             logging.info(f"Quick bet SUCCESS: betId={bet_id}, matched={matched}")
             
             # Save to database
