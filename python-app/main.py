@@ -59,7 +59,7 @@ from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.40.0"
+APP_VERSION = "3.40.1"
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
 
@@ -2935,10 +2935,10 @@ class PickfairApp:
         Args:
             use_market_price: If True, uses betTargetType=PAYOUT for immediate match at best price
         """
-        logging.info(f"🎯 _place_quick_real_bet CALLED: runner={runner['runnerName']}, type={bet_type}, price={price}, stake={stake}")
+        logging.info(f"[BET] _place_quick_real_bet CALLED: runner={runner['runnerName']}, type={bet_type}, price={price}, stake={stake}")
         
         def place_thread():
-            logging.info(f"🎯 place_thread STARTED")
+            logging.info(f"[BET] place_thread STARTED")
             try:
                 if use_market_price:
                     # Use market order for immediate match
@@ -2997,20 +2997,23 @@ class PickfairApp:
             )
             
             # Broadcast to Copy Trading followers (always on SUCCESS - matched status comes later)
-            logging.info(f"🔥 QUICK BET SUCCESS - ABOUT TO BROADCAST COPY TRADING")
-            available = self.account_data.get('available', 100) if self.account_data else 100
-            stake_percent = (stake / available * 100) if available > 0 else 1.0
-            event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
-            self._broadcast_copy_bet(
-                event_name=event_name,
-                market_name=self.current_market.get('marketName', ''),
-                selection=runner['runnerName'],
-                side=bet_type,
-                price=price,
-                stake_percent=stake_percent,
-                stake_amount=stake
-            )
-            logging.info(f"🔥 QUICK BET BROADCAST CALL COMPLETED")
+            logging.info(f"[COPY] Quick bet SUCCESS - about to broadcast")
+            try:
+                available = self.account_data.get('available', 100) if self.account_data else 100
+                stake_percent = (stake / available * 100) if available > 0 else 1.0
+                event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
+                self._broadcast_copy_bet(
+                    event_name=event_name,
+                    market_name=self.current_market.get('marketName', ''),
+                    selection=runner['runnerName'],
+                    side=bet_type,
+                    price=price,
+                    stake_percent=stake_percent,
+                    stake_amount=stake
+                )
+                logging.info(f"[COPY] Quick bet broadcast call completed")
+            except Exception as e:
+                logging.error(f"[COPY] Quick bet broadcast FAILED: {e}")
             
             messagebox.showinfo("Successo", 
                 f"Scommessa piazzata!\n\n"
@@ -8023,19 +8026,22 @@ Evento: {event_name}"""
                     if result.get('status') == 'SUCCESS':
                         update_status('PLACED')
                         # Broadcast to Copy Trading followers (ALWAYS on SUCCESS, don't wait for match)
-                        logging.info(f"🔥 AUTO-BET SUCCESS - ABOUT TO BROADCAST COPY TRADING")
-                        available = self.account_data.get('available', 100) if self.account_data else 100
-                        stake_percent = (stake / available * 100) if available > 0 else 1.0
-                        self._broadcast_copy_bet(
-                            event_name=matched_event['name'],
-                            market_name=target_market.get('marketName', ''),
-                            selection=target_runner['runnerName'],
-                            side=bet_side,
-                            price=target_runner['price'],
-                            stake_percent=stake_percent,
-                            stake_amount=stake
-                        )
-                        logging.info(f"🔥 AUTO-BET BROADCAST CALL COMPLETED")
+                        logging.info(f"[COPY] Auto-bet SUCCESS - about to broadcast")
+                        try:
+                            available = self.account_data.get('available', 100) if self.account_data else 100
+                            stake_percent = (stake / available * 100) if available > 0 else 1.0
+                            self._broadcast_copy_bet(
+                                event_name=matched_event['name'],
+                                market_name=target_market.get('marketName', ''),
+                                selection=target_runner['runnerName'],
+                                side=bet_side,
+                                price=target_runner['price'],
+                                stake_percent=stake_percent,
+                                stake_amount=stake
+                            )
+                            logging.info(f"[COPY] Auto-bet broadcast call completed")
+                        except Exception as e:
+                            logging.error(f"[COPY] Auto-bet broadcast FAILED: {e}")
                         messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bet_info}")
                         break
                     elif attempt < max_retries - 1:
