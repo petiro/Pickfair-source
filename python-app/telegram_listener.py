@@ -50,7 +50,11 @@ class TelegramListener:
         self.sending_connected = False
         self._send_lock = threading.Lock()  # Prevent concurrent connect attempts
         self._listener_starting = False  # Blocks send client creation during listener startup
-        # Note: No message buffering - Copy Trading requires instant delivery
+        
+        # Broadcast queue for Copy Trading (handles burst, retry, rate limiting)
+        self._broadcast_queue = None  # asyncio.Queue, created when send loop starts
+        self._broadcast_worker_running = False
+        self._last_send_time = 0  # For rate limiting (flood protection)
         
         self.monitored_chats: List[int] = []
         self.signal_callback: Optional[Callable] = None
@@ -209,12 +213,107 @@ class TelegramListener:
         self.sending_connected = False
         self.send_client = None
         self.send_loop = None
+        self._broadcast_worker_running = False
+        self._broadcast_queue = None
+    
+    async def _safe_send(self, client, chat_id: str, message: str, retries: int = 3) -> bool:
+        """Send message with retry logic and rate limiting.
+        
+        Args:
+            client: TelegramClient to use
+            chat_id: Target chat ID
+            message: Message to send
+            retries: Number of retry attempts (default 3)
+            
+        Returns:
+            True if sent successfully, False otherwise
+        """
+        import time as time_module
+        
+        for attempt in range(retries):
+            try:
+                # Rate limiting: ensure 0.4s between sends (flood protection)
+                now = time_module.time()
+                elapsed = now - self._last_send_time
+                if elapsed < 0.4:
+                    await asyncio.sleep(0.4 - elapsed)
+                
+                # Ensure connected
+                if not client.is_connected():
+                    logging.info(f"_safe_send: reconnecting (attempt {attempt + 1})")
+                    await asyncio.wait_for(client.connect(), timeout=5)
+                
+                # Resolve entity and send
+                entity = await asyncio.wait_for(client.get_entity(int(chat_id)), timeout=5)
+                await asyncio.wait_for(client.send_message(entity, message), timeout=5)
+                
+                self._last_send_time = time_module.time()
+                logging.info(f"_safe_send: SUCCESS to {chat_id} (attempt {attempt + 1})")
+                return True
+                
+            except asyncio.TimeoutError:
+                logging.warning(f"_safe_send: timeout (attempt {attempt + 1}/{retries})")
+            except Exception as e:
+                logging.warning(f"_safe_send: error (attempt {attempt + 1}/{retries}): {e}")
+            
+            # Wait before retry (exponential backoff: 1.5s, 3s, 4.5s)
+            if attempt < retries - 1:
+                delay = 1.5 * (attempt + 1)
+                logging.info(f"_safe_send: waiting {delay}s before retry")
+                await asyncio.sleep(delay)
+        
+        logging.error(f"_safe_send: FAILED after {retries} attempts to {chat_id}")
+        return False
+    
+    async def _broadcast_worker(self, client):
+        """Async worker that processes broadcast queue with retry and rate limiting.
+        
+        Runs continuously, consuming messages from queue and sending them.
+        """
+        logging.info("Broadcast worker started")
+        self._broadcast_worker_running = True
+        
+        while self._broadcast_worker_running:
+            try:
+                # Wait for message with timeout (allows periodic checks)
+                try:
+                    msg_data = await asyncio.wait_for(self._broadcast_queue.get(), timeout=1.0)
+                except asyncio.TimeoutError:
+                    continue
+                
+                chat_id = msg_data.get('chat_id')
+                message = msg_data.get('message')
+                
+                if chat_id and message:
+                    await self._safe_send(client, chat_id, message)
+                
+                self._broadcast_queue.task_done()
+                
+            except asyncio.CancelledError:
+                logging.info("Broadcast worker cancelled")
+                break
+            except Exception as e:
+                logging.error(f"Broadcast worker error: {e}")
+        
+        logging.info("Broadcast worker stopped")
+    
+    def _start_broadcast_worker(self, client, loop):
+        """Start the broadcast worker task on the given loop."""
+        if self._broadcast_queue is None:
+            # Create queue in the context of the loop
+            async def create_queue():
+                self._broadcast_queue = asyncio.Queue()
+            asyncio.run_coroutine_threadsafe(create_queue(), loop).result(timeout=2)
+        
+        # Start worker task
+        asyncio.run_coroutine_threadsafe(self._broadcast_worker(client), loop)
+        logging.info("Broadcast worker scheduled")
     
     def send_message(self, chat_id: str, message: str):
         """Send a message to a Telegram chat (for Copy Trading MASTER mode).
         
-        Uses main listener if running, otherwise auto-connects dedicated send client.
-        Messages must be delivered instantly - fails immediately if not possible.
+        Uses async queue for burst handling, retry, and rate limiting.
+        First message sends immediately, subsequent messages respect 0.4s rate limit.
         """
         import time
         
@@ -225,7 +324,6 @@ class TelegramListener:
         
         # Determine which client/loop to use
         if self.running and self.client and self.loop and self.loop.is_running():
-            # Use main listener
             active_client = self.client
             active_loop = self.loop
             logging.info("Using main listener for sending")
@@ -233,16 +331,14 @@ class TelegramListener:
             # Try to connect for sending
             connect_result = self.connect_for_sending()
             
-            # If listener is starting, fail immediately - no delayed messages allowed
             if connect_result == "PENDING":
-                logging.warning("Cannot send message: listener starting, instant delivery required")
-                return False  # Fail - delayed messages not acceptable for Copy Trading
+                logging.warning("Cannot send message: listener starting")
+                return False
             
             if not connect_result:
                 logging.error("Failed to auto-connect Telegram for sending")
                 return False
             
-            # Check if main listener became ready during connect
             if self.running and self.client and self.loop and self.loop.is_running():
                 active_client = self.client
                 active_loop = self.loop
@@ -257,41 +353,41 @@ class TelegramListener:
             logging.warning("Telegram client not available, cannot send message")
             return False
         
-        if not active_loop:
-            logging.warning("Event loop not available, cannot send message")
+        if not active_loop or not active_loop.is_running():
+            logging.warning("Event loop not available or not running, cannot send message")
             return False
         
-        # Always use direct synchronous send - no queuing for instant delivery guarantee
-        async def _send():
+        # Start broadcast worker if not running
+        if not self._broadcast_worker_running:
             try:
-                if not active_client.is_connected():
-                    logging.info("Client not connected, attempting reconnect...")
-                    await asyncio.wait_for(active_client.connect(), timeout=5)
-                
-                logging.info(f"Sending to Telegram chat {chat_id}...")
-                entity = await asyncio.wait_for(active_client.get_entity(int(chat_id)), timeout=5)
-                await asyncio.wait_for(active_client.send_message(entity, timestamped_message), timeout=5)
-                logging.info(f"Message sent successfully to {chat_id}")
-                return True
-            except asyncio.TimeoutError:
-                logging.error("Telegram operation timed out - instant delivery failed")
-                return False
+                self._start_broadcast_worker(active_client, active_loop)
+                # Brief wait for worker to start
+                import time as t
+                t.sleep(0.1)
             except Exception as e:
-                logging.error(f"Error sending Telegram message: {e}")
-                import traceback
-                traceback.print_exc()
+                logging.error(f"Failed to start broadcast worker: {e}")
                 return False
+        
+        # Enqueue message for async processing (with retry and rate limiting)
+        if self._broadcast_queue is None:
+            logging.error("Broadcast queue not initialized")
+            return False
         
         try:
-            future = asyncio.run_coroutine_threadsafe(_send(), active_loop)
-            result = future.result(timeout=10)  # Max 10s total for send operation
-            logging.info(f"send_message result: {result}")
-            return result
-        except asyncio.TimeoutError:
-            logging.error("send_message timed out - instant delivery failed")
-            return False
+            async def _enqueue():
+                await self._broadcast_queue.put({
+                    'chat_id': chat_id,
+                    'message': timestamped_message
+                })
+            
+            future = asyncio.run_coroutine_threadsafe(_enqueue(), active_loop)
+            future.result(timeout=2)  # Should be near-instant
+            
+            logging.info(f"Message queued for broadcast to {chat_id}")
+            return True
+            
         except Exception as e:
-            logging.error(f"Error sending message: {e}")
+            logging.error(f"Error queuing message: {e}")
             return False
     
     def parse_copy_bet(self, text: str) -> Optional[Dict]:
