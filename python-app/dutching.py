@@ -51,28 +51,31 @@ def _calculate_back_dutching(
     commission: float = 4.5
 ) -> Tuple[List[Dict], float, float]:
     """
-    Calculate BACK dutching: Bet on multiple outcomes to win same profit.
+    Calculate BACK dutching: Bet on multiple outcomes to win EQUAL profit.
     
-    Formula:
-    - implied_prob = 1 / price
-    - total_implied = sum(1/price for each selection)
-    - stake_i = total_stake * (1/price_i) / total_implied
-    - profit = total_stake * (1 / total_implied - 1) if total_implied < 1
+    Formula for equal profit distribution:
+    - inv_weight = 1 / (price - 1) for each selection
+    - inv_sum = sum of all inv_weights
+    - stake_i = total_stake / inv_sum / (price_i - 1)
+    - profit = stake_i * (price_i - 1) * (1 - commission)  [same for all]
     """
     commission_mult = 1 - (commission / 100.0)
     
-    # Calculate implied probabilities
-    implied_probs = []
+    # Calculate inverse weights: 1/(price-1) for equal profit distribution
+    inv_weights = []
     for sel in selections:
-        prob = 1.0 / sel['price']
-        implied_probs.append(prob)
+        weight = 1.0 / (sel['price'] - 1) if sel['price'] > 1 else 0
+        inv_weights.append(weight)
     
-    total_implied = sum(implied_probs)
+    inv_sum = sum(inv_weights)
     
-    # Calculate raw stakes proportionally
+    if inv_sum <= 0:
+        raise ValueError("Quote non valide per dutching")
+    
+    # Calculate raw stakes using equal profit formula
     raw_stakes = []
     for i, sel in enumerate(selections):
-        stake = total_stake * implied_probs[i] / total_implied
+        stake = total_stake / inv_sum * inv_weights[i]
         raw_stakes.append(stake)
     
     # Round stakes to 2 decimal places
@@ -89,9 +92,16 @@ def _calculate_back_dutching(
     results = []
     total_actual_stake = sum(rounded_stakes)
     
+    # Calculate implied probability for display
+    implied_probs = [1.0 / sel['price'] for sel in selections]
+    total_implied = sum(implied_probs)
+    
     for i, sel in enumerate(selections):
         stake = rounded_stakes[i]
         potential_return = stake * sel['price']
+        # Each selection has same gross profit: stake * (price - 1)
+        gross_profit = stake * (sel['price'] - 1)
+        net_profit = gross_profit * commission_mult
         
         results.append({
             'selectionId': sel['selectionId'],
@@ -99,31 +109,20 @@ def _calculate_back_dutching(
             'price': sel['price'],
             'stake': stake,
             'potentialReturn': round(potential_return, 2),
-            'impliedProbability': round(implied_probs[i] * 100, 2)
+            'impliedProbability': round(implied_probs[i] * 100, 2),
+            'profitIfWins': round(net_profit, 2),
+            'grossProfit': round(gross_profit, 2)
         })
     
-    # Calculate uniform profit (theoretical profit for perfect dutching)
-    # profit = total_stake * (1/total_implied - 1)
-    if total_implied < 1:
-        theoretical_gross_profit = total_actual_stake * (1.0 / total_implied - 1)
-    else:
-        theoretical_gross_profit = 0
-    
-    theoretical_net_profit = theoretical_gross_profit * commission_mult
-    
-    # Apply uniform profit to all selections (this is what dutching guarantees)
-    for r in results:
-        r['profitIfWins'] = round(theoretical_net_profit, 2)
-        r['grossProfit'] = round(theoretical_gross_profit, 2)
-    
-    potential_profit = round(theoretical_net_profit, 2)
+    # Uniform profit is the same for all selections (verify with min)
+    uniform_profit = min(r['profitIfWins'] for r in results) if results else 0
     
     # Validate max winnings
     max_return = max(r['potentialReturn'] for r in results)
     if max_return > MAX_WINNINGS:
         raise ValueError(f"Vincita massima superata: {max_return:.2f} EUR (max: {MAX_WINNINGS:.2f})")
     
-    return results, round(potential_profit, 2), round(total_implied * 100, 2)
+    return results, round(uniform_profit, 2), round(total_implied * 100, 2)
 
 
 def _calculate_lay_dutching(
