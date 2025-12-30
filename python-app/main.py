@@ -709,44 +709,76 @@ class PickfairApp:
         )
         self.market_status_label.pack(side=tk.RIGHT, padx=10)
         
-        # Runners tree container
+        # ========== PROFESSIONAL LADDER-STYLE QUOTE DISPLAY ==========
         runners_container = ctk.CTkFrame(market_frame, fg_color='transparent')
         runners_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
         
+        # Header row
+        header_frame = ctk.CTkFrame(runners_container, fg_color=COLORS['bg_card'], corner_radius=0, height=30)
+        header_frame.pack(fill=tk.X)
+        header_frame.pack_propagate(False)
+        
+        # Header columns - using grid for precise alignment
+        header_inner = ctk.CTkFrame(header_frame, fg_color='transparent')
+        header_inner.pack(fill=tk.BOTH, expand=True)
+        
+        # Configure header grid columns
+        header_inner.grid_columnconfigure(0, weight=0, minsize=25)   # Select checkbox
+        header_inner.grid_columnconfigure(1, weight=1, minsize=130)  # Name
+        header_inner.grid_columnconfigure(2, weight=0, minsize=55)   # LTP
+        header_inner.grid_columnconfigure(3, weight=0, minsize=55)   # Back3
+        header_inner.grid_columnconfigure(4, weight=0, minsize=55)   # Back2
+        header_inner.grid_columnconfigure(5, weight=0, minsize=55)   # Back1 (best)
+        header_inner.grid_columnconfigure(6, weight=0, minsize=55)   # Lay1 (best)
+        header_inner.grid_columnconfigure(7, weight=0, minsize=55)   # Lay2
+        header_inner.grid_columnconfigure(8, weight=0, minsize=55)   # Lay3
+        header_inner.grid_columnconfigure(9, weight=0, minsize=60)   # Volume
+        
+        # Header labels
+        ctk.CTkLabel(header_inner, text="", width=25).grid(row=0, column=0, padx=1, pady=2)
+        ctk.CTkLabel(header_inner, text="Selezione", font=('Segoe UI', 9, 'bold'), 
+                     text_color=COLORS['text_secondary'], anchor='w').grid(row=0, column=1, sticky='w', padx=5, pady=2)
+        ctk.CTkLabel(header_inner, text="LTP", font=('Segoe UI', 9, 'bold'),
+                     text_color=COLORS['text_secondary']).grid(row=0, column=2, padx=1, pady=2)
+        
+        # PUNTA headers (3 columns, blue tint)
+        for i, col in enumerate([3, 4, 5]):
+            lbl = ctk.CTkLabel(header_inner, text="PUNTA" if i == 1 else "", font=('Segoe UI', 9, 'bold'),
+                              text_color='#82b1ff')
+            lbl.grid(row=0, column=col, padx=1, pady=2)
+        
+        # BANCA headers (3 columns, pink tint)  
+        for i, col in enumerate([6, 7, 8]):
+            lbl = ctk.CTkLabel(header_inner, text="BANCA" if i == 1 else "", font=('Segoe UI', 9, 'bold'),
+                              text_color='#ff80ab')
+            lbl.grid(row=0, column=col, padx=1, pady=2)
+        
+        ctk.CTkLabel(header_inner, text="Volume", font=('Segoe UI', 9, 'bold'),
+                     text_color=COLORS['text_secondary']).grid(row=0, column=9, padx=1, pady=2)
+        
+        # Scrollable runner rows container
+        self.runners_scroll = ctk.CTkScrollableFrame(runners_container, fg_color='transparent', height=350)
+        self.runners_scroll.pack(fill=tk.BOTH, expand=True)
+        
+        # Configure scroll frame grid
+        self.runners_scroll.grid_columnconfigure(0, weight=0, minsize=25)
+        self.runners_scroll.grid_columnconfigure(1, weight=1, minsize=130)
+        self.runners_scroll.grid_columnconfigure(2, weight=0, minsize=55)
+        self.runners_scroll.grid_columnconfigure(3, weight=0, minsize=55)
+        self.runners_scroll.grid_columnconfigure(4, weight=0, minsize=55)
+        self.runners_scroll.grid_columnconfigure(5, weight=0, minsize=55)
+        self.runners_scroll.grid_columnconfigure(6, weight=0, minsize=55)
+        self.runners_scroll.grid_columnconfigure(7, weight=0, minsize=55)
+        self.runners_scroll.grid_columnconfigure(8, weight=0, minsize=55)
+        self.runners_scroll.grid_columnconfigure(9, weight=0, minsize=60)
+        
+        # Dictionary to store runner row widgets for updates
+        self.runner_rows = {}
+        
+        # Keep legacy tree reference for compatibility (hidden)
         columns = ('select', 'name', 'back', 'back_size', 'lay', 'lay_size')
-        self.runners_tree = ttk.Treeview(runners_container, columns=columns, show='headings', height=18)
-        self.runners_tree.heading('select', text='')
-        self.runners_tree.heading('name', text='Selezione')
-        self.runners_tree.heading('back', text='Back')
-        self.runners_tree.heading('back_size', text='Disp.')
-        self.runners_tree.heading('lay', text='Lay')
-        self.runners_tree.heading('lay_size', text='Disp.')
-        self.runners_tree.column('select', width=30)
-        self.runners_tree.column('name', width=120)
-        self.runners_tree.column('back', width=60)
-        self.runners_tree.column('back_size', width=60)
-        self.runners_tree.column('lay', width=60)
-        self.runners_tree.column('lay_size', width=60)
-        
-        # Configure row tags for FairBot-style coloring
-        self.runners_tree.tag_configure('runner_row', background=COLORS['bg_card'])
-        
-        scrollbar = ttk.Scrollbar(runners_container, orient=tk.VERTICAL, command=self.runners_tree.yview)
-        self.runners_tree.configure(yscrollcommand=scrollbar.set)
-        
-        self.runners_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        self.runners_tree.bind('<ButtonRelease-1>', self._on_runner_clicked)
-        self.runners_tree.bind('<Button-3>', self._show_runner_context_menu)  # Right-click
-        
-        # Style for odds cells to show they're clickable
-        self.runners_tree.tag_configure('clickable_back', foreground=COLORS['clickable_back'])
-        self.runners_tree.tag_configure('clickable_lay', foreground=COLORS['clickable_lay'])
-        
-        # Price movement highlight tags (real-time visual feedback)
-        self.runners_tree.tag_configure('price_up', background='#1a472a')  # Dark green highlight
-        self.runners_tree.tag_configure('price_down', background='#4a1a1a')  # Dark red highlight
+        self.runners_tree = ttk.Treeview(runners_container, columns=columns, show='headings', height=0)
+        # Don't pack - just keep for compatibility with selection tracking
         
         # Context menu for runners
         self.runner_context_menu = tk.Menu(self.root, tearoff=0)
@@ -2344,9 +2376,14 @@ class PickfairApp:
         threading.Thread(target=fetch, daemon=True).start()
     
     def _display_market(self, market):
-        """Display market runners."""
+        """Display market runners with professional ladder-style UI."""
         self.current_market = market
         self.runners_tree.delete(*self.runners_tree.get_children())
+        
+        # Clear existing runner rows
+        for widget in self.runners_scroll.winfo_children():
+            widget.destroy()
+        self.runner_rows = {}
         
         # Update market status
         self.market_status = market.get('status', 'OPEN')
@@ -2367,22 +2404,55 @@ class PickfairApp:
             else:
                 self.market_status_label.configure(text="APERTO", text_color=COLORS['success'])
             self.dutch_modal_btn.configure(state=tk.NORMAL)
-            # place_btn state is managed by calculate function
         
-        for runner in market['runners']:
-            back_price = f"{runner['backPrice']:.2f}" if runner.get('backPrice') else "-"
-            lay_price = f"{runner['layPrice']:.2f}" if runner.get('layPrice') else "-"
-            back_size = f"{runner['backSize']:.0f}" if runner.get('backSize') else "-"
-            lay_size = f"{runner['laySize']:.0f}" if runner.get('laySize') else "-"
+        # Create runner rows with professional layout
+        for row_idx, runner in enumerate(market['runners']):
+            selection_id = str(runner['selectionId'])
             
-            self.runners_tree.insert('', tk.END, iid=str(runner['selectionId']), values=(
-                '',
-                runner['runnerName'],
-                back_price,
-                back_size,
-                lay_price,
-                lay_size
-            ), tags=('runner_row',))
+            # Extract price data (up to 3 levels)
+            back_prices = runner.get('backPrices', [])
+            lay_prices = runner.get('layPrices', [])
+            
+            # Get best prices for compatibility
+            back_price = runner.get('backPrice', 0)
+            lay_price = runner.get('layPrice', 0)
+            back_size = runner.get('backSize', 0)
+            lay_size = runner.get('laySize', 0)
+            ltp = runner.get('lastPriceTraded', 0)
+            total_matched = runner.get('totalMatched', 0)
+            
+            # Build price levels (3 for each side)
+            back_levels = []
+            if back_prices:
+                back_levels = back_prices[:3]
+            elif back_price:
+                back_levels = [[back_price, back_size]]
+            while len(back_levels) < 3:
+                back_levels.append([0, 0])
+            
+            lay_levels = []
+            if lay_prices:
+                lay_levels = lay_prices[:3]
+            elif lay_price:
+                lay_levels = [[lay_price, lay_size]]
+            while len(lay_levels) < 3:
+                lay_levels.append([0, 0])
+            
+            # Create row widgets
+            row_widgets = self._create_runner_row(
+                row_idx, selection_id, runner['runnerName'],
+                ltp, back_levels, lay_levels, total_matched
+            )
+            self.runner_rows[selection_id] = row_widgets
+            
+            # Add to legacy tree for compatibility
+            self.runners_tree.insert('', tk.END, iid=selection_id, values=(
+                '', runner['runnerName'],
+                f"{back_price:.2f}" if back_price else "-",
+                f"{back_size:.0f}" if back_size else "-",
+                f"{lay_price:.2f}" if lay_price else "-",
+                f"{lay_size:.0f}" if lay_size else "-"
+            ))
         
         # Auto-start streaming for live price updates
         if self.market_status not in ('SUSPENDED', 'CLOSED'):
@@ -2396,6 +2466,209 @@ class PickfairApp:
         # Auto-start live tracking for cashout if enabled
         if self.market_live_tracking_var.get() and not self.market_live_tracking_id:
             self._start_market_live_tracking()
+    
+    def _create_runner_row(self, row_idx, selection_id, runner_name, ltp, back_levels, lay_levels, total_matched):
+        """Create a professional ladder-style runner row with quote cells."""
+        widgets = {}
+        
+        # Row background color (alternating)
+        row_bg = COLORS['bg_card'] if row_idx % 2 == 0 else COLORS['bg_panel']
+        
+        # Selection checkbox
+        select_var = tk.BooleanVar(value=False)
+        select_cb = ctk.CTkCheckBox(
+            self.runners_scroll, text="", variable=select_var, width=20,
+            fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+            command=lambda sid=selection_id: self._on_runner_select_toggle(sid)
+        )
+        select_cb.grid(row=row_idx, column=0, padx=1, pady=1, sticky='nsew')
+        widgets['select_var'] = select_var
+        widgets['select_cb'] = select_cb
+        
+        # Runner name
+        name_frame = ctk.CTkFrame(self.runners_scroll, fg_color=row_bg, corner_radius=0)
+        name_frame.grid(row=row_idx, column=1, padx=1, pady=1, sticky='nsew')
+        
+        name_lbl = ctk.CTkLabel(name_frame, text=runner_name[:18], font=('Segoe UI', 10, 'bold'),
+                                text_color=COLORS['text_primary'], anchor='w')
+        name_lbl.pack(fill=tk.BOTH, expand=True, padx=5, pady=2)
+        name_frame.bind('<Button-1>', lambda e, sid=selection_id: self._on_ladder_row_click(sid))
+        name_frame.bind('<Button-3>', lambda e, sid=selection_id: self._show_ladder_context_menu(e, sid))
+        widgets['name_frame'] = name_frame
+        widgets['name_lbl'] = name_lbl
+        
+        # LTP (Last Traded Price)
+        ltp_frame = ctk.CTkFrame(self.runners_scroll, fg_color=row_bg, corner_radius=0)
+        ltp_frame.grid(row=row_idx, column=2, padx=1, pady=1, sticky='nsew')
+        
+        ltp_text = f"{ltp:.2f}" if ltp else "-"
+        ltp_lbl = ctk.CTkLabel(ltp_frame, text=ltp_text, font=('Segoe UI', 10),
+                               text_color=COLORS['text_secondary'])
+        ltp_lbl.pack(fill=tk.BOTH, expand=True, pady=2)
+        widgets['ltp_lbl'] = ltp_lbl
+        
+        # Back prices (3 columns: worst to best, columns 3,4,5)
+        # Colors: light blue gradient (best is brightest)
+        back_colors = ['#1565c0', '#1976d2', '#1e88e5']  # Dark to light blue
+        back_text = '#ffffff'
+        widgets['back_cells'] = []
+        
+        for i, col in enumerate([3, 4, 5]):
+            level_idx = 2 - i  # Reverse: column 3=back3, 4=back2, 5=back1(best)
+            price, size = back_levels[level_idx] if level_idx < len(back_levels) else (0, 0)
+            
+            cell = self._create_price_cell(
+                row_idx, col, price, size, 
+                bg_color=back_colors[i], text_color=back_text,
+                is_back=True, selection_id=selection_id
+            )
+            widgets['back_cells'].append(cell)
+        
+        # Lay prices (3 columns: best to worst, columns 6,7,8)
+        # Colors: pink gradient (best is brightest)
+        lay_colors = ['#e5399b', '#c2185b', '#ad1457']  # Light to dark pink
+        lay_text = '#ffffff'
+        widgets['lay_cells'] = []
+        
+        for i, col in enumerate([6, 7, 8]):
+            level_idx = i  # column 6=lay1(best), 7=lay2, 8=lay3
+            price, size = lay_levels[level_idx] if level_idx < len(lay_levels) else (0, 0)
+            
+            cell = self._create_price_cell(
+                row_idx, col, price, size,
+                bg_color=lay_colors[i], text_color=lay_text,
+                is_back=False, selection_id=selection_id
+            )
+            widgets['lay_cells'].append(cell)
+        
+        # Volume
+        vol_frame = ctk.CTkFrame(self.runners_scroll, fg_color=row_bg, corner_radius=0)
+        vol_frame.grid(row=row_idx, column=9, padx=1, pady=1, sticky='nsew')
+        
+        vol_text = f"{total_matched/1000:.0f}K" if total_matched >= 1000 else f"{total_matched:.0f}"
+        vol_lbl = ctk.CTkLabel(vol_frame, text=vol_text, font=('Segoe UI', 9),
+                               text_color=COLORS['text_tertiary'])
+        vol_lbl.pack(fill=tk.BOTH, expand=True, pady=2)
+        widgets['vol_lbl'] = vol_lbl
+        
+        return widgets
+    
+    def _create_price_cell(self, row, col, price, size, bg_color, text_color, is_back, selection_id):
+        """Create a single price cell with quote on top, liquidity below."""
+        cell_frame = ctk.CTkFrame(self.runners_scroll, fg_color=bg_color, corner_radius=3, 
+                                  width=55, height=40)
+        cell_frame.grid(row=row, column=col, padx=1, pady=1, sticky='nsew')
+        cell_frame.grid_propagate(False)
+        
+        # Price (large font)
+        price_text = f"{price:.2f}" if price and price > 0 else "-"
+        price_lbl = ctk.CTkLabel(cell_frame, text=price_text, font=('Segoe UI', 11, 'bold'),
+                                 text_color=text_color)
+        price_lbl.pack(pady=(3, 0))
+        
+        # Size/liquidity (smaller font)
+        if size and size > 0:
+            size_text = f"{size/1000:.1f}K" if size >= 1000 else f"{size:.0f}"
+        else:
+            size_text = ""
+        size_lbl = ctk.CTkLabel(cell_frame, text=size_text, font=('Segoe UI', 8),
+                                text_color=text_color)
+        size_lbl.pack()
+        
+        # Create cell dict first so click handlers can reference it
+        cell_dict = {'frame': cell_frame, 'price_lbl': price_lbl, 'size_lbl': size_lbl, 'price': price, 'size': size}
+        
+        # Click handling for quick bet - reads from cell_dict for live prices
+        bet_type = 'BACK' if is_back else 'LAY'
+        cell_frame.bind('<Button-1>', lambda e, sid=selection_id, cd=cell_dict, bt=bet_type: 
+                       self._on_ladder_cell_click(sid, cd.get('price', 0), bt))
+        price_lbl.bind('<Button-1>', lambda e, sid=selection_id, cd=cell_dict, bt=bet_type: 
+                      self._on_ladder_cell_click(sid, cd.get('price', 0), bt))
+        size_lbl.bind('<Button-1>', lambda e, sid=selection_id, cd=cell_dict, bt=bet_type: 
+                     self._on_ladder_cell_click(sid, cd.get('price', 0), bt))
+        
+        return cell_dict
+    
+    def _on_ladder_row_click(self, selection_id):
+        """Handle click on runner name in ladder."""
+        # Toggle selection
+        if selection_id in self.runner_rows:
+            widgets = self.runner_rows[selection_id]
+            current = widgets['select_var'].get()
+            widgets['select_var'].set(not current)
+            self._on_runner_select_toggle(selection_id)
+    
+    def _on_ladder_cell_click(self, selection_id, price, bet_type):
+        """Handle click on price cell - open quick bet panel."""
+        if not price or price <= 0:
+            return
+        
+        # Find runner name
+        runner_name = ""
+        if self.current_market:
+            for runner in self.current_market.get('runners', []):
+                if str(runner['selectionId']) == selection_id:
+                    runner_name = runner['runnerName']
+                    break
+        
+        # Open quick bet panel
+        self._show_quick_bet_panel(selection_id, runner_name, bet_type, price)
+    
+    def _show_ladder_context_menu(self, event, selection_id):
+        """Show context menu for ladder row."""
+        # Store selection for context menu actions
+        self._context_selection_id = selection_id
+        self.runner_context_menu.tk_popup(event.x_root, event.y_root)
+    
+    def _on_runner_select_toggle(self, selection_id):
+        """Handle runner selection toggle in ladder - integrated with Dutching."""
+        if selection_id not in self.runner_rows:
+            return
+        
+        widgets = self.runner_rows[selection_id]
+        is_selected = widgets['select_var'].get()
+        
+        # Update UI to show selection state
+        if is_selected:
+            widgets['name_frame'].configure(fg_color=COLORS['back'])
+            
+            # Add to selected_runners for Dutching
+            if self.current_market:
+                for runner in self.current_market['runners']:
+                    if str(runner['selectionId']) == selection_id:
+                        runner_data = runner.copy()
+                        
+                        # Get current prices from ladder cells (live from metadata)
+                        back_cells = widgets.get('back_cells', [])
+                        lay_cells = widgets.get('lay_cells', [])
+                        
+                        back_price = 0
+                        lay_price = 0
+                        # Best back is last cell (index -1 or 2)
+                        if back_cells:
+                            back_price = back_cells[-1].get('price', 0) or 0
+                        # Best lay is first cell (index 0)
+                        if lay_cells:
+                            lay_price = lay_cells[0].get('price', 0) or 0
+                        
+                        runner_data['backPrice'] = back_price
+                        runner_data['layPrice'] = lay_price
+                        bet_type = self.bet_type_var.get()
+                        runner_data['price'] = back_price if bet_type == 'BACK' else lay_price
+                        
+                        self.selected_runners[selection_id] = runner_data
+                        break
+        else:
+            row_idx = list(self.runner_rows.keys()).index(selection_id)
+            row_bg = COLORS['bg_card'] if row_idx % 2 == 0 else COLORS['bg_panel']
+            widgets['name_frame'].configure(fg_color=row_bg)
+            
+            # Remove from selected_runners
+            if selection_id in self.selected_runners:
+                del self.selected_runners[selection_id]
+        
+        # Recalculate dutching
+        self._recalculate()
     
     def _refresh_prices(self):
         """Manually refresh prices for current market."""
@@ -2511,12 +2784,6 @@ class PickfairApp:
                 selection_id = str(runner_update['selectionId'])
                 
                 try:
-                    item = self.runners_tree.item(selection_id)
-                    if not item:
-                        continue
-                    
-                    current_values = list(item['values'])
-                    
                     back_prices = runner_update.get('backPrices', [])
                     lay_prices = runner_update.get('layPrices', [])
                     
@@ -2525,43 +2792,94 @@ class PickfairApp:
                     new_back = back_prices[0][0] if back_prices else 0
                     new_lay = lay_prices[0][0] if lay_prices else 0
                     
-                    # Determine highlight color based on price movement
-                    highlight_tag = None
-                    if prev['back'] > 0 and new_back > 0:
-                        if new_back > prev['back']:
-                            highlight_tag = 'price_up'  # Green - quote sale
-                        elif new_back < prev['back']:
-                            highlight_tag = 'price_down'  # Red - quote scende
-                    elif prev['lay'] > 0 and new_lay > 0:
-                        if new_lay > prev['lay']:
-                            highlight_tag = 'price_up'
-                        elif new_lay < prev['lay']:
-                            highlight_tag = 'price_down'
-                    
                     # Store new prices
                     self._prev_prices[selection_id] = {'back': new_back, 'lay': new_lay}
                     
-                    if back_prices:
-                        best_back = back_prices[0]
-                        current_values[2] = f"{best_back[0]:.2f}"
-                        current_values[3] = f"{best_back[1]:.0f}" if len(best_back) > 1 else "-"
+                    # Update ladder UI cells
+                    if selection_id in self.runner_rows:
+                        widgets = self.runner_rows[selection_id]
+                        
+                        # Update back cells (3 levels) and their metadata
+                        for i, cell in enumerate(widgets.get('back_cells', [])):
+                            level_idx = 2 - i  # Reverse order
+                            if level_idx < len(back_prices):
+                                price, size = back_prices[level_idx]
+                                cell['price_lbl'].configure(text=f"{price:.2f}" if price else "-")
+                                size_text = f"{size/1000:.1f}K" if size >= 1000 else f"{size:.0f}" if size else ""
+                                cell['size_lbl'].configure(text=size_text)
+                                # Update metadata for click handlers
+                                cell['price'] = price
+                                cell['size'] = size
+                            else:
+                                cell['price_lbl'].configure(text="-")
+                                cell['size_lbl'].configure(text="")
+                                cell['price'] = 0
+                                cell['size'] = 0
+                        
+                        # Update lay cells (3 levels) and their metadata
+                        for i, cell in enumerate(widgets.get('lay_cells', [])):
+                            if i < len(lay_prices):
+                                price, size = lay_prices[i]
+                                cell['price_lbl'].configure(text=f"{price:.2f}" if price else "-")
+                                size_text = f"{size/1000:.1f}K" if size >= 1000 else f"{size:.0f}" if size else ""
+                                cell['size_lbl'].configure(text=size_text)
+                                # Update metadata for click handlers
+                                cell['price'] = price
+                                cell['size'] = size
+                            else:
+                                cell['price_lbl'].configure(text="-")
+                                cell['size_lbl'].configure(text="")
+                                cell['price'] = 0
+                                cell['size'] = 0
+                        
+                        # Update LTP if available
+                        ltp = runner_update.get('lastPriceTraded', 0)
+                        if ltp and 'ltp_lbl' in widgets:
+                            widgets['ltp_lbl'].configure(text=f"{ltp:.2f}")
+                        
+                        # Update volume if available
+                        total_matched = runner_update.get('totalMatched', 0)
+                        if total_matched and 'vol_lbl' in widgets:
+                            vol_text = f"{total_matched/1000:.0f}K" if total_matched >= 1000 else f"{total_matched:.0f}"
+                            widgets['vol_lbl'].configure(text=vol_text)
+                        
+                        # Price movement highlight on best prices
+                        if prev['back'] > 0 and new_back > 0 and widgets.get('back_cells'):
+                            best_back_cell = widgets['back_cells'][-1]  # Last is best (column 5)
+                            if new_back > prev['back']:
+                                # Price up - flash green
+                                best_back_cell['frame'].configure(fg_color='#2e7d32')
+                                self.root.after(500, lambda c=best_back_cell: c['frame'].configure(fg_color='#1e88e5'))
+                            elif new_back < prev['back']:
+                                # Price down - flash red
+                                best_back_cell['frame'].configure(fg_color='#c62828')
+                                self.root.after(500, lambda c=best_back_cell: c['frame'].configure(fg_color='#1e88e5'))
+                        
+                        if prev['lay'] > 0 and new_lay > 0 and widgets.get('lay_cells'):
+                            best_lay_cell = widgets['lay_cells'][0]  # First is best (column 6)
+                            if new_lay > prev['lay']:
+                                best_lay_cell['frame'].configure(fg_color='#c62828')
+                                self.root.after(500, lambda c=best_lay_cell: c['frame'].configure(fg_color='#e5399b'))
+                            elif new_lay < prev['lay']:
+                                best_lay_cell['frame'].configure(fg_color='#2e7d32')
+                                self.root.after(500, lambda c=best_lay_cell: c['frame'].configure(fg_color='#e5399b'))
                     
-                    if lay_prices:
-                        best_lay = lay_prices[0]
-                        current_values[4] = f"{best_lay[0]:.2f}"
-                        current_values[5] = f"{best_lay[1]:.0f}" if len(best_lay) > 1 else "-"
-                    
-                    self.runners_tree.item(selection_id, values=current_values)
-                    
-                    # Apply highlight if price changed (preserve existing tags)
-                    if highlight_tag:
-                        existing_tags = list(self.runners_tree.item(selection_id, 'tags') or ())
-                        # Remove old highlight tags
-                        existing_tags = [t for t in existing_tags if t not in ('price_up', 'price_down')]
-                        existing_tags.append(highlight_tag)
-                        self.runners_tree.item(selection_id, tags=tuple(existing_tags))
-                        # Remove highlight after 500ms
-                        self.root.after(500, lambda sid=selection_id: self._clear_price_highlight(sid))
+                    # Also update legacy tree for compatibility
+                    try:
+                        item = self.runners_tree.item(selection_id)
+                        if item:
+                            current_values = list(item['values'])
+                            if back_prices:
+                                best_back = back_prices[0]
+                                current_values[2] = f"{best_back[0]:.2f}"
+                                current_values[3] = f"{best_back[1]:.0f}" if len(best_back) > 1 else "-"
+                            if lay_prices:
+                                best_lay = lay_prices[0]
+                                current_values[4] = f"{best_lay[0]:.2f}"
+                                current_values[5] = f"{best_lay[1]:.0f}" if len(best_lay) > 1 else "-"
+                            self.runners_tree.item(selection_id, values=current_values)
+                    except:
+                        pass
                     
                     if selection_id in self.selected_runners:
                         if back_prices:
@@ -3273,10 +3591,19 @@ class PickfairApp:
         """Clear all selections."""
         self.selected_runners = {}
         
+        # Clear legacy tree selections
         for item in self.runners_tree.get_children():
             values = list(self.runners_tree.item(item)['values'])
             values[0] = ''
             self.runners_tree.item(item, values=values)
+        
+        # Clear new ladder UI selections
+        for idx, (sel_id, widgets) in enumerate(self.runner_rows.items()):
+            if 'select_var' in widgets:
+                widgets['select_var'].set(False)
+            if 'name_frame' in widgets:
+                row_bg = COLORS['bg_card'] if idx % 2 == 0 else COLORS['bg_panel']
+                widgets['name_frame'].configure(fg_color=row_bg)
         
         self.selections_text.configure(state=tk.NORMAL)
         self.selections_text.delete('1.0', tk.END)
