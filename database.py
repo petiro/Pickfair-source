@@ -1,13 +1,19 @@
 """
 Database layer using SQLite for local storage.
 Stores Betfair credentials, certificates, and bet history.
+Includes WAL checkpoint management.
 """
 
 import sqlite3
 import os
 import json
+import threading
+import logging
+import atexit
 from datetime import datetime
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 def get_db_path():
     """Get database path in user's app data directory."""
@@ -21,9 +27,16 @@ def get_db_path():
     return os.path.join(db_dir, 'betfair.db')
 
 class Database:
+    # WAL checkpoint interval (12 minutes)
+    WAL_CHECKPOINT_INTERVAL = 720  # seconds
+    
     def __init__(self):
         self.db_path = get_db_path()
+        self._checkpoint_timer = None
+        self._shutdown = False
         self._init_db()
+        self._start_wal_checkpoint_timer()
+        atexit.register(self._on_shutdown)
     
     def _init_db(self):
         """Initialize database tables with WAL mode and optimized indices."""
@@ -261,6 +274,57 @@ class Database:
         
         conn.commit()
         conn.close()
+    
+    def _start_wal_checkpoint_timer(self):
+        """Avvia timer periodico per WAL checkpoint."""
+        if self._shutdown:
+            return
+        
+        self._checkpoint_timer = threading.Timer(
+            self.WAL_CHECKPOINT_INTERVAL, 
+            self._periodic_wal_checkpoint
+        )
+        self._checkpoint_timer.daemon = True
+        self._checkpoint_timer.start()
+        logger.debug("[DB] WAL checkpoint timer started")
+    
+    def _periodic_wal_checkpoint(self):
+        """Esegue checkpoint WAL periodico."""
+        if self._shutdown:
+            return
+        
+        self.wal_checkpoint()
+        self._start_wal_checkpoint_timer()
+    
+    def wal_checkpoint(self):
+        """
+        Esegue WAL checkpoint per ridurre dimensione file WAL.
+        TRUNCATE: checkpointa e tronca il file WAL.
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute('PRAGMA wal_checkpoint(TRUNCATE)')
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                logger.info(f"[DB] WAL checkpoint: busy={result[0]}, log={result[1]}, checkpointed={result[2]}")
+            return result
+        except Exception as e:
+            logger.error(f"[DB] WAL checkpoint error: {e}")
+            return None
+    
+    def _on_shutdown(self):
+        """Cleanup a shutdown: ferma timer e checkpointa WAL."""
+        self._shutdown = True
+        
+        if self._checkpoint_timer:
+            self._checkpoint_timer.cancel()
+            self._checkpoint_timer = None
+        
+        logger.info("[DB] Shutdown: final WAL checkpoint")
+        self.wal_checkpoint()
     
     def get_settings(self):
         """Get Betfair settings. Strips whitespace from string values."""

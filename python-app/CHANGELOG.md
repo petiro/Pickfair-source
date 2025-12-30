@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.58.2
+- NUOVO: WAL checkpoint automatico ogni 12 minuti
+- Esegue PRAGMA wal_checkpoint(TRUNCATE) per ridurre file WAL
+- Checkpoint finale a shutdown applicazione
+- Evita file WAL enormi in sessioni h24
+
 ## v3.58.1
 - FIX: Isteresi auto_throttle per evitare oscillazioni (ping-pong)
 - NORMAL -> HIGH: condizione deve persistere 5 secondi
