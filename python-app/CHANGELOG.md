@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.50.0
+- UPGRADE PRO: order_manager.py completamente riscritto
+- State Machine per betId (OrderStatus enum, anti-bug fantasma)
+- Profit Delta Check: replace solo se Δprofit > soglia (0.10 EUR)
+- Priority Engine: FRONT/BACK of queue
+- Green Book Cashout: profitto uniforme multi-selezione
+- OrderManagerPro con smart_replace completo
+- batch_smart_replace() per operazioni multiple
+
 ## v3.49.0
 - NUOVO: order_manager.py - Auto-Follow Best Price
 - Tick Ladder Betfair ufficiale (normalize_price)
