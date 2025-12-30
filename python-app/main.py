@@ -2575,17 +2575,23 @@ class PickfairApp:
                                 text_color=text_color)
         size_lbl.pack()
         
-        # Create cell dict first so click handlers can reference it
+        # Create cell dict with references to labels
         cell_dict = {'frame': cell_frame, 'price_lbl': price_lbl, 'size_lbl': size_lbl, 'price': price, 'size': size}
         
-        # Click handling for quick bet - reads from cell_dict for live prices
+        # Click handling - read price from label text at click time (always live)
         bet_type = 'BACK' if is_back else 'LAY'
-        cell_frame.bind('<Button-1>', lambda e, sid=selection_id, cd=cell_dict, bt=bet_type: 
-                       self._on_ladder_cell_click(sid, cd.get('price', 0), bt))
-        price_lbl.bind('<Button-1>', lambda e, sid=selection_id, cd=cell_dict, bt=bet_type: 
-                      self._on_ladder_cell_click(sid, cd.get('price', 0), bt))
-        size_lbl.bind('<Button-1>', lambda e, sid=selection_id, cd=cell_dict, bt=bet_type: 
-                     self._on_ladder_cell_click(sid, cd.get('price', 0), bt))
+        
+        def on_click(e, sid=selection_id, plbl=price_lbl, bt=bet_type):
+            try:
+                price_text = plbl.cget('text')
+                p = float(price_text) if price_text and price_text != '-' else 0
+                self._on_ladder_cell_click(sid, p, bt)
+            except (ValueError, TypeError):
+                pass
+        
+        cell_frame.bind('<Button-1>', on_click)
+        price_lbl.bind('<Button-1>', on_click)
+        size_lbl.bind('<Button-1>', on_click)
         
         return cell_dict
     
@@ -2638,18 +2644,26 @@ class PickfairApp:
                     if str(runner['selectionId']) == selection_id:
                         runner_data = runner.copy()
                         
-                        # Get current prices from ladder cells (live from metadata)
+                        # Get current prices from ladder labels (always live)
                         back_cells = widgets.get('back_cells', [])
                         lay_cells = widgets.get('lay_cells', [])
                         
                         back_price = 0
                         lay_price = 0
-                        # Best back is last cell (index -1 or 2)
+                        # Best back is last cell (index -1 or 2) - read from label
                         if back_cells:
-                            back_price = back_cells[-1].get('price', 0) or 0
-                        # Best lay is first cell (index 0)
+                            try:
+                                text = back_cells[-1]['price_lbl'].cget('text')
+                                back_price = float(text) if text and text != '-' else 0
+                            except (ValueError, TypeError):
+                                back_price = 0
+                        # Best lay is first cell (index 0) - read from label
                         if lay_cells:
-                            lay_price = lay_cells[0].get('price', 0) or 0
+                            try:
+                                text = lay_cells[0]['price_lbl'].cget('text')
+                                lay_price = float(text) if text and text != '-' else 0
+                            except (ValueError, TypeError):
+                                lay_price = 0
                         
                         runner_data['backPrice'] = back_price
                         runner_data['layPrice'] = lay_price
