@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.58.3
+- TUNING H24 SAFE: soglie ottimizzate per Betfair Exchange live
+- API calls target < 60/min (Betfair attenzione sopra 80-100)
+- Replace threshold NORMAL 0.15€ (target replace_rate 15-30%)
+- HIGH polling 3.5s (era 3.0s), threshold 0.30€
+- Loop latency target < 50ms, telegram queue < 3
+- Commenti documentazione KPI target nel codice
+
 ## v3.58.2
 - NUOVO: WAL checkpoint automatico ogni 12 minuti
 - Esegue PRAGMA wal_checkpoint(TRUNCATE) per ridurre file WAL

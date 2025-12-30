@@ -42,6 +42,8 @@ class ThrottleConfig:
     skip_micro_updates: bool
 
 
+# TUNING H24 SAFE - Valori ottimizzati per Betfair Exchange live
+# Betfair "guarda" sopra 80-100 API/min - queste soglie restano safe
 DEFAULT_CONFIGS = {
     LoadLevel.IDLE: ThrottleConfig(
         polling_interval=1.0,
@@ -52,28 +54,28 @@ DEFAULT_CONFIGS = {
     ),
     LoadLevel.LOW: ThrottleConfig(
         polling_interval=1.5,
-        replace_profit_threshold=0.1,
+        replace_profit_threshold=0.10,
         telegram_delay=0.4,
         cashout_min_profit=0.2,
         skip_micro_updates=False
     ),
     LoadLevel.NORMAL: ThrottleConfig(
         polling_interval=2.0,
-        replace_profit_threshold=0.2,
+        replace_profit_threshold=0.15,  # Target: replace_rate 15-30%
         telegram_delay=0.5,
         cashout_min_profit=0.3,
         skip_micro_updates=False
     ),
     LoadLevel.HIGH: ThrottleConfig(
-        polling_interval=3.0,
-        replace_profit_threshold=0.5,
+        polling_interval=3.5,  # Aumentato da 3.0
+        replace_profit_threshold=0.30,  # Meno aggressivo
         telegram_delay=0.8,
         cashout_min_profit=0.5,
         skip_micro_updates=True
     ),
     LoadLevel.CRITICAL: ThrottleConfig(
         polling_interval=5.0,
-        replace_profit_threshold=1.0,
+        replace_profit_threshold=1.00,  # Difesa, non profit
         telegram_delay=1.5,
         cashout_min_profit=1.0,
         skip_micro_updates=True
@@ -205,27 +207,28 @@ class AutoThrottle:
             thresholds: Soglie per determinare livello carico
         """
         self.configs = configs or DEFAULT_CONFIGS
+        # SOGLIE H24 SAFE - Betfair inizia a "guardare" sopra 80-100/min
         self.thresholds = thresholds or {
             'api_calls_per_min': {
                 LoadLevel.IDLE: 10,
                 LoadLevel.LOW: 30,
-                LoadLevel.NORMAL: 60,
-                LoadLevel.HIGH: 100,
-                LoadLevel.CRITICAL: 150
+                LoadLevel.NORMAL: 70,   # Target medio < 60
+                LoadLevel.HIGH: 100,    # Betfair attenzione
+                LoadLevel.CRITICAL: 120  # Difesa immediata
             },
             'telegram_queue_depth': {
                 LoadLevel.IDLE: 0,
-                LoadLevel.LOW: 5,
-                LoadLevel.NORMAL: 15,
-                LoadLevel.HIGH: 30,
-                LoadLevel.CRITICAL: 50
+                LoadLevel.LOW: 3,       # Target medio < 3
+                LoadLevel.NORMAL: 10,
+                LoadLevel.HIGH: 25,
+                LoadLevel.CRITICAL: 40
             },
             'loop_latency_ms': {
-                LoadLevel.IDLE: 50,
-                LoadLevel.LOW: 100,
-                LoadLevel.NORMAL: 200,
-                LoadLevel.HIGH: 500,
-                LoadLevel.CRITICAL: 1000
+                LoadLevel.IDLE: 20,
+                LoadLevel.LOW: 50,      # Target medio < 50ms
+                LoadLevel.NORMAL: 100,
+                LoadLevel.HIGH: 300,
+                LoadLevel.CRITICAL: 500
             }
         }
         
