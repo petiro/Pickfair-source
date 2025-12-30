@@ -1,0 +1,704 @@
+2025-12-29 01:43:50,859 [INFO] === Pickfair started ===
+2025-12-29 01:43:50,859 [INFO] Log file: C:\Users\Utente\AppData\Roaming\Pickfair\pickfair.log
+2025-12-29 01:43:53,475 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2025-12-29 01:43:53,476 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2025-12-29 01:43:53,544 [DEBUG] cryptg not available - using standard encryption
+2025-12-29 01:43:53,553 [INFO] Single instance check passed - mutex acquired
+2025-12-29 01:44:03,217 [DEBUG] Starting new HTTPS connection (1): identitysso-cert.betfair.it:443
+2025-12-29 01:44:04,093 [DEBUG] https://identitysso-cert.betfair.it:443 "POST /api/certlogin HTTP/11" 200 125
+2025-12-29 01:44:04,109 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:44:04,109 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:44:04,124 [INFO] _start_order_stream: Starting...
+2025-12-29 01:44:04,124 [INFO] _start_order_stream: app_key=bBtYjoZD..., session=True
+2025-12-29 01:44:04,124 [INFO] Connecting to Betfair Stream: stream-api.betfair.it:443
+2025-12-29 01:44:04,140 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:44:04,563 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 156
+2025-12-29 01:44:04,563 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 156
+2025-12-29 01:44:04,579 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:44:04,579 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2326
+2025-12-29 01:44:04,594 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:44:04,845 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 939
+2025-12-29 01:44:04,861 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 186
+2025-12-29 01:44:04,861 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:44:05,157 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 595
+2025-12-29 01:44:05,204 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:44:05,453 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 939
+2025-12-29 01:44:18,317 [DEBUG] Using proactor: IocpProactor
+2025-12-29 01:44:18,317 [INFO] Connecting to 149.154.167.92:443/TcpFull...
+2025-12-29 01:44:18,317 [DEBUG] Connection attempt 1...
+2025-12-29 01:44:18,420 [DEBUG] Connection success!
+2025-12-29 01:44:18,420 [DEBUG] Starting send loop
+2025-12-29 01:44:18,420 [DEBUG] Starting receive loop
+2025-12-29 01:44:18,420 [INFO] Connection to 149.154.167.92:443/TcpFull complete!
+2025-12-29 01:44:18,430 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:18,430 [DEBUG] Assigned msg_id = 7589074318874787648 to InvokeWithLayerRequest (5a2ea90)
+2025-12-29 01:44:18,430 [DEBUG] Encrypting 1 message(s) in 76 bytes for sending
+2025-12-29 01:44:18,430 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:18,430 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:18,430 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:18,530 [DEBUG] Updated time offset (old offset 0, bad 7589074319274789172, good 7589217127879740417, new 33250)
+2025-12-29 01:44:18,530 [DEBUG] Handling bad msg BadMsgNotification(bad_msg_id=7589074318874787648, bad_msg_seqno=1, error_code=16)
+2025-12-29 01:44:18,530 [INFO] System clock is wrong, set time offset to 33250s
+2025-12-29 01:44:18,530 [DEBUG] 1 messages will be resent due to bad msg
+2025-12-29 01:44:18,530 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:18,530 [DEBUG] Assigned msg_id = 7589217126937381176 to InvokeWithLayerRequest (5a2ea90)
+2025-12-29 01:44:18,530 [DEBUG] Encrypting 1 message(s) in 76 bytes for sending
+2025-12-29 01:44:18,540 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:18,540 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:18,540 [DEBUG] Assigned msg_id = 7589217126977380180 to MsgsAck (5a07dc0)
+2025-12-29 01:44:18,540 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 01:44:18,540 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:18,540 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:18,650 [DEBUG] Handling bad salt for message 7589217126937381176
+2025-12-29 01:44:18,650 [DEBUG] 1 message(s) will be resent
+2025-12-29 01:44:18,660 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:18,660 [DEBUG] Assigned msg_id = 7589217127457381632 to InvokeWithLayerRequest (5a2ea90)
+2025-12-29 01:44:18,660 [DEBUG] Encrypting 1 message(s) in 76 bytes for sending
+2025-12-29 01:44:18,660 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:18,660 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:18,660 [DEBUG] Assigned msg_id = 7589217127457381636 to MsgsAck (5a073a0)
+2025-12-29 01:44:18,660 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 01:44:18,660 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:18,660 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:18,660 [DEBUG] Handling bad salt for message 7589217126977380180
+2025-12-29 01:44:18,670 [DEBUG] 1 message(s) will be resent
+2025-12-29 01:44:18,670 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:18,670 [DEBUG] Assigned msg_id = 7589217127497380640 to MsgsAck (5a07dc0)
+2025-12-29 01:44:18,670 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 01:44:18,670 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:18,670 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:18,670 [DEBUG] Assigned msg_id = 7589217127497380644 to MsgsAck (5a07fa0)
+2025-12-29 01:44:18,670 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 01:44:18,670 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:18,670 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:18,760 [DEBUG] Handling container
+2025-12-29 01:44:18,760 [DEBUG] Handling new session created
+2025-12-29 01:44:18,760 [DEBUG] Handling acknowledge for [7589217127457381632]
+2025-12-29 01:44:18,770 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:18,820 [DEBUG] Handling RPC result for message 7589217127457381632
+2025-12-29 01:44:18,820 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:18,830 [DEBUG] Assigned msg_id = 7589217128137381936 to GetUsersRequest (5a2ea00)
+2025-12-29 01:44:18,830 [DEBUG] Encrypting 1 message(s) in 32 bytes for sending
+2025-12-29 01:44:18,830 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:18,830 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:18,830 [DEBUG] Assigned msg_id = 7589217128137381940 to MsgsAck (531ef70)
+2025-12-29 01:44:18,830 [DEBUG] Encrypting 1 message(s) in 60 bytes for sending
+2025-12-29 01:44:18,830 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:18,830 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:18,960 [DEBUG] Handling RPC result for message 7589217128137381936
+2025-12-29 01:44:18,960 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:18,960 [DEBUG] Assigned msg_id = 7589217128657382392 to GetStateRequest (5a07c70)
+2025-12-29 01:44:18,960 [DEBUG] Encrypting 1 message(s) in 20 bytes for sending
+2025-12-29 01:44:18,960 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:18,960 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:18,960 [DEBUG] Assigned msg_id = 7589217128657382396 to MsgsAck (5345220)
+2025-12-29 01:44:18,960 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 01:44:18,960 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:18,960 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:19,050 [DEBUG] Handling RPC result for message 7589217128657382392
+2025-12-29 01:44:19,050 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:19,060 [DEBUG] Assigned msg_id = 7589217129352350264 to GetDifferenceRequest (5a07c70)
+2025-12-29 01:44:19,060 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 01:44:19,060 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:19,060 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:19,060 [DEBUG] Assigned msg_id = 7589217129352350268 to MsgsAck (59e3730)
+2025-12-29 01:44:19,060 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 01:44:19,060 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:19,060 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:19,170 [DEBUG] Handling RPC result for message 7589217129352350264
+2025-12-29 01:44:19,170 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:19,180 [DEBUG] Assigned msg_id = 7589217129832351712 to GetStateRequest (5a2e8b0)
+2025-12-29 01:44:19,180 [DEBUG] Encrypting 1 message(s) in 20 bytes for sending
+2025-12-29 01:44:19,180 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:19,180 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:19,180 [DEBUG] Assigned msg_id = 7589217129832351716 to MsgsAck (59d0e20)
+2025-12-29 01:44:19,180 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 01:44:19,180 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:44:19,180 [DEBUG] Waiting for messages to send...
+2025-12-29 01:44:19,347 [DEBUG] Handling RPC result for message 7589217129832351712
+2025-12-29 01:44:19,347 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:25,418 [ERROR] Betfair Stream connection error: [WinError 10060] Impossibile stabilire la connessione. Risposta non corretta della parte connessa dopo l'intervallo di tempo oppure mancata risposta dall'host collegato
+2025-12-29 01:44:25,418 [INFO] Betfair Stream: Disconnected
+2025-12-29 01:44:25,418 [INFO] Order Stream status: DISCONNECTED
+2025-12-29 01:44:25,418 [ERROR] Order Stream: Failed to connect
+2025-12-29 01:44:28,699 [DEBUG] Handling gzipped data
+2025-12-29 01:44:28,699 [DEBUG] Handling update Updates
+2025-12-29 01:44:28,699 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:34,141 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:44:34,141 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:44:34,485 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 156
+2025-12-29 01:44:34,516 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2326
+2025-12-29 01:44:34,516 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:44:34,812 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 186
+2025-12-29 01:44:45,024 [DEBUG] Handling update UpdateShort
+2025-12-29 01:44:45,024 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:56,703 [DEBUG] Handling update UpdateShort
+2025-12-29 01:44:56,703 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:56,760 [DEBUG] Handling update Updates
+2025-12-29 01:44:56,760 [DEBUG] Receiving items from the network...
+2025-12-29 01:44:58,894 [DEBUG] Handling update UpdateShort
+2025-12-29 01:44:58,894 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:00,266 [INFO] Loading markets for event: 35092661
+2025-12-29 01:45:00,266 [DEBUG] get_available_markets called with event_id: 35092661 (type: str)
+2025-12-29 01:45:00,282 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:00,594 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2735
+2025-12-29 01:45:00,594 [DEBUG] list_market_catalogue returned 9 markets for event 35092661
+2025-12-29 01:45:00,594 [DEBUG] Market: 1.252095496 - Over/Under 7.5 Goals - type: N/A
+2025-12-29 01:45:00,594 [DEBUG] Market: 1.252095495 - Wellington Phoenix +1 - type: N/A
+2025-12-29 01:45:00,594 [DEBUG] Market: 1.252095494 - Melbourne Victory +1 - type: N/A
+2025-12-29 01:45:00,594 [DEBUG] Market: 1.252095493 - Half Time/Full Time - type: N/A
+2025-12-29 01:45:00,594 [DEBUG] Market: 1.252095498 - Double Chance - type: N/A
+2025-12-29 01:45:00,594 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:00,828 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 1075
+2025-12-29 01:45:00,828 [INFO] Got 9 markets
+2025-12-29 01:45:00,828 [DEBUG] _display_available_markets called with 9 markets
+2025-12-29 01:45:00,828 [DEBUG] Setting combobox values: ['[LIVE] Over/Under 7.5 Goals', '[LIVE] Wellington Phoenix +1', '[LIVE] Melbourne Victory +1']...
+2025-12-29 01:45:00,828 [DEBUG] Combobox values set, count: 9
+2025-12-29 01:45:00,828 [DEBUG] Selected first market: [LIVE] Over/Under 7.5 Goals
+2025-12-29 01:45:00,844 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:01,136 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 232
+2025-12-29 01:45:01,141 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:01,415 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 401
+2025-12-29 01:45:01,428 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:01,431 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:01,683 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 939
+2025-12-29 01:45:01,699 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 939
+2025-12-29 01:45:01,699 [DEBUG] Cashout: Total matched=14, unmatched=1
+2025-12-29 01:45:01,699 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:02,011 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:02,011 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:02,307 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:02,307 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:02,635 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:02,635 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:02,931 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:02,931 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:03,243 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 493
+2025-12-29 01:45:03,259 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:03,524 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 493
+2025-12-29 01:45:03,540 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:03,852 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 493
+2025-12-29 01:45:03,852 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:04,164 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:04,164 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:04,164 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:04,179 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:04,445 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:04,460 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2326
+2025-12-29 01:45:04,460 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:04,460 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 156
+2025-12-29 01:45:04,476 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:04,694 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:04,710 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:04,710 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 186
+2025-12-29 01:45:05,006 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:05,022 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:05,287 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 493
+2025-12-29 01:45:05,287 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:05,568 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:05,568 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:05,833 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:06,036 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:06,317 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 262
+2025-12-29 01:45:06,317 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:06,644 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 447
+2025-12-29 01:45:06,660 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:06,675 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:06,894 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 939
+2025-12-29 01:45:06,909 [DEBUG] Cashout: Total matched=14, unmatched=1
+2025-12-29 01:45:06,909 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:06,909 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 939
+2025-12-29 01:45:07,175 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:07,175 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:07,424 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:07,440 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:07,721 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:07,736 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:08,048 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:08,048 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:08,329 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:08,329 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:08,579 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:08,579 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:08,859 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:08,859 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:09,125 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:09,125 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:09,374 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:09,374 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:09,608 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:09,608 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:09,889 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:09,905 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:10,170 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:10,185 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:10,529 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:10,529 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:10,809 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:11,121 [INFO] Loading markets for event: 35088718
+2025-12-29 01:45:11,121 [DEBUG] get_available_markets called with event_id: 35088718 (type: str)
+2025-12-29 01:45:11,137 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:11,371 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 None
+2025-12-29 01:45:11,387 [DEBUG] list_market_catalogue returned 21 markets for event 35088718
+2025-12-29 01:45:11,387 [DEBUG] Market: 1.252059148 - Over/Under 8.5 Goals - type: N/A
+2025-12-29 01:45:11,387 [DEBUG] Market: 1.252059147 - Over/Under 7.5 Goals - type: N/A
+2025-12-29 01:45:11,387 [DEBUG] Market: 1.252059145 - Al Khalidiyah +1 - type: N/A
+2025-12-29 01:45:11,387 [DEBUG] Market: 1.252059146 - Al Budaiya +1 - type: N/A
+2025-12-29 01:45:11,387 [DEBUG] Market: 1.252059144 - Half Time/Full Time - type: N/A
+2025-12-29 01:45:11,387 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:11,449 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:11,636 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 1026
+2025-12-29 01:45:11,652 [INFO] Got 21 markets
+2025-12-29 01:45:11,652 [DEBUG] _display_available_markets called with 21 markets
+2025-12-29 01:45:11,652 [DEBUG] Setting combobox values: ['Over/Under 8.5 Goals', 'Over/Under 7.5 Goals', 'Al Khalidiyah +1']...
+2025-12-29 01:45:11,652 [DEBUG] Combobox values set, count: 21
+2025-12-29 01:45:11,652 [DEBUG] Selected first market: Over/Under 8.5 Goals
+2025-12-29 01:45:11,667 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:11,683 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 939
+2025-12-29 01:45:11,699 [DEBUG] Cashout: Total matched=14, unmatched=1
+2025-12-29 01:45:11,699 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:11,933 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 220
+2025-12-29 01:45:11,948 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:11,948 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:11,948 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:12,213 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 350
+2025-12-29 01:45:12,213 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:12,213 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:12,229 [DEBUG] Market Stream: Stream not connected
+2025-12-29 01:45:12,229 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:12,245 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:12,510 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:12,525 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 350
+2025-12-29 01:45:12,525 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:12,525 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 939
+2025-12-29 01:45:12,853 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:12,853 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:13,149 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:13,149 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:13,401 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:13,417 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:13,682 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:13,697 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:13,978 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:13,994 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:14,197 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:14,212 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:14,212 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:14,493 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:14,493 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:14,509 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 217
+2025-12-29 01:45:14,509 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:14,774 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:14,774 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:14,774 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 369
+2025-12-29 01:45:14,789 [DEBUG] Market Stream: Stream not connected
+2025-12-29 01:45:14,789 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:14,805 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:15,055 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:15,055 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:15,055 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 939
+2025-12-29 01:45:15,070 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 369
+2025-12-29 01:45:15,335 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:15,335 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:15,633 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:16,805 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:17,054 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 369
+2025-12-29 01:45:17,210 [INFO] 🎯 _place_quick_real_bet CALLED: runner=Over 2.5 Goals, type=BACK, price=1.7, stake=1.0
+2025-12-29 01:45:17,210 [INFO] 🎯 place_thread STARTED
+2025-12-29 01:45:17,210 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:17,476 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:17,647 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 285
+2025-12-29 01:45:17,647 [INFO] Quick bet result: status=SUCCESS, runner=Over 2.5 Goals
+2025-12-29 01:45:17,647 [INFO] Full bet result: {'status': 'SUCCESS', 'marketId': '1.252059139', 'instructionReports': []}
+2025-12-29 01:45:17,772 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 982
+2025-12-29 01:45:17,772 [DEBUG] Cashout: Total matched=15, unmatched=1
+2025-12-29 01:45:17,788 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:18,053 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:18,053 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:18,334 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:18,334 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:18,646 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:18,661 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:18,817 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:18,942 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:18,942 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:19,051 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:19,176 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:19,176 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:19,192 [DEBUG] Assigned msg_id = 7589217387577932044 to PingRequest (59d8370)
+2025-12-29 01:45:19,192 [DEBUG] Encrypting 1 message(s) in 28 bytes for sending
+2025-12-29 01:45:19,192 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:45:19,192 [DEBUG] Waiting for messages to send...
+2025-12-29 01:45:19,192 [DEBUG] Assigned msg_id = 7589217387577932048 to MsgsAck (5c6b520)
+2025-12-29 01:45:19,192 [DEBUG] Encrypting 1 message(s) in 76 bytes for sending
+2025-12-29 01:45:19,192 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 01:45:19,192 [DEBUG] Waiting for messages to send...
+2025-12-29 01:45:19,285 [DEBUG] Handling pong for message 7589217387577932044
+2025-12-29 01:45:19,285 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:19,441 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:19,441 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:19,691 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:19,691 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:19,938 [DEBUG] Handling update UpdateShort
+2025-12-29 01:45:19,939 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:20,025 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:20,031 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:20,298 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:20,304 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:20,587 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:20,593 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:20,822 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:20,898 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:20,904 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:21,090 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:21,215 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:21,219 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:21,456 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:21,463 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:21,736 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:21,742 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:21,987 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:22,823 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:23,176 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:23,491 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:23,750 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 982
+2025-12-29 01:45:23,754 [DEBUG] Cashout: Total matched=15, unmatched=1
+2025-12-29 01:45:23,757 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:24,058 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:24,064 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:24,336 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:24,342 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:24,618 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:24,624 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:24,827 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:24,977 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:24,983 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:25,085 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:25,255 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:25,262 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:25,535 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:25,541 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:25,831 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:25,837 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:26,096 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:26,102 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:26,351 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:26,358 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:26,618 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:26,624 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:26,828 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:26,917 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:26,923 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:27,071 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:27,176 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:27,181 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:27,415 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:27,421 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:27,676 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:27,682 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:27,929 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:28,830 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:29,225 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:29,493 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:29,772 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 982
+2025-12-29 01:45:29,776 [DEBUG] Cashout: Total matched=15, unmatched=1
+2025-12-29 01:45:29,779 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:29,974 [DEBUG] Handling update UpdateShort
+2025-12-29 01:45:29,974 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:30,008 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:30,014 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:30,271 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:30,271 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:30,489 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:30,505 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:30,754 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:30,754 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:30,832 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:31,004 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:31,020 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:31,098 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:31,332 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:31,332 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:31,612 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:31,612 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:31,878 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:31,878 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:32,127 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:32,127 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:32,408 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:32,408 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:32,689 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:32,704 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:32,845 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:32,923 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:32,938 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:33,126 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:33,172 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:33,172 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:33,453 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:33,453 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:33,718 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:34,171 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:34,171 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:34,405 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2326
+2025-12-29 01:45:34,405 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 156
+2025-12-29 01:45:34,420 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:34,686 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 186
+2025-12-29 01:45:34,857 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:35,122 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:35,497 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:35,746 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 982
+2025-12-29 01:45:35,746 [DEBUG] Cashout: Total matched=15, unmatched=1
+2025-12-29 01:45:35,746 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:36,136 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:36,136 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:36,370 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:36,370 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:36,620 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:36,620 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:36,870 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:36,932 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:36,932 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:37,135 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:37,179 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:37,185 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:37,395 [DEBUG] Handling update UpdateShort
+2025-12-29 01:45:37,395 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:37,457 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:37,462 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:37,739 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:37,745 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:38,056 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:38,062 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:38,336 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:38,343 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:38,622 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:38,628 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:38,877 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:38,903 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:38,909 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:39,145 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:39,152 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:39,158 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:39,411 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:39,417 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:39,696 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:39,702 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:39,976 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:40,878 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:41,137 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:41,513 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:41,921 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 982
+2025-12-29 01:45:41,925 [DEBUG] Cashout: Total matched=15, unmatched=1
+2025-12-29 01:45:41,929 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:42,175 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:42,181 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:42,460 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 487
+2025-12-29 01:45:42,466 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:42,744 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:42,750 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:42,879 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:43,017 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:43,023 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:43,128 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:43,336 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:43,342 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:43,576 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:43,582 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:43,897 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:43,904 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:44,158 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:44,164 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:44,417 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:44,424 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:44,680 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:44,686 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:44,738 [DEBUG] Handling update UpdateShort
+2025-12-29 01:45:44,739 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:44,880 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:44,942 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:44,942 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:45,098 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:45,208 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:45,208 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:45,488 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:45,488 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:45,785 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:45,785 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:46,050 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:46,892 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:47,173 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:47,532 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:47,891 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 982
+2025-12-29 01:45:47,891 [DEBUG] Cashout: Total matched=15, unmatched=1
+2025-12-29 01:45:47,906 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:48,172 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:48,187 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:48,437 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:48,452 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:48,733 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:45:48,733 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:48,889 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:48,998 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:49,014 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:49,154 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:49,248 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:49,264 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:49,529 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:49,529 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:49,763 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:49,778 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:50,059 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:50,059 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:50,340 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:50,340 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:50,574 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:50,574 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:50,839 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:50,839 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:50,902 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:51,073 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 497
+2025-12-29 01:45:51,089 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:51,182 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:51,370 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:51,370 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:51,635 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 503
+2025-12-29 01:45:51,635 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:51,884 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 415
+2025-12-29 01:45:52,914 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:53,023 [DEBUG] Handling gzipped data
+2025-12-29 01:45:53,023 [DEBUG] Handling update Updates
+2025-12-29 01:45:53,023 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:53,335 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 417
+2025-12-29 01:45:53,538 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:53,850 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 982
+2025-12-29 01:45:53,866 [DEBUG] Cashout: Total matched=15, unmatched=1
+2025-12-29 01:45:53,866 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:54,115 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 506
+2025-12-29 01:45:54,131 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:54,380 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 492
+2025-12-29 01:45:54,380 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:54,646 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 492
+2025-12-29 01:45:54,661 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:54,895 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 506
+2025-12-29 01:45:54,895 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:54,926 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:55,129 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 500
+2025-12-29 01:45:55,129 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:55,192 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 417
+2025-12-29 01:45:55,394 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 500
+2025-12-29 01:45:55,394 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:55,644 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 500
+2025-12-29 01:45:55,660 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:55,925 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 502
+2025-12-29 01:45:55,940 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:56,206 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 502
+2025-12-29 01:45:56,206 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:56,455 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 502
+2025-12-29 01:45:56,471 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:56,736 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:45:56,741 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:56,890 [DEBUG] Handling container
+2025-12-29 01:45:56,891 [DEBUG] Handling update UpdateShort
+2025-12-29 01:45:56,891 [DEBUG] Handling update Updates
+2025-12-29 01:45:56,891 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:56,925 [DEBUG] Handling update Updates
+2025-12-29 01:45:56,925 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:56,929 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:57,048 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 500
+2025-12-29 01:45:57,054 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:57,181 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 417
+2025-12-29 01:45:57,336 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:45:57,342 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:57,576 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:45:57,582 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:57,895 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 417
+2025-12-29 01:45:58,750 [DEBUG] Handling update UpdateShort
+2025-12-29 01:45:58,751 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:58,929 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:59,054 [DEBUG] Handling gzipped data
+2025-12-29 01:45:59,054 [DEBUG] Handling update Updates
+2025-12-29 01:45:59,054 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:59,210 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 417
+2025-12-29 01:45:59,334 [DEBUG] Handling gzipped data
+2025-12-29 01:45:59,334 [DEBUG] Handling update Updates
+2025-12-29 01:45:59,334 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:59,490 [DEBUG] Handling gzipped data
+2025-12-29 01:45:59,490 [DEBUG] Handling update Updates
+2025-12-29 01:45:59,490 [DEBUG] Receiving items from the network...
+2025-12-29 01:45:59,553 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:45:59,802 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 982
+2025-12-29 01:45:59,818 [DEBUG] Cashout: Total matched=15, unmatched=1
+2025-12-29 01:45:59,818 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:00,083 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:00,099 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:00,366 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:46:00,382 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:00,647 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:46:00,647 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:00,943 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:00,974 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:00,974 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:01,255 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 500
+2025-12-29 01:46:01,255 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 417
+2025-12-29 01:46:01,255 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:01,536 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 500
+2025-12-29 01:46:01,536 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:01,817 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 500
+2025-12-29 01:46:01,817 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:02,082 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:02,098 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:02,378 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:02,378 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:02,456 [DEBUG] Handling gzipped data
+2025-12-29 01:46:02,456 [DEBUG] Handling update Updates
+2025-12-29 01:46:02,456 [DEBUG] Receiving items from the network...
+2025-12-29 01:46:02,503 [DEBUG] Handling update UpdateShort
+2025-12-29 01:46:02,503 [DEBUG] Receiving items from the network...
+2025-12-29 01:46:02,612 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:02,628 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:02,909 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:02,909 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:02,956 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:03,174 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 500
+2025-12-29 01:46:03,174 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:03,205 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 417
+2025-12-29 01:46:03,439 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:03,455 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:03,689 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:03,689 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:03,985 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 417
+2025-12-29 01:46:04,188 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:04,188 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:04,484 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 156
+2025-12-29 01:46:04,500 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2326
+2025-12-29 01:46:04,500 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:04,765 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 186
+2025-12-29 01:46:04,968 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:05,264 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 417
+2025-12-29 01:46:05,592 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:05,857 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 982
+2025-12-29 01:46:05,873 [DEBUG] Cashout: Total matched=15, unmatched=1
+2025-12-29 01:46:05,873 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:06,122 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:06,138 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:06,388 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 486
+2025-12-29 01:46:06,388 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:06,653 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 488
+2025-12-29 01:46:06,653 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:06,936 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:06,936 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:06,982 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:07,170 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 500
+2025-12-29 01:46:07,170 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:07,232 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 417
+2025-12-29 01:46:07,482 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 500
+2025-12-29 01:46:07,482 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:07,762 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 500
+2025-12-29 01:46:07,778 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:08,091 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:08,091 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:08,341 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:08,341 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 01:46:08,606 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 504
+2025-12-29 01:46:08,621 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443

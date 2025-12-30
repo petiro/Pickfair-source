@@ -1,0 +1,332 @@
+2025-12-29 00:51:10,972 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:12,225 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:12,478 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:12,478 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:12,478 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:12,720 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:12,988 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:14,236 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:14,504 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:14,504 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:14,504 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:14,725 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:14,978 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:16,251 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:16,472 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:16,487 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:16,487 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:16,736 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:16,940 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:18,259 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:18,595 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:18,595 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:18,595 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:18,743 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:19,353 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:20,265 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:20,491 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:20,491 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:20,491 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:20,744 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:20,999 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:22,281 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:22,505 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:22,507 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:22,508 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:22,642 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:22,642 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:22,750 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:22,865 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2285
+2025-12-29 00:51:22,871 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:22,884 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 155
+2025-12-29 00:51:22,995 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:23,104 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 181
+2025-12-29 00:51:24,283 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:24,547 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:24,550 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:24,550 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:24,750 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:25,017 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:26,285 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:26,525 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:26,528 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:26,529 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:26,754 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:26,993 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:28,290 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:28,535 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:28,538 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:28,539 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:28,755 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:28,784 [DEBUG] Assigned msg_id = 7589060705246539656 to PingRequest (82dfac0)
+2025-12-29 00:51:28,784 [DEBUG] Encrypting 1 message(s) in 28 bytes for sending
+2025-12-29 00:51:28,786 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:51:28,787 [DEBUG] Waiting for messages to send...
+2025-12-29 00:51:28,787 [DEBUG] Assigned msg_id = 7589060705258539740 to MsgsAck (82d21c0)
+2025-12-29 00:51:28,787 [DEBUG] Encrypting 1 message(s) in 44 bytes for sending
+2025-12-29 00:51:28,790 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:51:28,790 [DEBUG] Waiting for messages to send...
+2025-12-29 00:51:28,865 [DEBUG] Handling pong for message 7589060705246539656
+2025-12-29 00:51:28,865 [DEBUG] Receiving items from the network...
+2025-12-29 00:51:28,911 [DEBUG] Handling update Updates
+2025-12-29 00:51:28,911 [DEBUG] Receiving items from the network...
+2025-12-29 00:51:28,944 [DEBUG] Handling update Updates
+2025-12-29 00:51:28,944 [DEBUG] Receiving items from the network...
+2025-12-29 00:51:29,066 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:30,292 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:30,544 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:30,546 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:30,546 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:30,756 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:31,008 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:32,292 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:32,522 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:32,525 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:32,525 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:32,757 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:33,064 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:34,301 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:34,534 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:34,550 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:34,550 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:34,759 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:35,018 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:36,304 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:36,554 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:36,557 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:36,558 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:36,779 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:37,229 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:38,305 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:38,570 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:38,576 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:38,577 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:38,779 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:39,050 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:40,309 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:40,663 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:40,668 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:40,668 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:40,780 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:41,050 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:42,312 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:42,692 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:42,695 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:42,695 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:42,783 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:43,055 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:44,313 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:44,616 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:44,623 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:44,623 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:44,787 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:45,041 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:46,313 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:46,549 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:46,551 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:46,552 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:46,800 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:47,064 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:48,314 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:48,527 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:48,529 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:48,529 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:48,800 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:49,060 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:50,315 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:50,592 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:50,594 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:50,594 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:50,805 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:51,066 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:52,317 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:52,587 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:51:52,589 [INFO] Cashout: Total matched=9, unmatched=2, market_id=1.252001828
+2025-12-29 00:51:52,589 [INFO] Cashout: Found 0 orders for current market
+2025-12-29 00:51:52,641 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:52,641 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:52,799 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:53,053 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 155
+2025-12-29 00:51:53,069 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2285
+2025-12-29 00:51:53,077 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:51:53,174 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:51:53,331 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 181
+2025-12-29 00:51:53,868 [INFO] Betfair Stream: Disconnected
+2025-12-29 00:51:53,868 [INFO] Order Stream status: DISCONNECTED
+2025-12-29 00:51:53,884 [DEBUG] Starting new HTTPS connection (1): identitysso.betfair.it:443
+2025-12-29 00:51:54,452 [DEBUG] https://identitysso.betfair.it:443 "POST /api/logout HTTP/11" 200 None
+2025-12-29 00:51:55,690 [DEBUG] Using proactor: IocpProactor
+2025-12-29 00:51:55,690 [INFO] Disconnecting from 149.154.167.92:443/TcpFull...
+2025-12-29 00:51:55,690 [DEBUG] Closing current connection...
+2025-12-29 00:51:55,690 [INFO] <class 'RuntimeError'> during disconnect: Task <Task pending name='Task-625' coro=<StreamWriter.wait_closed() running at asyncio\streams.py:359> cb=[_release_waiter(<Future pendi...008016820>()]>)() at asyncio\tasks.py:429]> got Future <Future pending> attached to a different loop
+2025-12-29 00:51:55,690 [DEBUG] Cancelling 0 pending message(s)...
+2025-12-29 00:51:55,690 [INFO] Disconnection from 149.154.167.92:443/TcpFull complete!
+2025-12-29 00:51:55,690 [INFO] Not disconnecting (already have no connection)
+2025-12-29 00:52:20,389 [INFO] === Pickfair started ===
+2025-12-29 00:52:20,389 [INFO] Log file: C:\Users\Utente\AppData\Roaming\Pickfair\pickfair.log
+2025-12-29 00:52:22,509 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2025-12-29 00:52:22,510 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2025-12-29 00:52:22,596 [INFO] Single instance check passed - mutex acquired
+2025-12-29 00:52:30,480 [DEBUG] Starting new HTTPS connection (1): identitysso-cert.betfair.it:443
+2025-12-29 00:52:31,653 [DEBUG] https://identitysso-cert.betfair.it:443 "POST /api/certlogin HTTP/11" 200 125
+2025-12-29 00:52:31,668 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:52:31,684 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:52:31,684 [INFO] _start_order_stream: Starting...
+2025-12-29 00:52:31,684 [INFO] _start_order_stream: app_key=bBtYjoZD..., session=True
+2025-12-29 00:52:31,684 [INFO] Connecting to Betfair Stream: stream-api.betfair.it:443
+2025-12-29 00:52:31,716 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:52:32,138 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2285
+2025-12-29 00:52:32,138 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 155
+2025-12-29 00:52:32,153 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 155
+2025-12-29 00:52:32,170 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:52:32,170 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:52:32,386 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:52:32,393 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:52:32,425 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 181
+2025-12-29 00:52:32,644 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 595
+2025-12-29 00:52:32,675 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:52:32,924 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 820
+2025-12-29 00:52:35,818 [DEBUG] Using proactor: IocpProactor
+2025-12-29 00:52:35,818 [INFO] Connecting to 149.154.167.92:443/TcpFull...
+2025-12-29 00:52:35,818 [DEBUG] Connection attempt 1...
+2025-12-29 00:52:35,911 [DEBUG] Connection success!
+2025-12-29 00:52:35,911 [DEBUG] Starting send loop
+2025-12-29 00:52:35,911 [DEBUG] Starting receive loop
+2025-12-29 00:52:35,911 [INFO] Connection to 149.154.167.92:443/TcpFull complete!
+2025-12-29 00:52:35,919 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:35,919 [DEBUG] Assigned msg_id = 7589060993546854592 to InvokeWithLayerRequest (6e7b670)
+2025-12-29 00:52:35,920 [DEBUG] Encrypting 1 message(s) in 76 bytes for sending
+2025-12-29 00:52:35,923 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:35,923 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:35,923 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:36,017 [DEBUG] Updated time offset (old offset 0, bad 7589060994233831624, good 7589060993960189953, new -1)
+2025-12-29 00:52:36,017 [DEBUG] Handling bad salt for message 7589060993546854592
+2025-12-29 00:52:36,017 [DEBUG] 1 message(s) will be resent
+2025-12-29 00:52:36,017 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:36,027 [DEBUG] Assigned msg_id = 7589060989978863336 to InvokeWithLayerRequest (6e7b670)
+2025-12-29 00:52:36,027 [DEBUG] Encrypting 1 message(s) in 76 bytes for sending
+2025-12-29 00:52:36,027 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:36,027 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:36,027 [DEBUG] Assigned msg_id = 7589060989978863340 to MsgsAck (8074820)
+2025-12-29 00:52:36,027 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 00:52:36,027 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:36,027 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:36,099 [DEBUG] Handling container
+2025-12-29 00:52:36,099 [DEBUG] Handling new session created
+2025-12-29 00:52:36,099 [DEBUG] Handling acknowledge for [7589060989978863336]
+2025-12-29 00:52:36,099 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:36,119 [DEBUG] Handling RPC result for message 7589060989978863336
+2025-12-29 00:52:36,119 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:36,119 [DEBUG] Assigned msg_id = 7589060990346864320 to GetUsersRequest (6e7bca0)
+2025-12-29 00:52:36,119 [DEBUG] Encrypting 1 message(s) in 32 bytes for sending
+2025-12-29 00:52:36,119 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:36,119 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:36,119 [DEBUG] Assigned msg_id = 7589060990346864324 to MsgsAck (6e7bd00)
+2025-12-29 00:52:36,119 [DEBUG] Encrypting 1 message(s) in 60 bytes for sending
+2025-12-29 00:52:36,119 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:36,119 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:36,221 [DEBUG] Handling RPC result for message 7589060990346864320
+2025-12-29 00:52:36,231 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:36,231 [DEBUG] Assigned msg_id = 7589060990794865228 to GetStateRequest (809e130)
+2025-12-29 00:52:36,231 [DEBUG] Encrypting 1 message(s) in 20 bytes for sending
+2025-12-29 00:52:36,231 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:36,231 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:36,231 [DEBUG] Assigned msg_id = 7589060990794865232 to MsgsAck (8074850)
+2025-12-29 00:52:36,231 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 00:52:36,231 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:36,231 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:36,342 [DEBUG] Handling RPC result for message 7589060990794865228
+2025-12-29 00:52:36,342 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:36,342 [DEBUG] Assigned msg_id = 7589060991238867380 to GetDifferenceRequest (809e130)
+2025-12-29 00:52:36,342 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 00:52:36,342 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:36,342 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:36,342 [DEBUG] Assigned msg_id = 7589060991238867384 to MsgsAck (6e1cf10)
+2025-12-29 00:52:36,342 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 00:52:36,352 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:36,352 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:36,442 [DEBUG] Handling RPC result for message 7589060991238867380
+2025-12-29 00:52:36,442 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:36,442 [DEBUG] Assigned msg_id = 7589060991638867000 to GetStateRequest (6e632b0)
+2025-12-29 00:52:36,442 [DEBUG] Encrypting 1 message(s) in 20 bytes for sending
+2025-12-29 00:52:36,442 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:36,442 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:36,442 [DEBUG] Assigned msg_id = 7589060991638867004 to MsgsAck (6e63310)
+2025-12-29 00:52:36,442 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 00:52:36,442 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:36,442 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:36,538 [DEBUG] Handling RPC result for message 7589060991638867000
+2025-12-29 00:52:36,538 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:39,880 [DEBUG] Assigned msg_id = 7589061006277425272 to GetDialogsRequest (80a7790)
+2025-12-29 00:52:39,880 [DEBUG] Encrypting 1 message(s) in 48 bytes for sending
+2025-12-29 00:52:39,880 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:39,880 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:39,880 [DEBUG] Assigned msg_id = 7589061006277425276 to MsgsAck (8074b50)
+2025-12-29 00:52:39,880 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 00:52:39,880 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:39,880 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:40,859 [DEBUG] Handling RPC result for message 7589061006277425272
+2025-12-29 00:52:40,875 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:40,891 [DEBUG] Assigned msg_id = 7589061010615623580 to GetDialogsRequest (80a7790)
+2025-12-29 00:52:40,891 [DEBUG] Encrypting 1 message(s) in 64 bytes for sending
+2025-12-29 00:52:40,891 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:40,891 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:40,891 [DEBUG] Assigned msg_id = 7589061010615623584 to MsgsAck (80a77f0)
+2025-12-29 00:52:40,891 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 00:52:40,891 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:40,891 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:41,458 [DEBUG] Handling RPC result for message 7589061010615623580
+2025-12-29 00:52:41,477 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:41,485 [DEBUG] Assigned msg_id = 7589061013286621796 to GetDialogsRequest (80a7790)
+2025-12-29 00:52:41,485 [DEBUG] Encrypting 1 message(s) in 64 bytes for sending
+2025-12-29 00:52:41,487 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:41,487 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:41,487 [DEBUG] Assigned msg_id = 7589061013294623124 to MsgsAck (6e36ac0)
+2025-12-29 00:52:41,487 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 00:52:41,488 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:41,488 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:41,869 [DEBUG] Handling RPC result for message 7589061013286621796
+2025-12-29 00:52:41,885 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:41,885 [DEBUG] Assigned msg_id = 7589061014886626948 to GetDialogsRequest (80a7790)
+2025-12-29 00:52:41,885 [DEBUG] Encrypting 1 message(s) in 64 bytes for sending
+2025-12-29 00:52:41,885 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:41,885 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:41,885 [DEBUG] Assigned msg_id = 7589061014886626952 to MsgsAck (6addaf0)
+2025-12-29 00:52:41,885 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 00:52:41,885 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:41,885 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:42,331 [DEBUG] Handling RPC result for message 7589061014886626948
+2025-12-29 00:52:42,346 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:42,346 [DEBUG] Assigned msg_id = 7589061017027200092 to GetDialogsRequest (80a7790)
+2025-12-29 00:52:42,346 [DEBUG] Encrypting 1 message(s) in 64 bytes for sending
+2025-12-29 00:52:42,346 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:42,346 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:42,346 [DEBUG] Assigned msg_id = 7589061017027200096 to MsgsAck (809ebe0)
+2025-12-29 00:52:42,346 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2025-12-29 00:52:42,346 [DEBUG] Encrypted messages put in a queue to be sent
+2025-12-29 00:52:42,346 [DEBUG] Waiting for messages to send...
+2025-12-29 00:52:42,552 [DEBUG] Handling RPC result for message 7589061017027200092
+2025-12-29 00:52:42,552 [DEBUG] Receiving items from the network...
+2025-12-29 00:52:47,691 [INFO] Loading markets for event: 35059718
+2025-12-29 00:52:47,691 [DEBUG] get_available_markets called with event_id: 35059718 (type: str)
+2025-12-29 00:52:47,691 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:52:47,946 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 None
+2025-12-29 00:52:47,946 [DEBUG] list_market_catalogue returned 21 markets for event 35059718
+2025-12-29 00:52:47,946 [DEBUG] Market: 1.252001828 - Genoa +1 - type: N/A
+2025-12-29 00:52:47,946 [DEBUG] Market: 1.252001829 - Over/Under 7.5 Goals - type: N/A
+2025-12-29 00:52:47,946 [DEBUG] Market: 1.252001826 - Half Time/Full Time - type: N/A
+2025-12-29 00:52:47,946 [DEBUG] Market: 1.252001827 - Roma +1 - type: N/A
+2025-12-29 00:52:47,946 [DEBUG] Market: 1.252001830 - Over/Under 8.5 Goals - type: N/A
+2025-12-29 00:52:47,946 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:52:48,198 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 1491
+2025-12-29 00:52:48,214 [INFO] Got 21 markets
+2025-12-29 00:52:48,214 [DEBUG] _display_available_markets called with 21 markets
+2025-12-29 00:52:48,214 [DEBUG] Setting combobox values: ['Genoa +1', 'Over/Under 7.5 Goals', 'Half Time/Full Time']...
+2025-12-29 00:52:48,214 [DEBUG] Combobox values set, count: 21
+2025-12-29 00:52:48,214 [DEBUG] Selected first market: Genoa +1
+2025-12-29 00:52:48,233 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:52:48,454 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 225
+2025-12-29 00:52:48,472 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2025-12-29 00:52:48,707 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 437
+2025-12-29 00:52:48,722 [DEBUG] Market Stream: Stream not connected
+2025-12-29 00:52:48,722 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443

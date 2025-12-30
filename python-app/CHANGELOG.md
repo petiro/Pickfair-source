@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.51.0
+- NUOVO: trading_engine_pro.py - Engine Enterprise completo
+- Mixed BACK+LAY Solver con NumPy (sistema lineare)
+- Auto-follow Best Price con tick ladder dinamico
+- Trailing Cashout: chiude su ritracciamento
+- Telegram Broadcast con audit SQLite + retry + flood handling
+- TradingEnginePro orchestratore che integra tutto
+- Metriche delivery rate, failure rate, flood incidents
+
 ## v3.50.0
 - UPGRADE PRO: order_manager.py completamente riscritto
 - State Machine per betId (OrderStatus enum, anti-bug fantasma)

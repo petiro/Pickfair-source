@@ -1,0 +1,24 @@
+$ git tag v3.25.2
+~/workspace/python-app$ git push origin main --tags
+Enumerating objects: 1058, done. origin main --tags
+Counting objects: 100% (1058/1058), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (1015/1015), done.
+Writing objects: 100% (1037/1037), 337.31 MiB | 4.35 MiB/s, done.
+Total 1037 (delta 711), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (711/711), completed with 12 local objects.
+To https://github.com/petiro/Pickfair-source.git
+   b2717b9..226c942  main -> main
+ * [new tag]         v3.5.0 -> v3.5.0
+ * [new tag]         v3.7.1 -> v3.7.1
+ * [new tag]         v3.8.0 -> v3.8.0
+ ! [remote rejected] v3.24.4 -> v3.24.4 (refusing to allow an OAuth App to create or update workflow `.github/workflows/build.yml` without `workflow` scope)
+ ! [remote rejected] v3.6.0 -> v3.6.0 (refusing to allow an OAuth App to create or update workflow `.github/workflows/build-release.yml` without `workflow` scope)
+ ! [remote rejected] v3.6.1 -> v3.6.1 (refusing to allow an OAuth App to create or update workflow `.github/workflows/build-release.yml` without `workflow` scope)
+ ! [remote rejected] v3.7.0 -> v3.7.0 (refusing to allow an OAuth App to create or update workflow `.github/workflows/build-release.yml` without `workflow` scope)
+ ! [remote rejected] v3.9.1 -> v3.9.1 (refusing to allow an OAuth App to create or update workflow `.github/workflows/build.yml` without `workflow` scope)
+ ! [remote rejected] v3.9.2 -> v3.9.2 (refusing to allow an OAuth App to create or update workflow `.github/workflows/build.yml` without `workflow` scope)
+ ! [remote rejected] v3.9.3 -> v3.9.3 (refusing to allow an OAuth App to create or update workflow `.github/workflows/build.yml` without `workflow` scope)
+ ! [remote rejected] v3.9.4 -> v3.9.4 (refusing to allow an OAuth App to create or update workflow `.github/workflows/build.yml` without `workflow` scope)
+error: failed to push some refs to 'https://github.com/petiro/Pickfair-source.git'
+~/workspace/python-app$ 

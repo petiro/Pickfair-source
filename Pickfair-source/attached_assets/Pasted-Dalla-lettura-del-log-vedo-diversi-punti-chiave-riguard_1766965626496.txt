@@ -1,0 +1,75 @@
+Dalla lettura del log, vedo diversi punti chiave riguardo il comportamento della tua applicazione Betfair / Pickfair:
+
+Cashout ripetuto con risultati simili
+
+Total matched=8, unmatched=2
+Found 0 orders for current market
+
+
+Questo succede ripetutamente su più mercati (1.252001820, 1.252001828, 1.252001815, 1.252001814).
+
+Significa che il bot sta controllando continuamente gli ordini per cashout, ma spesso non trova ordini attivi (0 orders).
+
+Solo su un mercato (1.252001814) ha trovato 2 ordini per il cashout.
+
+Problemi di connessione allo Stream
+
+Betfair Stream connection error: [WinError 10060] Impossibile stabilire la connessione
+
+
+Il bot tenta di connettersi allo Stream di Betfair (stream-api.betfair.it) ma fallisce.
+
+Questo porta alla disconnessione degli stream di ordini e mercati:
+
+Betfair Stream: Disconnected
+Order Stream status: DISCONNECTED
+
+
+La causa più comune è un timeout di rete, firewall o connessione instabile.
+
+Problemi con SSL / criptografia
+
+Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+
+
+La libreria SSL non è stata trovata, quindi il bot ricade sulla crittografia Python nativa, più lenta.
+
+Questo potrebbe rallentare le chiamate HTTPS e influenzare i tempi di cashout.
+
+Problemi con Telegram
+
+Telegram loop error: 'NoneType' object has no attribute 'close'
+
+
+Il bot tenta di chiudere un oggetto Telegram che è None.
+
+Questo indica che l’integrazione Telegram non è correttamente inizializzata o viene chiusa in modo non corretto.
+
+Connessione TCP a Telegram
+
+Connecting to 149.154.167.92:443/TcpFull
+Connection success!
+
+
+Nonostante le difficoltà iniziali, la connessione TCP al server Telegram avviene, ma ci sono messaggi di "bad salt" e retry.
+
+È normale per Telegram, ma se ripete troppo può indicare problemi di sincronizzazione.
+
+Mercati caricati correttamente
+
+Got 21 markets
+Selected first market: Genoa +1
+
+
+L’app riesce a recuperare i mercati dall’API Betfair correttamente, quindi il problema non è con la query dei mercati, ma principalmente con il cashout e lo stream.
+
+💡 Sintesi dei problemi principali:
+
+Stream disconnesso → cashout e monitoraggio ordini non funzionano in tempo reale.
+
+SSL mancante / crittografia lenta → possibili ritardi nelle chiamate HTTPS.
+
+Errore Telegram → integrazione non stabile.
+
+Ripetizione continua dei cashout → log spam e possibili rallentamenti.
