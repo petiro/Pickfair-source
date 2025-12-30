@@ -2659,16 +2659,26 @@ class PickfairApp:
         if not price or price <= 0:
             return
         
-        # Find runner name
-        runner_name = ""
+        # Find runner data
+        runner = None
         if self.current_market:
-            for runner in self.current_market.get('runners', []):
-                if str(runner['selectionId']) == selection_id:
-                    runner_name = runner['runnerName']
+            for r in self.current_market.get('runners', []):
+                if str(r['selectionId']) == selection_id:
+                    runner = r
                     break
         
-        # Open quick bet panel
-        self._show_quick_bet_panel(selection_id, runner_name, bet_type, price)
+        if not runner:
+            return
+        
+        # Get default stake from settings or use 10
+        default_stake = 10.0
+        try:
+            default_stake = float(self.stake_var.get().replace(',', '.'))
+        except:
+            pass
+        
+        # Open quick bet panel with correct parameters
+        self._show_quick_bet_panel(runner, selection_id, bet_type, price, default_stake)
     
     def _show_ladder_context_menu(self, event, selection_id):
         """Show context menu for ladder row."""
