@@ -1,0 +1,1724 @@
+"""
+Betfair API client using betfairlightweight library.
+Handles SSL certificate authentication for Betfair Italy.
+Includes Streaming API for real-time price updates.
+"""
+
+import os
+import tempfile
+import threading
+import queue
+import time
+import betfairlightweight
+from betfairlightweight import filters
+from betfairlightweight.streaming import StreamListener
+from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Retry configuration
+MAX_RETRIES = 3
+RETRY_DELAY = 1.0  # seconds
+
+# ==============================================================================
+# PERFORMANCE: MARKET CACHE
+# ==============================================================================
+
+class MarketCache:
+    """Cache for market book data to reduce API calls."""
+    
+    def __init__(self, ttl=1.0):
+        self.data = {}
+        self.ttl = ttl
+        self._lock = threading.Lock()
+        self.stats = {
+            'hits': 0,
+            'misses': 0,
+            'api_calls_saved': 0
+        }
+    
+    def get(self, market_id):
+        """Get cached market book if still valid."""
+        with self._lock:
+            entry = self.data.get(market_id)
+            if entry and time.time() - entry['ts'] < self.ttl:
+                self.stats['hits'] += 1
+                self.stats['api_calls_saved'] += 1
+                return entry['book']
+            self.stats['misses'] += 1
+            return None
+    
+    def set(self, market_id, book):
+        """Cache market book data."""
+        with self._lock:
+            self.data[market_id] = {'book': book, 'ts': time.time()}
+    
+    def invalidate(self, market_id):
+        """Invalidate cache for a specific market."""
+        with self._lock:
+            if market_id in self.data:
+                del self.data[market_id]
+    
+    def clear(self):
+        """Clear all cached data."""
+        with self._lock:
+            self.data.clear()
+    
+    def get_stats(self):
+        """Get cache statistics."""
+        with self._lock:
+            total = self.stats['hits'] + self.stats['misses']
+            hit_rate = (self.stats['hits'] / total * 100) if total > 0 else 0
+            return {
+                **self.stats,
+                'hit_rate': round(hit_rate, 1),
+                'total_requests': total
+            }
+
+# Global market cache instance
+_market_cache = MarketCache(ttl=1.0)
+
+def get_market_cache():
+    return _market_cache
+
+
+# ==============================================================================
+# PERFORMANCE METRICS
+# ==============================================================================
+
+class PerformanceMetrics:
+    """Track API performance metrics."""
+    
+    def __init__(self):
+        self._lock = threading.Lock()
+        self.reset()
+    
+    def reset(self):
+        with self._lock:
+            self._api_calls = []
+            self._latencies = []
+            self._replace_calls = 0
+            self._replace_skipped = 0
+            self._start_time = time.time()
+    
+    def record_api_call(self, latency_ms=None):
+        with self._lock:
+            self._api_calls.append(time.time())
+            if latency_ms:
+                self._latencies.append(latency_ms)
+    
+    def record_replace(self, executed=True):
+        with self._lock:
+            if executed:
+                self._replace_calls += 1
+            else:
+                self._replace_skipped += 1
+    
+    def get_metrics(self):
+        with self._lock:
+            now = time.time()
+            elapsed_min = max(1, (now - self._start_time) / 60)
+            
+            recent_calls = [t for t in self._api_calls if now - t < 60]
+            
+            avg_latency = sum(self._latencies[-100:]) / len(self._latencies[-100:]) if self._latencies else 0
+            
+            total_replace = self._replace_calls + self._replace_skipped
+            replace_rate = (self._replace_calls / total_replace * 100) if total_replace > 0 else 0
+            
+            return {
+                'api_calls_per_min': round(len(recent_calls), 1),
+                'avg_latency_ms': round(avg_latency, 1),
+                'replace_executed': self._replace_calls,
+                'replace_skipped': self._replace_skipped,
+                'replace_rate': round(replace_rate, 1),
+                'uptime_min': round(elapsed_min, 1),
+                'cache_stats': _market_cache.get_stats()
+            }
+
+_perf_metrics = PerformanceMetrics()
+
+def get_performance_metrics():
+    return _perf_metrics
+
+def with_retry(func):
+    """Decorator to add retry logic for API calls."""
+    def wrapper(*args, **kwargs):
+        last_error = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                last_error = e
+                error_str = str(e).lower()
+                # Retry on network/server errors
+                if any(x in error_str for x in ['502', '503', '504', 'timeout', 'connection', 'network']):
+                    if attempt < MAX_RETRIES - 1:
+                        time.sleep(RETRY_DELAY * (attempt + 1))
+                        continue
+                # Don't retry on other errors
+                raise
+        raise last_error
+    return wrapper
+
+FOOTBALL_ID = "1"
+
+MARKET_TYPES = {
+    'MATCH_ODDS': 'Esito Finale (1X2)',
+    'CORRECT_SCORE': 'Risultato Esatto',
+    'OVER_UNDER_05': 'Over/Under 0.5 Goal',
+    'OVER_UNDER_15': 'Over/Under 1.5 Goal',
+    'OVER_UNDER_25': 'Over/Under 2.5 Goal',
+    'OVER_UNDER_35': 'Over/Under 3.5 Goal',
+    'OVER_UNDER_45': 'Over/Under 4.5 Goal',
+    'OVER_UNDER_55': 'Over/Under 5.5 Goal',
+    'OVER_UNDER_65': 'Over/Under 6.5 Goal',
+    'OVER_UNDER_75': 'Over/Under 7.5 Goal',
+    'BOTH_TEAMS_TO_SCORE': 'Goal/No Goal',
+    'DOUBLE_CHANCE': 'Doppia Chance',
+    'DRAW_NO_BET': 'Draw No Bet',
+    'HALF_TIME': 'Primo Tempo',
+    'HALF_TIME_SCORE': 'Risultato Primo Tempo',
+    'HALF_TIME_FULL_TIME': 'Primo Tempo/Finale',
+    'SECOND_HALF_CORRECT_SCORE': 'Risultato Secondo Tempo',
+    'ASIAN_HANDICAP': 'Handicap Asiatico',
+    'HANDICAP': 'Handicap Europeo',
+    'FIRST_GOAL_SCORER': 'Primo Marcatore',
+    'LAST_GOAL_SCORER': 'Ultimo Marcatore',
+    'ANYTIME_SCORER': 'Marcatore',
+    'TOTAL_GOALS': 'Totale Goal',
+    'TEAM_A_TOTAL_GOALS': 'Goal Casa',
+    'TEAM_B_TOTAL_GOALS': 'Goal Trasferta',
+    'TEAM_TOTAL_GOALS': 'Goal Squadra',
+    'ODD_OR_EVEN': 'Pari/Dispari Goal',
+    'WINNING_MARGIN': 'Margine Vittoria',
+    'NEXT_GOAL': 'Prossimo Goal',
+    'CLEAN_SHEET': 'Clean Sheet',
+    'WIN_TO_NIL': 'Vince a Zero',
+    'CORNER_ODDS': 'Corner',
+    'CORNER_MATCH_BET': 'Corner Vincente',
+    'TOTAL_CORNERS': 'Totale Corner',
+    'BOOKING_ODDS': 'Cartellini',
+    'TOTAL_BOOKINGS': 'Totale Cartellini',
+    'FIRST_HALF_GOALS_05': 'Goal 1T O/U 0.5',
+    'FIRST_HALF_GOALS_15': 'Goal 1T O/U 1.5',
+    'FIRST_HALF_GOALS_25': 'Goal 1T O/U 2.5',
+    'PENALTY_TAKEN': 'Rigore',
+    'TO_SCORE_BOTH_HALVES': 'Segna in Entrambi i Tempi',
+    'WIN_BOTH_HALVES': 'Vince Entrambi i Tempi',
+    'HIGHEST_SCORING_HALF': 'Tempo con Piu Goal',
+    'METHOD_OF_VICTORY': 'Tipo di Vittoria',
+    'SENDING_OFF': 'Espulsione',
+}
+
+
+class PriceStreamListener(StreamListener):
+    """Custom listener for processing streaming price updates."""
+    
+    def __init__(self, price_callback):
+        super().__init__()
+        self.price_callback = price_callback
+        self.market_cache = {}
+    
+    def on_data(self, raw_data):
+        """Called when new data arrives from stream."""
+        try:
+            if hasattr(raw_data, 'data'):
+                data = raw_data.data
+            else:
+                data = raw_data
+                
+            if isinstance(data, dict) and 'mc' in data:
+                for market_change in data['mc']:
+                    market_id = market_change.get('id')
+                    if market_id and 'rc' in market_change:
+                        runners_data = []
+                        for rc in market_change['rc']:
+                            runner_info = {
+                                'selectionId': rc.get('id'),
+                                'backPrices': rc.get('atb', []),
+                                'layPrices': rc.get('atl', [])
+                            }
+                            runners_data.append(runner_info)
+                        
+                        if self.price_callback:
+                            self.price_callback(market_id, runners_data)
+        except Exception as e:
+            print(f"Stream data error: {e}")
+
+
+class BetfairClient:
+    def __init__(self, username, app_key, cert_pem, key_pem):
+        # Aggressive cleaning of all string values to remove newlines/whitespace
+        self.username = self._clean_string(username)
+        self.app_key = self._clean_string(app_key)
+        self.cert_pem = cert_pem.strip() if cert_pem else cert_pem
+        self.key_pem = key_pem.strip() if key_pem else key_pem
+        self.client = None
+        self.temp_certs_dir = None
+        self.stream = None
+        self.stream_thread = None
+        self.streaming_active = False
+        self.price_callbacks = {}
+    
+    @staticmethod
+    def _clean_string(value):
+        """Remove all whitespace, newlines, and control characters from a string."""
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            value = value.decode('utf-8', errors='ignore')
+        # Remove all whitespace and newlines
+        return ''.join(value.split())
+    
+    def _create_temp_cert_files(self):
+        """Create temporary certificate directory for betfairlightweight.
+        
+        betfairlightweight expects a directory containing:
+        - client-2048.crt (or .pem)
+        - client-2048.key (or .pem)
+        """
+        import shutil
+        
+        self.temp_certs_dir = tempfile.mkdtemp(prefix='betfair_certs_')
+        
+        cert_file_path = os.path.join(self.temp_certs_dir, 'client-2048.crt')
+        with open(cert_file_path, 'w') as f:
+            f.write(self.cert_pem)
+        
+        key_file_path = os.path.join(self.temp_certs_dir, 'client-2048.key')
+        with open(key_file_path, 'w') as f:
+            f.write(self.key_pem)
+        
+        return self.temp_certs_dir
+    
+    def _cleanup_temp_files(self):
+        """Clean up temporary certificate directory."""
+        import shutil
+        try:
+            if self.temp_certs_dir and os.path.exists(self.temp_certs_dir):
+                shutil.rmtree(self.temp_certs_dir)
+        except:
+            pass
+    
+    def login(self, password):
+        """
+        Login to Betfair Italy using SSL certificate authentication.
+        Uses locale="italy" for Italian Exchange endpoints.
+        """
+        certs_dir = self._create_temp_cert_files()
+        
+        try:
+            self.client = betfairlightweight.APIClient(
+                username=self.username,
+                password=password,
+                app_key=self.app_key,
+                certs=certs_dir,
+                locale="italy"
+            )
+            
+            self.client.login()
+            
+            if not self.client.session_token:
+                raise Exception("Nessun token ricevuto - verifica credenziali")
+            
+            return {
+                'session_token': self.client.session_token,
+                'expiry': (datetime.now() + timedelta(hours=8)).isoformat()
+            }
+        except betfairlightweight.exceptions.LoginError as e:
+            self._cleanup_temp_files()
+            raise Exception(f"Credenziali errate o account bloccato: {str(e)}")
+        except betfairlightweight.exceptions.CertsError as e:
+            self._cleanup_temp_files()
+            raise Exception(f"Errore certificato SSL - verifica che .crt e .key siano corretti: {str(e)}")
+        except betfairlightweight.exceptions.APIError as e:
+            self._cleanup_temp_files()
+            raise Exception(f"Errore API Betfair: {str(e)}")
+        except Exception as e:
+            self._cleanup_temp_files()
+            error_msg = str(e)
+            if "SSL" in error_msg.upper() or "CERTIFICATE" in error_msg.upper():
+                raise Exception(f"Errore SSL - il certificato potrebbe non essere valido: {error_msg}")
+            elif "timeout" in error_msg.lower():
+                raise Exception("Timeout connessione - riprova")
+            else:
+                raise Exception(f"Login fallito: {error_msg}")
+    
+    def logout(self):
+        """Logout from Betfair and stop streaming."""
+        self.stop_streaming()
+        if self.client:
+            try:
+                self.client.logout()
+            except:
+                pass
+        self._cleanup_temp_files()
+        self.client = None
+    
+    @with_retry
+    def get_account_funds(self):
+        """Get account balance."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        account = self.client.account.get_account_funds()
+        return {
+            'available': account.available_to_bet_balance,
+            'exposure': account.exposure,
+            'total': account.available_to_bet_balance + abs(account.exposure)
+        }
+    
+    @with_retry
+    def get_cleared_orders(self, bet_ids=None, from_date=None):
+        """Get settled/cleared orders to check bet outcomes.
+        
+        Args:
+            bet_ids: Optional list of bet IDs to check
+            from_date: Optional datetime to filter from (defaults to 7 days ago)
+        
+        Returns:
+            List of settled bets with profit/loss and outcome
+        """
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        if from_date is None:
+            from_date = datetime.now() - timedelta(days=7)
+        
+        settled_date_range = filters.time_range(
+            from_=from_date,
+            to=datetime.now()
+        )
+        
+        results = []
+        
+        # Get SETTLED orders
+        try:
+            cleared_orders = self.client.betting.list_cleared_orders(
+                bet_status='SETTLED',
+                settled_date_range=settled_date_range
+            )
+            
+            for order in cleared_orders.cleared_orders:
+                bet_data = {
+                    'bet_id': order.bet_id,
+                    'market_id': order.market_id,
+                    'selection_id': order.selection_id,
+                    'placed_date': order.placed_date.isoformat() if order.placed_date else None,
+                    'settled_date': order.settled_date.isoformat() if order.settled_date else None,
+                    'profit': order.profit,
+                    'side': order.side,
+                    'price_requested': order.price_requested,
+                    'price_matched': order.price_matched,
+                    'size_settled': order.size_settled,
+                }
+                
+                # Determine outcome from profit
+                # Note: profit=0 means stake returned (rule 4.4.1 void selection) = VOID
+                if order.profit > 0:
+                    bet_data['outcome'] = 'WON'
+                elif order.profit < 0:
+                    bet_data['outcome'] = 'LOST'
+                else:
+                    # Stake returned (dead heat, void selection, etc.)
+                    bet_data['outcome'] = 'VOID'
+                
+                # Filter by bet_ids if provided
+                if bet_ids is None or order.bet_id in bet_ids:
+                    results.append(bet_data)
+        except Exception as e:
+            print(f"Error getting settled orders: {e}")
+        
+        # Get VOIDED orders (cancelled markets, etc.)
+        try:
+            voided_orders = self.client.betting.list_cleared_orders(
+                bet_status='VOIDED',
+                settled_date_range=settled_date_range
+            )
+            
+            for order in voided_orders.cleared_orders:
+                bet_data = {
+                    'bet_id': order.bet_id,
+                    'market_id': order.market_id,
+                    'selection_id': order.selection_id,
+                    'placed_date': order.placed_date.isoformat() if order.placed_date else None,
+                    'settled_date': order.settled_date.isoformat() if order.settled_date else None,
+                    'profit': 0.0,  # Voided bets have no profit/loss
+                    'side': order.side,
+                    'price_requested': order.price_requested,
+                    'price_matched': order.price_matched,
+                    'size_settled': order.size_settled,
+                    'outcome': 'VOID',  # Always VOID for voided bets
+                }
+                
+                # Filter by bet_ids if provided
+                if bet_ids is None or order.bet_id in bet_ids:
+                    results.append(bet_data)
+        except Exception as e:
+            print(f"Error getting voided orders: {e}")
+        
+        return results
+    
+    @with_retry
+    def get_market_status(self, market_ids):
+        """Get market status (OPEN, SUSPENDED, CLOSED).
+        
+        Args:
+            market_ids: List of market IDs to check
+        
+        Returns:
+            Dict mapping market_id to status info
+        """
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        if not market_ids:
+            return {}
+        
+        try:
+            market_books = self.client.betting.list_market_book(
+                market_ids=market_ids,
+                price_projection=filters.price_projection(
+                    price_data=['EX_BEST_OFFERS']
+                )
+            )
+            
+            results = {}
+            for book in market_books:
+                results[book.market_id] = {
+                    'status': book.status,
+                    'is_market_data_delayed': book.is_market_data_delayed,
+                    'complete': book.complete,
+                    'inplay': book.inplay,
+                    'version': book.version
+                }
+            
+            return results
+        except Exception as e:
+            print(f"Error getting market status: {e}")
+            return {}
+    
+    @with_retry
+    def get_football_events(self, include_inplay=True):
+        """Get upcoming and in-play football events."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        time_filter = filters.time_range(
+            from_=datetime.now(),
+            to=datetime.now() + timedelta(days=2)
+        )
+        
+        # Get upcoming events
+        events = self.client.betting.list_events(
+            filter=filters.market_filter(
+                event_type_ids=[FOOTBALL_ID],
+                market_start_time=time_filter
+            )
+        )
+        
+        # Also get in-play events
+        inplay_events = []
+        if include_inplay:
+            try:
+                inplay_events = self.client.betting.list_events(
+                    filter=filters.market_filter(
+                        event_type_ids=[FOOTBALL_ID],
+                        in_play_only=True
+                    )
+                )
+            except:
+                pass
+        
+        # Combine events (avoid duplicates)
+        event_ids = set()
+        result = []
+        
+        # Add in-play events first (marked as LIVE)
+        for event in inplay_events:
+            event_ids.add(event.event.id)
+            result.append({
+                'id': event.event.id,
+                'name': event.event.name,
+                'countryCode': event.event.country_code,
+                'openDate': event.event.open_date.isoformat() if event.event.open_date else None,
+                'marketCount': event.market_count,
+                'inPlay': True
+            })
+        
+        # Add upcoming events
+        for event in events:
+            if event.event.id not in event_ids:
+                result.append({
+                    'id': event.event.id,
+                    'name': event.event.name,
+                    'countryCode': event.event.country_code,
+                    'openDate': event.event.open_date.isoformat() if event.event.open_date else None,
+                    'marketCount': event.market_count,
+                    'inPlay': False
+                })
+        
+        # Sort: in-play first, then by date
+        result.sort(key=lambda x: (not x.get('inPlay', False), x['openDate'] or ''))
+        return result
+    
+    @with_retry
+    def get_available_markets(self, event_id):
+        """Get all available markets for an event (no type restriction)."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        import logging
+        logging.debug(f"get_available_markets called with event_id: {event_id} (type: {type(event_id).__name__})")
+        
+        # Ensure event_id is a string for the API
+        event_id_str = str(event_id)
+        
+        # Fetch ALL markets without type restriction - include RUNNER_DESCRIPTION for auto-bet
+        markets = self.client.betting.list_market_catalogue(
+            filter=filters.market_filter(
+                event_ids=[event_id_str]
+            ),
+            market_projection=['MARKET_START_TIME', 'MARKET_DESCRIPTION', 'RUNNER_DESCRIPTION'],
+            max_results=100
+        )
+        
+        logging.debug(f"list_market_catalogue returned {len(markets) if markets else 0} markets for event {event_id_str}")
+        if markets:
+            for m in markets[:5]:
+                logging.debug(f"Market: {m.market_id} - {m.market_name} - type: {getattr(m, 'market_type', 'N/A')}")
+        else:
+            logging.warning(f"No markets found for event {event_id_str}")
+        
+        # Get in-play status for these markets
+        market_ids = [m.market_id for m in markets]
+        in_play_status = {}
+        
+        if market_ids:
+            try:
+                market_books = self.client.betting.list_market_book(
+                    market_ids=market_ids[:50]  # API limit
+                )
+                for book in market_books:
+                    in_play_status[book.market_id] = book.inplay if hasattr(book, 'inplay') else False
+            except:
+                pass
+        
+        result = []
+        for market in markets:
+            market_type = market.market_type if hasattr(market, 'market_type') else None
+            display_name = MARKET_TYPES.get(market_type, market.market_name)
+            is_inplay = in_play_status.get(market.market_id, False)
+            
+            runners_list = []
+            if hasattr(market, 'runners') and market.runners:
+                for runner in market.runners:
+                    runners_list.append({
+                        'selectionId': runner.selection_id,
+                        'runnerName': runner.runner_name
+                    })
+            
+            result.append({
+                'marketId': market.market_id,
+                'marketName': market.market_name,
+                'marketType': market_type,
+                'displayName': display_name,
+                'startTime': market.market_start_time.isoformat() if market.market_start_time else None,
+                'inPlay': is_inplay,
+                'runners': runners_list
+            })
+        
+        return result
+    
+    @with_retry
+    def get_market_with_prices(self, market_id):
+        """Get a specific market with runner details and prices."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        markets = self.client.betting.list_market_catalogue(
+            filter=filters.market_filter(
+                market_ids=[market_id]
+            ),
+            market_projection=['RUNNER_DESCRIPTION', 'MARKET_START_TIME'],
+            max_results=1
+        )
+        
+        if not markets:
+            raise Exception("Mercato non trovato")
+        
+        market = markets[0]
+        
+        price_data = self.client.betting.list_market_book(
+            market_ids=[market_id],
+            price_projection=filters.price_projection(
+                price_data=['EX_BEST_OFFERS']
+            )
+        )
+        
+        if not price_data:
+            raise Exception("Quote non disponibili")
+        
+        runners = []
+        price_book = price_data[0]
+        
+        for runner in market.runners:
+            runner_prices = None
+            for pb_runner in price_book.runners:
+                if pb_runner.selection_id == runner.selection_id:
+                    runner_prices = pb_runner
+                    break
+            
+            back_price = None
+            lay_price = None
+            back_size = None
+            lay_size = None
+            
+            if runner_prices and runner_prices.ex:
+                if runner_prices.ex.available_to_back:
+                    back_price = runner_prices.ex.available_to_back[0].price
+                    back_size = runner_prices.ex.available_to_back[0].size
+                if runner_prices.ex.available_to_lay:
+                    lay_price = runner_prices.ex.available_to_lay[0].price
+                    lay_size = runner_prices.ex.available_to_lay[0].size
+            
+            runners.append({
+                'selectionId': runner.selection_id,
+                'runnerName': runner.runner_name,
+                'sortPriority': runner.sort_priority,
+                'backPrice': back_price,
+                'layPrice': lay_price,
+                'backSize': back_size,
+                'laySize': lay_size,
+                'status': runner_prices.status if runner_prices else 'ACTIVE'
+            })
+        
+        market_status = 'OPEN'
+        if hasattr(price_book, 'status'):
+            market_status = price_book.status
+        
+        is_inplay = False
+        if hasattr(price_book, 'inplay'):
+            is_inplay = price_book.inplay
+        
+        return {
+            'marketId': market_id,
+            'marketName': market.market_name,
+            'startTime': market.market_start_time.isoformat() if market.market_start_time else None,
+            'runners': runners,
+            'status': market_status,
+            'inPlay': is_inplay
+        }
+    
+    def get_market_book(self, market_id):
+        """Get current market prices (for refreshing best prices before placing bets)."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        price_data = self.client.betting.list_market_book(
+            market_ids=[market_id],
+            price_projection=filters.price_projection(
+                price_data=['EX_BEST_OFFERS']
+            )
+        )
+        
+        if not price_data:
+            return None
+        
+        price_book = price_data[0]
+        runners = []
+        
+        for pb_runner in price_book.runners:
+            back_price = None
+            lay_price = None
+            
+            if pb_runner.ex:
+                if pb_runner.ex.available_to_back:
+                    back_price = pb_runner.ex.available_to_back[0].price
+                if pb_runner.ex.available_to_lay:
+                    lay_price = pb_runner.ex.available_to_lay[0].price
+            
+            runners.append({
+                'selectionId': pb_runner.selection_id,
+                'ex': {
+                    'availableToBack': [{'price': back_price}] if back_price else [],
+                    'availableToLay': [{'price': lay_price}] if lay_price else []
+                }
+            })
+        
+        return {'runners': runners}
+    
+    def get_correct_score_market(self, event_id):
+        """Get correct score market for an event (legacy method)."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        markets = self.client.betting.list_market_catalogue(
+            filter=filters.market_filter(
+                event_ids=[event_id],
+                market_type_codes=['CORRECT_SCORE']
+            ),
+            market_projection=['RUNNER_DESCRIPTION', 'MARKET_START_TIME'],
+            max_results=1
+        )
+        
+        if not markets:
+            raise Exception("Mercato Risultato Esatto non trovato")
+        
+        return self.get_market_with_prices(markets[0].market_id)
+    
+    def start_streaming(self, market_ids, price_callback):
+        """
+        Start streaming price updates for specified markets.
+        
+        Args:
+            market_ids: List of market IDs to stream
+            price_callback: Function(market_id, runners_data) called on price updates
+        """
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        self.stop_streaming()
+        
+        try:
+            self.stream = self.client.streaming.create_stream(
+                listener=PriceStreamListener(price_callback)
+            )
+            
+            market_filter = filters.streaming_market_filter(
+                market_ids=market_ids
+            )
+            
+            market_data_filter = filters.streaming_market_data_filter(
+                fields=['EX_BEST_OFFERS', 'EX_TRADED']
+            )
+            
+            self.stream.subscribe_to_markets(
+                market_filter=market_filter,
+                market_data_filter=market_data_filter
+            )
+            
+            self.streaming_active = True
+            self.stream_thread = threading.Thread(
+                target=self._run_stream,
+                daemon=True
+            )
+            self.stream_thread.start()
+            
+            return True
+            
+        except Exception as e:
+            self.streaming_active = False
+            raise Exception(f"Errore avvio streaming: {str(e)}")
+    
+    def _run_stream(self):
+        """Run the stream in a background thread."""
+        try:
+            if self.stream:
+                self.stream.start()
+        except Exception as e:
+            print(f"Stream error: {e}")
+        finally:
+            self.streaming_active = False
+    
+    def stop_streaming(self):
+        """Stop the active stream."""
+        self.streaming_active = False
+        if self.stream:
+            try:
+                self.stream.stop()
+            except:
+                pass
+            self.stream = None
+        self.stream_thread = None
+    
+    def is_streaming(self):
+        """Check if streaming is active."""
+        return self.streaming_active and self.stream is not None
+    
+    def place_bet(self, market_id, selection_id, side, price, size, persistence_type='LAPSE'):
+        """
+        Place a single bet on Betfair.
+        
+        Convenience wrapper around place_bets for single bet placement.
+        """
+        instructions = [{
+            'selectionId': selection_id,
+            'side': side,
+            'price': price,
+            'size': size
+        }]
+        return self.place_bets(market_id, instructions)
+    
+    def place_bets(self, market_id, instructions):
+        """
+        Place bets on Betfair.
+        
+        instructions: list of {
+            'selectionId': int,
+            'side': 'BACK' or 'LAY',
+            'price': float,
+            'size': float
+        }
+        """
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        # Note: In dutching, individual selection stakes can be below €1
+        # Betfair Italy allows stakes as low as €0.10 per selection in multi-bet scenarios
+        
+        limit_orders = []
+        for inst in instructions:
+            limit_orders.append(
+                betfairlightweight.filters.limit_order(
+                    size=inst['size'],
+                    price=inst['price'],
+                    persistence_type='LAPSE'
+                )
+            )
+        
+        place_instructions = []
+        for i, inst in enumerate(instructions):
+            place_instructions.append(
+                betfairlightweight.filters.place_instruction(
+                    selection_id=inst['selectionId'],
+                    side=inst['side'],
+                    order_type='LIMIT',
+                    limit_order=limit_orders[i]
+                )
+            )
+        
+        result = self.client.betting.place_orders(
+            market_id=market_id,
+            instructions=place_instructions
+        )
+        
+        # Handle different response structures from betfairlightweight
+        instruction_reports = getattr(result, 'instruction_reports', None) or getattr(result, 'instructionReports', None) or []
+        
+        reports = []
+        for ir in instruction_reports:
+            reports.append({
+                'status': getattr(ir, 'status', 'UNKNOWN'),
+                'betId': getattr(ir, 'bet_id', None) or getattr(ir, 'betId', None),
+                'placedDate': ir.placed_date.isoformat() if getattr(ir, 'placed_date', None) else None,
+                'averagePriceMatched': getattr(ir, 'average_price_matched', None) or getattr(ir, 'averagePriceMatched', None),
+                'sizeMatched': getattr(ir, 'size_matched', 0) or getattr(ir, 'sizeMatched', 0)
+            })
+        
+        return {
+            'status': getattr(result, 'status', 'UNKNOWN'),
+            'marketId': getattr(result, 'market_id', None) or getattr(result, 'marketId', market_id),
+            'instructionReports': reports
+        }
+    
+    def get_current_orders(self, market_ids=None):
+        """Get current unmatched and partially matched orders."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        order_filter = {}
+        if market_ids:
+            order_filter['market_ids'] = market_ids
+        
+        orders = self.client.betting.list_current_orders(**order_filter)
+        
+        result = {
+            'matched': [],
+            'unmatched': [],
+            'partiallyMatched': []
+        }
+        
+        for order in orders.orders if orders.orders else []:
+            order_data = {
+                'betId': order.bet_id,
+                'marketId': order.market_id,
+                'selectionId': order.selection_id,
+                'side': order.side,
+                'price': order.price_size.price if order.price_size else None,
+                'size': order.price_size.size if order.price_size else None,
+                'sizeMatched': order.size_matched,
+                'sizeRemaining': order.size_remaining,
+                'averagePriceMatched': order.average_price_matched,
+                'status': order.status,
+                'placedDate': order.placed_date.isoformat() if order.placed_date else None
+            }
+            
+            if order.size_remaining == 0 and order.size_matched > 0:
+                result['matched'].append(order_data)
+            elif order.size_remaining > 0 and order.size_matched > 0:
+                result['partiallyMatched'].append(order_data)
+            elif order.size_remaining > 0:
+                result['unmatched'].append(order_data)
+        
+        return result
+    
+    def cancel_orders(self, market_id, bet_ids=None):
+        """Cancel unmatched orders."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        instructions = []
+        if bet_ids:
+            for bet_id in bet_ids:
+                instructions.append(
+                    betfairlightweight.filters.cancel_instruction(bet_id=bet_id)
+                )
+        
+        result = self.client.betting.cancel_orders(
+            market_id=market_id,
+            instructions=instructions if instructions else None
+        )
+        
+        # Handle different response structures
+        instruction_reports = getattr(result, 'instruction_reports', None) or getattr(result, 'instructionReports', None) or []
+        
+        reports = []
+        for ir in instruction_reports:
+            reports.append({
+                'status': getattr(ir, 'status', 'UNKNOWN'),
+                'sizeCancelled': getattr(ir, 'size_cancelled', 0) or getattr(ir, 'sizeCancelled', 0)
+            })
+        
+        return {
+            'status': getattr(result, 'status', 'UNKNOWN'),
+            'instructionReports': reports
+        }
+    
+    def get_markets(self, event_id):
+        """Alias for get_available_markets - get all markets for an event."""
+        return self.get_available_markets(event_id)
+    
+    def place_back_bet(self, market_id, selection_id, price, size):
+        """Place a BACK bet (puntata)."""
+        return self.place_bet(market_id, selection_id, 'BACK', price, size)
+    
+    def place_lay_bet(self, market_id, selection_id, price, size):
+        """Place a LAY bet (bancata)."""
+        return self.place_bet(market_id, selection_id, 'LAY', price, size)
+    
+    def replace_orders(self, market_id, bet_id, new_price):
+        """
+        Replace an existing order with a new price (replaceOrders API).
+        
+        Modifica un ordine NON abbinato senza cancellarlo/ripiazzarlo.
+        Mantiene (parzialmente) la priorita di coda.
+        
+        IMPORTANTE:
+        - Funziona solo su ordini PENDING o PARTIALLY_MATCHED
+        - Se partial match, Betfair crea NUOVO betId (restituito nel report)
+        - Latenza minore rispetto a cancel + place
+        
+        Args:
+            market_id: ID del mercato
+            bet_id: betId dell'ordine da modificare
+            new_price: nuova quota (deve essere tick valido)
+        
+        Returns:
+            Dict con status, nuovo betId (se cambiato), dettagli
+        """
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        logger.info(f"[REPLACE] market={market_id}, betId={bet_id}, newPrice={new_price}")
+        
+        instructions = [
+            betfairlightweight.filters.replace_instruction(
+                bet_id=bet_id,
+                new_price=round(new_price, 2)
+            )
+        ]
+        
+        result = self.client.betting.replace_orders(
+            market_id=market_id,
+            instructions=instructions
+        )
+        
+        instruction_reports = getattr(result, 'instruction_reports', None) or getattr(result, 'instructionReports', None) or []
+        
+        reports = []
+        for ir in instruction_reports:
+            # Estrai info dal cancel report
+            cancel_report = getattr(ir, 'cancel_instruction_report', None)
+            size_cancelled = 0
+            if cancel_report:
+                size_cancelled = getattr(cancel_report, 'size_cancelled', 0) or getattr(cancel_report, 'sizeCancelled', 0)
+            
+            # Estrai info dal place report (contiene nuovo betId!)
+            place_report = getattr(ir, 'place_instruction_report', None)
+            new_bet_id = None
+            size_matched = 0
+            average_price = 0
+            if place_report:
+                new_bet_id = getattr(place_report, 'bet_id', None) or getattr(place_report, 'betId', None)
+                size_matched = getattr(place_report, 'size_matched', 0) or getattr(place_report, 'sizeMatched', 0)
+                average_price = getattr(place_report, 'average_price_matched', 0) or getattr(place_report, 'averagePriceMatched', 0)
+            
+            report = {
+                'status': getattr(ir, 'status', 'UNKNOWN'),
+                'originalBetId': bet_id,
+                'newBetId': new_bet_id,  # IMPORTANTE: traccia questo!
+                'sizeCancelled': size_cancelled,
+                'sizeMatched': size_matched,
+                'averagePriceMatched': average_price
+            }
+            reports.append(report)
+            
+            if new_bet_id and new_bet_id != bet_id:
+                logger.info(f"[REPLACE] Nuovo betId: {bet_id} -> {new_bet_id}")
+        
+        status = getattr(result, 'status', 'UNKNOWN')
+        logger.info(f"[REPLACE] Result: {status}")
+        
+        return {
+            'status': status,
+            'instructionReports': reports
+        }
+    
+    def replace_orders_batch(self, market_id, replacements):
+        """
+        Replace multiple orders in batch (piu efficiente).
+        
+        Args:
+            market_id: ID del mercato
+            replacements: Lista di dict {'betId': '...', 'newPrice': 2.08}
+        
+        Returns:
+            Dict con status e reports per ogni ordine
+        """
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        if not replacements:
+            return {'status': 'NO_INSTRUCTIONS', 'instructionReports': []}
+        
+        logger.info(f"[REPLACE BATCH] market={market_id}, count={len(replacements)}")
+        
+        instructions = []
+        for r in replacements:
+            instructions.append(
+                betfairlightweight.filters.replace_instruction(
+                    bet_id=r['betId'],
+                    new_price=round(r['newPrice'], 2)
+                )
+            )
+        
+        result = self.client.betting.replace_orders(
+            market_id=market_id,
+            instructions=instructions
+        )
+        
+        instruction_reports = getattr(result, 'instruction_reports', None) or getattr(result, 'instructionReports', None) or []
+        
+        reports = []
+        for i, ir in enumerate(instruction_reports):
+            original_bet_id = replacements[i]['betId'] if i < len(replacements) else None
+            
+            place_report = getattr(ir, 'place_instruction_report', None)
+            new_bet_id = None
+            if place_report:
+                new_bet_id = getattr(place_report, 'bet_id', None) or getattr(place_report, 'betId', None)
+            
+            reports.append({
+                'status': getattr(ir, 'status', 'UNKNOWN'),
+                'originalBetId': original_bet_id,
+                'newBetId': new_bet_id,
+                'newPrice': replacements[i]['newPrice'] if i < len(replacements) else None
+            })
+            
+            if new_bet_id and new_bet_id != original_bet_id:
+                logger.info(f"[REPLACE BATCH] {original_bet_id} -> {new_bet_id}")
+        
+        return {
+            'status': getattr(result, 'status', 'UNKNOWN'),
+            'instructionReports': reports
+        }
+    
+    def cashout(self, market_id, selection_id, side, price, size):
+        """
+        Execute a cashout by placing an opposite bet.
+        
+        For a BACK position, place a LAY bet to cashout.
+        For a LAY position, place a BACK bet to cashout.
+        """
+        opposite_side = 'LAY' if side == 'BACK' else 'BACK'
+        return self.place_bet(market_id, selection_id, opposite_side, price, size)
+    
+    def calculate_cashout(self, original_stake, original_odds, current_odds, side='BACK'):
+        """
+        Calculate cashout stake and profit/loss.
+        
+        Returns dict with:
+            - cashout_stake: amount to bet for full cashout
+            - profit_if_win: profit if original selection wins
+            - profit_if_lose: profit if original selection loses  
+            - guaranteed_profit: locked-in profit (if positive)
+        """
+        if side == 'BACK':
+            potential_profit = original_stake * (original_odds - 1)
+            cashout_stake = potential_profit / (current_odds - 1)
+            
+            if current_odds < original_odds:
+                guaranteed = original_stake - cashout_stake
+            else:
+                guaranteed = potential_profit - (cashout_stake * (current_odds - 1))
+            
+            return {
+                'cashout_stake': round(cashout_stake, 2),
+                'profit_if_win': round(potential_profit - (cashout_stake * (current_odds - 1)), 2),
+                'profit_if_lose': round(cashout_stake - original_stake, 2),
+                'guaranteed_profit': round(guaranteed, 2) if guaranteed > 0 else 0
+            }
+        else:
+            liability = original_stake * (original_odds - 1)
+            potential_profit = original_stake
+            cashout_stake = liability / (current_odds - 1)
+            
+            return {
+                'cashout_stake': round(cashout_stake, 2),
+                'profit_if_win': round(cashout_stake - liability, 2),
+                'profit_if_lose': round(potential_profit - cashout_stake, 2),
+                'guaranteed_profit': 0
+            }
+    
+    def get_position(self, market_id, selection_id):
+        """Get current position on a selection including P&L."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        orders = self.get_current_orders(market_ids=[market_id])
+        pnl = self.get_market_profit_and_loss([market_id])
+        
+        position = {
+            'market_id': market_id,
+            'selection_id': selection_id,
+            'back_stake': 0,
+            'back_avg_odds': 0,
+            'lay_stake': 0,
+            'lay_avg_odds': 0,
+            'net_position': 0,
+            'profit_loss': 0
+        }
+        
+        for order_list in [orders['matched'], orders['partiallyMatched']]:
+            for order in order_list:
+                if order['selectionId'] == selection_id:
+                    if order['side'] == 'BACK':
+                        position['back_stake'] += order['sizeMatched']
+                        position['back_avg_odds'] = order['averagePriceMatched'] or 0
+                    else:
+                        position['lay_stake'] += order['sizeMatched']
+                        position['lay_avg_odds'] = order['averagePriceMatched'] or 0
+        
+        position['net_position'] = position['back_stake'] - position['lay_stake']
+        
+        if pnl and market_id in pnl:
+            for runner_pnl in pnl[market_id].get('runners', []):
+                if runner_pnl.get('selectionId') == selection_id:
+                    position['profit_loss'] = runner_pnl.get('ifWin', 0)
+        
+        return position
+    
+    def get_settled_bets(self, days=7):
+        """Get settled (cleared) bets from Betfair for the last N days."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        from datetime import datetime, timedelta
+        
+        settled_from = datetime.utcnow() - timedelta(days=days)
+        settled_to = datetime.utcnow()
+        
+        time_range = betfairlightweight.filters.time_range(
+            from_=settled_from.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            to=settled_to.strftime('%Y-%m-%dT%H:%M:%SZ')
+        )
+        
+        result = self.client.betting.list_cleared_orders(
+            bet_status='SETTLED',
+            settled_date_range=time_range
+        )
+        
+        bets = []
+        for order in result.cleared_orders if result.cleared_orders else []:
+            bets.append({
+                'betId': order.bet_id,
+                'marketId': order.market_id,
+                'selectionId': order.selection_id,
+                'side': order.side,
+                'price': order.price_requested,
+                'priceMatched': order.price_matched,
+                'size': order.size_settled,
+                'profit': order.profit,
+                'settledDate': order.settled_date.isoformat() if order.settled_date else None,
+                'eventName': getattr(order, 'event_type_id', '') or '',
+                'itemDescription': getattr(order, 'item_description', None)
+            })
+        
+        return bets
+    
+    def get_market_profit_and_loss(self, market_ids):
+        """Get profit/loss for markets (for cashout calculation)."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        result = self.client.betting.list_market_profit_and_loss(
+            market_ids=market_ids,
+            include_settled_bets=False,
+            include_bsp_bets=False
+        )
+        
+        market_pnl = {}
+        for market in result:
+            runners_pnl = []
+            for runner in market.profit_and_losses if market.profit_and_losses else []:
+                runners_pnl.append({
+                    'selectionId': runner.selection_id,
+                    'ifWin': runner.if_win,
+                    'ifLose': runner.if_lose if hasattr(runner, 'if_lose') else None
+                })
+            market_pnl[market.market_id] = runners_pnl
+        
+        return market_pnl
+    
+    def calculate_cashout(self, market_id, selection_id, side, matched_stake, matched_price):
+        """
+        Calculate cashout stake and potential P/L.
+        
+        Cashout works by placing an opposite bet to lock in profit/loss.
+        - If original bet was BACK, cashout is LAY
+        - If original bet was LAY, cashout is BACK
+        
+        For green-up (equal profit all outcomes):
+        - BACK position: LAY stake = (back_stake * back_price) / lay_price
+        - LAY position: BACK stake = (lay_stake * lay_price) / back_price
+        
+        Returns dict with cashout_stake, green_up, profit_if_win, profit_if_lose
+        """
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        # Get current prices
+        price_data = self.client.betting.list_market_book(
+            market_ids=[market_id],
+            price_projection=filters.price_projection(
+                price_data=['EX_BEST_OFFERS']
+            )
+        )
+        
+        if not price_data:
+            raise Exception("Quote non disponibili")
+        
+        current_price = None
+        for runner in price_data[0].runners:
+            if runner.selection_id == selection_id:
+                if side == 'BACK':
+                    # For BACK cashout, we need LAY price
+                    if runner.ex and runner.ex.available_to_lay:
+                        current_price = runner.ex.available_to_lay[0].price
+                else:
+                    # For LAY cashout, we need BACK price
+                    if runner.ex and runner.ex.available_to_back:
+                        current_price = runner.ex.available_to_back[0].price
+                break
+        
+        if not current_price:
+            raise Exception("Prezzo corrente non disponibile")
+        
+        # Calculate cashout stake using correct hedge formulas
+        if side == 'BACK':
+            # Original BACK bet: hedge by LAYing
+            # LAY stake = (back_stake * back_price) / lay_price
+            # This ensures equal profit on all outcomes
+            cashout_stake = (matched_stake * matched_price) / current_price
+            
+            # Green-up profit calculation:
+            # If wins: back_profit - lay_liability = stake*(back_price-1) - cashout_stake*(lay_price-1)
+            # If loses: -back_stake + lay_stake = -stake + cashout_stake
+            profit_if_win = matched_stake * (matched_price - 1) - cashout_stake * (current_price - 1)
+            profit_if_lose = -matched_stake + cashout_stake
+            
+        else:
+            # Original LAY bet: hedge by BACKing
+            # BACK stake = (lay_stake * lay_price) / back_price
+            cashout_stake = (matched_stake * matched_price) / current_price
+            
+            # Original LAY liability
+            original_liability = matched_stake * (matched_price - 1)
+            
+            # If wins: -lay_liability + back_profit = -liability + cashout_stake*(back_price-1)
+            # If loses: +lay_stake - back_stake = matched_stake - cashout_stake
+            profit_if_win = -original_liability + cashout_stake * (current_price - 1)
+            profit_if_lose = matched_stake - cashout_stake
+        
+        # Round stake to 2 decimal places, enforce €1 minimum for Italy
+        cashout_stake = round(cashout_stake, 2)
+        cashout_stake = max(1.0, cashout_stake)
+        
+        # Recalculate P/L with adjusted stake
+        if side == 'BACK':
+            profit_if_win = matched_stake * (matched_price - 1) - cashout_stake * (current_price - 1)
+            profit_if_lose = -matched_stake + cashout_stake
+        else:
+            original_liability = matched_stake * (matched_price - 1)
+            profit_if_win = -original_liability + cashout_stake * (current_price - 1)
+            profit_if_lose = matched_stake - cashout_stake
+        
+        # Green-up is the guaranteed profit (average of both outcomes with proper hedge)
+        # With perfect hedge, profit_if_win should equal profit_if_lose
+        green_up = (profit_if_win + profit_if_lose) / 2
+        
+        return {
+            'cashout_stake': cashout_stake,
+            'current_price': current_price,
+            'profit_if_win': round(profit_if_win, 2),
+            'profit_if_lose': round(profit_if_lose, 2),
+            'green_up': round(green_up, 2),
+            'cashout_side': 'LAY' if side == 'BACK' else 'BACK'
+        }
+    
+    def _get_fresh_price(self, market_id, selection_id, side):
+        """
+        Get fresh price for a selection.
+        
+        Args:
+            market_id: Market ID
+            selection_id: Selection ID
+            side: 'BACK' or 'LAY' - the side we want to place
+        
+        Returns:
+            Best available price or None
+        """
+        try:
+            price_data = self.client.betting.list_market_book(
+                market_ids=[market_id],
+                price_projection=filters.price_projection(
+                    price_data=['EX_BEST_OFFERS']
+                )
+            )
+            
+            if not price_data or not price_data[0].runners:
+                return None
+            
+            for runner in price_data[0].runners:
+                if runner.selection_id == selection_id:
+                    if side == 'BACK':
+                        if runner.ex and runner.ex.available_to_back:
+                            return runner.ex.available_to_back[0].price
+                    else:  # LAY
+                        if runner.ex and runner.ex.available_to_lay:
+                            return runner.ex.available_to_lay[0].price
+                    break
+            return None
+        except:
+            return None
+    
+    def _adjust_price_with_slippage(self, price, side, slippage_ticks=1):
+        """
+        Adjust price to accept slightly worse odds (slippage).
+        
+        Betfair uses specific price increments (ticks).
+        - For BACK: we accept lower price (worse for us)
+        - For LAY: we accept higher price (worse for us)
+        
+        Args:
+            price: Original price
+            side: 'BACK' or 'LAY'
+            slippage_ticks: Number of ticks to adjust (default 1)
+        
+        Returns:
+            Adjusted price
+        """
+        # Betfair price ladder increments
+        if price < 2:
+            increment = 0.01
+        elif price < 3:
+            increment = 0.02
+        elif price < 4:
+            increment = 0.05
+        elif price < 6:
+            increment = 0.1
+        elif price < 10:
+            increment = 0.2
+        elif price < 20:
+            increment = 0.5
+        elif price < 30:
+            increment = 1.0
+        elif price < 50:
+            increment = 2.0
+        elif price < 100:
+            increment = 5.0
+        else:
+            increment = 10.0
+        
+        # Betfair order matching:
+        # - BACK at price X matches LAY orders at X or HIGHER
+        # - LAY at price X matches BACK orders at X or LOWER
+        #
+        # To increase fill probability with slippage:
+        # - BACK: DECREASE price (willing to accept lower odds = worse for backer)
+        # - LAY: INCREASE price (offering higher odds = worse for layer, attracts backers)
+        if side == 'BACK':
+            adjusted = price - (increment * slippage_ticks)
+            return max(1.01, round(adjusted, 2))
+        else:  # LAY
+            adjusted = price + (increment * slippage_ticks)
+            return min(1000, round(adjusted, 2))
+    
+    def execute_cashout(self, market_id, selection_id, cashout_side, cashout_stake, cashout_price, 
+                        max_retries=3, slippage_ticks=1, use_fresh_price=True):
+        """
+        Execute cashout by placing opposite bet with improved reliability.
+        
+        Features:
+        - Fetches fresh price just before placing order
+        - Automatic retry with updated price on failure
+        - Slippage option to accept slightly worse prices
+        
+        Args:
+            market_id: Market ID
+            selection_id: Selection ID
+            cashout_side: 'BACK' or 'LAY'
+            cashout_stake: Stake amount
+            cashout_price: Original calculated price (used as reference)
+            max_retries: Number of retry attempts (default 3)
+            slippage_ticks: Price ticks to accept as slippage (default 1)
+            use_fresh_price: Whether to fetch fresh price before placing (default True)
+        
+        Returns:
+            Placement result dict
+        """
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        # Round stake to 2 decimal places, minimum €1 for Italy
+        stake = max(1.0, round(cashout_stake, 2))
+        
+        last_error = None
+        last_status = None
+        
+        for attempt in range(max_retries):
+            try:
+                # Get fresh price if enabled
+                if use_fresh_price:
+                    fresh_price = self._get_fresh_price(market_id, selection_id, cashout_side)
+                    if fresh_price:
+                        price_to_use = fresh_price
+                    else:
+                        price_to_use = cashout_price
+                else:
+                    price_to_use = cashout_price
+                
+                # Apply slippage on retry attempts
+                if attempt > 0 and slippage_ticks > 0:
+                    price_to_use = self._adjust_price_with_slippage(
+                        price_to_use, 
+                        cashout_side, 
+                        slippage_ticks * attempt
+                    )
+                
+                instructions = [
+                    betfairlightweight.filters.place_instruction(
+                        order_type='LIMIT',
+                        selection_id=selection_id,
+                        side=cashout_side,
+                        limit_order=betfairlightweight.filters.limit_order(
+                            size=stake,
+                            price=price_to_use,
+                            persistence_type='LAPSE'
+                        )
+                    )
+                ]
+                
+                result = self.client.betting.place_orders(
+                    market_id=market_id,
+                    instructions=instructions
+                )
+                
+                # Parse result
+                parsed = self._parse_cashout_result(result)
+                
+                # Success - return immediately
+                if parsed.get('status') == 'SUCCESS':
+                    parsed['price_used'] = price_to_use
+                    parsed['attempts'] = attempt + 1
+                    return parsed
+                
+                # Check if we should retry
+                last_status = parsed.get('status')
+                error_code = parsed.get('error_code', '')
+                
+                # Don't retry on permanent errors
+                permanent_errors = ['MARKET_SUSPENDED', 'MARKET_NOT_OPEN_FOR_BETTING', 
+                                   'INSUFFICIENT_FUNDS', 'INVALID_ACCOUNT_STATE']
+                if error_code in permanent_errors:
+                    return parsed
+                
+                # Retry on transient errors or unmatched
+                if attempt < max_retries - 1:
+                    time.sleep(0.5 * (attempt + 1))  # Increasing delay
+                    continue
+                
+                return parsed
+                
+            except Exception as e:
+                last_error = str(e)
+                if attempt < max_retries - 1:
+                    time.sleep(0.5 * (attempt + 1))
+                    continue
+        
+        # All retries failed
+        return {
+            'status': 'ERROR',
+            'error': last_error or f'Fallito dopo {max_retries} tentativi. Ultimo stato: {last_status}',
+            'betId': None,
+            'sizeMatched': 0,
+            'averagePriceMatched': None,
+            'attempts': max_retries
+        }
+    
+    def _parse_cashout_result(self, result):
+        """Parse cashout placement result into consistent format."""
+        try:
+            if isinstance(result, list) and len(result) > 0:
+                result = result[0]
+            
+            # Try to get instruction_reports from various attribute names
+            instruction_reports = None
+            for attr_name in ['instruction_reports', 'instructionReports']:
+                try:
+                    instruction_reports = getattr(result, attr_name, None)
+                    if instruction_reports:
+                        break
+                except:
+                    pass
+            
+            # If still None, try dict-style access
+            if not instruction_reports and hasattr(result, '__getitem__'):
+                try:
+                    instruction_reports = result.get('instructionReports') or result.get('instruction_reports')
+                except:
+                    pass
+            
+            bet_id = None
+            size_matched = 0
+            avg_price = None
+            error_code = None
+            error_msg = None
+            status = getattr(result, 'status', None) or 'UNKNOWN'
+            
+            # Try to get error code from result level
+            for ec_attr in ['error_code', 'errorCode']:
+                error_code = getattr(result, ec_attr, None)
+                if error_code:
+                    break
+            
+            if instruction_reports and len(instruction_reports) > 0:
+                ir = instruction_reports[0]
+                # Try multiple attribute patterns
+                for bid_attr in ['bet_id', 'betId']:
+                    bet_id = getattr(ir, bid_attr, None)
+                    if bet_id:
+                        break
+                for sm_attr in ['size_matched', 'sizeMatched']:
+                    size_matched = getattr(ir, sm_attr, 0)
+                    if size_matched:
+                        break
+                for ap_attr in ['average_price_matched', 'averagePriceMatched']:
+                    avg_price = getattr(ir, ap_attr, None)
+                    if avg_price:
+                        break
+                
+                # Try to get instruction-level error code
+                if not error_code:
+                    for ec_attr in ['error_code', 'errorCode']:
+                        error_code = getattr(ir, ec_attr, None)
+                        if error_code:
+                            break
+            
+            return {
+                'status': status,
+                'betId': bet_id,
+                'sizeMatched': size_matched or 0,
+                'averagePriceMatched': avg_price,
+                'error_code': error_code,
+                'error': error_msg
+            }
+        except Exception as e:
+            # Return error info but don't crash
+            return {
+                'status': 'ERROR',
+                'error': str(e),
+                'error_code': None,
+                'betId': None,
+                'sizeMatched': 0,
+                'averagePriceMatched': None
+            }
+    
+    def get_live_events(self, event_type_id='1'):
+        """Get in-play events for a specific event type."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        inplay_events = self.client.betting.list_events(
+            filter=filters.market_filter(
+                event_type_ids=[event_type_id],
+                in_play_only=True
+            )
+        )
+        
+        result = []
+        for event in inplay_events:
+            result.append({
+                'id': event.event.id,
+                'name': event.event.name,
+                'countryCode': event.event.country_code,
+                'openDate': event.event.open_date.isoformat() if event.event.open_date else None,
+                'marketCount': event.market_count,
+                'inPlay': True
+            })
+        
+        return result
+    
+    def get_live_events_only(self):
+        """Get only in-play football events."""
+        return self.get_live_events(FOOTBALL_ID)
+    
+    def get_live_markets(self, event_id=None):
+        """Get all in-play markets, optionally filtered by event."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        market_filter_params = {
+            'event_type_ids': [FOOTBALL_ID],
+            'in_play_only': True
+        }
+        if event_id:
+            market_filter_params['event_ids'] = [event_id]
+        
+        markets = self.client.betting.list_market_catalogue(
+            filter=filters.market_filter(**market_filter_params),
+            market_projection=['RUNNER_DESCRIPTION', 'MARKET_START_TIME', 'EVENT'],
+            max_results=100
+        )
+        
+        result = []
+        for market in markets:
+            market_type = market.market_type if hasattr(market, 'market_type') else None
+            display_name = MARKET_TYPES.get(market_type, market.market_name)
+            event_name = market.event.name if hasattr(market, 'event') and market.event else ''
+            
+            result.append({
+                'marketId': market.market_id,
+                'marketName': market.market_name,
+                'marketType': market_type,
+                'displayName': display_name,
+                'eventId': market.event.id if hasattr(market, 'event') and market.event else None,
+                'eventName': event_name,
+                'startTime': market.market_start_time.isoformat() if market.market_start_time else None,
+                'inPlay': True
+            })
+        
+        return result

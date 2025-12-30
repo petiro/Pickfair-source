@@ -1,0 +1,58 @@
+$ git clone https://petiro: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@github.com/petiro/Pickfair.git pickfair-build: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@github.c
+Cloning into 'pickfair-build'...build
+remote: Enumerating objects: 1048, done.
+remote: Counting objects: 100% (116/116), done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 1048 (delta 115), reused 111 (delta 111), pack-reused 932 (from 3)
+Receiving objects: 100% (1048/1048), 337.40 MiB | 42.46 MiB/s, done.
+Resolving deltas: 100% (688/688), done.
+~/workspace/pickfair-build$ cp -r ../python-app/* .
+~/workspace/pickfair-build$ git commit -m "v3.58.3 - Tuning H24 SAFE"
+[main 63f5340] v3.58.3 - Tuning H24 SAFEm "v3.58.3 - Tuning H24 SAFE"
+ 35 files changed, 80852 insertions(+)
+ create mode 100644 AVVIA.bat
+ create mode 100644 BUILD.bat
+ create mode 100644 CHANGELOG.md
+ create mode 100644 Pickfair.spec
+ create mode 100644 README.txt
+ create mode 100644 auto_updater.py
+ create mode 100644 bet_logger.py
+ create mode 100644 betfair_client.py
+ create mode 100644 betfair_stream.py
+ create mode 100644 bot_logger.py
+ create mode 100644 build.bat
+ create mode 100644 build.py
+ create mode 100644 build/Pickfair/Analysis-00.toc
+ create mode 100644 build/Pickfair/EXE-00.toc
+ create mode 100644 build/Pickfair/PKG-00.toc
+ create mode 100644 build/Pickfair/PYZ-00.pyz
+ create mode 100644 build/Pickfair/PYZ-00.toc
+ create mode 100644 build/Pickfair/Pickfair.pkg
+ create mode 100644 build/Pickfair/base_library.zip
+ create mode 100644 build/Pickfair/warn-Pickfair.txt
+ create mode 100644 build/Pickfair/xref-Pickfair.html
+ create mode 100644 database.py
+ create mode 100755 dist/Pickfair
+ create mode 100644 dutching.py
+ create mode 100644 license_generator.py
+ create mode 100644 license_manager.py
+ create mode 100644 main.py
+ create mode 100644 order_manager.py
+ create mode 100644 plugin_manager.py
+ create mode 100644 plugins/example_odds_alert.py
+ create mode 100644 plugins/plugin_template.py
+ create mode 100644 storage.py
+ create mode 100644 telegram_listener.py
+ create mode 100644 theme.py
+~/workspace/pickfair-build$ git push origin main --tagsng H24 SAFE"
+Enumerating objects: 43, done.t push origin main --tagsng H24 SAFE"
+Counting objects: 100% (43/43), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (40/40), done.
+Writing objects: 100% (42/42), 47.72 MiB | 5.25 MiB/s, done.
+Total 42 (delta 5), reused 1 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (5/5), done.
+To https://github.com/petiro/Pickfair.git
+   a348965..63f5340  main -> main
+ * [new tag]         v3.58.3 -> v3.58.3
+~/workspace/pickfair-build$ 
