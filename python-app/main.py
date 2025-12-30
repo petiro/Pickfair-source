@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.58.4"
+APP_VERSION = "3.58.5"
 
 # Setup file logging
 def setup_logging():
@@ -200,6 +200,10 @@ class PickfairApp:
         self.simulation_mode = False  # Simulation mode flag
         self.recovered_positions = []  # Positions recovered from DB
         
+        # Dashboard auto-refresh
+        self._dashboard_dirty = False
+        self._dashboard_refresh_timer_id = None
+        
         # License check
         self.is_app_licensed = is_licensed()
         
@@ -228,6 +232,7 @@ class PickfairApp:
         self._start_booking_monitor()
         self._start_auto_cashout_monitor()
         self._start_settlement_monitor()
+        self._start_dashboard_auto_refresh()
         self._check_for_updates_on_startup()
         
         # Recovery: restore open positions from database
@@ -1312,6 +1317,7 @@ class PickfairApp:
                             original_stake=pos['stake'],
                             cashout_stake=info['cashout_stake']
                         )
+                        self._mark_dashboard_dirty()
                         # Broadcast cashout to Copy Trading followers
                         event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
                         self._broadcast_copy_cashout(event_name)
@@ -1324,6 +1330,7 @@ class PickfairApp:
                             market_id=market_id,
                             reason=result.get('error', 'Errore sconosciuto')
                         )
+                        self._mark_dashboard_dirty()
                         messagebox.showerror("Errore", f"Cashout fallito: {result.get('error', 'Errore')}")
                 except Exception as e:
                     messagebox.showerror("Errore", f"Errore cashout: {e}")
@@ -3799,6 +3806,32 @@ class PickfairApp:
             self._create_performance_view(self.dashboard_performance_frame)
         
         threading.Thread(target=fetch_data, daemon=True).start()
+    
+    def _mark_dashboard_dirty(self):
+        """Mark dashboard as needing refresh. Called after bet/telegram/cashout events."""
+        self._dashboard_dirty = True
+        logging.debug("[DASHBOARD] Marked dirty for auto-refresh")
+    
+    def _start_dashboard_auto_refresh(self):
+        """Start the dashboard auto-refresh timer (checks every 5 seconds)."""
+        def check_and_refresh():
+            if self._dashboard_dirty and self.client:
+                self._dashboard_dirty = False
+                logging.debug("[DASHBOARD] Auto-refreshing due to dirty flag")
+                try:
+                    self._refresh_dashboard_tab()
+                except Exception as e:
+                    logging.warning(f"[DASHBOARD] Auto-refresh error: {e}")
+            self._dashboard_refresh_timer_id = self.root.after(5000, check_and_refresh)
+        
+        self._dashboard_refresh_timer_id = self.root.after(5000, check_and_refresh)
+        logging.info("[DASHBOARD] Auto-refresh timer started (5s interval)")
+    
+    def _stop_dashboard_auto_refresh(self):
+        """Stop the dashboard auto-refresh timer."""
+        if self._dashboard_refresh_timer_id:
+            self.root.after_cancel(self._dashboard_refresh_timer_id)
+            self._dashboard_refresh_timer_id = None
     
     def _create_statistics_view(self, parent):
         """Create statistics view with bet outcomes."""
@@ -7397,6 +7430,7 @@ Evento: {event_name}"""
                             event_name=event_name,
                             source='SIMULATION'
                         )
+                    self._mark_dashboard_dirty()
                     messagebox.showinfo("Simulazione", f"[SIMULAZIONE] {len(instructions)} scommesse piazzate!")
                     dialog.destroy()
                     return
@@ -7435,6 +7469,7 @@ Evento: {event_name}"""
                                 status='PLACED'
                             )
                     
+                    self._mark_dashboard_dirty()
                     messagebox.showinfo("Successo", f"{len(instructions)} scommesse piazzate!")
                     dialog.destroy()
                 else:
@@ -7465,6 +7500,7 @@ Evento: {event_name}"""
                                 source='DUTCHING'
                             )
                     
+                    self._mark_dashboard_dirty()
                     logging.warning(f"[DUTCHING] Bet placement failed: {error_msg}")
                     messagebox.showwarning("Attenzione", error_msg)
             except Exception as e:
@@ -7474,6 +7510,7 @@ Evento: {event_name}"""
                     exception=e,
                     market_id=self.current_market.get('marketId', '') if self.current_market else ''
                 )
+                self._mark_dashboard_dirty()
                 messagebox.showerror("Errore", str(e))
         
         submit_btn = tk.Button(btn_frame, text="Piazza Scommesse", bg='#27ae60', fg='white', 
@@ -7788,6 +7825,9 @@ Evento: {event_name}"""
                     self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
                 else:
                     logging.debug(f"[AUTO-BET DEBUG] Skipped - auto_bet={settings.get('auto_bet')}, event={signal.get('event')}, market_type={signal.get('market_type')}")
+                
+                # Mark dashboard for auto-refresh on any Telegram signal
+                self._mark_dashboard_dirty()
             
             def on_status(status, message):
                 self.telegram_status = status
