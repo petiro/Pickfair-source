@@ -200,6 +200,21 @@ class PersistentStorage:
             
             CREATE INDEX IF NOT EXISTS idx_open_positions_market ON open_positions(market_id);
             CREATE INDEX IF NOT EXISTS idx_open_positions_status ON open_positions(status);
+            
+            CREATE TABLE IF NOT EXISTS performance_metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                api_calls_min INTEGER DEFAULT 0,
+                loop_latency_ms REAL DEFAULT 0,
+                throttle_state TEXT DEFAULT 'NORMAL',
+                telegram_queue_depth INTEGER DEFAULT 0,
+                cache_hit_rate REAL DEFAULT 0,
+                memory_mb REAL DEFAULT 0,
+                cpu_percent REAL DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_perf_created_at ON performance_metrics(created_at);
+            CREATE INDEX IF NOT EXISTS idx_perf_throttle ON performance_metrics(throttle_state);
             """)
         logger.info("[STORAGE] Database tables initialized")
     
@@ -413,6 +428,64 @@ class PersistentStorage:
             return True
         except Exception as e:
             logger.error(f"[STORAGE] Failed to log error: {e}")
+            return False
+    
+    def log_performance(
+        self,
+        api_calls_min=0,
+        loop_latency_ms=0.0,
+        throttle_state='NORMAL',
+        telegram_queue_depth=0,
+        cache_hit_rate=0.0,
+        memory_mb=0.0,
+        cpu_percent=0.0
+    ):
+        """Log performance metrics snapshot."""
+        try:
+            with self.get_db() as conn:
+                conn.execute("""
+                INSERT INTO performance_metrics (
+                    api_calls_min, loop_latency_ms, throttle_state,
+                    telegram_queue_depth, cache_hit_rate, memory_mb, cpu_percent
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    api_calls_min, loop_latency_ms, throttle_state,
+                    telegram_queue_depth, cache_hit_rate, memory_mb, cpu_percent
+                ))
+            return True
+        except Exception as e:
+            logger.error(f"[STORAGE] Failed to log performance: {e}")
+            return False
+    
+    def get_performance_metrics(self, hours=1, limit=100):
+        """Get performance metrics for the last N hours."""
+        try:
+            with self.get_db() as conn:
+                rows = conn.execute("""
+                SELECT api_calls_min, loop_latency_ms, throttle_state,
+                       telegram_queue_depth, cache_hit_rate, memory_mb, cpu_percent,
+                       created_at
+                FROM performance_metrics
+                WHERE created_at >= datetime('now', ?)
+                ORDER BY created_at DESC
+                LIMIT ?
+                """, (f'-{hours} hours', limit)).fetchall()
+                return [dict(r) for r in rows]
+        except Exception as e:
+            logger.error(f"[STORAGE] Failed to get performance metrics: {e}")
+            return []
+    
+    def cleanup_old_performance_metrics(self, days=7):
+        """Delete old performance metrics to prevent DB bloat."""
+        try:
+            with self.get_db() as conn:
+                conn.execute("""
+                DELETE FROM performance_metrics
+                WHERE created_at < datetime('now', ?)
+                """, (f'-{days} days',))
+            return True
+        except Exception as e:
+            logger.error(f"[STORAGE] Failed to cleanup performance metrics: {e}")
             return False
     
     def save_open_position(

@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.58.5"
+APP_VERSION = "3.58.6"
 
 # Setup file logging
 def setup_logging():
@@ -233,6 +233,7 @@ class PickfairApp:
         self._start_auto_cashout_monitor()
         self._start_settlement_monitor()
         self._start_dashboard_auto_refresh()
+        self._start_performance_logging()
         self._check_for_updates_on_startup()
         
         # Recovery: restore open positions from database
@@ -3832,6 +3833,52 @@ class PickfairApp:
         if self._dashboard_refresh_timer_id:
             self.root.after_cancel(self._dashboard_refresh_timer_id)
             self._dashboard_refresh_timer_id = None
+    
+    def _start_performance_logging(self):
+        """Start logging performance metrics every 10 seconds."""
+        self._perf_log_counter = 0
+        
+        def log_performance():
+            self._perf_log_counter += 1
+            try:
+                if self.client and hasattr(self.client, 'get_performance_metrics'):
+                    metrics = self.client.get_performance_metrics()
+                    
+                    throttle_state = 'NORMAL'
+                    api_calls = metrics.get('api_calls_per_min', 0)
+                    if api_calls > 100:
+                        throttle_state = 'CRITICAL'
+                    elif api_calls > 70:
+                        throttle_state = 'HIGH'
+                    
+                    cache_stats = metrics.get('cache_stats', {})
+                    cache_hit_rate = cache_stats.get('hit_rate', 0)
+                    
+                    self.persistent_storage.log_performance(
+                        api_calls_min=int(api_calls),
+                        loop_latency_ms=metrics.get('avg_latency_ms', 0),
+                        throttle_state=throttle_state,
+                        telegram_queue_depth=0,
+                        cache_hit_rate=cache_hit_rate
+                    )
+                    
+                    if self._perf_log_counter % 360 == 0:
+                        self.persistent_storage.cleanup_old_performance_metrics(days=7)
+                        logging.debug("[PERF] Cleaned up old performance metrics")
+                    
+            except Exception as e:
+                logging.debug(f"[PERF] Log error: {e}")
+            
+            self._perf_log_timer_id = self.root.after(10000, log_performance)
+        
+        self._perf_log_timer_id = self.root.after(10000, log_performance)
+        logging.info("[PERF] Performance logging started (10s interval)")
+    
+    def _stop_performance_logging(self):
+        """Stop performance logging timer."""
+        if hasattr(self, '_perf_log_timer_id') and self._perf_log_timer_id:
+            self.root.after_cancel(self._perf_log_timer_id)
+            self._perf_log_timer_id = None
     
     def _create_statistics_view(self, parent):
         """Create statistics view with bet outcomes."""

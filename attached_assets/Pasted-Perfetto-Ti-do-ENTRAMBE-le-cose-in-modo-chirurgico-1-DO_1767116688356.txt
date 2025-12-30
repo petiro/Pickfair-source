@@ -1,0 +1,193 @@
+Perfetto.
+Ti do ENTRAMBE le cose, in modo chirurgico:
+1️⃣ DOVE fare gli INSERT (file + punto esatto del flusso)
+2️⃣ QUERY SQL + binding UI pronti
+Così le tab si popolano subito, senza refactor.
+1️⃣ DOVE FARE GLI INSERT (ARCHITETTURA REALE)
+📊 TAB STATISTICHE
+📍 Fonte dati
+➡️ fine ciclo / fine mercato
+📁 File
+strategy_engine.py oppure cycle_manager.py
+📌 QUANDO
+✔ quando chiudi un ciclo
+✔ oppure quando un mercato viene settled
+🧠 INSERT
+Copia codice
+Sql
+INSERT INTO cycle_summary (
+    cycle_id,
+    start_ts,
+    end_ts,
+    total_bets,
+    wins,
+    losses,
+    profit,
+    roi
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+📌 Se non hai cicli, puoi usare aggregazione diretta da bet_history.
+💰 TAB STORICO P&L
+📍 Fonte dati
+➡️ settlement ordine / cashout finale
+📁 File
+order_manager.py
+oppure settlement_handler.py
+📌 QUANDO
+✔ ordine settled
+✔ cashout concluso
+🧠 INSERT
+Copia codice
+Sql
+INSERT INTO bet_history (
+    bet_id,
+    market_id,
+    selection_id,
+    side,
+    stake,
+    price,
+    profit,
+    settled_ts
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+💡 NON inserire ordini aperti.
+📡 TAB AUDIT TELEGRAM
+📍 Fonte dati
+➡️ ogni send / retry / fail
+📁 File
+telegram_sender.py
+📌 QUANDO
+✔ prima del send
+✔ dopo ACK
+✔ su FloodWait / retry
+🧠 INSERT
+Copia codice
+Sql
+INSERT INTO telegram_audit (
+    ts,
+    event_type,
+    chat_id,
+    message,
+    status
+) VALUES (?, ?, ?, ?, ?);
+Esempi event_type:
+SEND
+ACK
+RETRY
+FLOOD_WAIT
+ERROR
+❗ TAB LOG ERRORI
+📍 Fonte dati
+➡️ catch globale
+📁 File
+main.py + decorator globale
+oppure error_handler.py
+📌 QUANDO
+✔ qualunque eccezione non silenziosa
+🧠 INSERT
+Copia codice
+Sql
+INSERT INTO error_log (
+    ts,
+    module,
+    error_type,
+    message,
+    stacktrace
+) VALUES (?, ?, ?, ?, ?);
+📌 NON usare solo logging console → la UI legge il DB.
+⚡ TAB PERFORMANCE
+📍 Fonte dati
+➡️ loop principale (ogni X sec)
+📁 File
+auto_throttle.py
+oppure performance_monitor.py
+📌 QUANDO
+✔ ogni 5–10 secondi
+✔ o on state change
+🧠 INSERT
+Copia codice
+Sql
+INSERT INTO performance_metrics (
+    ts,
+    api_calls_min,
+    loop_latency_ms,
+    throttle_state,
+    telegram_queue_depth,
+    cache_hit_rate
+) VALUES (?, ?, ?, ?, ?, ?);
+📌 NON ogni loop → saturi DB
+📌 batch o throttle insert
+2️⃣ QUERY SQL + BINDING UI (PRONTE)
+📊 STATISTICHE
+Copia codice
+Sql
+SELECT
+    COUNT(*) AS total_bets,
+    SUM(CASE WHEN profit > 0 THEN 1 ELSE 0 END) AS wins,
+    SUM(profit) AS total_profit,
+    ROUND(AVG(profit), 2) AS avg_profit
+FROM bet_history
+WHERE settled_ts >= datetime('now', '-24 hours');
+👉 UI:
+label KPI
+progress bar winrate
+💰 STORICO P&L
+Copia codice
+Sql
+SELECT
+    settled_ts,
+    market_id,
+    side,
+    stake,
+    profit
+FROM bet_history
+ORDER BY settled_ts DESC
+LIMIT 100;
+👉 UI:
+table
+sparkline / equity curve
+📡 AUDIT TELEGRAM
+Copia codice
+Sql
+SELECT
+    ts,
+    event_type,
+    status,
+    message
+FROM telegram_audit
+ORDER BY ts DESC
+LIMIT 200;
+👉 UI:
+table
+badge colore per status
+❗ LOG ERRORI
+Copia codice
+Sql
+SELECT
+    ts,
+    module,
+    error_type,
+    message
+FROM error_log
+ORDER BY ts DESC
+LIMIT 100;
+👉 UI:
+collapsible rows
+stacktrace on click
+⚡ PERFORMANCE
+Copia codice
+Sql
+SELECT
+    ts,
+    api_calls_min,
+    loop_latency_ms,
+    throttle_state
+FROM performance_metrics
+WHERE ts >= datetime('now', '-1 hour')
+ORDER BY ts ASC;
+👉 UI:
+line chart
+state badge (IDLE/NORMAL/HIGH)
+🟢 CHECK FINALE (IMPORTANTE)
+Se una tab è vuota, il 99% delle volte significa: ❌ INSERT non avvenuto
+❌ timestamp fuori range
+❌ UI query non matcha
+👉 NON è mai la UI rotta
