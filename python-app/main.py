@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.58.9"
+APP_VERSION = "3.59.0"
 
 # Setup file logging
 def setup_logging():
@@ -2963,7 +2963,7 @@ class PickfairApp:
             new_balance = current_balance - liability
             self.db.increment_simulation_bet_count(new_balance)
             
-            # Save bet
+            # Save bet to simulation DB
             self.db.save_simulation_bet(
                 event_name=self.current_market.get('eventName', 'Quick Bet'),
                 market_id=self.current_market['marketId'],
@@ -2975,6 +2975,27 @@ class PickfairApp:
                 stake=stake,
                 status='MATCHED'
             )
+            
+            # Log to persistent storage for unified history
+            sim_bet_id = f"SIM-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+            self.persistent_storage.log_bet_event(
+                market_id=self.current_market['marketId'],
+                selection_id=str(runner['selectionId']),
+                side=bet_type,
+                stake=stake,
+                price=price,
+                status='MATCHED',
+                bet_id=sim_bet_id,
+                market_name=self.current_market.get('marketName', ''),
+                event_name=self.current_market.get('eventName', 'Quick Bet'),
+                runner_name=runner['runnerName'],
+                matched_size=stake,
+                avg_price_matched=price,
+                source='SIMULATION'
+            )
+            
+            # Trigger dashboard refresh
+            self._mark_dashboard_dirty()
             
             messagebox.showinfo("Simulazione", 
                 f"Scommessa simulata piazzata!\n\n"
@@ -3414,6 +3435,28 @@ class PickfairApp:
                 total_stake=total_stake,
                 potential_profit=potential_profit
             )
+            
+            # Log each selection to persistent storage for unified history
+            for r in self.calculated_results:
+                sim_bet_id = f"SIM-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+                self.persistent_storage.log_bet_event(
+                    market_id=self.current_market['marketId'],
+                    selection_id=str(r.get('selectionId', '')),
+                    side=bet_type,
+                    stake=r['stake'],
+                    price=r['price'],
+                    status='MATCHED',
+                    bet_id=sim_bet_id,
+                    market_name=self.current_market['marketName'],
+                    event_name=self.current_event['name'],
+                    runner_name=r.get('runnerName', 'Unknown'),
+                    matched_size=r['stake'],
+                    avg_price_matched=r['price'],
+                    source='SIMULATION'
+                )
+            
+            # Trigger dashboard refresh
+            self._mark_dashboard_dirty()
             
             # Update display
             self._update_simulation_balance_display()
