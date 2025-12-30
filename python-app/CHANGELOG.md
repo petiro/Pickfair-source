@@ -1,7 +1,10 @@
 # Changelog
 
+## v3.55.5
+- FIX: Betfair Italia - minimo 2€ PER SELEZIONE, incrementi 0.50€
+
 ## v3.55.4
-- FIX: Minimo stake corretto a 1€ (non 2€)
+- REVERT: Minimo era 2€ corretto (regola Betfair Italia)
 
 ## v3.55.3
 - FIX: Auto-updater ora forza chiusura istanza precedente con taskkill
