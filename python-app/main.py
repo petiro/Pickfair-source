@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.55.6"
+APP_VERSION = "3.56.0"
 
 # Setup file logging
 def setup_logging():
@@ -6443,6 +6443,7 @@ Evento: {event_name}"""
                 back_btn.configure(fg_color=COLORS['button_secondary'])
                 lay_btn.configure(fg_color=COLORS['button_secondary'])
                 mixed_btn.configure(fg_color=COLORS['warning'])  # Orange for MIXED
+            repopulate_tree()
             recalculate()
         
         # Book Value display
@@ -6495,61 +6496,126 @@ Evento: {event_name}"""
         tree.tag_configure('lay_type', foreground=COLORS['lay'])
         
         # Store runner selection and offset data
-        runner_selections = {}  # {selectionId: {'selected': bool, 'offset': int, 'swap': bool}}
+        # Format: {item_id: {'selected': bool, 'offset': int, 'selectionId': int, 'side': 'BACK'|'LAY', 'runner': runner}}
+        runner_selections = {}
         
         # Check if LIVE and CORRECT_SCORE to filter impossible results
         is_live = self.current_event and self.current_event.get('inPlayOdds', False)
         is_correct_score = 'CORRECT_SCORE' in market_name.upper() or 'RISULTATO ESATTO' in market_name.upper()
         
-        # Populate tree with runners
+        # Store base runners for repopulation
+        base_runners = []
         for runner in self.current_market.get('runners', []):
-            sel_id = runner['selectionId']
             runner_status = runner.get('status', 'ACTIVE')
-            
-            # In LIVE + CORRECT_SCORE, skip runners that are not ACTIVE (already closed)
             if is_live and is_correct_score and runner_status != 'ACTIVE':
                 continue
+            base_runners.append(runner)
+        
+        def repopulate_tree():
+            """Repopulate tree based on current bet type mode."""
+            nonlocal runner_selections
             
-            back_price = runner.get('backPrice', 0) or 0
-            lay_price = runner.get('layPrice', 0) or 0
+            # Clear tree
+            for item in tree.get_children():
+                tree.delete(item)
             
-            runner_selections[sel_id] = {
-                'selected': False,
-                'offset': 0,
-                'swap': False,
-                'runner': runner
-            }
+            # Preserve selections if possible
+            old_selections = {k: v['selected'] for k, v in runner_selections.items()}
+            runner_selections = {}
             
-            price = back_price if bet_type_var.get() == 'BACK' else lay_price
-            price_str = f"{price:.2f}" if price > 0 else '-'
+            bet_type = bet_type_var.get()
             
-            tree.insert('', tk.END, iid=str(sel_id), values=(
-                '',  # Checkbox indicator
-                runner['runnerName'],
-                '0',
-                '',  # Swap indicator
-                price_str,
-                '-',
-                '-'
-            ))
+            if bet_type == 'MIXED':
+                # MIXED mode: show 2 rows per runner (BACK and LAY)
+                for runner in base_runners:
+                    sel_id = runner['selectionId']
+                    back_price = runner.get('backPrice', 0) or 0
+                    lay_price = runner.get('layPrice', 0) or 0
+                    
+                    # BACK row
+                    item_id_back = f"{sel_id}_B"
+                    runner_selections[item_id_back] = {
+                        'selected': old_selections.get(item_id_back, False),
+                        'offset': 0,
+                        'selectionId': sel_id,
+                        'side': 'BACK',
+                        'runner': runner
+                    }
+                    back_str = f"{back_price:.2f}" if back_price > 0 else '-'
+                    tree.insert('', tk.END, iid=item_id_back, values=(
+                        '[B]' if runner_selections[item_id_back]['selected'] else '[ ]',
+                        f"[B] {runner['runnerName']}",
+                        '0',
+                        back_str,
+                        '-',
+                        '-'
+                    ), tags=('back_row',))
+                    
+                    # LAY row
+                    item_id_lay = f"{sel_id}_L"
+                    runner_selections[item_id_lay] = {
+                        'selected': old_selections.get(item_id_lay, False),
+                        'offset': 0,
+                        'selectionId': sel_id,
+                        'side': 'LAY',
+                        'runner': runner
+                    }
+                    lay_str = f"{lay_price:.2f}" if lay_price > 0 else '-'
+                    tree.insert('', tk.END, iid=item_id_lay, values=(
+                        '[L]' if runner_selections[item_id_lay]['selected'] else '[ ]',
+                        f"[L] {runner['runnerName']}",
+                        '0',
+                        lay_str,
+                        '-',
+                        '-'
+                    ), tags=('lay_row',))
+            else:
+                # BACK or LAY mode: 1 row per runner
+                for runner in base_runners:
+                    sel_id = runner['selectionId']
+                    back_price = runner.get('backPrice', 0) or 0
+                    lay_price = runner.get('layPrice', 0) or 0
+                    
+                    item_id = str(sel_id)
+                    runner_selections[item_id] = {
+                        'selected': old_selections.get(item_id, False),
+                        'offset': 0,
+                        'selectionId': sel_id,
+                        'side': bet_type,
+                        'runner': runner
+                    }
+                    
+                    price = back_price if bet_type == 'BACK' else lay_price
+                    price_str = f"{price:.2f}" if price > 0 else '-'
+                    
+                    tree.insert('', tk.END, iid=item_id, values=(
+                        '[ ]',
+                        runner['runnerName'],
+                        '0',
+                        price_str,
+                        '-',
+                        '-'
+                    ))
+        
+        # Configure additional tag colors
+        tree.tag_configure('back_row', background='#e3f2fd')  # Light blue tint
+        tree.tag_configure('lay_row', background='#fce4ec')   # Light pink tint
+        
+        # Initial population
+        repopulate_tree()
         
         # Handle row selection (toggle)
         def on_row_click(event):
             region = tree.identify_region(event.x, event.y)
             if region == 'cell':
                 col = tree.identify_column(event.x)
-                item = tree.identify_row(event.y)
-                if item:
-                    sel_id = int(item)
+                item_id = tree.identify_row(event.y)
+                if item_id and item_id in runner_selections:
                     col_num = int(col.replace('#', ''))
                     
-                    if col_num == 1:  # Selected column - toggle selection
-                        runner_selections[sel_id]['selected'] = not runner_selections[sel_id]['selected']
-                        update_row(sel_id)
-                        recalculate()
-                    elif col_num == 4:  # Swap column - toggle swap
-                        runner_selections[sel_id]['swap'] = not runner_selections[sel_id]['swap']
-                        update_row(sel_id)
+                    if col_num == 1 or col_num == 2:  # Selected or runner column - toggle selection
+                        runner_selections[item_id]['selected'] = not runner_selections[item_id]['selected']
+                        update_row(item_id)
                         recalculate()
         
         def on_row_double_click(event):
@@ -6557,14 +6623,13 @@ Evento: {event_name}"""
             region = tree.identify_region(event.x, event.y)
             if region == 'cell':
                 col = tree.identify_column(event.x)
-                item = tree.identify_row(event.y)
-                if item and col == '#3':  # Offset column
-                    edit_offset(item)
+                item_id = tree.identify_row(event.y)
+                if item_id and item_id in runner_selections and col == '#3':  # Offset column
+                    edit_offset(item_id)
         
-        def edit_offset(item):
+        def edit_offset(item_id):
             """Show popup to edit offset value."""
-            sel_id = int(item)
-            current_offset = runner_selections[sel_id]['offset']
+            current_offset = runner_selections[item_id]['offset']
             
             popup = tk.Toplevel(dialog)
             popup.title("Modifica Offset")
@@ -6582,8 +6647,8 @@ Evento: {event_name}"""
             def save_offset():
                 try:
                     new_offset = int(offset_var.get())
-                    runner_selections[sel_id]['offset'] = new_offset
-                    update_row(sel_id)
+                    runner_selections[item_id]['offset'] = new_offset
+                    update_row(item_id)
                     recalculate()
                     popup.destroy()
                 except ValueError:
@@ -6592,15 +6657,14 @@ Evento: {event_name}"""
             entry.bind('<Return>', lambda e: save_offset())
             ttk.Button(popup, text="OK", command=save_offset).pack(pady=5)
         
-        def update_row(sel_id):
+        def update_row(item_id):
             """Update a single row display."""
-            data = runner_selections[sel_id]
+            if item_id not in runner_selections:
+                return
+            data = runner_selections[item_id]
             runner = data['runner']
             bet_type = bet_type_var.get()
-            
-            # Determine effective bet type (considering swap)
-            effective_type = 'LAY' if (bet_type == 'BACK' and data['swap']) else \
-                            ('BACK' if (bet_type == 'LAY' and data['swap']) else bet_type)
+            effective_type = data.get('side', bet_type)
             
             # Get price based on effective type
             if effective_type == 'BACK':
@@ -6624,13 +6688,13 @@ Evento: {event_name}"""
             profit_str = '-'
             tags = []
             
-            # Apply swapped tag for visual distinction
-            if data['swap'] and data['selected']:
-                tags.append('swapped')
+            # Apply row color based on side in MIXED mode
+            if bet_type == 'MIXED':
+                tags.append('back_row' if effective_type == 'BACK' else 'lay_row')
             
             if dialog.calculated_results:
                 for r in dialog.calculated_results:
-                    if r['selectionId'] == sel_id:
+                    if r.get('item_id') == item_id:
                         stake_str = f"{r['stake']:.2f} EUR"
                         profit = r.get('profitIfWins', 0)
                         if profit >= 0:
@@ -6641,12 +6705,13 @@ Evento: {event_name}"""
                             tags.append('loss')
                         break
             
-            # Runner name with type indicator if swapped
-            runner_display = runner['runnerName']
-            if data['swap'] and data['selected']:
-                runner_display = f"[{effective_type}] {runner['runnerName']}"
+            # Runner name with type indicator in MIXED mode
+            if bet_type == 'MIXED':
+                runner_display = f"[{effective_type[0]}] {runner['runnerName']}"
+            else:
+                runner_display = runner['runnerName']
             
-            tree.item(str(sel_id), values=(
+            tree.item(item_id, values=(
                 sel_indicator,
                 runner_display,
                 str(data['offset']),
@@ -6692,24 +6757,17 @@ Evento: {event_name}"""
             
             # Gather selected runners with their effective type and prices
             selections = []
-            has_swapped = False
+            has_mixed = False
             is_mixed_mode = (bet_type == 'MIXED')
             
-            for sel_id, data in runner_selections.items():
+            for item_id, data in runner_selections.items():
                 if data['selected']:
                     runner = data['runner']
+                    effective_type = data.get('side', bet_type)
                     
-                    # Determine effective bet type
+                    # Check if we have mixed types
                     if is_mixed_mode:
-                        # In MIXED mode: swap toggles between BACK (default) and LAY
-                        effective_type = 'LAY' if data['swap'] else 'BACK'
-                        has_swapped = True  # Always treat as mixed
-                    else:
-                        # In BACK/LAY mode: swap inverts the selection
-                        effective_type = 'LAY' if (bet_type == 'BACK' and data['swap']) else \
-                                        ('BACK' if (bet_type == 'LAY' and data['swap']) else bet_type)
-                        if data['swap']:
-                            has_swapped = True
+                        has_mixed = True
                     
                     # Get base price based on effective type
                     if effective_type == 'BACK':
@@ -6722,7 +6780,8 @@ Evento: {event_name}"""
                     
                     if price > 1:
                         selections.append({
-                            'selectionId': sel_id,
+                            'item_id': item_id,
+                            'selectionId': data['selectionId'],
                             'runnerName': runner['runnerName'],
                             'price': price,
                             'effectiveType': effective_type
@@ -6733,22 +6792,24 @@ Evento: {event_name}"""
                 book_value_var.set("Book Value: -")
                 total_var.set("Totale: -")
                 mode_indicator_var.set("")
-                for sel_id in runner_selections:
-                    update_row(sel_id)
+                for item_id in runner_selections:
+                    update_row(item_id)
                 return
             
             # Calculate book value (implied probability)
             implied = sum(1.0 / s['price'] for s in selections) * 100
             book_value_var.set(f"Book Value: {implied:.1f}%")
             
+            # Check if we have mixed BACK+LAY
+            back_count = sum(1 for s in selections if s['effectiveType'] == 'BACK')
+            lay_count = sum(1 for s in selections if s['effectiveType'] == 'LAY')
+            has_mixed = back_count > 0 and lay_count > 0
+            
             # Update mixed mode indicator
-            if is_mixed_mode or has_swapped:
-                back_count = sum(1 for s in selections if s['effectiveType'] == 'BACK')
-                lay_count = sum(1 for s in selections if s['effectiveType'] == 'LAY')
-                if is_mixed_mode:
-                    mode_indicator_var.set(f"MIXED: {back_count}B + {lay_count}L (doppio-click per cambiare)")
-                else:
-                    mode_indicator_var.set(f"MIXED MODE ({back_count}B + {lay_count}L)")
+            if is_mixed_mode:
+                mode_indicator_var.set(f"MIXED: {back_count}B + {lay_count}L")
+            elif has_mixed:
+                mode_indicator_var.set(f"MIXED: {back_count}B + {lay_count}L")
             else:
                 mode_indicator_var.set("")
             
@@ -6759,29 +6820,28 @@ Evento: {event_name}"""
                 
                 if mode == 'STAKE':
                     amount = float(stake_var.get().replace(',', '.'))
-                    if has_swapped:
+                    if has_mixed:
                         results, profit, _ = calculate_mixed_dutching(selections, amount, commission)
                     else:
-                        results, profit, _ = calculate_dutching_stakes(selections, amount, bet_type)
+                        results, profit, _ = calculate_dutching_stakes(selections, amount, bet_type if not is_mixed_mode else selections[0]['effectiveType'])
                 else:  # PROFIT mode - Target profit fisso
                     target_profit = float(profit_var.get().replace(',', '.'))
                     
-                    if has_swapped:
+                    if has_mixed:
                         # Mixed BACK+LAY con target profit
                         results, profit, _ = calculate_mixed_dutching(selections, target_profit, commission)
-                    elif bet_type == 'BACK':
-                        # BACK dutching con target profit - Formula CORRETTA
-                        # stake_i = target / (price_i - 1)
+                    elif bet_type == 'BACK' or (is_mixed_mode and back_count > 0):
+                        # BACK dutching con target profit
                         results, profit, _ = calculate_back_target_profit(selections, target_profit, commission)
                     else:
                         # LAY dutching: target is best case (all lose)
                         commission_mult = 1 - (commission / 100)
                         required_stake = target_profit / commission_mult
-                        results, profit, _ = calculate_dutching_stakes(selections, required_stake, bet_type)
+                        results, profit, _ = calculate_dutching_stakes(selections, required_stake, 'LAY')
                 
                 dialog.calculated_results = results
                 dialog.bet_type = bet_type
-                dialog.has_swapped = has_swapped
+                dialog.has_mixed = has_mixed
                 
                 total_stake = sum(r['stake'] for r in results)
                 total_var.set(f"Totale: {total_stake:.2f} EUR")
@@ -6791,8 +6851,8 @@ Evento: {event_name}"""
                 total_var.set(f"Errore: {str(e)[:30]}")
             
             # Update all rows
-            for sel_id in runner_selections:
-                update_row(sel_id)
+            for item_id in runner_selections:
+                update_row(item_id)
         
         tree.bind('<Button-1>', on_row_click)
         tree.bind('<Double-Button-1>', on_row_double_click)

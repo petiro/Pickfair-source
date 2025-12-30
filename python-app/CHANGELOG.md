@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.56.0
+- NUOVO: In MIXED mode, ogni risultato mostra 2 righe: [B] BACK e [L] LAY
+- Colori distinti: sfondo blu chiaro per BACK, rosa chiaro per LAY
+- Selezione indipendente per ogni riga
+- Interfaccia più intuitiva per dutching misto
+
 ## v3.55.6
 - FIX: Minimo stake 1€ per selezione (dal febbraio 2022)
 
