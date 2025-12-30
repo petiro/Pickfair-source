@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
+    "betfairlightweight>=2.22.0",
     "customtkinter>=5.2.2",
+    "matplotlib>=3.10.8",
     "numpy>=2.4.0",
+    "telethon>=1.42.0",
 ]

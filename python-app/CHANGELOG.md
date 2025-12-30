@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.57.3
+- NUOVO: Grafico Equity Curve nel tab "Storico P&L" (matplotlib)
+- Curva cumulativa profitti con area colorata (verde/rosso)
+- Linea zero di riferimento
+
 ## v3.57.2
 - INTEGRAZIONE: bet_logger in telegram_listener per tutti i segnali (COPY_BET, COPY_CASHOUT, COPY_DUTCHING, BOOKING, segnali normali)
 - INTEGRAZIONE: bet_logger in cashout handler (log_cashout_completed, log_cashout_failed)

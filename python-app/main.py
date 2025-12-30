@@ -3892,6 +3892,50 @@ class PickfairApp:
         for i in range(5):
             kpi_frame.columnconfigure(i, weight=1)
         
+        try:
+            import matplotlib.pyplot as plt
+            from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+            from matplotlib.figure import Figure
+            
+            equity_data = self.persistent_storage.get_equity_curve(days=30)
+            if equity_data and len(equity_data) > 1:
+                ctk.CTkLabel(parent, text="Equity Curve", 
+                            font=('Segoe UI', 12, 'bold'), text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(15, 5))
+                
+                chart_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8, height=200)
+                chart_frame.pack(fill=tk.X, pady=5, padx=5)
+                chart_frame.pack_propagate(False)
+                
+                fig = Figure(figsize=(8, 2.5), dpi=100, facecolor=COLORS['bg_card'])
+                ax = fig.add_subplot(111)
+                
+                x_vals = list(range(len(equity_data)))
+                y_vals = [d['equity'] for d in equity_data]
+                
+                line_color = COLORS['success'] if y_vals[-1] >= 0 else COLORS['loss']
+                ax.plot(x_vals, y_vals, color=line_color, linewidth=2)
+                ax.fill_between(x_vals, y_vals, alpha=0.3, color=line_color)
+                ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.5)
+                
+                ax.set_facecolor(COLORS['bg_main'])
+                ax.tick_params(colors=COLORS['text_secondary'], labelsize=8)
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.spines['bottom'].set_color(COLORS['text_secondary'])
+                ax.spines['left'].set_color(COLORS['text_secondary'])
+                ax.set_ylabel('EUR', fontsize=9, color=COLORS['text_secondary'])
+                ax.grid(True, alpha=0.2)
+                
+                fig.tight_layout()
+                
+                canvas = FigureCanvasTkAgg(fig, master=chart_frame)
+                canvas.draw()
+                canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        except ImportError:
+            pass
+        except Exception as e:
+            logging.warning(f"Equity chart error: {e}")
+        
         ctk.CTkLabel(parent, text="P&L Giornaliero (ultimi 30 giorni)", 
                      font=('Segoe UI', 12, 'bold'), text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(20, 5))
         
