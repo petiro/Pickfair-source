@@ -863,28 +863,66 @@ class PickfairApp:
         ctk.CTkLabel(qb_stake_frame, text="(min. 1 EUR)", 
                      font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(side=tk.LEFT, padx=5)
         
-        self.qb_pl_label = ctk.CTkLabel(self.quick_bet_frame, text="P/L Potenziale: -",
-                                         font=('Segoe UI', 10),
-                                         text_color=COLORS['success'])
-        self.qb_pl_label.pack(anchor=tk.W, padx=10, pady=5)
+        # Se Vince / Se Perde row
+        qb_results_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_results_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkLabel(qb_results_frame, text="Se Vince:", 
+                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        self.qb_win_label = ctk.CTkLabel(qb_results_frame, text="-",
+                                          font=('Segoe UI', 10, 'bold'),
+                                          text_color=COLORS['success'])
+        self.qb_win_label.pack(side=tk.LEFT, padx=(5, 20))
+        
+        ctk.CTkLabel(qb_results_frame, text="Se Perde:", 
+                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        self.qb_lose_label = ctk.CTkLabel(qb_results_frame, text="-",
+                                           font=('Segoe UI', 10, 'bold'),
+                                           text_color=COLORS['error'])
+        self.qb_lose_label.pack(side=tk.LEFT, padx=5)
+        
+        # Persistenza row (radio buttons)
+        qb_persist_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_persist_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkLabel(qb_persist_frame, text="Persistenza:", 
+                     font=('Segoe UI', 10, 'bold'),
+                     text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        self.qb_persist_var = tk.StringVar(value='LAPSE')
+        
+        self.qb_persist_none = ctk.CTkRadioButton(qb_persist_frame, text="Nessuna",
+                                                   variable=self.qb_persist_var, value='LAPSE',
+                                                   text_color=COLORS['text_secondary'],
+                                                   fg_color=COLORS['accent'],
+                                                   hover_color=COLORS['bg_hover'])
+        self.qb_persist_none.pack(side=tk.LEFT, padx=(15, 10))
+        
+        self.qb_persist_keep = ctk.CTkRadioButton(qb_persist_frame, text="Tieni",
+                                                   variable=self.qb_persist_var, value='PERSIST',
+                                                   text_color=COLORS['text_secondary'],
+                                                   fg_color=COLORS['accent'],
+                                                   hover_color=COLORS['bg_hover'])
+        self.qb_persist_keep.pack(side=tk.LEFT, padx=10)
         
         self.qb_mode_label = ctk.CTkLabel(self.quick_bet_frame, text="",
                                            font=('Segoe UI', 9, 'bold'),
                                            text_color=COLORS['warning'])
-        self.qb_mode_label.pack(anchor=tk.W, padx=10)
+        self.qb_mode_label.pack(anchor=tk.W, padx=10, pady=2)
         
         qb_btn_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
         qb_btn_frame.pack(fill=tk.X, padx=10, pady=10)
         
-        ctk.CTkButton(qb_btn_frame, text="Annulla", 
-                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
-                      corner_radius=6, command=self._hide_quick_bet_panel).pack(side=tk.LEFT, padx=2)
-        
-        self.qb_confirm_btn = ctk.CTkButton(qb_btn_frame, text="PIAZZA SCOMMESSA", 
+        self.qb_confirm_btn = ctk.CTkButton(qb_btn_frame, text="Invia", 
                                             fg_color=COLORS['button_success'], hover_color='#4caf50',
                                             font=('Segoe UI', 10, 'bold'),
+                                            width=100,
                                             corner_radius=6, command=self._confirm_quick_bet)
-        self.qb_confirm_btn.pack(side=tk.RIGHT, padx=2)
+        self.qb_confirm_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        ctk.CTkButton(qb_btn_frame, text="Cancella", width=100,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=6, command=self._hide_quick_bet_panel).pack(side=tk.LEFT)
         
         self.qb_current_runner = None
         self.qb_current_selection_id = None
@@ -3271,7 +3309,7 @@ class PickfairApp:
             self.qb_lay_btn.configure(fg_color=COLORS['lay'])
     
     def _update_qb_pl(self):
-        """Update potential P/L display."""
+        """Update potential P/L display with Se Vince / Se Perde."""
         try:
             odds = float(self.qb_odds_var.get().replace(',', '.'))
             stake = float(self.qb_stake_var.get().replace(',', '.'))
@@ -3279,20 +3317,23 @@ class PickfairApp:
             
             commission = 0.045  # 4.5% Betfair Italia
             if bet_type == 'BACK':
-                gross_profit = stake * (odds - 1)
-                net_profit = gross_profit * (1 - commission)
-                liability = stake
+                # BACK: vinci (quota-1)*stake, perdi stake
+                gross_win = stake * (odds - 1)
+                net_win = gross_win * (1 - commission)
+                loss = stake
+                self.qb_win_label.configure(text=f"+{net_win:.2f} EUR")
+                self.qb_lose_label.configure(text=f"-{loss:.2f} EUR")
             else:
-                gross_profit = stake
-                net_profit = gross_profit * (1 - commission)
-                liability = stake * (odds - 1)
-            
-            self.qb_pl_label.configure(
-                text=f"P/L: +{net_profit:.2f} EUR | Liab: {liability:.2f} EUR",
-                text_color=COLORS['success']
-            )
+                # LAY: vinci stake, perdi (quota-1)*stake
+                gross_win = stake
+                net_win = gross_win * (1 - commission)
+                loss = stake * (odds - 1)
+                self.qb_win_label.configure(text=f"+{net_win:.2f} EUR")
+                self.qb_lose_label.configure(text=f"-{loss:.2f} EUR")
+                
         except (ValueError, ZeroDivisionError):
-            self.qb_pl_label.configure(text="P/L: -", text_color=COLORS['text_secondary'])
+            self.qb_win_label.configure(text="-")
+            self.qb_lose_label.configure(text="-")
     
     def _start_qb_live_updates(self):
         """Start updating live odds in the quick bet panel."""
@@ -3389,6 +3430,7 @@ class PickfairApp:
             stake = 1.0
         
         bet_type = self.qb_bet_type_var.get()
+        persistence_type = self.qb_persist_var.get()  # LAPSE or PERSIST
         runner = self.qb_current_runner
         
         # Hide panel
@@ -3398,7 +3440,7 @@ class PickfairApp:
         if self.simulation_mode:
             self._place_quick_simulation_bet(runner, bet_type, price, stake)
         else:
-            self._place_quick_real_bet(runner, bet_type, price, stake)
+            self._place_quick_real_bet(runner, bet_type, price, stake, persistence_type=persistence_type)
     
     def _place_quick_simulation_bet(self, runner, bet_type, price, stake):
         """Place a quick simulated bet."""
@@ -3472,13 +3514,14 @@ class PickfairApp:
         except Exception as e:
             messagebox.showerror("Errore", str(e))
     
-    def _place_quick_real_bet(self, runner, bet_type, price, stake, use_market_price=False):
+    def _place_quick_real_bet(self, runner, bet_type, price, stake, use_market_price=False, persistence_type='LAPSE'):
         """Place a quick real bet via Betfair API.
         
         Args:
             use_market_price: If True, uses betTargetType=PAYOUT for immediate match at best price
+            persistence_type: LAPSE (default, cancel at in-play) or PERSIST (keep at in-play)
         """
-        logging.info(f"[BET] _place_quick_real_bet CALLED: runner={runner['runnerName']}, type={bet_type}, price={price}, stake={stake}")
+        logging.info(f"[BET] _place_quick_real_bet CALLED: runner={runner['runnerName']}, type={bet_type}, price={price}, stake={stake}, persist={persistence_type}")
         
         def place_thread():
             logging.info(f"[BET] place_thread STARTED")
@@ -3505,7 +3548,7 @@ class PickfairApp:
                     side=bet_type,
                     price=match_price,
                     size=stake,
-                    persistence_type='LAPSE'
+                    persistence_type=persistence_type
                 )
                 
                 bet_result = result
