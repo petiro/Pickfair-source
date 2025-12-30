@@ -2190,26 +2190,23 @@ class PickfairApp:
         threading.Thread(target=fetch, daemon=True).start()
     
     def _add_markets_to_tree(self, event_id, markets):
-        """Add filtered markets as children of the event in the tree."""
+        """Add all available markets as children of the event in the tree."""
         if not markets:
             return
         
         # Store markets for later use
         self.available_markets = markets
         
-        # Filter and translate markets
-        filtered_markets = []
+        # Prepare all markets with Italian translations where available
+        all_markets = []
+        sorted_types = sorted(TREE_MARKET_TYPES.items(), key=lambda x: len(x[0]), reverse=True)
+        
         for m in markets:
             market_name = m.get('marketName', '') or m.get('displayName', '')
             
-            # Check if market matches our allowed types
+            # Try to translate to Italian
             display_name = None
-            
-            # Direct match in TREE_MARKET_TYPES - sort by length DESC to match longer patterns first
-            # This ensures "Half Time/Full Time" matches before "Half Time"
-            sorted_types = sorted(TREE_MARKET_TYPES.items(), key=lambda x: len(x[0]), reverse=True)
             for betfair_name, italian_name in sorted_types:
-                # Exact match or case-insensitive contains (but prefer exact)
                 if market_name.lower() == betfair_name.lower():
                     display_name = italian_name
                     break
@@ -2217,20 +2214,16 @@ class PickfairApp:
                     display_name = italian_name
                     break
             
-            # Check for Asian Handicap patterns (e.g., "Team Name +1")
+            # If no translation, use original name
             if not display_name:
-                for pattern in ASIAN_HANDICAP_PATTERNS:
-                    if pattern in market_name:
-                        display_name = market_name  # Keep original name for handicaps
-                        break
+                display_name = market_name
             
-            if display_name:
-                filtered_markets.append({
-                    'marketId': m['marketId'],
-                    'displayName': display_name,
-                    'originalName': market_name,
-                    'inPlay': m.get('inPlay', False)
-                })
+            all_markets.append({
+                'marketId': m['marketId'],
+                'displayName': display_name,
+                'originalName': market_name,
+                'inPlay': m.get('inPlay', False)
+            })
         
         # Sort markets: put Esito Finale first, then alphabetically
         def sort_key(m):
@@ -2238,10 +2231,10 @@ class PickfairApp:
                 return (0, '')
             return (1, m['displayName'])
         
-        filtered_markets.sort(key=sort_key)
+        all_markets.sort(key=sort_key)
         
         # Add to tree
-        for m in filtered_markets:
+        for m in all_markets:
             market_iid = f"market_{event_id}_{m['marketId']}"
             display = m['displayName']
             if m['inPlay']:
