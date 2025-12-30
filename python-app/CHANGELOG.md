@@ -1,7 +1,10 @@
 # Changelog
 
+## v3.55.6
+- FIX: Minimo stake 1€ per selezione (dal febbraio 2022)
+
 ## v3.55.5
-- FIX: Betfair Italia - minimo 2€ PER SELEZIONE, incrementi 0.50€
+- FIX: Betfair Italia - minimo 2€ PER SELEZIONE (ERRATO, era vecchia regola)
 
 ## v3.55.4
 - REVERT: Minimo era 2€ corretto (regola Betfair Italia)

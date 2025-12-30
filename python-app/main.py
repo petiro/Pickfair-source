@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.55.5"
+APP_VERSION = "3.55.6"
 
 # Setup file logging
 def setup_logging():
@@ -6893,9 +6893,8 @@ Evento: {event_name}"""
                 return
             
             # Validate all bets before placing
-            # Betfair Italia: min 2€ per selezione, incrementi 0.50€
-            MIN_STAKE = 2.0
-            STAKE_INCREMENT = 0.50
+            # Betfair: min 1€ per selezione (dal febbraio 2022)
+            MIN_STAKE = 1.0
             MAX_PAYOUT = 10000.0
             
             validation_errors = []
@@ -6903,10 +6902,6 @@ Evento: {event_name}"""
                 stake = r['stake']
                 price = r['price']
                 runner_name = r.get('runnerName', 'Selezione')
-                
-                # Round stake to 0.50€ increments (Betfair Italia requirement)
-                rounded_stake = round(stake / STAKE_INCREMENT) * STAKE_INCREMENT
-                r['stake'] = max(rounded_stake, MIN_STAKE)  # Ensure minimum
                 
                 # Check minimum stake
                 if stake < MIN_STAKE:
