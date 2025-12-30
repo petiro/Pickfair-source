@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.58.4
+- Release tag fix (v3.58.3 già esistente su remote)
+
 ## v3.58.3
 - TUNING H24 SAFE: soglie ottimizzate per Betfair Exchange live
 - API calls target < 60/min (Betfair attenzione sopra 80-100)
