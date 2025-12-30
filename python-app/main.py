@@ -3688,6 +3688,7 @@ class PickfairApp:
         self.dashboard_notebook.add("Storico P&L")
         self.dashboard_notebook.add("Audit Telegram")
         self.dashboard_notebook.add("Log Errori")
+        self.dashboard_notebook.add("Performance")
         
         self.dashboard_recent_frame = self.dashboard_notebook.tab("Scommesse Recenti")
         self.dashboard_orders_frame = self.dashboard_notebook.tab("Ordini Correnti")
@@ -3697,6 +3698,7 @@ class PickfairApp:
         self.dashboard_pnl_frame = self.dashboard_notebook.tab("Storico P&L")
         self.dashboard_telegram_audit_frame = self.dashboard_notebook.tab("Audit Telegram")
         self.dashboard_error_log_frame = self.dashboard_notebook.tab("Log Errori")
+        self.dashboard_performance_frame = self.dashboard_notebook.tab("Performance")
     
     def _refresh_dashboard_tab(self):
         """Refresh dashboard tab data."""
@@ -3791,6 +3793,10 @@ class PickfairApp:
             for widget in self.dashboard_error_log_frame.winfo_children():
                 widget.destroy()
             self._create_error_log_view(self.dashboard_error_log_frame)
+            
+            for widget in self.dashboard_performance_frame.winfo_children():
+                widget.destroy()
+            self._create_performance_view(self.dashboard_performance_frame)
         
         threading.Thread(target=fetch_data, daemon=True).start()
     
@@ -4093,6 +4099,93 @@ class PickfairApp:
         ctk.CTkButton(btn_frame, text="Esporta CSV", command=export_errors,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
                       corner_radius=6).pack(side=tk.RIGHT, padx=5)
+    
+    def _create_performance_view(self, parent):
+        """Create performance metrics view."""
+        from betfair_client import get_performance_metrics, get_market_cache
+        
+        ctk.CTkLabel(parent, text="Metriche Performance", 
+                     font=FONTS['title'], text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(10, 5))
+        
+        ctk.CTkLabel(parent, text="Statistiche API Betfair e sistema", 
+                     font=('Segoe UI', 10), text_color=COLORS['text_secondary']).pack(anchor=tk.W, pady=(0, 15))
+        
+        try:
+            perf = get_performance_metrics()
+            metrics = perf.get_metrics()
+            cache_stats = metrics.get('cache_stats', {})
+        except:
+            metrics = {}
+            cache_stats = {}
+        
+        metrics_frame = ctk.CTkFrame(parent, fg_color='transparent')
+        metrics_frame.pack(fill=tk.X, pady=10)
+        
+        def create_metric_card(parent, title, value, subtitle, col, row=0):
+            card = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+            card.grid(row=row, column=col, padx=5, pady=5, sticky='nsew')
+            ctk.CTkLabel(card, text=title, font=('Segoe UI', 9), 
+                        text_color=COLORS['text_secondary']).pack(pady=(10, 2))
+            ctk.CTkLabel(card, text=str(value), font=('Segoe UI Bold', 18), 
+                        text_color=COLORS['text_primary']).pack()
+            ctk.CTkLabel(card, text=subtitle, font=('Segoe UI', 8), 
+                        text_color=COLORS['text_tertiary']).pack(pady=(2, 10))
+        
+        create_metric_card(metrics_frame, "API Calls/min", metrics.get('api_calls_per_min', 0), "Ultimo minuto", 0)
+        create_metric_card(metrics_frame, "Latenza Media", f"{metrics.get('avg_latency_ms', 0)}ms", "Ultimi 100 call", 1)
+        create_metric_card(metrics_frame, "Replace Eseguiti", metrics.get('replace_executed', 0), "Ordini modificati", 2)
+        create_metric_card(metrics_frame, "Replace Saltati", metrics.get('replace_skipped', 0), "Ottimizzazione", 3)
+        create_metric_card(metrics_frame, "Uptime", f"{metrics.get('uptime_min', 0)} min", "Sessione corrente", 4)
+        
+        for i in range(5):
+            metrics_frame.columnconfigure(i, weight=1)
+        
+        ctk.CTkLabel(parent, text="Cache Market Book", 
+                     font=('Segoe UI', 12, 'bold'), text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(20, 10))
+        
+        cache_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+        cache_frame.pack(fill=tk.X, pady=5, padx=5)
+        
+        cache_info = ctk.CTkFrame(cache_frame, fg_color='transparent')
+        cache_info.pack(fill=tk.X, padx=15, pady=15)
+        
+        hit_rate = cache_stats.get('hit_rate', 0)
+        hit_color = COLORS['success'] if hit_rate >= 50 else COLORS['warning'] if hit_rate >= 20 else COLORS['loss']
+        
+        ctk.CTkLabel(cache_info, text=f"Hit Rate: {hit_rate}%", 
+                    font=('Segoe UI Bold', 14), text_color=hit_color).pack(side=tk.LEFT, padx=10)
+        ctk.CTkLabel(cache_info, text=f"Hits: {cache_stats.get('hits', 0)}", 
+                    font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=10)
+        ctk.CTkLabel(cache_info, text=f"Misses: {cache_stats.get('misses', 0)}", 
+                    font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=10)
+        ctk.CTkLabel(cache_info, text=f"API Calls Risparmiate: {cache_stats.get('api_calls_saved', 0)}", 
+                    font=('Segoe UI', 11), text_color=COLORS['success']).pack(side=tk.LEFT, padx=10)
+        
+        telegram_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+        telegram_frame.pack(fill=tk.X, pady=15, padx=5)
+        
+        tg_info = ctk.CTkFrame(telegram_frame, fg_color='transparent')
+        tg_info.pack(fill=tk.X, padx=15, pady=15)
+        
+        tg_metrics = self.persistent_storage.get_telegram_metrics()
+        queue_depth = 0
+        if hasattr(self, 'telegram_listener') and self.telegram_listener:
+            if hasattr(self.telegram_listener, '_broadcast_queue') and self.telegram_listener._broadcast_queue:
+                queue_depth = self.telegram_listener._broadcast_queue.qsize() if hasattr(self.telegram_listener._broadcast_queue, 'qsize') else 0
+        
+        ctk.CTkLabel(tg_info, text="Telegram:", 
+                    font=('Segoe UI Bold', 12), text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(tg_info, text=f"Coda: {queue_depth}", 
+                    font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=10)
+        ctk.CTkLabel(tg_info, text=f"Media elaborazione: {tg_metrics.get('avg_processing_time_ms', 0):.0f}ms", 
+                    font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=10)
+        ctk.CTkLabel(tg_info, text=f"Totale: {tg_metrics.get('total', 0)} messaggi", 
+                    font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=10)
+        
+        ctk.CTkButton(parent, text="Reset Metriche", 
+                      command=lambda: (get_performance_metrics().reset(), self._create_performance_view(parent)),
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6).pack(anchor=tk.E, pady=15)
     
     def _create_simulation_bets_list(self, parent):
         """Create list of simulation bets."""

@@ -65,6 +65,12 @@ class TelegramListener:
         self._sent_notifications = set()  # Deduplication: tracks sent order_ids
         self._sent_notifications_max = 1000  # Max size before cleanup
         
+        # Dynamic rate limiting
+        self._base_delay = 0.4  # Base delay between sends
+        self._current_delay = 0.4  # Adaptive delay
+        self._last_flood_wait = 0  # Last flood wait duration
+        self._consecutive_successes = 0  # Track successes for delay reduction
+        
         self.monitored_chats: List[int] = []
         self.signal_callback: Optional[Callable] = None
         self.message_callback: Optional[Callable] = None
@@ -248,11 +254,11 @@ class TelegramListener:
         # Use while loop so FloodWait doesn't consume retry attempts
         while attempt < retries:
             try:
-                # Rate limiting: ensure 0.4s between sends (flood protection)
+                # Dynamic rate limiting: adaptive delay based on flood history
                 now = time_module.time()
                 elapsed = now - self._last_send_time
-                if elapsed < 0.4:
-                    await asyncio.sleep(0.4 - elapsed)
+                if elapsed < self._current_delay:
+                    await asyncio.sleep(self._current_delay - elapsed)
                 
                 # Ensure connected
                 if not client.is_connected():
@@ -266,6 +272,12 @@ class TelegramListener:
                 self._last_send_time = time_module.time()
                 logging.info(f"_safe_send: SUCCESS to {chat_id} (attempt {attempt + 1})")
                 
+                # Adaptive rate limiting: reduce delay on consecutive successes
+                self._consecutive_successes += 1
+                if self._consecutive_successes >= 10 and self._current_delay > self._base_delay:
+                    self._current_delay = max(self._base_delay, self._current_delay * 0.9)
+                    logging.debug(f"Rate limit reduced to {self._current_delay:.2f}s")
+                
                 # Update audit: SENT
                 if audit_id and self.db:
                     telegram_msg_id = result.id if hasattr(result, 'id') else None
@@ -277,6 +289,12 @@ class TelegramListener:
                 # FloodWait: wait EXACTLY the required time, DON'T increment attempt
                 wait_seconds = e.seconds + 1
                 logging.warning(f"_safe_send: FloodWait {wait_seconds}s (not counting as retry)")
+                
+                # Adaptive rate limiting: increase delay on flood
+                self._consecutive_successes = 0
+                self._last_flood_wait = wait_seconds
+                self._current_delay = max(self._current_delay, wait_seconds / 2)
+                logging.info(f"Rate limit increased to {self._current_delay:.2f}s")
                 
                 # Record flood wait in audit
                 if audit_id and self.db:

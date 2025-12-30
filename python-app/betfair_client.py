@@ -13,10 +13,134 @@ import betfairlightweight
 from betfairlightweight import filters
 from betfairlightweight.streaming import StreamListener
 from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Retry configuration
 MAX_RETRIES = 3
 RETRY_DELAY = 1.0  # seconds
+
+# ==============================================================================
+# PERFORMANCE: MARKET CACHE
+# ==============================================================================
+
+class MarketCache:
+    """Cache for market book data to reduce API calls."""
+    
+    def __init__(self, ttl=1.0):
+        self.data = {}
+        self.ttl = ttl
+        self._lock = threading.Lock()
+        self.stats = {
+            'hits': 0,
+            'misses': 0,
+            'api_calls_saved': 0
+        }
+    
+    def get(self, market_id):
+        """Get cached market book if still valid."""
+        with self._lock:
+            entry = self.data.get(market_id)
+            if entry and time.time() - entry['ts'] < self.ttl:
+                self.stats['hits'] += 1
+                self.stats['api_calls_saved'] += 1
+                return entry['book']
+            self.stats['misses'] += 1
+            return None
+    
+    def set(self, market_id, book):
+        """Cache market book data."""
+        with self._lock:
+            self.data[market_id] = {'book': book, 'ts': time.time()}
+    
+    def invalidate(self, market_id):
+        """Invalidate cache for a specific market."""
+        with self._lock:
+            if market_id in self.data:
+                del self.data[market_id]
+    
+    def clear(self):
+        """Clear all cached data."""
+        with self._lock:
+            self.data.clear()
+    
+    def get_stats(self):
+        """Get cache statistics."""
+        with self._lock:
+            total = self.stats['hits'] + self.stats['misses']
+            hit_rate = (self.stats['hits'] / total * 100) if total > 0 else 0
+            return {
+                **self.stats,
+                'hit_rate': round(hit_rate, 1),
+                'total_requests': total
+            }
+
+# Global market cache instance
+_market_cache = MarketCache(ttl=1.0)
+
+def get_market_cache():
+    return _market_cache
+
+
+# ==============================================================================
+# PERFORMANCE METRICS
+# ==============================================================================
+
+class PerformanceMetrics:
+    """Track API performance metrics."""
+    
+    def __init__(self):
+        self._lock = threading.Lock()
+        self.reset()
+    
+    def reset(self):
+        with self._lock:
+            self._api_calls = []
+            self._latencies = []
+            self._replace_calls = 0
+            self._replace_skipped = 0
+            self._start_time = time.time()
+    
+    def record_api_call(self, latency_ms=None):
+        with self._lock:
+            self._api_calls.append(time.time())
+            if latency_ms:
+                self._latencies.append(latency_ms)
+    
+    def record_replace(self, executed=True):
+        with self._lock:
+            if executed:
+                self._replace_calls += 1
+            else:
+                self._replace_skipped += 1
+    
+    def get_metrics(self):
+        with self._lock:
+            now = time.time()
+            elapsed_min = max(1, (now - self._start_time) / 60)
+            
+            recent_calls = [t for t in self._api_calls if now - t < 60]
+            
+            avg_latency = sum(self._latencies[-100:]) / len(self._latencies[-100:]) if self._latencies else 0
+            
+            total_replace = self._replace_calls + self._replace_skipped
+            replace_rate = (self._replace_calls / total_replace * 100) if total_replace > 0 else 0
+            
+            return {
+                'api_calls_per_min': round(len(recent_calls), 1),
+                'avg_latency_ms': round(avg_latency, 1),
+                'replace_executed': self._replace_calls,
+                'replace_skipped': self._replace_skipped,
+                'replace_rate': round(replace_rate, 1),
+                'uptime_min': round(elapsed_min, 1),
+                'cache_stats': _market_cache.get_stats()
+            }
+
+_perf_metrics = PerformanceMetrics()
+
+def get_performance_metrics():
+    return _perf_metrics
 
 def with_retry(func):
     """Decorator to add retry logic for API calls."""

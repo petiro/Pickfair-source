@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.57.4
+- NUOVO: Tab "Performance" nella Dashboard con metriche sistema
+- MarketCache per ridurre API calls Betfair (hit rate, calls risparmiate)
+- PerformanceMetrics: API calls/min, latenza media, replace eseguiti/saltati
+- Rate limit Telegram dinamico (adattivo in base a FloodWait)
+- Metriche coda Telegram e tempo elaborazione
+
 ## v3.57.3
 - NUOVO: Grafico Equity Curve nel tab "Storico P&L" (matplotlib)
 - Curva cumulativa profitti con area colorata (verde/rosso)
