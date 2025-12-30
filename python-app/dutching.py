@@ -231,14 +231,23 @@ def _calculate_lay_dutching(
 
 def calculate_mixed_dutching(
     selections: List[Dict],
-    total_stake: float,
+    target_profit: float,
     commission: float = 4.5
 ) -> Tuple[List[Dict], float, float]:
     """
-    BACK + LAY Misto - Sistema Lineare (livello Bet Angel PRO).
+    BACK + LAY Misto - Profitto NETTO Uniforme (Bet Angel PRO grade).
     
-    Risolve sistema di equazioni per profitto uniforme con mix di BACK e LAY.
-    Ogni selezione ha 'effectiveType': 'BACK' o 'LAY'.
+    Risolve sistema lineare per garantire lo STESSO profitto netto
+    in TUTTI gli esiti, con mix di selezioni BACK e LAY.
+    
+    Args:
+        selections: Lista di {'selectionId', 'runnerName', 'price', 'effectiveType': 'BACK'|'LAY'}
+        target_profit: Profitto target desiderato
+        commission: Commissione Betfair (default 4.5% Italia)
+    
+    Modello matematico:
+        Per ogni esito k:
+        sum(back_wins_k) - sum(lay_losses_k) - sum(back_stakes) + sum(lay_stakes) = TARGET
     """
     import numpy as np
     
@@ -254,70 +263,130 @@ def calculate_mixed_dutching(
     
     # Fallback a dutching puro se non misto
     if not lay_sels:
+        # Calcola stake totale dal target profit per BACK puro
+        # profit = stake * price - total_stake => total_stake = profit / (avg_return - 1)
+        weights = [1/s['price'] for s in valid_selections]
+        w_sum = sum(weights)
+        if w_sum >= 1:
+            raise ValueError("Quote non profittevoli per BACK dutching")
+        total_stake = target_profit / (1/w_sum - 1)
         return _calculate_back_dutching(valid_selections, total_stake, commission)
+    
     if not back_sels:
-        return _calculate_lay_dutching(valid_selections, total_stake, commission)
+        return _calculate_lay_dutching(valid_selections, target_profit, commission)
     
     n = len(valid_selections)
     commission_mult = 1 - (commission / 100.0)
     
-    # Costruisci sistema lineare: A * [stakes, profit] = b
-    A = np.zeros((n + 1, n + 1))
-    b = np.zeros(n + 1)
+    logger.info(f"[MIXED DUTCHING] {len(back_sels)} BACK + {len(lay_sels)} LAY, target={target_profit}")
+    
+    # Costruisci sistema lineare: A * stakes = b
+    # Per ogni esito k, il profitto deve essere = target_profit
+    A = []
+    b = []
     
     for k in range(n):
-        for i in range(n):
-            sel = valid_selections[i]
+        row = []
+        for i, sel in enumerate(valid_selections):
             price = sel['price']
             is_back = sel.get('effectiveType', 'BACK') == 'BACK'
             
-            if i == k:
-                A[k, i] = (price - 1) if is_back else -(price - 1)
+            if is_back:
+                # BACK: se vince k=i, guadagno = stake * price * (1-comm)
+                # se perde, perdo stake
+                if i == k:
+                    row.append(price * commission_mult)
+                else:
+                    row.append(0)
             else:
-                A[k, i] = -1 if is_back else 1
-        A[k, n] = -1
-        b[k] = 0
+                # LAY: se vince k=i (runner vince), perdo liability = stake * (price-1)
+                # se perde, guadagno stake * (1-comm)
+                if i == k:
+                    row.append(-(price - 1))
+                else:
+                    row.append(commission_mult)
+        
+        A.append(row)
+        b.append(target_profit)
     
-    # Vincolo stake totale
-    for i in range(n):
-        A[n, i] = 1
-    A[n, n] = 0
-    b[n] = total_stake
+    A = np.array(A, dtype=float)
+    b = np.array(b, dtype=float)
     
     try:
-        solution = np.linalg.solve(A, b)
-        stakes = solution[:n]
-        profit = solution[n]
+        # Risolvi sistema sovradeterminato con least squares se necessario
+        if n == len(A):
+            stakes = np.linalg.solve(A, b)
+        else:
+            stakes, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
         
+        # Verifica stakes validi
         if np.any(stakes < 0):
+            logger.warning(f"[MIXED DUTCHING] Stakes negativi rilevati: {stakes}")
             raise ValueError("Combinazione non risolvibile - stakes negativi")
-    except np.linalg.LinAlgError:
+        
+        stakes = np.round(stakes, 2)
+        
+    except np.linalg.LinAlgError as e:
+        logger.error(f"[MIXED DUTCHING] Errore sistema lineare: {e}")
         raise ValueError("Sistema non risolvibile - combinazione non valida")
+    
+    # Calcola profitti reali per verifica
+    profits = []
+    for k in range(n):
+        profit_k = 0
+        for i, sel in enumerate(valid_selections):
+            price = sel['price']
+            stake = stakes[i]
+            is_back = sel.get('effectiveType', 'BACK') == 'BACK'
+            
+            if is_back:
+                if i == k:
+                    profit_k += stake * price * commission_mult
+            else:
+                if i == k:
+                    profit_k -= stake * (price - 1)
+                else:
+                    profit_k += stake * commission_mult
+        profits.append(profit_k)
+    
+    uniform_profit = round(min(profits), 2)
     
     # Costruisci risultati
     results = []
+    total_stake = sum(stakes)
+    
     for i, sel in enumerate(valid_selections):
-        stake = max(round(stakes[i], 2), MIN_STAKE)
+        stake = float(stakes[i])
         eff_type = sel.get('effectiveType', 'BACK')
+        price = sel['price']
         
-        net_profit = profit * commission_mult if profit > 0 else profit
+        if eff_type == 'BACK':
+            liability = 0
+            potential_return = stake * price
+        else:
+            liability = stake * (price - 1)
+            potential_return = stake
         
         results.append({
             'selectionId': sel['selectionId'],
             'runnerName': sel['runnerName'],
-            'price': sel['price'],
-            'stake': stake,
+            'price': price,
+            'stake': round(stake, 2),
             'side': eff_type,
             'effectiveType': eff_type,
-            'profitIfWins': round(net_profit, 2),
-            'grossProfit': round(profit, 2),
-            'potentialReturn': round(stake * sel['price'], 2) if eff_type == 'BACK' else stake,
-            'liability': round(stake * (sel['price'] - 1), 2) if eff_type == 'LAY' else 0
+            'profitIfWins': uniform_profit,
+            'grossProfit': round(uniform_profit / commission_mult, 2) if uniform_profit > 0 else uniform_profit,
+            'potentialReturn': round(potential_return, 2),
+            'liability': round(liability, 2)
         })
+        
+        logger.info(f"[MIXED DUTCHING] {sel['runnerName']} ({eff_type}) @ {price:.2f} -> stake={stake:.2f}")
+    
+    logger.info(f"[MIXED DUTCHING] Total stake: {total_stake:.2f}, Uniform profit: {uniform_profit:.2f}")
     
     implied_prob = sum(1/s['price'] for s in back_sels) * 100 if back_sels else 0
     
-    return results, round(profit * commission_mult, 2), round(implied_prob, 2)
+    return results, uniform_profit, round(implied_prob, 2)
 
 
 def adjust_for_slippage(

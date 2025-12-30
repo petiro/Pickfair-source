@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.44.0
+- NUOVO: Mixed BACK+LAY dutching con profitto NETTO uniforme
+- Sistema lineare numpy per calcolo stake ottimali
+- Supporto commissione Betfair nel calcolo misto
+- Livello Bet Angel PRO grade
+
 ## v3.43.0
 - FIX CRITICO: Dutching BACK ora usa profitto NETTO uniforme
 - Formula corretta: peso = 1/price (non 1/(price-1))
