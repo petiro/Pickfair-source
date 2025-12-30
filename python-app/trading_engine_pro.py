@@ -77,17 +77,24 @@ def get_tick_size(price: float) -> float:
     for low, high, tick in TICK_LADDER:
         if low <= price < high:
             return tick
+    logger.debug(f"[TICK] Price {price} fuori range, usando tick=10.0")
     return 10.0
 
 
 def normalize_price(price: float) -> float:
     """Normalizza al tick Betfair valido."""
+    original = price
     if price < 1.01:
+        logger.warning(f"[TICK] Price {price} < 1.01, normalizzato a 1.01")
         return 1.01
     if price >= 1000.0:
+        logger.warning(f"[TICK] Price {price} >= 1000, normalizzato a 1000.0")
         return 1000.0
     tick = get_tick_size(price)
-    return round(round(price / tick) * tick, 2)
+    normalized = round(round(price / tick) * tick, 2)
+    if normalized != original:
+        logger.debug(f"[TICK] Normalizzato: {original} -> {normalized} (tick={tick})")
+    return normalized
 
 
 def next_tick_up(price: float) -> float:
@@ -110,6 +117,8 @@ def ticks_between(price1: float, price2: float) -> int:
     while current < high and ticks < 500:
         current = next_tick_up(current)
         ticks += 1
+    if ticks >= 500:
+        logger.warning(f"[TICK] ticks_between overflow: {price1} -> {price2}, capped at 500")
     return ticks
 
 
@@ -192,7 +201,11 @@ def calculate_mixed_dutching_numpy(
     
     n = len(bets)
     if n == 0:
+        logger.warning("[MIXED] Nessuna bet fornita")
         return [], 0
+    
+    logger.info(f"[MIXED] Risolvo sistema {n}x{n} per target={target_profit:.2f} EUR")
+    logger.debug(f"[MIXED] Input bets: {bets}")
     
     # Costruisci matrice A e vettore b
     A = []
@@ -228,25 +241,42 @@ def calculate_mixed_dutching_numpy(
         A_np = np.array(A, dtype=float)
         b_np = np.array(b, dtype=float)
         
+        logger.debug(f"[MIXED] Matrice A:\n{A_np}")
+        logger.debug(f"[MIXED] Vettore b: {b_np}")
+        
+        # Verifica determinante
+        det = np.linalg.det(A_np)
+        logger.debug(f"[MIXED] Determinante matrice: {det:.6f}")
+        
+        if abs(det) < 1e-10:
+            logger.error(f"[MIXED] Matrice quasi singolare! det={det}")
+        
         # Risolvi sistema
         stakes = np.linalg.solve(A_np, b_np)
+        logger.debug(f"[MIXED] Soluzione grezza: {stakes}")
         
         # Verifica soluzione valida (stake positivi)
         if np.any(stakes < 0):
-            logger.warning("[MIXED] Soluzione con stake negativi - non fattibile")
-            # Prova least squares per soluzione approssimata
-            stakes, _, _, _ = np.linalg.lstsq(A_np, b_np, rcond=None)
+            logger.warning(f"[MIXED] Soluzione con stake negativi: {stakes}")
+            logger.info("[MIXED] Provo least squares per approssimazione...")
+            stakes, residuals, rank, s = np.linalg.lstsq(A_np, b_np, rcond=None)
             stakes = np.maximum(stakes, 0)
+            logger.info(f"[MIXED] Least squares: stakes={stakes}, residuals={residuals}")
         
         stakes_list = [round(s, 2) for s in stakes.tolist()]
         total_stake = sum(stakes_list)
         
-        logger.info(f"[MIXED] Risolto: stakes={stakes_list}, total={total_stake:.2f}")
+        # Verifica profitto reale
+        logger.info(f"[MIXED] SUCCESSO: stakes={stakes_list}, total={total_stake:.2f}")
         
         return stakes_list, target_profit
         
     except np.linalg.LinAlgError as e:
-        logger.error(f"[MIXED] Sistema singolare: {e}")
+        logger.error(f"[MIXED] ERRORE Sistema singolare: {e}")
+        logger.error(f"[MIXED] Matrice A: {A}")
+        return [], 0
+    except Exception as e:
+        logger.error(f"[MIXED] ERRORE Inatteso: {type(e).__name__}: {e}")
         return [], 0
 
 
@@ -258,7 +288,9 @@ def calculate_mixed_dutching_fallback(
     """
     Fallback senza NumPy per casi semplici (solo BACK o solo LAY).
     """
+    logger.info(f"[MIXED FALLBACK] Usando fallback (NumPy non disponibile)")
     sides = set(b['side'] for b in bets)
+    logger.debug(f"[MIXED FALLBACK] Sides presenti: {sides}")
     
     if sides == {'BACK'}:
         # Solo BACK: usa formula standard
@@ -300,9 +332,13 @@ def calculate_mixed_dutching(
     """
     Wrapper che usa NumPy se disponibile, altrimenti fallback.
     """
+    logger.info(f"[DUTCHING] Calcolo mixed dutching: {len(bets)} bets, target={target_profit:.2f}")
+    
     if HAS_NUMPY:
+        logger.debug("[DUTCHING] Usando NumPy solver")
         return calculate_mixed_dutching_numpy(bets, target_profit, commission)
     else:
+        logger.warning("[DUTCHING] NumPy non disponibile, uso fallback")
         return calculate_mixed_dutching_fallback(bets, target_profit, commission)
 
 
@@ -328,11 +364,14 @@ def analyze_spread(back_price: float, lay_price: float) -> SpreadStrategy:
     ticks = ticks_between(back_price, lay_price)
     
     if ticks <= 2:
-        return SpreadStrategy.FRONT
+        strategy = SpreadStrategy.FRONT
     elif ticks <= 5:
-        return SpreadStrategy.MATCH
+        strategy = SpreadStrategy.MATCH
     else:
-        return SpreadStrategy.BACK
+        strategy = SpreadStrategy.BACK
+    
+    logger.debug(f"[SPREAD] back={back_price}, lay={lay_price}, ticks={ticks} -> {strategy.value}")
+    return strategy
 
 
 def calculate_target_price(
@@ -370,10 +409,12 @@ def calculate_profit_delta(
         old_profit = stake * (old_price - 1) * (1 - commission)
         new_profit = stake * (new_price - 1) * (1 - commission)
     else:
-        old_profit = stake * (1 - commission)  # Semplificato
+        old_profit = stake * (1 - commission)
         new_profit = stake * (1 - commission)
     
-    return new_profit - old_profit
+    delta = new_profit - old_profit
+    logger.debug(f"[PROFIT DELTA] {side} stake={stake:.2f}: {old_price}->{new_price} = {old_profit:.2f}->{new_profit:.2f} (delta={delta:+.2f})")
+    return delta
 
 
 class AutoFollowEngine:
@@ -395,6 +436,7 @@ class AutoFollowEngine:
     def register(self, bet: BetState):
         """Registra bet per tracking."""
         self.states[bet.bet_id] = bet
+        logger.info(f"[AUTO-FOLLOW] Registrato: {bet.bet_id} {bet.side}@{bet.price} stake={bet.stake:.2f}")
     
     def should_follow(
         self,
@@ -466,21 +508,26 @@ class AutoFollowEngine:
         
         if not should:
             result['reason'] = reason
+            logger.debug(f"[AUTO-FOLLOW] {bet.bet_id}: Skip - {reason}")
             return result
         
         logger.info(f"[AUTO-FOLLOW] {bet.bet_id}: {bet.price} -> {target} ({reason})")
         
         # Esegui replace
         bet.status = BetStatus.REPLACING
+        logger.debug(f"[AUTO-FOLLOW] {bet.bet_id}: Status -> REPLACING")
         
         try:
+            logger.debug(f"[AUTO-FOLLOW] Chiamata replaceOrders: market={bet.market_id}, betId={bet.bet_id}, price={target}")
             response = self.client.replace_orders(
                 market_id=bet.market_id,
                 bet_id=bet.bet_id,
                 new_price=target
             )
+            logger.debug(f"[AUTO-FOLLOW] Response: {response}")
             
             if response.get('status') == 'SUCCESS':
+                old_price = bet.price
                 bet.price = target
                 bet.last_replace_ts = time.time()
                 bet.replace_count += 1
@@ -491,19 +538,27 @@ class AutoFollowEngine:
                 if reports:
                     new_id = reports[0].get('newBetId')
                     if new_id and new_id != bet.bet_id:
+                        logger.info(f"[AUTO-FOLLOW] BetId cambiato: {bet.bet_id} -> {new_id}")
                         bet.new_bet_id = new_id
                         result['newBetId'] = new_id
                 
                 result['success'] = True
                 result['action'] = 'REPLACE'
                 result['newPrice'] = target
+                logger.info(f"[AUTO-FOLLOW] SUCCESSO: {bet.bet_id} {old_price} -> {target} (replace #{bet.replace_count})")
             else:
-                result['reason'] = f"API error: {response.get('status')}"
+                error_msg = response.get('errorCode', response.get('status', 'UNKNOWN'))
+                result['reason'] = f"API error: {error_msg}"
                 bet.status = BetStatus.PLACED
+                logger.error(f"[AUTO-FOLLOW] ERRORE API: {error_msg}")
+                logger.error(f"[AUTO-FOLLOW] Response completa: {response}")
                 
         except Exception as e:
             result['reason'] = str(e)
             bet.status = BetStatus.ERROR
+            logger.error(f"[AUTO-FOLLOW] ECCEZIONE: {type(e).__name__}: {e}")
+            import traceback
+            logger.error(f"[AUTO-FOLLOW] Traceback: {traceback.format_exc()}")
         
         return result
 
@@ -535,6 +590,7 @@ class TrailingCashoutEngine:
     def add_position(self, bet: BetState):
         """Aggiungi posizione da monitorare."""
         self.positions[bet.bet_id] = bet
+        logger.info(f"[TRAILING] Posizione aggiunta: {bet.bet_id} {bet.side}@{bet.price} stake={bet.stake:.2f}")
     
     def calculate_position_profit(
         self,
@@ -548,9 +604,11 @@ class TrailingCashoutEngine:
             (current_profit, lay_stake_needed)
         """
         if bet.side != 'BACK':
-            return 0, 0  # Per ora solo BACK
+            logger.debug(f"[TRAILING] {bet.bet_id}: Skip side={bet.side} (solo BACK supportato)")
+            return 0, 0
         
         if live_price <= 1:
+            logger.warning(f"[TRAILING] {bet.bet_id}: live_price={live_price} non valido")
             return 0, 0
         
         # Profitto se vince al prezzo attuale
@@ -565,6 +623,7 @@ class TrailingCashoutEngine:
         if cashout_profit > 0:
             cashout_profit *= (1 - self.commission)
         
+        logger.debug(f"[TRAILING] {bet.bet_id}: live={live_price}, profit={cashout_profit:.2f}, lay_stake={lay_stake:.2f}")
         return round(cashout_profit, 2), round(lay_stake, 2)
     
     def check_trailing(
@@ -611,11 +670,14 @@ class TrailingCashoutEngine:
         
         if lay_stake < 2:  # Stake minimo Betfair
             result['reason'] = "Stake troppo basso"
+            logger.warning(f"[CASHOUT] {bet.bet_id}: lay_stake={lay_stake:.2f} < 2 EUR minimo")
             return result
         
         bet.status = BetStatus.HEDGING
+        logger.info(f"[CASHOUT] {bet.bet_id}: Eseguo cashout LAY@{live_price} x{lay_stake:.2f}")
         
         try:
+            logger.debug(f"[CASHOUT] Chiamata place_bet: market={bet.market_id}, sel={bet.selection_id}")
             response = self.client.place_bet(
                 market_id=bet.market_id,
                 selection_id=bet.selection_id,
@@ -623,6 +685,7 @@ class TrailingCashoutEngine:
                 price=live_price,
                 size=lay_stake
             )
+            logger.debug(f"[CASHOUT] Response: {response}")
             
             if response.get('status') == 'SUCCESS':
                 bet.status = BetStatus.CASHED_OUT
@@ -633,14 +696,20 @@ class TrailingCashoutEngine:
                 result['layStake'] = lay_stake
                 result['layPrice'] = live_price
                 
-                logger.info(f"[CASHOUT] {bet.bet_id}: profit={current_profit:.2f}")
+                logger.info(f"[CASHOUT] SUCCESSO: {bet.bet_id} profit={current_profit:.2f} EUR (LAY@{live_price}x{lay_stake:.2f})")
             else:
-                result['reason'] = response.get('status')
+                error_msg = response.get('errorCode', response.get('status', 'UNKNOWN'))
+                result['reason'] = error_msg
                 bet.status = BetStatus.PLACED
+                logger.error(f"[CASHOUT] ERRORE API: {error_msg}")
+                logger.error(f"[CASHOUT] Response: {response}")
                 
         except Exception as e:
             result['reason'] = str(e)
             bet.status = BetStatus.ERROR
+            logger.error(f"[CASHOUT] ECCEZIONE: {type(e).__name__}: {e}")
+            import traceback
+            logger.error(f"[CASHOUT] Traceback: {traceback.format_exc()}")
         
         return result
     
@@ -652,20 +721,27 @@ class TrailingCashoutEngine:
         Monitora tutte le posizioni e esegue cashout se necessario.
         """
         results = []
+        active_count = 0
         
         for bet in list(self.positions.values()):
             if bet.status in [BetStatus.CASHED_OUT, BetStatus.CANCELLED]:
                 continue
             
+            active_count += 1
             live_price = live_prices.get(bet.selection_id)
             if not live_price:
+                logger.debug(f"[TRAILING MONITOR] {bet.bet_id}: Nessun prezzo live per sel={bet.selection_id}")
                 continue
             
             should_cashout, current, max_p = self.check_trailing(bet, live_price)
             
             if should_cashout:
+                logger.info(f"[TRAILING MONITOR] {bet.bet_id}: TRIGGER cashout! current={current:.2f}, max={max_p:.2f}")
                 result = await self.execute_cashout(bet, live_price)
                 results.append(result)
+        
+        if results:
+            logger.info(f"[TRAILING MONITOR] Eseguiti {len(results)} cashout su {active_count} posizioni attive")
         
         return results
 
@@ -732,6 +808,7 @@ class TelegramBroadcastEngine:
         
         self.db_path = db_path
         self._init_audit_db()
+        logger.info(f"[TG BROADCAST] Inizializzato: db={db_path}, rate_limit={rate_limit}s, max_retry={max_retry}")
         
         # Metriche
         self.metrics = {
@@ -810,17 +887,23 @@ class TelegramBroadcastEngine:
             status=TelegramAuditStatus.QUEUED
         )
         
-        record.id = self._save_audit(record)
-        self.queue.put_nowait(record)
-        
-        logger.debug(f"[TG BROADCAST] Queued: chat={chat_id}, audit_id={record.id}")
+        try:
+            record.id = self._save_audit(record)
+            self.queue.put_nowait(record)
+            logger.info(f"[TG BROADCAST] Queued: chat={chat_id}, bet={bet_id}, audit_id={record.id}, queue_size={self.queue.qsize()}")
+        except Exception as e:
+            logger.error(f"[TG BROADCAST] ERRORE queue: {type(e).__name__}: {e}")
     
     async def _send_single(self, record: TelegramAuditRecord) -> bool:
         """Invia singolo messaggio con retry."""
+        logger.debug(f"[TG SEND] Inizio invio: id={record.id}, chat={record.chat_id}")
+        
         for attempt in range(self.max_retry):
             record.retry_count = attempt
             record.status = TelegramAuditStatus.SENDING
             self._save_audit(record)
+            
+            logger.debug(f"[TG SEND] Tentativo {attempt+1}/{self.max_retry}")
             
             try:
                 await self.client.send_message(record.chat_id, record.message)
@@ -830,22 +913,22 @@ class TelegramBroadcastEngine:
                 self._save_audit(record)
                 
                 self.metrics['total_sent'] += 1
-                logger.info(f"[TG BROADCAST] Sent: chat={record.chat_id}")
+                logger.info(f"[TG SEND] SUCCESSO: id={record.id}, chat={record.chat_id}, attempt={attempt+1}")
                 return True
                 
             except Exception as e:
                 error_str = str(e).lower()
+                logger.warning(f"[TG SEND] Errore tentativo {attempt+1}: {e}")
                 
                 # Flood wait detection
                 if 'flood' in error_str or 'too many' in error_str:
-                    # Estrai secondi di attesa
                     wait = FLOOD_WAIT_BASE * (attempt + 1) * 2
                     record.status = TelegramAuditStatus.FLOOD_WAIT
                     record.flood_wait_seconds = int(wait)
                     self._save_audit(record)
                     
                     self.metrics['flood_incidents'] += 1
-                    logger.warning(f"[TG BROADCAST] Flood wait: {wait}s")
+                    logger.warning(f"[TG SEND] FLOOD WAIT: {wait}s (incident #{self.metrics['flood_incidents']})")
                     await asyncio.sleep(wait)
                     continue
                 
@@ -855,6 +938,7 @@ class TelegramBroadcastEngine:
                 self._save_audit(record)
                 
                 self.metrics['total_retry'] += 1
+                logger.debug(f"[TG SEND] Retry #{self.metrics['total_retry']}, wait {FLOOD_WAIT_BASE * (attempt + 1)}s")
                 await asyncio.sleep(FLOOD_WAIT_BASE * (attempt + 1))
         
         # Fallito dopo tutti i retry
@@ -862,14 +946,16 @@ class TelegramBroadcastEngine:
         self._save_audit(record)
         
         self.metrics['total_failed'] += 1
-        logger.error(f"[TG BROADCAST] Failed after {self.max_retry} retries")
+        logger.error(f"[TG SEND] FALLITO: id={record.id}, chat={record.chat_id}, dopo {self.max_retry} tentativi")
+        logger.error(f"[TG SEND] Ultimo errore: {record.error_code}")
         return False
     
     async def worker(self):
         """Worker async per processare coda."""
         self.running = True
-        logger.info("[TG BROADCAST] Worker started")
+        logger.info("[TG WORKER] Started, rate_limit={self.rate_limit}s")
         
+        processed = 0
         while self.running:
             try:
                 record = await asyncio.wait_for(
@@ -877,18 +963,28 @@ class TelegramBroadcastEngine:
                     timeout=1.0
                 )
                 
+                logger.debug(f"[TG WORKER] Processing record id={record.id}")
                 await self._send_single(record)
                 await asyncio.sleep(self.rate_limit)
                 
                 self.queue.task_done()
+                processed += 1
+                
+                if processed % 10 == 0:
+                    logger.info(f"[TG WORKER] Processed {processed} messages, queue={self.queue.qsize()}")
                 
             except asyncio.TimeoutError:
                 continue
             except Exception as e:
-                logger.error(f"[TG BROADCAST] Worker error: {e}")
+                logger.error(f"[TG WORKER] ERRORE: {type(e).__name__}: {e}")
+                import traceback
+                logger.error(f"[TG WORKER] Traceback: {traceback.format_exc()}")
+        
+        logger.info(f"[TG WORKER] Stopped, total processed={processed}")
     
     def stop(self):
         """Ferma worker."""
+        logger.info(f"[TG BROADCAST] Stop richiesto, queue_size={self.queue.qsize()}")
         self.running = False
     
     def get_metrics(self) -> Dict:
@@ -961,8 +1057,12 @@ class TradingEnginePro:
                 telegram_client,
                 rate_limit=cfg.get('telegram_rate_limit', TELEGRAM_RATE_LIMIT)
             )
+            logger.info("[ENGINE PRO] Telegram broadcast abilitato")
         else:
             self.telegram_broadcast = None
+            logger.info("[ENGINE PRO] Telegram broadcast disabilitato")
+        
+        logger.info(f"[ENGINE PRO] Inizializzato: profit_threshold={cfg.get('profit_threshold', PROFIT_THRESHOLD)}, trailing_gap={cfg.get('trailing_gap', TRAILING_GAP)}")
         
         # State
         self.positions: Dict[str, BetState] = {}
@@ -973,6 +1073,7 @@ class TradingEnginePro:
         self.positions[bet.bet_id] = bet
         self.auto_follow.register(bet)
         self.trailing_cashout.add_position(bet)
+        logger.info(f"[ENGINE PRO] Posizione aggiunta: {bet.bet_id} {bet.side}@{bet.price}, totale={len(self.positions)}")
     
     def calculate_dutching(
         self,
@@ -980,6 +1081,7 @@ class TradingEnginePro:
         target_profit: float
     ) -> Tuple[List[float], float]:
         """Calcola dutching misto."""
+        logger.info(f"[ENGINE PRO] Calcolo dutching: {len(bets)} bets, target={target_profit:.2f}")
         return calculate_mixed_dutching(bets, target_profit)
     
     async def process_market_update(
@@ -994,11 +1096,15 @@ class TradingEnginePro:
             market_id: ID mercato
             live_prices: {selectionId: {'back': X, 'lay': Y}}
         """
+        logger.debug(f"[ENGINE PRO] Market update: {market_id}, {len(live_prices)} selections")
+        
         results = {
             'auto_follow': [],
             'cashouts': [],
             'broadcasts': []
         }
+        
+        positions_checked = 0
         
         # 1. Auto-follow per ogni posizione
         for bet in self.positions.values():
@@ -1007,6 +1113,7 @@ class TradingEnginePro:
             if bet.status in [BetStatus.CASHED_OUT, BetStatus.CANCELLED]:
                 continue
             
+            positions_checked += 1
             prices = live_prices.get(bet.selection_id, {})
             back = prices.get('back', 0)
             lay = prices.get('lay', 0)
@@ -1014,6 +1121,8 @@ class TradingEnginePro:
             if back and lay:
                 result = await self.auto_follow.follow(bet, back, lay)
                 results['auto_follow'].append(result)
+                if result.get('success'):
+                    logger.info(f"[ENGINE PRO] Auto-follow eseguito: {bet.bet_id}")
         
         # 2. Check trailing cashout
         lay_prices = {k: v.get('lay', 0) for k, v in live_prices.items()}
@@ -1021,36 +1130,48 @@ class TradingEnginePro:
         results['cashouts'] = cashouts
         
         # 3. Broadcast cashouts
-        if self.telegram_broadcast:
+        if self.telegram_broadcast and cashouts:
             for cashout in cashouts:
                 if cashout.get('success'):
                     msg = f"Cashout: +{cashout['profit']:.2f} EUR"
+                    logger.info(f"[ENGINE PRO] Cashout broadcast: {msg}")
                     # Broadcast a tutti i chat configurati
                     # self.telegram_broadcast.broadcast(chat_id, msg, cashout.get('betId'))
+        
+        # Log summary
+        follow_success = sum(1 for r in results['auto_follow'] if r.get('success'))
+        cashout_success = sum(1 for r in results['cashouts'] if r.get('success'))
+        
+        if follow_success or cashout_success:
+            logger.info(f"[ENGINE PRO] Update completato: {positions_checked} pos, {follow_success} follow, {cashout_success} cashout")
         
         return results
     
     async def start(self):
         """Avvia engine."""
         self.running = True
+        logger.info(f"[ENGINE PRO] Avvio con {len(self.positions)} posizioni")
         
         if self.telegram_broadcast:
             asyncio.create_task(self.telegram_broadcast.worker())
+            logger.info("[ENGINE PRO] Telegram worker avviato")
         
-        logger.info("[ENGINE PRO] Started")
+        logger.info("[ENGINE PRO] STARTED")
     
     def stop(self):
         """Ferma engine."""
+        logger.info(f"[ENGINE PRO] Stop richiesto, {len(self.positions)} posizioni attive")
         self.running = False
         
         if self.telegram_broadcast:
             self.telegram_broadcast.stop()
+            logger.info("[ENGINE PRO] Telegram worker fermato")
         
-        logger.info("[ENGINE PRO] Stopped")
+        logger.info("[ENGINE PRO] STOPPED")
     
     def get_status(self) -> Dict:
         """Stato engine."""
-        return {
+        status = {
             'running': self.running,
             'positions': len(self.positions),
             'telegram_metrics': (
@@ -1058,3 +1179,5 @@ class TradingEnginePro:
                 if self.telegram_broadcast else None
             )
         }
+        logger.debug(f"[ENGINE PRO] Status: {status}")
+        return status

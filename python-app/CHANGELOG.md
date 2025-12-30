@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.52.0
+- Logging COMPLETO per debug e troubleshooting
+- Log dettagliati per tutte le funzioni trading_engine_pro.py
+- Traceback completi su eccezioni
+- Log prefissi: [TICK], [MIXED], [SPREAD], [AUTO-FOLLOW], [TRAILING], [CASHOUT], [TG SEND], [TG WORKER], [ENGINE PRO]
+- Metriche progressive e summary per ogni operazione
+
 ## v3.51.0
 - NUOVO: trading_engine_pro.py - Engine Enterprise completo
 - Mixed BACK+LAY Solver con NumPy (sistema lineare)
