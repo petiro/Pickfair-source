@@ -6910,11 +6910,27 @@ Evento: {event_name}"""
                     return
                 
                 result = self.client.place_bets(self.current_market['marketId'], instructions)
+                logging.info(f"[DUTCHING] Place bets result: {result}")
                 if result.get('status') == 'SUCCESS':
                     messagebox.showinfo("Successo", f"{len(instructions)} scommesse piazzate!")
                     dialog.destroy()
                 else:
-                    messagebox.showwarning("Attenzione", f"Stato: {result.get('status', 'UNKNOWN')}")
+                    # Show detailed error info
+                    error_code = result.get('errorCode', '')
+                    error_msg = f"Stato: {result.get('status', 'UNKNOWN')}"
+                    if error_code:
+                        error_msg += f"\nErrore: {error_code}"
+                    
+                    # Check individual instruction reports
+                    instr_reports = result.get('instructionReports', [])
+                    for i, rep in enumerate(instr_reports):
+                        if rep.get('status') != 'SUCCESS':
+                            rep_error = rep.get('errorCode', '')
+                            if rep_error:
+                                error_msg += f"\n- Selezione {i+1}: {rep_error}"
+                    
+                    logging.warning(f"[DUTCHING] Bet placement failed: {error_msg}")
+                    messagebox.showwarning("Attenzione", error_msg)
             except Exception as e:
                 messagebox.showerror("Errore", str(e))
         
