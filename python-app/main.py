@@ -466,6 +466,20 @@ class PickfairApp:
         """Handle window close."""
         self._stop_auto_refresh()
         
+        # Stop My Bets refresh timer
+        if hasattr(self, 'my_bets_refresh_id') and self.my_bets_refresh_id:
+            try:
+                self.root.after_cancel(self.my_bets_refresh_id)
+            except:
+                pass
+        
+        # Stop Market Watch refresh timer
+        if hasattr(self, 'market_watch_refresh_id') and self.market_watch_refresh_id:
+            try:
+                self.root.after_cancel(self.market_watch_refresh_id)
+            except:
+                pass
+        
         # Auto-stop Telegram listener if enabled
         settings = self.db.get_telegram_settings()
         if settings and settings.get('auto_stop_listener', 1) and self.telegram_listener:
@@ -513,6 +527,7 @@ class PickfairApp:
         self._create_events_panel(self.trading_tab)
         self._create_market_panel(self.trading_tab)
         self._create_dutching_panel(self.trading_tab)
+        self._create_my_bets_panel(self.trading_tab)
         
         self._create_dashboard_tab()
         self._create_telegram_tab()
@@ -1141,7 +1156,362 @@ class PickfairApp:
         self.polling_fallback_id = None
         self.market_cashout_fetch_cancelled = False  # Cancellation flag
         self.market_cashout_positions = {}
+    
+    def _create_my_bets_panel(self, parent):
+        """Create My Bets panel with Pending, Unmatched, and Matched sections."""
+        my_bets_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8, width=280)
+        my_bets_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(5, 0))
+        my_bets_frame.pack_propagate(False)
         
+        # Title with controls
+        header_frame = ctk.CTkFrame(my_bets_frame, fg_color='transparent')
+        header_frame.pack(fill=tk.X, padx=10, pady=(10, 5))
+        
+        ctk.CTkLabel(header_frame, text="My Bets", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        # Cancel All button
+        self.cancel_all_btn = ctk.CTkButton(header_frame, text="Annulla Tutti", 
+                                            fg_color=COLORS['loss'], hover_color='#c62828',
+                                            corner_radius=6, width=90, height=26,
+                                            command=self._cancel_all_unmatched_orders)
+        self.cancel_all_btn.pack(side=tk.RIGHT)
+        
+        # Scrollable container for all sections
+        scroll_container = ctk.CTkScrollableFrame(my_bets_frame, fg_color='transparent')
+        scroll_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # ========== PENDING BETS SECTION (Red background) ==========
+        pending_frame = ctk.CTkFrame(scroll_container, fg_color='#4a1a1a', corner_radius=6)
+        pending_frame.pack(fill=tk.X, pady=(0, 5))
+        
+        pending_header = ctk.CTkFrame(pending_frame, fg_color='#5c2020', corner_radius=0)
+        pending_header.pack(fill=tk.X)
+        
+        ctk.CTkLabel(pending_header, text="Pending Bets", font=('Segoe UI', 10, 'bold'),
+                     text_color='#ffcdd2').pack(side=tk.LEFT, padx=8, pady=4)
+        
+        self.pending_count_label = ctk.CTkLabel(pending_header, text="(0)", 
+                                                 font=('Segoe UI', 9),
+                                                 text_color='#ef9a9a')
+        self.pending_count_label.pack(side=tk.LEFT)
+        
+        # Pending bets list
+        self.pending_bets_list = ctk.CTkFrame(pending_frame, fg_color='transparent')
+        self.pending_bets_list.pack(fill=tk.X, padx=5, pady=5)
+        
+        self.pending_no_data = ctk.CTkLabel(self.pending_bets_list, text="Nessun ordine pending",
+                                             font=('Segoe UI', 9), text_color='#ef9a9a')
+        self.pending_no_data.pack(pady=5)
+        
+        # ========== UNMATCHED BETS SECTION (Gray background) ==========
+        unmatched_frame = ctk.CTkFrame(scroll_container, fg_color='#3a3a3a', corner_radius=6)
+        unmatched_frame.pack(fill=tk.X, pady=(0, 5))
+        
+        unmatched_header = ctk.CTkFrame(unmatched_frame, fg_color='#4a4a4a', corner_radius=0)
+        unmatched_header.pack(fill=tk.X)
+        
+        ctk.CTkLabel(unmatched_header, text="Unmatched Bets", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e0').pack(side=tk.LEFT, padx=8, pady=4)
+        
+        self.unmatched_count_label = ctk.CTkLabel(unmatched_header, text="(0)", 
+                                                   font=('Segoe UI', 9),
+                                                   text_color='#bdbdbd')
+        self.unmatched_count_label.pack(side=tk.LEFT)
+        
+        # Unmatched bets list
+        self.unmatched_bets_list = ctk.CTkFrame(unmatched_frame, fg_color='transparent')
+        self.unmatched_bets_list.pack(fill=tk.X, padx=5, pady=5)
+        
+        self.unmatched_no_data = ctk.CTkLabel(self.unmatched_bets_list, text="Nessun ordine unmatched",
+                                               font=('Segoe UI', 9), text_color='#bdbdbd')
+        self.unmatched_no_data.pack(pady=5)
+        
+        # ========== MATCHED BETS SECTION (Green background) ==========
+        matched_frame = ctk.CTkFrame(scroll_container, fg_color='#1a3a1a', corner_radius=6)
+        matched_frame.pack(fill=tk.X, pady=(0, 5))
+        
+        matched_header = ctk.CTkFrame(matched_frame, fg_color='#205020', corner_radius=0)
+        matched_header.pack(fill=tk.X)
+        
+        ctk.CTkLabel(matched_header, text="Matched Bets", font=('Segoe UI', 10, 'bold'),
+                     text_color='#c8e6c9').pack(side=tk.LEFT, padx=8, pady=4)
+        
+        self.matched_count_label = ctk.CTkLabel(matched_header, text="(0)", 
+                                                 font=('Segoe UI', 9),
+                                                 text_color='#a5d6a7')
+        self.matched_count_label.pack(side=tk.LEFT)
+        
+        # Checkbox for consolidated view
+        self.consolidated_view_var = tk.BooleanVar(value=False)
+        ctk.CTkCheckBox(matched_header, text="Consolidato", 
+                        variable=self.consolidated_view_var,
+                        command=self._refresh_my_bets_panel,
+                        fg_color=COLORS['success'], hover_color='#4caf50',
+                        text_color='#c8e6c9', width=80,
+                        font=('Segoe UI', 8)).pack(side=tk.RIGHT, padx=5)
+        
+        # Matched bets list
+        self.matched_bets_list = ctk.CTkFrame(matched_frame, fg_color='transparent')
+        self.matched_bets_list.pack(fill=tk.X, padx=5, pady=5)
+        
+        self.matched_no_data = ctk.CTkLabel(self.matched_bets_list, text="Nessun ordine matched",
+                                             font=('Segoe UI', 9), text_color='#a5d6a7')
+        self.matched_no_data.pack(pady=5)
+        
+        # Store order data for operations
+        self.my_bets_data = {'pending': [], 'unmatched': [], 'matched': []}
+        
+        # Auto-refresh timer
+        self.my_bets_refresh_id = None
+        self._start_my_bets_auto_refresh()
+    
+    def _create_bet_row(self, parent, order, section_type, bg_color, text_color):
+        """Create a single bet row in My Bets panel."""
+        row_frame = ctk.CTkFrame(parent, fg_color=bg_color, corner_radius=4, height=45)
+        row_frame.pack(fill=tk.X, pady=1)
+        row_frame.pack_propagate(False)
+        
+        # Selection name
+        selection_name = order.get('selectionName', order.get('selection', 'Unknown'))
+        if len(selection_name) > 15:
+            selection_name = selection_name[:14] + "..."
+        
+        side = order.get('side', 'BACK')
+        side_color = COLORS['back'] if side == 'BACK' else COLORS['lay']
+        
+        # Side indicator
+        side_lbl = ctk.CTkLabel(row_frame, text=f"[{side[0]}]", width=25,
+                                font=('Segoe UI', 9, 'bold'), text_color=side_color)
+        side_lbl.pack(side=tk.LEFT, padx=2)
+        
+        # Selection name
+        name_lbl = ctk.CTkLabel(row_frame, text=selection_name, 
+                                font=('Segoe UI', 9), text_color=text_color, anchor='w')
+        name_lbl.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2)
+        
+        # Odds and Stake
+        info_frame = ctk.CTkFrame(row_frame, fg_color='transparent')
+        info_frame.pack(side=tk.RIGHT, padx=2)
+        
+        price = order.get('price', 0)
+        stake = order.get('sizeRemaining', order.get('sizeMatched', order.get('size', 0)))
+        
+        odds_lbl = ctk.CTkLabel(info_frame, text=f"{price:.2f}", 
+                                font=('Segoe UI', 9, 'bold'), text_color=text_color)
+        odds_lbl.pack(anchor='e')
+        
+        stake_lbl = ctk.CTkLabel(info_frame, text=f"€{stake:.2f}",
+                                 font=('Segoe UI', 8), text_color=text_color)
+        stake_lbl.pack(anchor='e')
+        
+        # Persistence info for pending/unmatched
+        if section_type in ['pending', 'unmatched']:
+            persistence = order.get('persistenceType', 'LAPSE')
+            persist_text = "Keep" if persistence == 'PERSIST' else "Lapse"
+            
+            persist_lbl = ctk.CTkLabel(row_frame, text=f"Bet Persistence: {persist_text}",
+                                       font=('Segoe UI', 7), text_color=text_color)
+            persist_lbl.place(x=30, y=25)
+            
+            # Cancel button for unmatched
+            if section_type == 'unmatched':
+                bet_id = order.get('betId')
+                market_id = order.get('marketId')
+                if bet_id and market_id:
+                    cancel_btn = ctk.CTkButton(row_frame, text="X", width=20, height=18,
+                                               fg_color='#c62828', hover_color='#b71c1c',
+                                               font=('Segoe UI', 8, 'bold'),
+                                               command=lambda bid=bet_id, mid=market_id: self._cancel_single_order(mid, bid))
+                    cancel_btn.place(x=240, y=3)
+        
+        return row_frame
+    
+    def _refresh_my_bets_panel(self):
+        """Refresh My Bets panel with current orders."""
+        if not self.client:
+            return
+        
+        def fetch_orders():
+            try:
+                orders = self.client.get_current_orders()
+                
+                # Add selection names from cached runner data
+                all_orders = orders.get('matched', []) + orders.get('unmatched', []) + orders.get('partiallyMatched', [])
+                
+                # Try to get selection names from current market runners
+                runner_names = {}
+                if self.current_market:
+                    for r in self.current_market.get('runners', []):
+                        runner_names[r['selectionId']] = r['runnerName']
+                
+                # Add selectionName to each order
+                for order in all_orders:
+                    sel_id = order.get('selectionId')
+                    if sel_id and not order.get('selectionName'):
+                        order['selectionName'] = runner_names.get(sel_id, f"ID:{sel_id}")
+                
+                self.root.after(0, lambda: self._update_my_bets_display(orders))
+            except Exception as e:
+                logging.error(f"Error fetching orders for My Bets: {e}")
+        
+        threading.Thread(target=fetch_orders, daemon=True).start()
+    
+    def _update_my_bets_display(self, orders):
+        """Update My Bets panel with order data."""
+        # Extract order lists
+        matched = orders.get('matched', [])
+        unmatched = orders.get('unmatched', [])
+        
+        # Pending = orders that are executable but not yet matched (sizeRemaining > 0)
+        pending = [o for o in unmatched if o.get('status') == 'EXECUTABLE']
+        
+        # Store for later use
+        self.my_bets_data = {'pending': pending, 'unmatched': unmatched, 'matched': matched}
+        
+        # Clear existing rows
+        for widget in self.pending_bets_list.winfo_children():
+            widget.destroy()
+        for widget in self.unmatched_bets_list.winfo_children():
+            widget.destroy()
+        for widget in self.matched_bets_list.winfo_children():
+            widget.destroy()
+        
+        # Update counts
+        self.pending_count_label.configure(text=f"({len(pending)})")
+        self.unmatched_count_label.configure(text=f"({len(unmatched)})")
+        self.matched_count_label.configure(text=f"({len(matched)})")
+        
+        # Populate Pending
+        if pending:
+            for order in pending[:10]:  # Limit to 10 for performance
+                self._create_bet_row(self.pending_bets_list, order, 'pending', '#5c2020', '#ffcdd2')
+        else:
+            ctk.CTkLabel(self.pending_bets_list, text="Nessun ordine pending",
+                         font=('Segoe UI', 9), text_color='#ef9a9a').pack(pady=5)
+        
+        # Populate Unmatched
+        if unmatched:
+            for order in unmatched[:10]:
+                self._create_bet_row(self.unmatched_bets_list, order, 'unmatched', '#4a4a4a', '#e0e0e0')
+        else:
+            ctk.CTkLabel(self.unmatched_bets_list, text="Nessun ordine unmatched",
+                         font=('Segoe UI', 9), text_color='#bdbdbd').pack(pady=5)
+        
+        # Populate Matched
+        if matched:
+            display_matched = matched
+            if self.consolidated_view_var.get():
+                display_matched = self._consolidate_matched_bets(matched)
+            for order in display_matched[:15]:
+                self._create_bet_row(self.matched_bets_list, order, 'matched', '#205020', '#c8e6c9')
+        else:
+            ctk.CTkLabel(self.matched_bets_list, text="Nessun ordine matched",
+                         font=('Segoe UI', 9), text_color='#a5d6a7').pack(pady=5)
+    
+    def _consolidate_matched_bets(self, orders):
+        """Consolidate matched bets by selection."""
+        consolidated = {}
+        for order in orders:
+            key = (order.get('marketId'), order.get('selectionId'), order.get('side'))
+            if key not in consolidated:
+                consolidated[key] = {
+                    'marketId': order.get('marketId'),
+                    'selectionId': order.get('selectionId'),
+                    'selectionName': order.get('selectionName', order.get('selection', 'Unknown')),
+                    'side': order.get('side'),
+                    'price': 0,
+                    'sizeMatched': 0,
+                    'count': 0
+                }
+            consolidated[key]['sizeMatched'] += order.get('sizeMatched', 0)
+            consolidated[key]['price'] += order.get('price', 0) * order.get('sizeMatched', 0)
+            consolidated[key]['count'] += 1
+        
+        # Calculate weighted average price
+        result = []
+        for key, data in consolidated.items():
+            if data['sizeMatched'] > 0:
+                data['price'] = data['price'] / data['sizeMatched']
+            result.append(data)
+        
+        return result
+    
+    def _cancel_single_order(self, market_id, bet_id):
+        """Cancel a single unmatched order."""
+        if not self.client:
+            return
+        
+        def cancel():
+            try:
+                result = self.client.cancel_orders(market_id, [bet_id])
+                if result:
+                    self.root.after(0, lambda: self._on_order_cancelled(bet_id, True))
+                else:
+                    self.root.after(0, lambda: self._on_order_cancelled(bet_id, False))
+            except Exception as e:
+                logging.error(f"Error cancelling order {bet_id}: {e}")
+                self.root.after(0, lambda: self._on_order_cancelled(bet_id, False))
+        
+        threading.Thread(target=cancel, daemon=True).start()
+    
+    def _on_order_cancelled(self, bet_id, success):
+        """Handle order cancellation result."""
+        if success:
+            self._refresh_my_bets_panel()
+            self._add_log(f"Ordine {bet_id} annullato", 'info')
+        else:
+            self._add_log(f"Errore annullamento ordine {bet_id}", 'error')
+    
+    def _cancel_all_unmatched_orders(self):
+        """Cancel all unmatched orders."""
+        if not self.client or not self.my_bets_data.get('unmatched'):
+            return
+        
+        if not messagebox.askyesno("Conferma", "Annullare tutti gli ordini non abbinati?"):
+            return
+        
+        def cancel_all():
+            try:
+                # Group by market
+                orders_by_market = {}
+                for order in self.my_bets_data['unmatched']:
+                    mid = order.get('marketId')
+                    bid = order.get('betId')
+                    if mid and bid:
+                        if mid not in orders_by_market:
+                            orders_by_market[mid] = []
+                        orders_by_market[mid].append(bid)
+                
+                count = 0
+                for market_id, bet_ids in orders_by_market.items():
+                    result = self.client.cancel_orders(market_id, bet_ids)
+                    if result:
+                        count += len(bet_ids)
+                
+                self.root.after(0, lambda: self._on_all_orders_cancelled(count))
+            except Exception as e:
+                logging.error(f"Error cancelling all orders: {e}")
+                self.root.after(0, lambda: self._on_all_orders_cancelled(0))
+        
+        threading.Thread(target=cancel_all, daemon=True).start()
+    
+    def _on_all_orders_cancelled(self, count):
+        """Handle all orders cancellation result."""
+        self._refresh_my_bets_panel()
+        self._add_log(f"Annullati {count} ordini", 'info')
+    
+    def _start_my_bets_auto_refresh(self):
+        """Start auto-refresh for My Bets panel."""
+        if self.my_bets_refresh_id:
+            self.root.after_cancel(self.my_bets_refresh_id)
+        
+        def refresh_loop():
+            if self.client:
+                self._refresh_my_bets_panel()
+            self.my_bets_refresh_id = self.root.after(3000, refresh_loop)  # Refresh every 3 seconds
+        
+        self.my_bets_refresh_id = self.root.after(1000, refresh_loop)
     
     def _update_placed_bets(self):
         """Update placed bets list for current market."""
@@ -4313,6 +4683,7 @@ class PickfairApp:
                                                   segmented_button_unselected_color=COLORS['bg_card'])
         self.dashboard_notebook.pack(fill=tk.BOTH, expand=True, pady=10)
         
+        self.dashboard_notebook.add("Market Watch")
         self.dashboard_notebook.add("Scommesse Recenti")
         self.dashboard_notebook.add("Ordini Correnti")
         self.dashboard_notebook.add("Prenotazioni")
@@ -4323,6 +4694,7 @@ class PickfairApp:
         self.dashboard_notebook.add("Log Errori")
         self.dashboard_notebook.add("Performance")
         
+        self.dashboard_market_watch_frame = self.dashboard_notebook.tab("Market Watch")
         self.dashboard_recent_frame = self.dashboard_notebook.tab("Scommesse Recenti")
         self.dashboard_orders_frame = self.dashboard_notebook.tab("Ordini Correnti")
         self.dashboard_bookings_frame = self.dashboard_notebook.tab("Prenotazioni")
@@ -4332,6 +4704,273 @@ class PickfairApp:
         self.dashboard_telegram_audit_frame = self.dashboard_notebook.tab("Audit Telegram")
         self.dashboard_error_log_frame = self.dashboard_notebook.tab("Log Errori")
         self.dashboard_performance_frame = self.dashboard_notebook.tab("Performance")
+        
+        # Initialize Market Watch
+        self._setup_market_watch_tab()
+    
+    def _setup_market_watch_tab(self):
+        """Setup Market Watch List tab in Dashboard."""
+        frame = self.dashboard_market_watch_frame
+        
+        # Header with controls
+        header_frame = ctk.CTkFrame(frame, fg_color='transparent')
+        header_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        ctk.CTkLabel(header_frame, text="Market Watch List", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        # Add/Remove buttons
+        btn_frame = ctk.CTkFrame(header_frame, fg_color='transparent')
+        btn_frame.pack(side=tk.RIGHT)
+        
+        ctk.CTkButton(btn_frame, text="Aggiungi Mercato Corrente", 
+                      fg_color=COLORS['success'], hover_color='#4caf50',
+                      corner_radius=6, width=150,
+                      command=self._add_current_to_watch).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(btn_frame, text="Rimuovi Selezionato", 
+                      fg_color=COLORS['loss'], hover_color='#c62828',
+                      corner_radius=6, width=130,
+                      command=self._remove_from_watch).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(btn_frame, text="Aggiorna", 
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=80,
+                      command=self._refresh_market_watch).pack(side=tk.LEFT, padx=5)
+        
+        # Auto-refresh checkbox
+        self.market_watch_auto_var = tk.BooleanVar(value=True)
+        ctk.CTkCheckBox(btn_frame, text="Auto-refresh", 
+                        variable=self.market_watch_auto_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=10)
+        
+        # Market Watch Tree
+        tree_frame = ctk.CTkFrame(frame, fg_color='transparent')
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        
+        columns = ('market', 'inplay', 'status', 'min_pl', 'max_pl', 'start_time', 
+                   'p_bets', 'u_bets', 'm_bets', 'last_refresh')
+        self.market_watch_tree = ttk.Treeview(tree_frame, columns=columns, show='headings', height=15)
+        
+        self.market_watch_tree.heading('market', text='Mercato')
+        self.market_watch_tree.heading('inplay', text='In-Play')
+        self.market_watch_tree.heading('status', text='Status')
+        self.market_watch_tree.heading('min_pl', text='Min P/L')
+        self.market_watch_tree.heading('max_pl', text='Max P/L')
+        self.market_watch_tree.heading('start_time', text='Inizio')
+        self.market_watch_tree.heading('p_bets', text='P.Bets')
+        self.market_watch_tree.heading('u_bets', text='U.Bets')
+        self.market_watch_tree.heading('m_bets', text='M.Bets')
+        self.market_watch_tree.heading('last_refresh', text='Ultimo Agg.')
+        
+        self.market_watch_tree.column('market', width=250, minwidth=200)
+        self.market_watch_tree.column('inplay', width=60, minwidth=50)
+        self.market_watch_tree.column('status', width=70, minwidth=60)
+        self.market_watch_tree.column('min_pl', width=80, minwidth=60)
+        self.market_watch_tree.column('max_pl', width=80, minwidth=60)
+        self.market_watch_tree.column('start_time', width=80, minwidth=70)
+        self.market_watch_tree.column('p_bets', width=50, minwidth=40)
+        self.market_watch_tree.column('u_bets', width=50, minwidth=40)
+        self.market_watch_tree.column('m_bets', width=50, minwidth=40)
+        self.market_watch_tree.column('last_refresh', width=80, minwidth=70)
+        
+        # Tags for P/L colors
+        self.market_watch_tree.tag_configure('profit', foreground=COLORS['success'])
+        self.market_watch_tree.tag_configure('loss', foreground=COLORS['loss'])
+        self.market_watch_tree.tag_configure('neutral', foreground=COLORS['text_primary'])
+        self.market_watch_tree.tag_configure('live', foreground=COLORS['success'])
+        
+        scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=self.market_watch_tree.yview)
+        self.market_watch_tree.configure(yscrollcommand=scrollbar.set)
+        
+        self.market_watch_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Double-click to go to market
+        self.market_watch_tree.bind('<Double-1>', self._go_to_watched_market)
+        
+        # Store watched markets
+        self.watched_markets = {}  # market_id -> market_data
+        self.market_watch_refresh_id = None
+        
+        # Start auto-refresh
+        self._start_market_watch_refresh()
+    
+    def _add_current_to_watch(self):
+        """Add current market to watch list."""
+        if not self.current_market:
+            return
+        
+        market_id = self.current_market.get('marketId')
+        if market_id in self.watched_markets:
+            return  # Already watching
+        
+        self.watched_markets[market_id] = {
+            'marketId': market_id,
+            'marketName': self.current_market.get('marketName', ''),
+            'eventName': self.current_event.get('name', '') if self.current_event else '',
+            'startTime': self.current_market.get('startTime', ''),
+            'inPlay': self.current_market.get('inPlay', False),
+            'status': self.current_market.get('status', 'OPEN'),
+            'pendingBets': 0,
+            'unmatchedBets': 0,
+            'matchedBets': 0,
+            'minPL': 0.0,
+            'maxPL': 0.0,
+            'lastRefresh': ''
+        }
+        
+        self._refresh_market_watch()
+        self._add_log(f"Aggiunto a Market Watch: {self.current_market.get('marketName', market_id)}", 'info')
+    
+    def _remove_from_watch(self):
+        """Remove selected market from watch list."""
+        selected = self.market_watch_tree.selection()
+        if not selected:
+            return
+        
+        market_id = selected[0]
+        if market_id in self.watched_markets:
+            del self.watched_markets[market_id]
+            self.market_watch_tree.delete(market_id)
+    
+    def _go_to_watched_market(self, event):
+        """Navigate to double-clicked market in Trading tab."""
+        selected = self.market_watch_tree.selection()
+        if not selected:
+            return
+        
+        market_id = selected[0]
+        if market_id in self.watched_markets:
+            # Switch to Trading tab and load market
+            self.main_notebook.set("Trading")
+            self._load_market(market_id)
+    
+    def _refresh_market_watch(self):
+        """Refresh all watched markets data."""
+        if not self.client or not self.watched_markets:
+            return
+        
+        def fetch_data():
+            try:
+                orders = self.client.get_current_orders()
+                matched = orders.get('matched', [])
+                unmatched = orders.get('unmatched', [])
+                
+                # Group by market
+                matched_by_market = {}
+                unmatched_by_market = {}
+                pending_by_market = {}
+                
+                for order in matched:
+                    mid = order.get('marketId')
+                    if mid:
+                        if mid not in matched_by_market:
+                            matched_by_market[mid] = []
+                        matched_by_market[mid].append(order)
+                
+                for order in unmatched:
+                    mid = order.get('marketId')
+                    if mid:
+                        if mid not in unmatched_by_market:
+                            unmatched_by_market[mid] = []
+                        unmatched_by_market[mid].append(order)
+                        if order.get('status') == 'EXECUTABLE':
+                            if mid not in pending_by_market:
+                                pending_by_market[mid] = []
+                            pending_by_market[mid].append(order)
+                
+                # Calculate P/L for each watched market
+                import datetime
+                now = datetime.datetime.now().strftime("%H:%M:%S")
+                
+                for market_id, data in self.watched_markets.items():
+                    data['pendingBets'] = len(pending_by_market.get(market_id, []))
+                    data['unmatchedBets'] = len(unmatched_by_market.get(market_id, []))
+                    data['matchedBets'] = len(matched_by_market.get(market_id, []))
+                    data['lastRefresh'] = now
+                    
+                    # Calculate min/max P/L from matched bets
+                    market_matched = matched_by_market.get(market_id, [])
+                    if market_matched:
+                        total_stake = sum(o.get('sizeMatched', 0) for o in market_matched)
+                        total_potential = sum(o.get('sizeMatched', 0) * (o.get('price', 1) - 1) 
+                                             for o in market_matched if o.get('side') == 'BACK')
+                        data['maxPL'] = total_potential
+                        data['minPL'] = -total_stake
+                
+                self.root.after(0, self._update_market_watch_display)
+            except Exception as e:
+                logging.error(f"Error refreshing market watch: {e}")
+        
+        threading.Thread(target=fetch_data, daemon=True).start()
+    
+    def _update_market_watch_display(self):
+        """Update Market Watch tree display."""
+        # Clear and repopulate
+        for item in self.market_watch_tree.get_children():
+            self.market_watch_tree.delete(item)
+        
+        for market_id, data in self.watched_markets.items():
+            event_name = data.get('eventName', '')
+            market_name = data.get('marketName', '')
+            display_name = f"{event_name} - {market_name}" if event_name else market_name
+            if len(display_name) > 35:
+                display_name = display_name[:32] + "..."
+            
+            inplay_text = "LIVE" if data.get('inPlay') else "-"
+            status = data.get('status', 'OPEN')
+            
+            min_pl = data.get('minPL', 0)
+            max_pl = data.get('maxPL', 0)
+            min_pl_text = f"€{min_pl:.2f}" if min_pl != 0 else "-"
+            max_pl_text = f"€{max_pl:.2f}" if max_pl != 0 else "-"
+            
+            start_time = data.get('startTime', '')
+            if start_time:
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                    start_time = dt.strftime("%H:%M")
+                except:
+                    start_time = start_time[:5] if len(start_time) > 5 else start_time
+            
+            # Determine tag based on P/L
+            if max_pl > 0:
+                tag = 'profit'
+            elif min_pl < 0 and max_pl <= 0:
+                tag = 'loss'
+            else:
+                tag = 'neutral'
+            
+            if data.get('inPlay'):
+                tag = 'live'
+            
+            self.market_watch_tree.insert('', tk.END, iid=market_id, values=(
+                display_name,
+                inplay_text,
+                status,
+                min_pl_text,
+                max_pl_text,
+                start_time,
+                data.get('pendingBets', 0),
+                data.get('unmatchedBets', 0),
+                data.get('matchedBets', 0),
+                data.get('lastRefresh', '')
+            ), tags=(tag,))
+    
+    def _start_market_watch_refresh(self):
+        """Start auto-refresh loop for Market Watch."""
+        if self.market_watch_refresh_id:
+            self.root.after_cancel(self.market_watch_refresh_id)
+        
+        def refresh_loop():
+            if self.client and self.market_watch_auto_var.get() and self.watched_markets:
+                self._refresh_market_watch()
+            self.market_watch_refresh_id = self.root.after(5000, refresh_loop)  # 5 seconds
+        
+        self.market_watch_refresh_id = self.root.after(2000, refresh_loop)
     
     def _refresh_dashboard_tab(self):
         """Refresh dashboard tab data."""
