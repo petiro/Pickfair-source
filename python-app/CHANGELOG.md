@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.49.0
+- NUOVO: order_manager.py - Auto-Follow Best Price
+- Tick Ladder Betfair ufficiale (normalize_price)
+- ReplaceGuard anti-loop protection
+- OrderManager con replaceOrders + fallback cancel+place
+- Tracking automatico betId cambiati
+- batch_follow_orders() per update multipli
+
 ## v3.48.0
 - Migliorato replace_orders() con gestione nuovo betId
 - NUOVO: replace_orders_batch() per modifiche multiple
