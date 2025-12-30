@@ -8,10 +8,17 @@ import os
 import asyncio
 import threading
 import logging
+import time
 from datetime import datetime
 from typing import Optional, Callable, Dict, List
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
+
+try:
+    from bet_logger import get_bet_logger
+    _bet_logger = get_bet_logger()
+except ImportError:
+    _bet_logger = None
 
 # Try to import cryptg for faster encryption (optional)
 try:
@@ -1118,13 +1125,26 @@ class TelegramListener:
                 return  # Don't process ACK as signal
             
             # Check for COPY BET/CASHOUT first (Copy Trading)
+            _start_time = time.time()
             copy_bet = self.parse_copy_bet(text)
             if copy_bet and self.signal_callback:
                 copy_bet['chat_id'] = chat_id
                 copy_bet['sender_id'] = sender_id
                 copy_bet['raw_text'] = text
+                if _bet_logger:
+                    _bet_logger.log_telegram_signal_received(
+                        chat_id=chat_id,
+                        message_text=text[:500],
+                        signal_type='COPY_BET'
+                    )
                 logging.info(f"[FOLLOWER] Received COPY BET from chat {chat_id} -> calling signal_callback")
                 self.signal_callback(copy_bet)
+                if _bet_logger:
+                    _bet_logger.log_telegram_signal_processed(
+                        chat_id=chat_id,
+                        signal_type='COPY_BET',
+                        processing_time_ms=int((time.time() - _start_time) * 1000)
+                    )
                 return
             
             copy_cashout = self.parse_copy_cashout(text)
@@ -1132,8 +1152,12 @@ class TelegramListener:
                 copy_cashout['chat_id'] = chat_id
                 copy_cashout['sender_id'] = sender_id
                 copy_cashout['raw_text'] = text
+                if _bet_logger:
+                    _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='COPY_CASHOUT')
                 logging.info(f"[FOLLOWER] Received COPY CASHOUT from chat {chat_id} -> calling signal_callback")
                 self.signal_callback(copy_cashout)
+                if _bet_logger:
+                    _bet_logger.log_telegram_signal_processed(chat_id=chat_id, signal_type='COPY_CASHOUT', processing_time_ms=int((time.time() - _start_time) * 1000))
                 return
             
             # Check for COPY DUTCHING (unified dutching message from Master)
@@ -1142,8 +1166,12 @@ class TelegramListener:
                 copy_dutching['chat_id'] = chat_id
                 copy_dutching['sender_id'] = sender_id
                 copy_dutching['raw_text'] = text
+                if _bet_logger:
+                    _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='COPY_DUTCHING')
                 logging.info(f"[FOLLOWER] Received COPY DUTCHING from chat {chat_id}: {len(copy_dutching['selections'])} selections, profit_target={copy_dutching['profit_target']}")
                 self.signal_callback(copy_dutching)
+                if _bet_logger:
+                    _bet_logger.log_telegram_signal_processed(chat_id=chat_id, signal_type='COPY_DUTCHING', processing_time_ms=int((time.time() - _start_time) * 1000))
                 return
             
             # Check for booking signals (e.g., "Roma - Milan book over 2.5 @ 3")
@@ -1152,8 +1180,12 @@ class TelegramListener:
                 booking['chat_id'] = chat_id
                 booking['sender_id'] = sender_id
                 booking['raw_text'] = text
+                if _bet_logger:
+                    _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='BOOKING')
                 logging.info(f"[LISTENER] Booking signal from chat {chat_id}: {booking.get('event')} -> {booking.get('market_type')}")
                 self.signal_callback(booking)
+                if _bet_logger:
+                    _bet_logger.log_telegram_signal_processed(chat_id=chat_id, signal_type='BOOKING', processing_time_ms=int((time.time() - _start_time) * 1000))
                 return
             
             # Parse normal signals
@@ -1161,8 +1193,12 @@ class TelegramListener:
             if signal and self.signal_callback:
                 signal['chat_id'] = chat_id
                 signal['sender_id'] = sender_id
+                if _bet_logger:
+                    _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type=signal.get('market_type', 'UNKNOWN'))
                 logging.info(f"[LISTENER] Signal parsed from chat {chat_id}: {signal.get('event')} -> {signal.get('market_type')} @ {signal.get('odds')}")
                 self.signal_callback(signal)
+                if _bet_logger:
+                    _bet_logger.log_telegram_signal_processed(chat_id=chat_id, signal_type=signal.get('market_type', 'SIGNAL'), processing_time_ms=int((time.time() - _start_time) * 1000))
         
         self.running = True
         logging.info(f"Telegram listener STARTED - monitoring {len(self.monitored_chats)} chats")

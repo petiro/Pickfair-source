@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.57.2
+- INTEGRAZIONE: bet_logger in telegram_listener per tutti i segnali (COPY_BET, COPY_CASHOUT, COPY_DUTCHING, BOOKING, segnali normali)
+- INTEGRAZIONE: bet_logger in cashout handler (log_cashout_completed, log_cashout_failed)
+- Logging tempo di processing per ogni segnale Telegram (ms)
+
 ## v3.57.1
 - FIX: Integrato bet_logger in order_manager per logging ordini replaced
 - FIX: rebuild_daily_pnl() ricostruisce P&L giornaliero da bet_history

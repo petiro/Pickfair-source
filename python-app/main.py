@@ -1304,6 +1304,14 @@ class PickfairApp:
                             cashout_price=result.get('averagePriceMatched') or info['current_price'],
                             profit_loss=info['green_up']
                         )
+                        self.bet_logger.log_cashout_completed(
+                            bet_id=bet_id,
+                            market_id=market_id,
+                            selection_id=str(pos['selection_id']),
+                            profit=info['green_up'],
+                            original_stake=pos['stake'],
+                            cashout_stake=info['cashout_stake']
+                        )
                         # Broadcast cashout to Copy Trading followers
                         event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
                         self._broadcast_copy_cashout(event_name)
@@ -1311,6 +1319,11 @@ class PickfairApp:
                         self._update_market_cashout_positions()
                         self._update_balance()
                     else:
+                        self.bet_logger.log_cashout_failed(
+                            bet_id=bet_id,
+                            market_id=market_id,
+                            reason=result.get('error', 'Errore sconosciuto')
+                        )
                         messagebox.showerror("Errore", f"Cashout fallito: {result.get('error', 'Errore')}")
                 except Exception as e:
                     messagebox.showerror("Errore", f"Errore cashout: {e}")
