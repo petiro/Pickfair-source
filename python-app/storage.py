@@ -218,6 +218,107 @@ class PersistentStorage:
             """)
         logger.info("[STORAGE] Database tables initialized")
     
+    def ensure_schema(self):
+        """Ensure all required columns exist (migration safety)."""
+        migrations = [
+            ("bet_history", "telegram_chat_id", "TEXT"),
+            ("bet_history", "telegram_message_id", "TEXT"),
+            ("bet_history", "commission", "REAL"),
+            ("telegram_audit", "flood_wait", "INTEGER"),
+            ("telegram_audit", "processing_time_ms", "INTEGER"),
+            ("open_positions", "trailing_enabled", "INTEGER DEFAULT 0"),
+            ("open_positions", "trailing_stop_ticks", "INTEGER"),
+            ("open_positions", "max_profit_seen", "REAL"),
+            ("open_positions", "replace_guard_enabled", "INTEGER DEFAULT 0"),
+        ]
+        
+        try:
+            with self.get_db() as conn:
+                for table, column, col_type in migrations:
+                    try:
+                        conn.execute(f"SELECT {column} FROM {table} LIMIT 1")
+                    except sqlite3.OperationalError:
+                        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+                        logger.info(f"[STORAGE] Added column {table}.{column}")
+            logger.info("[STORAGE] Schema migration check complete")
+        except Exception as e:
+            logger.error(f"[STORAGE] Schema migration error: {e}")
+    
+    def ensure_indices(self):
+        """Ensure all required indices exist."""
+        indices = [
+            "CREATE INDEX IF NOT EXISTS idx_bet_history_bet_id ON bet_history(bet_id)",
+            "CREATE INDEX IF NOT EXISTS idx_bet_history_market_id ON bet_history(market_id)",
+            "CREATE INDEX IF NOT EXISTS idx_bet_history_status ON bet_history(status)",
+            "CREATE INDEX IF NOT EXISTS idx_bet_history_created_at ON bet_history(created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_bet_history_source ON bet_history(source)",
+            "CREATE INDEX IF NOT EXISTS idx_telegram_audit_chat_id ON telegram_audit(chat_id)",
+            "CREATE INDEX IF NOT EXISTS idx_telegram_audit_status ON telegram_audit(status)",
+            "CREATE INDEX IF NOT EXISTS idx_telegram_audit_created_at ON telegram_audit(created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_error_log_level ON error_log(level)",
+            "CREATE INDEX IF NOT EXISTS idx_error_log_source ON error_log(source)",
+            "CREATE INDEX IF NOT EXISTS idx_error_log_created_at ON error_log(created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_cashout_bet_id ON cashout_history(bet_id)",
+            "CREATE INDEX IF NOT EXISTS idx_cashout_status ON cashout_history(status)",
+            "CREATE INDEX IF NOT EXISTS idx_open_positions_market ON open_positions(market_id)",
+            "CREATE INDEX IF NOT EXISTS idx_open_positions_status ON open_positions(status)",
+            "CREATE INDEX IF NOT EXISTS idx_perf_created_at ON performance_metrics(created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_perf_throttle ON performance_metrics(throttle_state)",
+        ]
+        
+        try:
+            with self.get_db() as conn:
+                for idx_sql in indices:
+                    conn.execute(idx_sql)
+            logger.info("[STORAGE] Index check complete")
+        except Exception as e:
+            logger.error(f"[STORAGE] Index creation error: {e}")
+    
+    def create_backup(self):
+        """Create daily backup of the database."""
+        try:
+            import shutil
+            backup_dir = self.db_path.parent / 'backup'
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            
+            today = datetime.now().strftime('%Y%m%d')
+            backup_path = backup_dir / f'pickfair_{today}.db'
+            
+            if not backup_path.exists() and self.db_path.exists():
+                shutil.copy2(str(self.db_path), str(backup_path))
+                logger.info(f"[STORAGE] Backup created: {backup_path}")
+                
+                self._cleanup_old_backups(backup_dir, keep_days=7)
+            return True
+        except Exception as e:
+            logger.error(f"[STORAGE] Backup failed: {e}")
+            return False
+    
+    def _cleanup_old_backups(self, backup_dir, keep_days=7):
+        """Remove backups older than keep_days."""
+        try:
+            cutoff = datetime.now() - timedelta(days=keep_days)
+            for backup_file in backup_dir.glob('pickfair_*.db'):
+                try:
+                    date_str = backup_file.stem.split('_')[1]
+                    file_date = datetime.strptime(date_str, '%Y%m%d')
+                    if file_date < cutoff:
+                        backup_file.unlink()
+                        logger.info(f"[STORAGE] Removed old backup: {backup_file}")
+                except (ValueError, IndexError):
+                    pass
+        except Exception as e:
+            logger.warning(f"[STORAGE] Backup cleanup error: {e}")
+    
+    def is_history_empty(self):
+        """Check if bet_history table is empty."""
+        try:
+            with self.get_db() as conn:
+                result = conn.execute("SELECT COUNT(*) FROM bet_history").fetchone()
+                return result[0] == 0
+        except Exception:
+            return True
+    
     def log_bet_event(
         self,
         market_id,

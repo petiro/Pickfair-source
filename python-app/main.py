@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.58.7"
+APP_VERSION = "3.58.8"
 
 # Setup file logging
 def setup_logging():
@@ -179,6 +179,14 @@ class PickfairApp:
         
         self.persistent_storage = get_persistent_storage()
         self.bet_logger = get_bet_logger()
+        
+        # Migration safety: ensure schema and indices
+        self.persistent_storage.ensure_schema()
+        self.persistent_storage.ensure_indices()
+        
+        # Daily backup
+        self.persistent_storage.create_backup()
+        
         logging.info(f"[STORAGE] Persistent storage initialized")
         
         self.client = None
@@ -3680,6 +3688,13 @@ class PickfairApp:
         ctk.CTkButton(main_frame, text="Aggiorna Dashboard", command=self._refresh_dashboard_tab,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
                       corner_radius=6).pack(anchor=tk.E, pady=10)
+        
+        # Session banner for empty history
+        if self.persistent_storage.is_history_empty():
+            session_banner = ctk.CTkFrame(main_frame, fg_color=COLORS['warning'], corner_radius=6)
+            session_banner.pack(fill=tk.X, pady=(0, 10))
+            ctk.CTkLabel(session_banner, text="Sessione avviata - lo storico verra popolato dalle prossime operazioni", 
+                        font=('Segoe UI', 11), text_color=COLORS['bg_main']).pack(pady=8, padx=15)
         
         # Dashboard sub-tabs (using CTkTabview)
         self.dashboard_notebook = ctk.CTkTabview(main_frame, fg_color=COLORS['bg_panel'],
