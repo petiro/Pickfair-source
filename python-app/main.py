@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.44.0"
+APP_VERSION = "3.45.0"
 
 # Setup file logging
 def setup_logging():
@@ -6369,6 +6369,12 @@ Evento: {event_name}"""
         book_value_var = tk.StringVar(value="Book Value: -")
         ttk.Label(book_frame, textvariable=book_value_var, font=('Arial', 10, 'bold')).pack()
         
+        # Mixed Mode indicator
+        mode_indicator_var = tk.StringVar(value="")
+        mode_indicator_label = ctk.CTkLabel(book_frame, textvariable=mode_indicator_var, 
+                                            font=('Arial', 10, 'bold'), text_color=COLORS['warning'])
+        mode_indicator_label.pack(pady=(5, 0))
+        
         # ============ MIDDLE SECTION: Runners Table ============
         table_frame = ttk.Frame(main_frame)
         table_frame.pack(fill=tk.BOTH, expand=True, pady=5)
@@ -6402,6 +6408,9 @@ Evento: {event_name}"""
         tree.tag_configure('profit', foreground=COLORS['success'])
         tree.tag_configure('loss', foreground=COLORS['loss'])
         tree.tag_configure('selected', background='#e8f4fc')
+        tree.tag_configure('swapped', background='#fff3e0')  # Orange tint for swapped rows
+        tree.tag_configure('back_type', foreground=COLORS['back'])
+        tree.tag_configure('lay_type', foreground=COLORS['lay'])
         
         # Store runner selection and offset data
         runner_selections = {}  # {selectionId: {'selected': bool, 'offset': int, 'swap': bool}}
@@ -6521,14 +6530,21 @@ Evento: {event_name}"""
             price = apply_price_offset(base_price, data['offset'])
             price_str = f"{price:.2f}" if price > 0 else '-'
             
-            # Selection and swap indicators
-            sel_indicator = '[X]' if data['selected'] else '[ ]'
-            swap_indicator = '[X]' if data['swap'] else '[ ]'
+            # Selection indicator with type
+            if data['selected']:
+                type_tag = 'B' if effective_type == 'BACK' else 'L'
+                sel_indicator = f'[{type_tag}]'
+            else:
+                sel_indicator = '[ ]'
             
             # Get calculated stake/profit if available
             stake_str = '-'
             profit_str = '-'
-            tag = ()
+            tags = []
+            
+            # Apply swapped tag for visual distinction
+            if data['swap'] and data['selected']:
+                tags.append('swapped')
             
             if dialog.calculated_results:
                 for r in dialog.calculated_results:
@@ -6537,21 +6553,25 @@ Evento: {event_name}"""
                         profit = r.get('profitIfWins', 0)
                         if profit >= 0:
                             profit_str = f"+{profit:.2f} EUR"
-                            tag = ('profit',)
+                            tags.append('profit')
                         else:
                             profit_str = f"{profit:.2f} EUR"
-                            tag = ('loss',)
+                            tags.append('loss')
                         break
+            
+            # Runner name with type indicator if swapped
+            runner_display = runner['runnerName']
+            if data['swap'] and data['selected']:
+                runner_display = f"[{effective_type}] {runner['runnerName']}"
             
             tree.item(str(sel_id), values=(
                 sel_indicator,
-                runner['runnerName'],
+                runner_display,
                 str(data['offset']),
-                swap_indicator,
                 price_str,
                 stake_str,
                 profit_str
-            ), tags=tag)
+            ), tags=tuple(tags))
         
         def apply_price_offset(price, offset):
             """Apply tick offset to price."""
@@ -6622,6 +6642,7 @@ Evento: {event_name}"""
                 dialog.calculated_results = None
                 book_value_var.set("Book Value: -")
                 total_var.set("Totale: -")
+                mode_indicator_var.set("")
                 for sel_id in runner_selections:
                     update_row(sel_id)
                 return
@@ -6629,6 +6650,14 @@ Evento: {event_name}"""
             # Calculate book value (implied probability)
             implied = sum(1.0 / s['price'] for s in selections) * 100
             book_value_var.set(f"Book Value: {implied:.1f}%")
+            
+            # Update mixed mode indicator
+            if has_swapped:
+                back_count = sum(1 for s in selections if s['effectiveType'] == 'BACK')
+                lay_count = sum(1 for s in selections if s['effectiveType'] == 'LAY')
+                mode_indicator_var.set(f"MIXED MODE ({back_count}B + {lay_count}L)")
+            else:
+                mode_indicator_var.set("")
             
             try:
                 from dutching import calculate_mixed_dutching

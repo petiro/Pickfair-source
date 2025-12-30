@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.45.0
+- NUOVO: Indicatore visivo "MIXED MODE (xB + yL)" nel dutching
+- Righe swappate evidenziate in arancione
+- Tipo scommessa [BACK]/[LAY] mostrato nel nome runner
+- Indicatore [B]/[L] nella colonna selezione
+
 ## v3.44.0
 - NUOVO: Mixed BACK+LAY dutching con profitto NETTO uniforme
 - Sistema lineare numpy per calcolo stake ottimali
