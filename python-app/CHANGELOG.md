@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.54.0
+- COPY DUTCHING: Messaggio unificato per dutching in Copy Trading
+- _broadcast_copy_dutching() invia un solo messaggio con tutte le selezioni
+- parse_copy_dutching() parsa il messaggio unificato dal Master
+- _process_telegram_copy_dutching() processa e piazza dutching nel Follower
+- Follower ricalcola stake con quote correnti e profit target
+- Supporto BACK, LAY, MIXED dutching in Copy Trading
+- Logging completo con prefisso [COPY DUTCHING]
+
 ## v3.53.0
 - NUOVO: bot_logger.py - Sistema logging professionale
 - RotatingFileHandler: 5 file x 10MB con rotazione automatica
