@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.55.1
+- FIX: Cartella logs creata correttamente in %APPDATA%\Pickfair\logs\
+
 ## v3.55.0
 - NUOVO: Pulsante MIXED nella finestra Dutching
 - Permette selezioni miste BACK + LAY individualmente

@@ -15,15 +15,15 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.55.0"
+APP_VERSION = "3.55.1"
 
 # Setup file logging
 def setup_logging():
     """Setup logging to file in APPDATA folder."""
     if os.name == 'nt':
-        log_dir = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair')
+        log_dir = os.path.join(os.environ.get('APPDATA', '.'), 'Pickfair', 'logs')
     else:
-        log_dir = os.path.join(os.path.expanduser('~'), '.pickfair')
+        log_dir = os.path.join(os.path.expanduser('~'), '.pickfair', 'logs')
     os.makedirs(log_dir, exist_ok=True)
     log_file = os.path.join(log_dir, 'pickfair.log')
     
