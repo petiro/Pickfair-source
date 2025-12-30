@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.57.1
+- FIX: Integrato bet_logger in order_manager per logging ordini replaced
+- FIX: rebuild_daily_pnl() ricostruisce P&L giornaliero da bet_history
+- FIX: Aggiunto close_connection() per cleanup thread-safe
+- FIX: P&L giornaliero calcolato automaticamente al refresh dashboard
+
 ## v3.57.0
 - NUOVO: Sistema persistenza completo con SQLite (storage.py, bet_logger.py)
 - Database tabelle: bet_history, telegram_audit, error_log, cashout_history, open_positions
