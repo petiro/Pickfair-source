@@ -2205,9 +2205,15 @@ class PickfairApp:
             # Check if market matches our allowed types
             display_name = None
             
-            # Direct match in TREE_MARKET_TYPES
-            for betfair_name, italian_name in TREE_MARKET_TYPES.items():
-                if betfair_name.lower() in market_name.lower() or market_name.lower() in betfair_name.lower():
+            # Direct match in TREE_MARKET_TYPES - sort by length DESC to match longer patterns first
+            # This ensures "Half Time/Full Time" matches before "Half Time"
+            sorted_types = sorted(TREE_MARKET_TYPES.items(), key=lambda x: len(x[0]), reverse=True)
+            for betfair_name, italian_name in sorted_types:
+                # Exact match or case-insensitive contains (but prefer exact)
+                if market_name.lower() == betfair_name.lower():
+                    display_name = italian_name
+                    break
+                elif betfair_name.lower() in market_name.lower():
                     display_name = italian_name
                     break
             
