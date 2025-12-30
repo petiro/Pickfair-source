@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.55.1"
+APP_VERSION = "3.55.2"
 
 # Setup file logging
 def setup_logging():
@@ -6892,15 +6892,43 @@ Evento: {event_name}"""
             if not messagebox.askyesno("Conferma", msg):
                 return
             
+            # Validate all bets before placing
+            MIN_STAKE = 2.0  # Betfair Italia minimum
+            MAX_PAYOUT = 10000.0
+            
+            validation_errors = []
+            for r in dialog.calculated_results:
+                stake = r['stake']
+                price = r['price']
+                runner_name = r.get('runnerName', 'Selezione')
+                
+                # Check minimum stake
+                if stake < MIN_STAKE:
+                    validation_errors.append(f"{runner_name}: stake {stake:.2f}€ < min {MIN_STAKE}€")
+                
+                # Check max payout
+                potential_payout = stake * (price - 1)
+                if potential_payout > MAX_PAYOUT:
+                    validation_errors.append(f"{runner_name}: payout {potential_payout:.0f}€ > max {MAX_PAYOUT}€")
+            
+            if validation_errors:
+                error_msg = "Validazione fallita:\n" + "\n".join(validation_errors)
+                error_msg += f"\n\nAumenta il Profit Target per avere stake >= {MIN_STAKE}€"
+                messagebox.showwarning("Validazione", error_msg)
+                return
+            
             instructions = []
             for r in dialog.calculated_results:
                 # Use effectiveType if available (mixed dutching), otherwise global bet_type
                 side = r.get('effectiveType', dialog.bet_type)
+                # Normalize price to valid Betfair tick
+                from order_manager import normalize_price
+                normalized_price = normalize_price(r['price'])
                 instructions.append({
                     'selectionId': r['selectionId'],
                     'side': side,
-                    'price': r['price'],
-                    'size': r['stake']
+                    'price': normalized_price,
+                    'size': round(r['stake'], 2)
                 })
             
             try:

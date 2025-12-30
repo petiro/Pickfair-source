@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.55.2
+- FIX: Validazione pre-piazzamento dutching
+- Controllo stake minimo >= 2€ (Betfair Italia)
+- Controllo payout massimo <= 10.000€
+- Normalizzazione prezzo al tick ladder Betfair
+- Messaggi errore dettagliati con codici Betfair
+
 ## v3.55.1
 - FIX: Cartella logs creata correttamente in %APPDATA%\Pickfair\logs\
 
