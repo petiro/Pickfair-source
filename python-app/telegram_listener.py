@@ -502,6 +502,7 @@ class TelegramListener:
         if 'COPY BET' not in text.upper():
             return None
         
+        logging.debug("[COPY] parse_copy_bet: checking message")
         try:
             evento = re.search(r'Evento:\s*(.+)', text)
             mercato = re.search(r'Mercato:\s*(.+)', text)
@@ -512,7 +513,7 @@ class TelegramListener:
             stake_eur = re.search(r'StakeEUR:\s*([\d.,]+)', text)
             
             if evento and mercato and selezione:
-                return {
+                result = {
                     'event': evento.group(1).strip(),
                     'market_type': mercato.group(1).strip(),
                     'selection': selezione.group(1).strip(),
@@ -522,8 +523,10 @@ class TelegramListener:
                     'stake_amount': float(stake_eur.group(1).replace(',', '.')) if stake_eur else None,
                     'is_copy_bet': True
                 }
+                logging.info(f"[COPY] Parsed COPY BET: {result['event']} | {result['selection']} @ {result['odds']} {result['side']}")
+                return result
         except Exception as e:
-            print(f"Error parsing COPY BET: {e}")
+            logging.error(f"[COPY] Error parsing COPY BET: {e}")
         return None
     
     def parse_copy_cashout(self, text: str) -> Optional[Dict]:
@@ -531,15 +534,18 @@ class TelegramListener:
         if 'COPY CASHOUT' not in text.upper():
             return None
         
+        logging.debug("[COPY] parse_copy_cashout: checking message")
         try:
             evento = re.search(r'Evento:\s*(.+)', text)
             if evento:
-                return {
+                result = {
                     'event': evento.group(1).strip(),
                     'is_copy_cashout': True
                 }
+                logging.info(f"[COPY] Parsed COPY CASHOUT: {result['event']}")
+                return result
         except Exception as e:
-            print(f"Error parsing COPY CASHOUT: {e}")
+            logging.error(f"[COPY] Error parsing COPY CASHOUT: {e}")
         return None
     
     def _parse_ack(self, text: str) -> Optional[int]:
@@ -1065,6 +1071,7 @@ class TelegramListener:
                 copy_bet['chat_id'] = chat_id
                 copy_bet['sender_id'] = sender_id
                 copy_bet['raw_text'] = text
+                logging.info(f"[FOLLOWER] Received COPY BET from chat {chat_id} -> calling signal_callback")
                 self.signal_callback(copy_bet)
                 return
             
@@ -1073,6 +1080,7 @@ class TelegramListener:
                 copy_cashout['chat_id'] = chat_id
                 copy_cashout['sender_id'] = sender_id
                 copy_cashout['raw_text'] = text
+                logging.info(f"[FOLLOWER] Received COPY CASHOUT from chat {chat_id} -> calling signal_callback")
                 self.signal_callback(copy_cashout)
                 return
             
@@ -1082,6 +1090,7 @@ class TelegramListener:
                 booking['chat_id'] = chat_id
                 booking['sender_id'] = sender_id
                 booking['raw_text'] = text
+                logging.info(f"[LISTENER] Booking signal from chat {chat_id}: {booking.get('event')} -> {booking.get('market_type')}")
                 self.signal_callback(booking)
                 return
             
@@ -1090,6 +1099,7 @@ class TelegramListener:
             if signal and self.signal_callback:
                 signal['chat_id'] = chat_id
                 signal['sender_id'] = sender_id
+                logging.info(f"[LISTENER] Signal parsed from chat {chat_id}: {signal.get('event')} -> {signal.get('market_type')} @ {signal.get('odds')}")
                 self.signal_callback(signal)
         
         self.running = True

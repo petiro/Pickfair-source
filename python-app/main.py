@@ -7563,9 +7563,11 @@ Evento: {event_name}"""
             master_stake_amount = signal.get('stake_amount')
             if master_stake_amount:
                 stake = max(1.0, master_stake_amount)  # Minimum 1€
+                logging.info(f"[FOLLOWER] Processing COPY BET: using Master stake {master_stake_amount}€")
             else:
                 # Fallback to follower's settings if stake_amount not available
                 stake = float(settings.get('auto_stake', 1.0))
+                logging.info(f"[FOLLOWER] Processing COPY BET: fallback stake {stake}€ (master stake not available)")
         else:
             stake_type = settings.get('stake_type', 'fixed')
             if stake_type == 'percent_bankroll':
