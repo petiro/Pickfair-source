@@ -6415,22 +6415,34 @@ Evento: {event_name}"""
         bet_frame.pack(fill=tk.X)
         
         back_btn = ctk.CTkButton(bet_frame, text="BACK", fg_color=COLORS['back'], 
-                                 hover_color=COLORS['back_hover'], width=80, corner_radius=6,
+                                 hover_color=COLORS['back_hover'], width=70, corner_radius=6,
                                  command=lambda: [bet_type_var.set('BACK'), update_bet_type_buttons()])
         back_btn.pack(side=tk.LEFT, padx=2)
         
         lay_btn = ctk.CTkButton(bet_frame, text="LAY", fg_color=COLORS['button_secondary'], 
-                                hover_color=COLORS['bg_hover'], width=80, corner_radius=6,
+                                hover_color=COLORS['bg_hover'], width=70, corner_radius=6,
                                 command=lambda: [bet_type_var.set('LAY'), update_bet_type_buttons()])
         lay_btn.pack(side=tk.LEFT, padx=2)
         
+        mixed_btn = ctk.CTkButton(bet_frame, text="MIXED", fg_color=COLORS['button_secondary'], 
+                                  hover_color=COLORS['bg_hover'], width=70, corner_radius=6,
+                                  command=lambda: [bet_type_var.set('MIXED'), update_bet_type_buttons()])
+        mixed_btn.pack(side=tk.LEFT, padx=2)
+        
         def update_bet_type_buttons():
-            if bet_type_var.get() == 'BACK':
+            bet_type = bet_type_var.get()
+            if bet_type == 'BACK':
                 back_btn.configure(fg_color=COLORS['back'])
                 lay_btn.configure(fg_color=COLORS['button_secondary'])
-            else:
+                mixed_btn.configure(fg_color=COLORS['button_secondary'])
+            elif bet_type == 'LAY':
                 back_btn.configure(fg_color=COLORS['button_secondary'])
                 lay_btn.configure(fg_color=COLORS['lay'])
+                mixed_btn.configure(fg_color=COLORS['button_secondary'])
+            else:  # MIXED
+                back_btn.configure(fg_color=COLORS['button_secondary'])
+                lay_btn.configure(fg_color=COLORS['button_secondary'])
+                mixed_btn.configure(fg_color=COLORS['warning'])  # Orange for MIXED
             recalculate()
         
         # Book Value display
@@ -6681,15 +6693,23 @@ Evento: {event_name}"""
             # Gather selected runners with their effective type and prices
             selections = []
             has_swapped = False
+            is_mixed_mode = (bet_type == 'MIXED')
+            
             for sel_id, data in runner_selections.items():
                 if data['selected']:
                     runner = data['runner']
                     
-                    # Determine effective bet type (considering swap)
-                    effective_type = 'LAY' if (bet_type == 'BACK' and data['swap']) else \
-                                    ('BACK' if (bet_type == 'LAY' and data['swap']) else bet_type)
-                    if data['swap']:
-                        has_swapped = True
+                    # Determine effective bet type
+                    if is_mixed_mode:
+                        # In MIXED mode: swap toggles between BACK (default) and LAY
+                        effective_type = 'LAY' if data['swap'] else 'BACK'
+                        has_swapped = True  # Always treat as mixed
+                    else:
+                        # In BACK/LAY mode: swap inverts the selection
+                        effective_type = 'LAY' if (bet_type == 'BACK' and data['swap']) else \
+                                        ('BACK' if (bet_type == 'LAY' and data['swap']) else bet_type)
+                        if data['swap']:
+                            has_swapped = True
                     
                     # Get base price based on effective type
                     if effective_type == 'BACK':
@@ -6722,10 +6742,13 @@ Evento: {event_name}"""
             book_value_var.set(f"Book Value: {implied:.1f}%")
             
             # Update mixed mode indicator
-            if has_swapped:
+            if is_mixed_mode or has_swapped:
                 back_count = sum(1 for s in selections if s['effectiveType'] == 'BACK')
                 lay_count = sum(1 for s in selections if s['effectiveType'] == 'LAY')
-                mode_indicator_var.set(f"MIXED MODE ({back_count}B + {lay_count}L)")
+                if is_mixed_mode:
+                    mode_indicator_var.set(f"MIXED: {back_count}B + {lay_count}L (doppio-click per cambiare)")
+                else:
+                    mode_indicator_var.set(f"MIXED MODE ({back_count}B + {lay_count}L)")
             else:
                 mode_indicator_var.set("")
             
