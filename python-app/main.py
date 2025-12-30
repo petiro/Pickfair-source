@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.58.8"
+APP_VERSION = "3.58.9"
 
 # Setup file logging
 def setup_logging():
@@ -183,6 +183,7 @@ class PickfairApp:
         # Migration safety: ensure schema and indices
         self.persistent_storage.ensure_schema()
         self.persistent_storage.ensure_indices()
+        self.persistent_storage.set_db_version(3588)
         
         # Daily backup
         self.persistent_storage.create_backup()

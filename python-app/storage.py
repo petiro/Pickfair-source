@@ -274,6 +274,24 @@ class PersistentStorage:
         except Exception as e:
             logger.error(f"[STORAGE] Index creation error: {e}")
     
+    def set_db_version(self, version=3588):
+        """Set database schema version for future migrations."""
+        try:
+            with self.get_db() as conn:
+                conn.execute(f"PRAGMA user_version = {version}")
+                logger.info(f"[STORAGE] DB version set to {version}")
+        except Exception as e:
+            logger.warning(f"[STORAGE] Failed to set DB version: {e}")
+    
+    def get_db_version(self):
+        """Get current database schema version."""
+        try:
+            with self.get_db() as conn:
+                result = conn.execute("PRAGMA user_version").fetchone()
+                return result[0] if result else 0
+        except Exception:
+            return 0
+    
     def create_backup(self):
         """Create daily backup of the database."""
         try:
