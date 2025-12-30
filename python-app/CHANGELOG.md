@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.53.0
+- NUOVO: bot_logger.py - Sistema logging professionale
+- RotatingFileHandler: 5 file x 10MB con rotazione automatica
+- Console colorata + file completo
+- TelegramHandler per alert critici con rate limit
+- ModuleLogger con prefissi dedicati per ogni modulo
+- AuditLogger per tracciamento operazioni trading (CSV-like)
+- PerfLogger per misurare tempi esecuzione
+- Log salvati in %APPDATA%\Pickfair\logs
+
 ## v3.52.0
 - Logging COMPLETO per debug e troubleshooting
 - Log dettagliati per tutte le funzioni trading_engine_pro.py
