@@ -548,6 +548,58 @@ class TelegramListener:
             logging.error(f"[COPY] Error parsing COPY CASHOUT: {e}")
         return None
     
+    def parse_copy_dutching(self, text: str) -> Optional[Dict]:
+        """Parse a COPY DUTCHING message from master.
+        
+        Format:
+        COPY DUTCHING
+        Evento: Roma v Lazio
+        Mercato: Correct Score
+        Selezioni: 2-1 @ 9.50, 2-0 @ 11.00, 1-0 @ 8.00
+        Tipo: BACK
+        ProfitTargetEUR: 20.00
+        StakeTotaleEUR: 7.94
+        """
+        if 'COPY DUTCHING' not in text.upper():
+            return None
+        
+        logging.debug("[COPY] parse_copy_dutching: checking message")
+        try:
+            evento = re.search(r'Evento:\s*(.+)', text)
+            mercato = re.search(r'Mercato:\s*(.+)', text)
+            selezioni = re.search(r'Selezioni:\s*(.+)', text)
+            tipo = re.search(r'Tipo:\s*(BACK|LAY|MIXED)', text, re.IGNORECASE)
+            profit_target = re.search(r'ProfitTargetEUR:\s*([\d.,]+)', text)
+            stake_totale = re.search(r'StakeTotaleEUR:\s*([\d.,]+)', text)
+            
+            if evento and mercato and selezioni:
+                # Parse selections: "2-1 @ 9.50, 2-0 @ 11.00, 1-0 @ 8.00"
+                selections_str = selezioni.group(1).strip()
+                parsed_selections = []
+                for sel_part in selections_str.split(','):
+                    sel_part = sel_part.strip()
+                    match = re.match(r'(.+?)\s*@\s*([\d.,]+)', sel_part)
+                    if match:
+                        parsed_selections.append({
+                            'selection': match.group(1).strip(),
+                            'odds': float(match.group(2).replace(',', '.'))
+                        })
+                
+                result = {
+                    'event': evento.group(1).strip(),
+                    'market_type': mercato.group(1).strip(),
+                    'selections': parsed_selections,
+                    'side': tipo.group(1).upper() if tipo else 'BACK',
+                    'profit_target': float(profit_target.group(1).replace(',', '.')) if profit_target else None,
+                    'total_stake': float(stake_totale.group(1).replace(',', '.')) if stake_totale else None,
+                    'is_copy_dutching': True
+                }
+                logging.info(f"[COPY] Parsed COPY DUTCHING: {result['event']} | {len(parsed_selections)} selections | profit_target={result['profit_target']}")
+                return result
+        except Exception as e:
+            logging.error(f"[COPY] Error parsing COPY DUTCHING: {e}")
+        return None
+    
     def _parse_ack(self, text: str) -> Optional[int]:
         """Parse ACK message from follower.
         
@@ -1082,6 +1134,16 @@ class TelegramListener:
                 copy_cashout['raw_text'] = text
                 logging.info(f"[FOLLOWER] Received COPY CASHOUT from chat {chat_id} -> calling signal_callback")
                 self.signal_callback(copy_cashout)
+                return
+            
+            # Check for COPY DUTCHING (unified dutching message from Master)
+            copy_dutching = self.parse_copy_dutching(text)
+            if copy_dutching and self.signal_callback:
+                copy_dutching['chat_id'] = chat_id
+                copy_dutching['sender_id'] = sender_id
+                copy_dutching['raw_text'] = text
+                logging.info(f"[FOLLOWER] Received COPY DUTCHING from chat {chat_id}: {len(copy_dutching['selections'])} selections, profit_target={copy_dutching['profit_target']}")
+                self.signal_callback(copy_dutching)
                 return
             
             # Check for booking signals (e.g., "Roma - Milan book over 2.5 @ 3")

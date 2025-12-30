@@ -3384,12 +3384,27 @@ class PickfairApp:
         if result['status'] == 'SUCCESS':
             matched = sum(r.get('sizeMatched', 0) for r in result.get('instructionReports', []))
             
-            # Broadcast each selection to Copy Trading followers (always on SUCCESS - matching happens asynchronously)
+            # Broadcast to Copy Trading followers (always on SUCCESS - matching happens asynchronously)
             if self.calculated_results:
                 available = self.account_data.get('available', 100) if self.account_data else 100
                 bet_type = self.bet_type_var.get()
                 event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
-                for r in self.calculated_results:
+                
+                if len(self.calculated_results) > 1:
+                    # DUTCHING: Send single unified message with all selections
+                    total_stake = sum(r['stake'] for r in self.calculated_results)
+                    profit_target = self.calculated_results[0].get('profitIfWins', 0)
+                    self._broadcast_copy_dutching(
+                        event_name=event_name,
+                        market_name=self.current_market.get('marketName', ''),
+                        selections=self.calculated_results,
+                        side=bet_type,
+                        profit_target=profit_target,
+                        total_stake=total_stake
+                    )
+                else:
+                    # Single bet: use standard broadcast
+                    r = self.calculated_results[0]
                     stake_percent = (r['stake'] / available * 100) if available > 0 else 1.0
                     self._broadcast_copy_bet(
                         event_name=event_name,
@@ -6077,6 +6092,61 @@ StakeEUR: {stake_amount:.2f}"""
         except Exception as e:
             logging.error(f"Copy Trading broadcast error: {e}")
     
+    def _broadcast_copy_dutching(self, event_name, market_name, selections, side, profit_target, total_stake):
+        """Broadcast a COPY DUTCHING message to followers (Master mode only).
+        
+        Sends a single message with all dutching selections for followers to replicate.
+        
+        Args:
+            event_name: Event name
+            market_name: Market name (e.g., "Correct Score")
+            selections: List of {'runnerName', 'price', 'stake'}
+            side: BACK or LAY (or MIXED for mixed dutching)
+            profit_target: Target profit in EUR
+            total_stake: Total stake in EUR
+        """
+        logging.info(f"=== COPY TRADING DUTCHING BROADCAST ===")
+        logging.info(f"_broadcast_copy_dutching: {event_name}, {len(selections)} selections, profit_target={profit_target}")
+        
+        settings = self.db.get_telegram_settings()
+        if not settings:
+            logging.warning("Copy Trading Dutching: No telegram settings found")
+            return
+        
+        copy_mode = settings.get('copy_mode', 'OFF')
+        copy_chat_id = settings.get('copy_chat_id', '')
+        
+        if copy_mode != 'MASTER' or not copy_chat_id:
+            logging.info(f"Copy Trading Dutching: Not in MASTER mode or no chat_id")
+            return
+        
+        if not self.telegram_listener:
+            logging.warning("Copy Trading Dutching: Telegram listener object is None")
+            return
+        
+        # Build selections string: "2-1 @ 9.50, 2-0 @ 11.00, 1-0 @ 8.00"
+        selections_str = ", ".join([f"{s['runnerName']} @ {s['price']:.2f}" for s in selections])
+        
+        # Check if mixed dutching (some BACK, some LAY)
+        has_back = any(s.get('effectiveType', side) == 'BACK' for s in selections)
+        has_lay = any(s.get('effectiveType', side) == 'LAY' for s in selections)
+        if has_back and has_lay:
+            side = 'MIXED'
+        
+        message = f"""COPY DUTCHING
+Evento: {event_name}
+Mercato: {market_name}
+Selezioni: {selections_str}
+Tipo: {side}
+ProfitTargetEUR: {profit_target:.2f}
+StakeTotaleEUR: {total_stake:.2f}"""
+        
+        try:
+            self.telegram_listener.send_message(copy_chat_id, message)
+            logging.info(f"Copy Trading Dutching: Broadcast sent to {copy_chat_id}")
+        except Exception as e:
+            logging.error(f"Copy Trading Dutching broadcast error: {e}")
+    
     def _broadcast_copy_cashout(self, event_name):
         """Broadcast a COPY CASHOUT message to followers (Master mode only)."""
         settings = self.db.get_telegram_settings()
@@ -7005,8 +7075,11 @@ Evento: {event_name}"""
                 )
                 self.root.after(0, lambda: self._notify_new_signal(signal))
                 
+                # Handle COPY DUTCHING signals (unified dutching from Master)
+                if signal.get('is_copy_dutching') and signal.get('event') and signal.get('selections'):
+                    self.root.after(100, lambda: self._process_telegram_copy_dutching(signal, settings))
                 # Handle booking signals
-                if signal.get('is_booking') and signal.get('event'):
+                elif signal.get('is_booking') and signal.get('event'):
                     self.root.after(100, lambda: self._process_telegram_booking(signal, settings))
                 elif settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
                     self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
@@ -7119,17 +7192,21 @@ Evento: {event_name}"""
                 self.root.after(0, lambda: self._notify_new_signal(signal))
                 self.root.after(0, lambda: self._refresh_telegram_signals_tree())
                 
-                print(f"[AUTO-BET DEBUG] Signal received: event={signal.get('event')}, market_type={signal.get('market_type')}, selection={signal.get('selection')}, auto_bet={settings.get('auto_bet')}")
+                logging.debug(f"[AUTO-BET DEBUG] Signal received: event={signal.get('event')}, market_type={signal.get('market_type')}, selection={signal.get('selection')}, auto_bet={settings.get('auto_bet')}")
                 
+                # Handle COPY DUTCHING signals (unified dutching from Master)
+                if signal.get('is_copy_dutching') and signal.get('event') and signal.get('selections'):
+                    logging.info(f"[COPY DUTCHING] Processing dutching for: {signal.get('event')} - {len(signal.get('selections', []))} selections")
+                    self.root.after(100, lambda: self._process_telegram_copy_dutching(signal, settings))
                 # Handle booking signals
-                if signal.get('is_booking') and signal.get('event'):
-                    print(f"[BOOKING DEBUG] Processing booking for: {signal.get('event')} @ {signal.get('target_odds')}")
+                elif signal.get('is_booking') and signal.get('event'):
+                    logging.debug(f"[BOOKING DEBUG] Processing booking for: {signal.get('event')} @ {signal.get('target_odds')}")
                     self.root.after(100, lambda: self._process_telegram_booking(signal, settings))
                 elif settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
-                    print(f"[AUTO-BET DEBUG] Processing auto-bet for: {signal.get('event')} - {signal.get('market_type')}")
+                    logging.debug(f"[AUTO-BET DEBUG] Processing auto-bet for: {signal.get('event')} - {signal.get('market_type')}")
                     self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
                 else:
-                    print(f"[AUTO-BET DEBUG] Skipped - auto_bet={settings.get('auto_bet')}, event={signal.get('event')}, market_type={signal.get('market_type')}")
+                    logging.debug(f"[AUTO-BET DEBUG] Skipped - auto_bet={settings.get('auto_bet')}, event={signal.get('event')}, market_type={signal.get('market_type')}")
             
             def on_status(status, message):
                 self.telegram_status = status
@@ -7539,6 +7616,200 @@ Evento: {event_name}"""
         
         except Exception as e:
             messagebox.showerror("Errore Prenotazione", f"Errore: {str(e)}")
+    
+    def _process_telegram_copy_dutching(self, signal, settings):
+        """Process COPY DUTCHING signal from Master - place dutching bets with profit target.
+        
+        Format received:
+        {
+            'event': 'Roma v Lazio',
+            'market_type': 'Correct Score',
+            'selections': [{'selection': '2-1', 'odds': 9.50}, {'selection': '2-0', 'odds': 11.00}, ...],
+            'side': 'BACK' or 'LAY' or 'MIXED',
+            'profit_target': 20.00,
+            'total_stake': 7.94,
+            'is_copy_dutching': True
+        }
+        """
+        from dutching import calculate_dutching_stakes, calculate_back_target_profit
+        
+        logging.info(f"[COPY DUTCHING] Processing: {signal.get('event')} | {len(signal.get('selections', []))} selections")
+        
+        if not self.client:
+            logging.warning("[COPY DUTCHING] Not connected to Betfair")
+            return
+        
+        event_name = signal.get('event', '')
+        market_type_str = signal.get('market_type', '')
+        selections = signal.get('selections', [])
+        side = signal.get('side', 'BACK')
+        profit_target = signal.get('profit_target')
+        total_stake_master = signal.get('total_stake')
+        
+        if not event_name or not selections:
+            logging.warning("[COPY DUTCHING] Missing event or selections")
+            return
+        
+        try:
+            # Find event on Betfair
+            live_events = self.client.get_live_events('1')
+            all_events = self.client.get_football_events(include_inplay=True)
+            
+            event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ')
+            
+            def find_best_match(events_list):
+                best_match = None
+                best_score = 0
+                for event in events_list:
+                    event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ')
+                    words_signal = set(event_lower.split())
+                    words_event = set(event_search.split())
+                    common = words_signal & words_event
+                    match_score = len(common)
+                    if match_score > best_score and match_score >= 2:
+                        best_score = match_score
+                        best_match = event
+                return best_match
+            
+            matched_event = find_best_match(live_events) or find_best_match(all_events)
+            
+            if not matched_event:
+                logging.warning(f"[COPY DUTCHING] Event not found: {event_name}")
+                return
+            
+            logging.info(f"[COPY DUTCHING] Matched event: {matched_event['name']}")
+            
+            # Determine market type from string
+            market_type_mapping = {
+                'Correct Score': 'CORRECT_SCORE',
+                'Risultato Esatto': 'CORRECT_SCORE',
+                'Match Odds': 'MATCH_ODDS',
+                'Over/Under': 'OVER_UNDER',
+            }
+            market_type_key = market_type_mapping.get(market_type_str, 'CORRECT_SCORE')
+            
+            # Get market
+            markets = self.client.get_markets_for_event(matched_event['id'], market_type_key)
+            if not markets:
+                logging.warning(f"[COPY DUTCHING] Market not found for {market_type_str}")
+                return
+            
+            target_market = markets[0]
+            market_id = target_market['marketId']
+            
+            # Get runners with prices
+            runners = self.client.get_runners_for_market(market_id)
+            if not runners:
+                logging.warning(f"[COPY DUTCHING] No runners found for market {market_id}")
+                return
+            
+            # Match selections to runners
+            matched_selections = []
+            for sel in selections:
+                sel_name = sel['selection']
+                sel_odds = sel['odds']
+                
+                # Find runner by name
+                target_runner = None
+                for runner in runners:
+                    runner_name = runner.get('runnerName', '')
+                    if runner_name.lower() == sel_name.lower() or sel_name.lower() in runner_name.lower():
+                        target_runner = runner
+                        break
+                
+                if target_runner:
+                    current_price = target_runner.get('backPrice') if side in ('BACK', 'MIXED') else target_runner.get('layPrice')
+                    matched_selections.append({
+                        'selectionId': target_runner['selectionId'],
+                        'runnerName': target_runner['runnerName'],
+                        'price': current_price or sel_odds,  # Use current price or fallback to signal odds
+                        'effectiveType': sel.get('effectiveType', side)
+                    })
+                else:
+                    logging.warning(f"[COPY DUTCHING] Selection not found: {sel_name}")
+            
+            if len(matched_selections) < len(selections):
+                logging.warning(f"[COPY DUTCHING] Only matched {len(matched_selections)}/{len(selections)} selections")
+            
+            if not matched_selections:
+                logging.error("[COPY DUTCHING] No selections matched")
+                return
+            
+            # Calculate stakes using dutching with profit target
+            commission = 4.5  # Betfair Italia
+            
+            if profit_target:
+                # Use profit target to calculate stakes
+                if side == 'BACK':
+                    results, profit, _ = calculate_back_target_profit(matched_selections, profit_target, commission)
+                else:
+                    # For LAY/MIXED, use total_stake from Master as approximation
+                    results, profit, _ = calculate_dutching_stakes(matched_selections, total_stake_master or 10, side)
+            else:
+                # Fallback: use total stake
+                results, profit, _ = calculate_dutching_stakes(matched_selections, total_stake_master or 10, side)
+            
+            total_stake = sum(r['stake'] for r in results)
+            logging.info(f"[COPY DUTCHING] Calculated: total_stake={total_stake:.2f}€, profit={profit:.2f}€")
+            
+            for r in results:
+                logging.info(f"[COPY DUTCHING]   {r['runnerName']} @ {r['price']:.2f} -> stake={r['stake']:.2f}€")
+            
+            # Place bets
+            if self.simulation_mode:
+                # Simulation mode
+                sim_settings = self.db.get_simulation_settings()
+                virtual_balance = sim_settings.get('virtual_balance', 0) if sim_settings else 0
+                
+                if total_stake > virtual_balance:
+                    logging.warning(f"[COPY DUTCHING] Insufficient virtual balance: {virtual_balance:.2f}€ < {total_stake:.2f}€")
+                    return
+                
+                new_balance = virtual_balance - total_stake
+                self.db.update_virtual_balance(new_balance)
+                
+                # Save simulated bet
+                selections_info = [{'runnerName': r['runnerName'], 'stake': r['stake'], 'price': r['price']} for r in results]
+                self.db.save_simulated_bet(
+                    event_name=matched_event['name'],
+                    market_id=market_id,
+                    market_name=target_market.get('marketName', market_type_str),
+                    side=side,
+                    selections=selections_info,
+                    total_stake=total_stake,
+                    potential_profit=profit
+                )
+                
+                logging.info(f"[COPY DUTCHING] Simulation bet placed: {len(results)} selections, stake={total_stake:.2f}€")
+            else:
+                # Real bets
+                instructions = []
+                for r in results:
+                    bet_side = r.get('effectiveType', side)
+                    instruction = {
+                        'selectionId': r['selectionId'],
+                        'handicap': 0,
+                        'side': bet_side,
+                        'orderType': 'LIMIT',
+                        'limitOrder': {
+                            'size': round(r['stake'], 2),
+                            'price': r['price'],
+                            'persistenceType': 'LAPSE'
+                        }
+                    }
+                    instructions.append(instruction)
+                
+                result = self.client.place_orders(market_id, instructions)
+                
+                if result.get('status') == 'SUCCESS':
+                    logging.info(f"[COPY DUTCHING] Bets placed successfully: {len(instructions)} orders")
+                else:
+                    logging.error(f"[COPY DUTCHING] Bet placement failed: {result}")
+        
+        except Exception as e:
+            logging.error(f"[COPY DUTCHING] Error: {e}")
+            import traceback
+            logging.error(traceback.format_exc())
     
     def _process_telegram_auto_bet(self, signal, settings):
         """Process automatic bet from Telegram signal."""
