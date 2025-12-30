@@ -74,32 +74,49 @@ def _calculate_back_dutching(
     commission: float = 4.5
 ) -> Tuple[List[Dict], float, float]:
     """
-    BACK Dutching - Profitto Uniforme.
+    BACK Dutching - Profitto NETTO Uniforme.
     
-    Formula: stake_i = total_stake * (1/(price_i-1)) / sum(1/(price_j-1))
-    Garantisce profitto identico su qualsiasi selezione vinca.
+    Formula corretta per profitto netto identico:
+    - Peso: w_i = 1/price_i
+    - Stake: stake_i = total_stake * w_i / sum(w_j)
+    - Profitto netto se vince i = (stake_i * price_i - total_stake) * (1 - commission%)
+    
+    Questa formula garantisce che vincendo QUALSIASI selezione,
+    il profitto netto (dopo commissione e sottratti gli stake persi) sia identico.
     """
     commission_mult = 1 - (commission / 100.0)
     
-    # Pesi inversi: 1/(price-1)
+    # Pesi inversi: 1/price (NON 1/(price-1)!)
+    # Questo equalizza il RITORNO (stake*price), non il profitto lordo
     inv_weights = []
     for sel in selections:
-        weight = 1.0 / (sel['price'] - 1) if sel['price'] > 1 else 0
+        weight = 1.0 / sel['price'] if sel['price'] > 0 else 0
         inv_weights.append(weight)
     
     weight_sum = sum(inv_weights)
     if weight_sum <= 0:
         raise ValueError("Quote non valide per dutching")
     
+    # Verifica: somma pesi > 1 significa dutching non profittevole (over-round)
+    implied_prob = weight_sum * 100
+    is_profitable = weight_sum < 1.0
+    
     results = []
-    profits = []
+    net_profits = []
     
     for i, sel in enumerate(selections):
         stake = total_stake * inv_weights[i] / weight_sum
         stake = round(stake, 2)
         
-        gross_profit = stake * (sel['price'] - 1)
-        net_profit = gross_profit * commission_mult
+        # Profitto NETTO = ritorno se vince - stake totale investito
+        gross_return = stake * sel['price']
+        gross_profit = gross_return - total_stake  # Sottrae TUTTI gli stake!
+        
+        # Commissione solo se profitto positivo
+        if gross_profit > 0:
+            net_profit = gross_profit * commission_mult
+        else:
+            net_profit = gross_profit
         
         results.append({
             'selectionId': sel['selectionId'],
@@ -109,26 +126,34 @@ def _calculate_back_dutching(
             'side': 'BACK',
             'grossProfit': round(gross_profit, 2),
             'profitIfWins': round(net_profit, 2),
-            'potentialReturn': round(stake * sel['price'], 2),
+            'potentialReturn': round(gross_return, 2),
             'impliedProbability': round((1.0 / sel['price']) * 100, 2)
         })
-        profits.append(net_profit)
+        net_profits.append(net_profit)
     
-    # Correggi arrotondamento per mantenere stake totale
+    # Correggi arrotondamento per mantenere stake totale esatto
     actual_total = sum(r['stake'] for r in results)
     diff = round(total_stake - actual_total, 2)
     if diff != 0 and results:
         max_idx = max(range(len(results)), key=lambda i: results[i]['stake'])
         results[max_idx]['stake'] = round(results[max_idx]['stake'] + diff, 2)
+        # Ricalcola profitto per lo stake aggiustato
+        adjusted_return = results[max_idx]['stake'] * results[max_idx]['price']
+        adjusted_gross = adjusted_return - total_stake
+        adjusted_net = adjusted_gross * commission_mult if adjusted_gross > 0 else adjusted_gross
+        results[max_idx]['grossProfit'] = round(adjusted_gross, 2)
+        results[max_idx]['profitIfWins'] = round(adjusted_net, 2)
+        results[max_idx]['potentialReturn'] = round(adjusted_return, 2)
+        net_profits[max_idx] = adjusted_net
     
-    uniform_profit = round(min(profits), 2)
-    implied_prob = sum(1.0 / sel['price'] for sel in selections) * 100
+    uniform_profit = round(min(net_profits), 2)
     
-    # Log risultati
-    logger.info(f"[DUTCHING] BACK Results:")
+    # Log risultati dettagliati
+    logger.info(f"[DUTCHING] BACK Dutching - Profitto NETTO Uniforme")
+    logger.info(f"[DUTCHING] Total stake: {total_stake:.2f}, Implied prob: {implied_prob:.1f}%, Profitable: {is_profitable}")
     for r in results:
-        logger.info(f"[DUTCHING] Output: {r['runnerName']} @ {r['price']:.2f} -> stake={r['stake']:.2f}, profit={r['profitIfWins']:.2f}")
-    logger.info(f"[DUTCHING] Uniform profit: {uniform_profit:.2f}")
+        logger.info(f"[DUTCHING] {r['runnerName']} @ {r['price']:.2f} -> stake={r['stake']:.2f}, net_profit={r['profitIfWins']:.2f}")
+    logger.info(f"[DUTCHING] Uniform NET profit: {uniform_profit:.2f}")
     
     return results, uniform_profit, round(implied_prob, 2)
 

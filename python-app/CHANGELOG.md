@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.43.0
+- FIX CRITICO: Dutching BACK ora usa profitto NETTO uniforme
+- Formula corretta: peso = 1/price (non 1/(price-1))
+- Profitto = (stake * price - stake_totale) * (1 - commissione)
+- Ora il profitto e' IDENTICO su qualsiasi selezione vinca
+
 ## v3.42.3
 - Version sync and build trigger
 
