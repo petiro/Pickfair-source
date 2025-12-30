@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.55.3"
+APP_VERSION = "3.55.4"
 
 # Setup file logging
 def setup_logging():
@@ -6893,7 +6893,7 @@ Evento: {event_name}"""
                 return
             
             # Validate all bets before placing
-            MIN_STAKE = 2.0  # Betfair Italia minimum
+            MIN_STAKE = 1.0  # Betfair minimum
             MAX_PAYOUT = 10000.0
             
             validation_errors = []
@@ -6913,7 +6913,7 @@ Evento: {event_name}"""
             
             if validation_errors:
                 error_msg = "Validazione fallita:\n" + "\n".join(validation_errors)
-                error_msg += f"\n\nAumenta il Profit Target per avere stake >= {MIN_STAKE}€"
+                error_msg += f"\n\nAumenta il Profit Target per avere stake >= {MIN_STAKE:.0f}€"
                 messagebox.showwarning("Validazione", error_msg)
                 return
             

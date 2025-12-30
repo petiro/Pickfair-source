@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.55.4
+- FIX: Minimo stake corretto a 1€ (non 2€)
+
 ## v3.55.3
 - FIX: Auto-updater ora forza chiusura istanza precedente con taskkill
 
