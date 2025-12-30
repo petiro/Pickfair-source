@@ -1,7 +1,11 @@
 # Changelog
 
+## v3.46.1
+- FIX CRITICO: Target Profit ora calcola correttamente stake totale
+- Formula: S = target / (1/sum(1/price) - 1), poi pesi 1/price
+- Ora mettendo 20 EUR ottieni esattamente ~20 EUR netti su ogni selezione
+
 ## v3.46.0
-- FIX: Target Profit BACK usa formula corretta: stake = target / (price - 1)
 - Nuova funzione calculate_back_target_profit() dedicata
 - Profitto netto uniforme garantito con target profit fisso
 

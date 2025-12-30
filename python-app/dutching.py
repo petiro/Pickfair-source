@@ -166,14 +166,15 @@ def calculate_back_target_profit(
     """
     BACK Dutching con Target Profit Fisso - Formula CORRETTA.
     
-    "Voglio +X EUR netti qualunque selezione vinca"
+    "Voglio esattamente +X EUR netti qualunque selezione vinca"
     
-    Formula:
-        stake_i = target_profit / (price_i - 1)
-        stake_totale = sum(stake_i)
-        profitto_netto = target_profit * (1 - commission)
+    Formula matematica:
+        1. Calcola somma pesi: sum_w = sum(1/price_i)
+        2. Stake totale necessario: S = target / (1/sum_w - 1)
+        3. Stake per selezione: stake_i = S * (1/price_i) / sum_w
+        4. Profitto netto = target * (1 - commission)
     
-    Questa e' l'UNICA formula corretta per target profit netto uniforme.
+    Garantisce profitto NETTO identico su TUTTE le selezioni.
     """
     commission_mult = 1 - (commission / 100.0)
     
@@ -184,19 +185,32 @@ def calculate_back_target_profit(
     if not valid_selections:
         raise ValueError("Nessuna quota valida")
     
+    # Calcola somma pesi (implied probability decimale)
+    weights = [1.0 / sel['price'] for sel in valid_selections]
+    sum_weights = sum(weights)
+    
+    # Verifica: sum_weights deve essere < 1 per avere profitto
+    if sum_weights >= 1.0:
+        raise ValueError(f"Book value >= 100% ({sum_weights*100:.1f}%), profitto non garantito")
+    
+    # Calcola stake totale necessario per ottenere target_profit
+    # Formula: profit = S * (1/sum_w) - S = S * (1/sum_w - 1)
+    # Quindi: S = profit / (1/sum_w - 1)
+    gross_target = target_profit / commission_mult  # Target lordo per compensare commissione
+    total_stake = gross_target / (1.0 / sum_weights - 1)
+    
+    logger.info(f"[DUTCHING] BACK Target Profit: target_net={target_profit:.2f}, gross={gross_target:.2f}")
+    logger.info(f"[DUTCHING] sum_weights={sum_weights:.4f}, total_stake_needed={total_stake:.2f}")
+    
     results = []
-    total_stake = 0.0
     
-    logger.info(f"[DUTCHING] BACK Target Profit: target={target_profit:.2f}, commission={commission}%")
-    
-    for sel in valid_selections:
+    for i, sel in enumerate(valid_selections):
         price = sel['price']
-        # Formula corretta: stake = target / (price - 1)
-        stake = target_profit / (price - 1)
+        # Stake proporzionale al peso
+        stake = total_stake * weights[i] / sum_weights
         stake = round(stake, 2)
-        total_stake += stake
         
-        # Profitto lordo se vince questa selezione
+        # Profitto lordo = ritorno - stake totale
         gross_return = stake * price
         
         results.append({
@@ -205,26 +219,33 @@ def calculate_back_target_profit(
             'price': price,
             'stake': stake,
             'side': 'BACK',
-            'grossProfit': round(target_profit, 2),
-            'profitIfWins': round(target_profit * commission_mult, 2),
+            'grossProfit': 0,  # Calcolato dopo
+            'profitIfWins': 0,  # Calcolato dopo
             'potentialReturn': round(gross_return, 2),
             'impliedProbability': round((1.0 / price) * 100, 2)
         })
     
-    # Ricalcola profitto netto effettivo dopo arrotondamenti
-    # profitto = stake * price - total_stake
+    # Correggi arrotondamento per mantenere stake totale esatto
+    actual_total = sum(r['stake'] for r in results)
+    diff = round(total_stake - actual_total, 2)
+    if diff != 0 and results:
+        max_idx = max(range(len(results)), key=lambda i: results[i]['stake'])
+        results[max_idx]['stake'] = round(results[max_idx]['stake'] + diff, 2)
+        actual_total = sum(r['stake'] for r in results)
+    
+    # Ricalcola profitto netto effettivo per ogni selezione
     net_profits = []
     for r in results:
-        actual_profit = r['stake'] * r['price'] - total_stake
-        actual_net = actual_profit * commission_mult if actual_profit > 0 else actual_profit
-        r['profitIfWins'] = round(actual_net, 2)
-        r['grossProfit'] = round(actual_profit, 2)
-        net_profits.append(actual_net)
+        gross_profit = r['stake'] * r['price'] - actual_total
+        net_profit = gross_profit * commission_mult if gross_profit > 0 else gross_profit
+        r['grossProfit'] = round(gross_profit, 2)
+        r['profitIfWins'] = round(net_profit, 2)
+        net_profits.append(net_profit)
     
     uniform_profit = round(min(net_profits), 2)
-    implied_prob = sum(1.0 / sel['price'] for sel in valid_selections) * 100
+    implied_prob = sum_weights * 100
     
-    logger.info(f"[DUTCHING] Total stake: {total_stake:.2f}, Uniform net profit: {uniform_profit:.2f}")
+    logger.info(f"[DUTCHING] Total stake: {actual_total:.2f}, Uniform net profit: {uniform_profit:.2f}")
     for r in results:
         logger.info(f"[DUTCHING] {r['runnerName']} @ {r['price']:.2f} -> stake={r['stake']:.2f}, net={r['profitIfWins']:.2f}")
     
