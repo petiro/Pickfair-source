@@ -3383,42 +3383,68 @@ class PickfairApp:
             self.qb_live_update_id = None
     
     def _update_qb_live_odds(self):
-        """Update live odds display from current market data."""
+        """Update live odds display from current market data (reads from ladder labels)."""
         if not self.qb_current_selection_id:
             return
         
         try:
-            values = list(self.runners_tree.item(self.qb_current_selection_id)['values'])
+            selection_id = str(self.qb_current_selection_id)
+            if selection_id not in self.runner_rows:
+                self.qb_live_odds_label.configure(text="Live: -")
+                return
+            
+            widgets = self.runner_rows[selection_id]
             bet_type = self.qb_bet_type_var.get()
             
+            live_price = 0
             if bet_type == 'BACK':
-                live_price = float(str(values[2]).replace(',', '.')) if values[2] and values[2] != '-' else 0
+                # Best back is last cell (index -1)
+                back_cells = widgets.get('back_cells', [])
+                if back_cells:
+                    text = back_cells[-1]['price_lbl'].cget('text')
+                    live_price = float(text) if text and text != '-' else 0
             else:
-                live_price = float(str(values[4]).replace(',', '.')) if values[4] and values[4] != '-' else 0
+                # Best lay is first cell (index 0)
+                lay_cells = widgets.get('lay_cells', [])
+                if lay_cells:
+                    text = lay_cells[0]['price_lbl'].cget('text')
+                    live_price = float(text) if text and text != '-' else 0
             
             if live_price > 0:
-                self.qb_live_odds_label.configure(text=f"(Live: {live_price:.2f})")
+                self.qb_live_odds_label.configure(text=f"Live: {live_price:.2f}")
             else:
-                self.qb_live_odds_label.configure(text="(Live: -)")
+                self.qb_live_odds_label.configure(text="Live: -")
         except:
-            self.qb_live_odds_label.configure(text="(Live: -)")
+            self.qb_live_odds_label.configure(text="Live: -")
     
     def _use_live_odds(self):
-        """Set the odds entry to current live odds."""
+        """Set the odds entry to current live odds (reads from ladder labels)."""
         if not self.qb_current_selection_id:
             return
         
         try:
-            values = list(self.runners_tree.item(self.qb_current_selection_id)['values'])
+            selection_id = str(self.qb_current_selection_id)
+            if selection_id not in self.runner_rows:
+                return
+            
+            widgets = self.runner_rows[selection_id]
             bet_type = self.qb_bet_type_var.get()
             
+            live_price = 0
             if bet_type == 'BACK':
-                live_price = float(str(values[2]).replace(',', '.')) if values[2] and values[2] != '-' else 0
+                back_cells = widgets.get('back_cells', [])
+                if back_cells:
+                    text = back_cells[-1]['price_lbl'].cget('text')
+                    live_price = float(text) if text and text != '-' else 0
             else:
-                live_price = float(str(values[4]).replace(',', '.')) if values[4] and values[4] != '-' else 0
+                lay_cells = widgets.get('lay_cells', [])
+                if lay_cells:
+                    text = lay_cells[0]['price_lbl'].cget('text')
+                    live_price = float(text) if text and text != '-' else 0
             
             if live_price > 0:
                 self.qb_odds_var.set(f"{live_price:.2f}")
+                self._update_qb_pl()
         except:
             pass
     
