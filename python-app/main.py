@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.58.6"
+APP_VERSION = "3.58.7"
 
 # Setup file logging
 def setup_logging():
@@ -3912,6 +3912,14 @@ class PickfairApp:
         for i in range(5):
             cards_frame.columnconfigure(i, weight=1)
         
+        if stats['total'] == 0:
+            placeholder = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+            placeholder.pack(fill=tk.X, pady=20, padx=5)
+            ctk.CTkLabel(placeholder, text="Piazza la prima scommessa", 
+                        font=('Segoe UI Bold', 14), text_color=COLORS['text_secondary']).pack(pady=(20, 5))
+            ctk.CTkLabel(placeholder, text="Le statistiche verranno calcolate automaticamente dopo la prima operazione.", 
+                        font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(pady=(0, 20))
+        
         # P/L and Win Rate section
         summary_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
         summary_frame.pack(fill=tk.X, pady=20, padx=5)
@@ -4040,16 +4048,24 @@ class PickfairApp:
         tree.column('perse', width=60)
         tree.column('pnl', width=100)
         
-        for day_data in daily_pnl:
-            pnl_val = day_data.get('total_pnl', 0) or 0
-            pnl_str = f"+{pnl_val:.2f}" if pnl_val >= 0 else f"{pnl_val:.2f}"
-            tree.insert('', 'end', values=(
-                day_data.get('day', ''),
-                day_data.get('bets', 0),
-                day_data.get('won', 0),
-                day_data.get('lost', 0),
-                pnl_str
-            ))
+        if not daily_pnl:
+            placeholder = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+            placeholder.pack(fill=tk.X, pady=20, padx=5)
+            ctk.CTkLabel(placeholder, text="Nessuna operazione storica", 
+                        font=('Segoe UI Bold', 14), text_color=COLORS['text_secondary']).pack(pady=(20, 5))
+            ctk.CTkLabel(placeholder, text="In attesa dei primi eventi. Le operazioni verranno tracciate da ora in poi.", 
+                        font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(pady=(0, 20))
+        else:
+            for day_data in daily_pnl:
+                pnl_val = day_data.get('total_pnl', 0) or 0
+                pnl_str = f"+{pnl_val:.2f}" if pnl_val >= 0 else f"{pnl_val:.2f}"
+                tree.insert('', 'end', values=(
+                    day_data.get('day', ''),
+                    day_data.get('bets', 0),
+                    day_data.get('won', 0),
+                    day_data.get('lost', 0),
+                    pnl_str
+                ))
         
         scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -4088,17 +4104,25 @@ class PickfairApp:
         tree.column('stato', width=80)
         tree.column('messaggio', width=300)
         
-        for record in history:
-            msg_preview = (record.get('message_text') or '')[:50]
-            if len(record.get('message_text') or '') > 50:
-                msg_preview += '...'
-            tree.insert('', 'end', values=(
-                record.get('created_at', '')[:19] if record.get('created_at') else '',
-                record.get('chat_name') or record.get('chat_id', ''),
-                record.get('action', ''),
-                record.get('status', ''),
-                msg_preview
-            ))
+        if not history:
+            placeholder = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+            placeholder.pack(fill=tk.X, pady=20, padx=5)
+            ctk.CTkLabel(placeholder, text="Nessun segnale ricevuto", 
+                        font=('Segoe UI Bold', 14), text_color=COLORS['text_secondary']).pack(pady=(20, 5))
+            ctk.CTkLabel(placeholder, text="I segnali Telegram verranno visualizzati qui quando arriveranno.", 
+                        font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(pady=(0, 20))
+        else:
+            for record in history:
+                msg_preview = (record.get('message_text') or '')[:50]
+                if len(record.get('message_text') or '') > 50:
+                    msg_preview += '...'
+                tree.insert('', 'end', values=(
+                    record.get('created_at', '')[:19] if record.get('created_at') else '',
+                    record.get('chat_name') or record.get('chat_id', ''),
+                    record.get('action', ''),
+                    record.get('status', ''),
+                    msg_preview
+                ))
         
         scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -4130,18 +4154,26 @@ class PickfairApp:
         tree.tag_configure('warning', foreground='#ffc107')
         tree.tag_configure('info', foreground='#17a2b8')
         
-        for err in errors:
-            level = err.get('level', 'INFO')
-            tag = level.lower() if level.lower() in ('error', 'warning', 'info') else ''
-            msg_preview = (err.get('message') or '')[:80]
-            if len(err.get('message') or '') > 80:
-                msg_preview += '...'
-            tree.insert('', 'end', values=(
-                err.get('created_at', '')[:19] if err.get('created_at') else '',
-                level,
-                err.get('source', ''),
-                msg_preview
-            ), tags=(tag,))
+        if not errors:
+            placeholder = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+            placeholder.pack(fill=tk.X, pady=20, padx=5)
+            ctk.CTkLabel(placeholder, text="Nessun errore registrato", 
+                        font=('Segoe UI Bold', 14), text_color=COLORS['success']).pack(pady=(20, 5))
+            ctk.CTkLabel(placeholder, text="Ottimo! Il sistema funziona correttamente.", 
+                        font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(pady=(0, 20))
+        else:
+            for err in errors:
+                level = err.get('level', 'INFO')
+                tag = level.lower() if level.lower() in ('error', 'warning', 'info') else ''
+                msg_preview = (err.get('message') or '')[:80]
+                if len(err.get('message') or '') > 80:
+                    msg_preview += '...'
+                tree.insert('', 'end', values=(
+                    err.get('created_at', '')[:19] if err.get('created_at') else '',
+                    level,
+                    err.get('source', ''),
+                    msg_preview
+                ), tags=(tag,))
         
         scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
