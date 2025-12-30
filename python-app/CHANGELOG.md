@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.58.0
+- NUOVO: Moduli separati per ottimizzazione performance
+- order_manager.py: Replace intelligenti con profit threshold, guard rail anti-loop
+- market_tracker.py: Cache market book + delta detection (riduce API calls)
+- telegram_sender.py: Rate limit adattivo (aumenta dopo FloodWait, diminuisce dopo successi)
+- auto_throttle.py: Regolatore automatico carico (polling, replace, telegram adattivi)
+- database.py: WAL mode + 11 indici ottimizzati per query frequenti
+- Metriche dettagliate per ogni modulo
+
 ## v3.57.4
 - NUOVO: Tab "Performance" nella Dashboard con metriche sistema
 - MarketCache per ridurre API calls Betfair (hit rate, calls risparmiate)

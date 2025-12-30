@@ -26,9 +26,15 @@ class Database:
         self._init_db()
     
     def _init_db(self):
-        """Initialize database tables."""
+        """Initialize database tables with WAL mode and optimized indices."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+        
+        # Enable WAL mode for better concurrent access
+        cursor.execute('PRAGMA journal_mode=WAL')
+        cursor.execute('PRAGMA synchronous=NORMAL')
+        cursor.execute('PRAGMA cache_size=-64000')  # 64MB cache
+        cursor.execute('PRAGMA temp_store=MEMORY')
         
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS settings (
@@ -236,6 +242,22 @@ class Database:
         cursor.execute('SELECT COUNT(*) FROM telegram_settings')
         if cursor.fetchone()[0] == 0:
             cursor.execute('INSERT INTO telegram_settings (id) VALUES (1)')
+        
+        # Optimized indices for frequent queries (safe - only on existing columns)
+        try:
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_bets_market_id ON bets(market_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_bets_status ON bets(status)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_bets_placed_at ON bets(placed_at)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_bets_bet_id ON bets(bet_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_bookings_market_id ON bookings(market_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_bookings_selection_id ON bookings(selection_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_cashout_market_id ON auto_cashout_rules(market_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_cashout_bet_id ON auto_cashout_rules(bet_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_sim_bets_placed_at ON simulation_bets(placed_at)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_sim_bets_status ON simulation_bets(status)')
+        except sqlite3.OperationalError as e:
+            pass  # Index creation failed, table/column might not exist
         
         conn.commit()
         conn.close()

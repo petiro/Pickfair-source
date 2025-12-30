@@ -1,0 +1,104 @@
+Perfetto, chiarisco prima COSA sono e a cosa servono, poi ti dico come si integrano e quando conviene farlo.
+Niente codice finché il concetto non è chiarissimo.
+1️⃣ PATCH PRONTE FILE-PER-FILE
+Cosa significa davvero
+Vuol dire non riscrivere il progetto, ma:
+entrare nei file che hai già
+aggiungere blocchi mirati
+zero refactor rischioso
+Esempio reale:
+order_manager.py → aggiungo guard rail sui replace
+market_tracker.py → aggiungo cache + delta detection
+telegram_sender.py → rate limit dinamico
+db.py → WAL + indici
+main.py → auto-throttle globale
+📌 Vantaggi:
+rischio minimo
+rollback facile
+testabile modulo per modulo
+subito production-safe
+2️⃣ AUTO-THROTTLE IN BASE AL CARICO
+Cos’è (in una frase)
+👉 È un regolatore automatico che rallenta il sistema quando è sotto stress e lo accelera quando è libero.
+Non spegne nulla.
+Non perde eventi.
+Adatta il ritmo.
+Perché TI SERVE (specialmente nel tuo caso)
+Tu hai:
+polling live
+replace automatici
+cashout dinamico
+Telegram burst
+DB write continui
+Senza throttle:
+saturi API
+FloodWait
+replace inutili
+lag UI
+comportamenti “strani” (race)
+Cosa controlla l’auto-throttle
+Tipicamente 5 segnali:
+Segnale
+Perché conta
+API calls/min
+limite Betfair
+Replace/sec
+rischio ban
+Telegram queue depth
+FloodWait
+DB write latency
+UI lag
+Loop latency
+sistema sotto carico
+Cosa FA l’auto-throttle (concreto)
+Quando il carico SALE:
+⏳ aumenta polling (2s → 4s → 6s)
+⛔ blocca replace marginali
+🧵 rallenta broadcast Telegram
+🛑 skip cashout micro-profit
+Quando il carico SCENDE:
+⚡ polling più rapido
+⚡ replace riattivati
+⚡ cashout aggressivo
+📌 È come il cruise control, non un freno a mano.
+Esempio pratico (concettuale)
+Copia codice
+Text
+Sistema tranquillo:
+polling = 1.5s
+replace allowed
+telegram = 0.4s
+
+Sistema stressato:
+polling = 4s
+replace solo se Δprofit > 1€
+telegram = 0.8s
+Senza che TU faccia nulla.
+3️⃣ DIFFERENZA CHIAVE (molto importante)
+❌ Rate limit fisso
+✔ Auto-throttle dinamico
+Rate limit:
+sempre uguale
+inefficiente nei momenti “vuoti”
+Auto-throttle:
+aggressivo quando può
+conservativo quando serve
+👉 più profitto, meno rischio
+4️⃣ TI SERVE ORA?
+✔ SÌ se:
+live trading
+dutching
+10+ mercati
+5+ follower
+UI sempre attiva
+❌ NO (per ora) se:
+pre-match solo
+1–2 mercati
+manuale
+Tu sei chiaramente nel primo caso.
+5️⃣ COME INTEGRIAMO (STRATEGIA CORRETTA)
+Ordine senza discussioni:
+1️⃣ Patch file-per-file
+2️⃣ Metriche carico (passive)
+3️⃣ Auto-throttle (attivo)
+Mai il contrario.
