@@ -37,6 +37,13 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+try:
+    from bet_logger import get_bet_logger
+    _bet_logger = get_bet_logger()
+except ImportError:
+    _bet_logger = None
+    logger.warning("[ORDER_MANAGER] BetLogger not available")
+
 
 # ==============================================================================
 # CONFIGURAZIONE
@@ -740,6 +747,19 @@ class OrderManagerPro:
                 result['success'] = True
                 result['action'] = 'REPLACE'
                 result['reason'] = 'SUCCESS'
+                
+                if _bet_logger:
+                    _bet_logger.log_order_replaced(
+                        market_id=market_id,
+                        selection_id=str(selection_id),
+                        side=side,
+                        old_stake=stake,
+                        old_price=current_price,
+                        new_stake=stake,
+                        new_price=target_price,
+                        bet_id=current_bet_id,
+                        new_bet_id=new_bet_id
+                    )
                 
                 self._record(result)
                 return result

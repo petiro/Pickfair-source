@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.56.0"
+APP_VERSION = "3.57.0"
 
 # Setup file logging
 def setup_logging():
@@ -53,6 +53,8 @@ LOG_FILE = setup_logging()
 
 from database import Database
 from betfair_client import BetfairClient, MARKET_TYPES
+from storage import get_persistent_storage
+from bet_logger import get_bet_logger
 from betfair_stream import BetfairStream
 from dutching import calculate_dutching_stakes, validate_selections, format_currency
 from telegram_listener import TelegramListener, SignalQueue
@@ -174,6 +176,11 @@ class PickfairApp:
         
         self.db = Database()
         print(f"[DEBUG] Database path: {self.db.db_path}")
+        
+        self.persistent_storage = get_persistent_storage()
+        self.bet_logger = get_bet_logger()
+        logging.info(f"[STORAGE] Persistent storage initialized")
+        
         self.client = None
         self.current_event = None
         self.current_market = None
@@ -191,6 +198,7 @@ class PickfairApp:
         self.telegram_status = 'STOPPED'
         self.market_status = 'OPEN'
         self.simulation_mode = False  # Simulation mode flag
+        self.recovered_positions = []  # Positions recovered from DB
         
         # License check
         self.is_app_licensed = is_licensed()
@@ -222,8 +230,25 @@ class PickfairApp:
         self._start_settlement_monitor()
         self._check_for_updates_on_startup()
         
+        # Recovery: restore open positions from database
+        self._recover_open_positions()
+        
         # Telegram listener: manual start only (user preference)
         # self.root.after(2000, self._auto_start_telegram_listener)
+    
+    def _recover_open_positions(self):
+        """Recover open positions from database after restart."""
+        try:
+            positions = self.bet_logger.get_open_positions()
+            if positions:
+                logging.info(f"[RECOVERY] Found {len(positions)} open positions to recover")
+                self.recovered_positions = positions
+                for pos in positions:
+                    logging.info(f"[RECOVERY] - {pos['side']} {pos['stake']}@{pos['price']} on {pos['market_id']}")
+            else:
+                logging.info("[RECOVERY] No open positions to recover")
+        except Exception as e:
+            logging.error(f"[RECOVERY] Failed to recover positions: {e}")
     
     def _create_activation_screen(self):
         """Create the license activation screen."""
@@ -3647,12 +3672,18 @@ class PickfairApp:
         self.dashboard_notebook.add("Prenotazioni")
         self.dashboard_notebook.add("Cashout")
         self.dashboard_notebook.add("Statistiche")
+        self.dashboard_notebook.add("Storico P&L")
+        self.dashboard_notebook.add("Audit Telegram")
+        self.dashboard_notebook.add("Log Errori")
         
         self.dashboard_recent_frame = self.dashboard_notebook.tab("Scommesse Recenti")
         self.dashboard_orders_frame = self.dashboard_notebook.tab("Ordini Correnti")
         self.dashboard_bookings_frame = self.dashboard_notebook.tab("Prenotazioni")
         self.dashboard_cashout_frame = self.dashboard_notebook.tab("Cashout")
         self.dashboard_stats_tab_frame = self.dashboard_notebook.tab("Statistiche")
+        self.dashboard_pnl_frame = self.dashboard_notebook.tab("Storico P&L")
+        self.dashboard_telegram_audit_frame = self.dashboard_notebook.tab("Audit Telegram")
+        self.dashboard_error_log_frame = self.dashboard_notebook.tab("Log Errori")
     
     def _refresh_dashboard_tab(self):
         """Refresh dashboard tab data."""
@@ -3734,6 +3765,19 @@ class PickfairApp:
             for widget in self.dashboard_stats_tab_frame.winfo_children():
                 widget.destroy()
             self._create_statistics_view(self.dashboard_stats_tab_frame)
+            
+            for widget in self.dashboard_pnl_frame.winfo_children():
+                widget.destroy()
+            self.persistent_storage.rebuild_daily_pnl(days=30)
+            self._create_pnl_history_view(self.dashboard_pnl_frame)
+            
+            for widget in self.dashboard_telegram_audit_frame.winfo_children():
+                widget.destroy()
+            self._create_telegram_audit_view(self.dashboard_telegram_audit_frame)
+            
+            for widget in self.dashboard_error_log_frame.winfo_children():
+                widget.destroy()
+            self._create_error_log_view(self.dashboard_error_log_frame)
         
         threading.Thread(target=fetch_data, daemon=True).start()
     
@@ -3801,6 +3845,197 @@ class PickfairApp:
         for widget in parent.winfo_children():
             widget.destroy()
         self._create_statistics_view(parent)
+    
+    def _create_pnl_history_view(self, parent):
+        """Create P&L history view from persistent storage."""
+        ctk.CTkLabel(parent, text="Storico Profitti/Perdite (da Database)", 
+                     font=FONTS['title'], text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(10, 5))
+        
+        kpis = self.persistent_storage.get_dashboard_kpis()
+        
+        kpi_frame = ctk.CTkFrame(parent, fg_color='transparent')
+        kpi_frame.pack(fill=tk.X, pady=10)
+        
+        def create_kpi_card(parent, title, value, color, col):
+            card = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+            card.grid(row=0, column=col, padx=5, sticky='nsew')
+            ctk.CTkLabel(card, text=title, font=('Segoe UI', 9), 
+                        text_color=COLORS['text_secondary']).pack(pady=(10, 2))
+            ctk.CTkLabel(card, text=str(value), font=('Segoe UI Bold', 18), 
+                        text_color=color).pack()
+            ctk.CTkLabel(card, text="", font=('Segoe UI', 8)).pack(pady=(0, 10))
+            return card
+        
+        pnl = kpis.get('total_pnl', 0)
+        pnl_color = COLORS['success'] if pnl >= 0 else COLORS['loss']
+        pnl_text = f"+{pnl:.2f}" if pnl >= 0 else f"{pnl:.2f}"
+        
+        create_kpi_card(kpi_frame, "Scommesse Totali", kpis.get('total_bets', 0), COLORS['text_primary'], 0)
+        create_kpi_card(kpi_frame, "P&L Totale", f"{pnl_text} EUR", pnl_color, 1)
+        create_kpi_card(kpi_frame, "Win Rate", f"{kpis.get('winrate', 0):.1f}%", COLORS['text_primary'], 2)
+        create_kpi_card(kpi_frame, "Media Profitto", f"{kpis.get('avg_profit', 0):.2f} EUR", COLORS['text_secondary'], 3)
+        create_kpi_card(kpi_frame, "Commissioni", f"{kpis.get('total_commission', 0):.2f} EUR", COLORS['warning'], 4)
+        
+        for i in range(5):
+            kpi_frame.columnconfigure(i, weight=1)
+        
+        ctk.CTkLabel(parent, text="P&L Giornaliero (ultimi 30 giorni)", 
+                     font=('Segoe UI', 12, 'bold'), text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(20, 5))
+        
+        daily_pnl = self.persistent_storage.get_daily_pnl(days=30)
+        
+        columns = ('giorno', 'scommesse', 'vinte', 'perse', 'pnl')
+        tree = ttk.Treeview(parent, columns=columns, show='headings', height=10)
+        tree.heading('giorno', text='Giorno')
+        tree.heading('scommesse', text='Scommesse')
+        tree.heading('vinte', text='Vinte')
+        tree.heading('perse', text='Perse')
+        tree.heading('pnl', text='P&L')
+        tree.column('giorno', width=100)
+        tree.column('scommesse', width=80)
+        tree.column('vinte', width=60)
+        tree.column('perse', width=60)
+        tree.column('pnl', width=100)
+        
+        for day_data in daily_pnl:
+            pnl_val = day_data.get('total_pnl', 0) or 0
+            pnl_str = f"+{pnl_val:.2f}" if pnl_val >= 0 else f"{pnl_val:.2f}"
+            tree.insert('', 'end', values=(
+                day_data.get('day', ''),
+                day_data.get('bets', 0),
+                day_data.get('won', 0),
+                day_data.get('lost', 0),
+                pnl_str
+            ))
+        
+        scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=5)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=5)
+    
+    def _create_telegram_audit_view(self, parent):
+        """Create Telegram audit view from persistent storage."""
+        ctk.CTkLabel(parent, text="Audit Messaggi Telegram", 
+                     font=FONTS['title'], text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(10, 5))
+        
+        metrics = self.persistent_storage.get_telegram_metrics()
+        
+        metrics_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+        metrics_frame.pack(fill=tk.X, pady=10, padx=5)
+        
+        info_text = (f"Totale messaggi: {metrics.get('total', 0)} | "
+                    f"Elaborati: {metrics.get('processed', 0)} | "
+                    f"Falliti: {metrics.get('failed', 0)} | "
+                    f"Tempo medio: {metrics.get('avg_processing_time_ms', 0):.0f}ms")
+        ctk.CTkLabel(metrics_frame, text=info_text, font=('Segoe UI', 10), 
+                    text_color=COLORS['text_secondary']).pack(pady=10, padx=10)
+        
+        history = self.persistent_storage.get_telegram_history(limit=100)
+        
+        columns = ('data', 'chat', 'azione', 'stato', 'messaggio')
+        tree = ttk.Treeview(parent, columns=columns, show='headings', height=12)
+        tree.heading('data', text='Data')
+        tree.heading('chat', text='Chat')
+        tree.heading('azione', text='Azione')
+        tree.heading('stato', text='Stato')
+        tree.heading('messaggio', text='Messaggio')
+        tree.column('data', width=130)
+        tree.column('chat', width=120)
+        tree.column('azione', width=120)
+        tree.column('stato', width=80)
+        tree.column('messaggio', width=300)
+        
+        for record in history:
+            msg_preview = (record.get('message_text') or '')[:50]
+            if len(record.get('message_text') or '') > 50:
+                msg_preview += '...'
+            tree.insert('', 'end', values=(
+                record.get('created_at', '')[:19] if record.get('created_at') else '',
+                record.get('chat_name') or record.get('chat_id', ''),
+                record.get('action', ''),
+                record.get('status', ''),
+                msg_preview
+            ))
+        
+        scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=5)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=5)
+    
+    def _create_error_log_view(self, parent):
+        """Create error log view from persistent storage."""
+        ctk.CTkLabel(parent, text="Log Errori e Problemi", 
+                     font=FONTS['title'], text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(10, 5))
+        
+        ctk.CTkLabel(parent, text="Ultimi 100 errori registrati nel database", 
+                     font=('Segoe UI', 10), text_color=COLORS['text_secondary']).pack(anchor=tk.W, pady=(0, 10))
+        
+        errors = self.persistent_storage.get_recent_errors(limit=100)
+        
+        columns = ('data', 'livello', 'sorgente', 'messaggio')
+        tree = ttk.Treeview(parent, columns=columns, show='headings', height=15)
+        tree.heading('data', text='Data/Ora')
+        tree.heading('livello', text='Livello')
+        tree.heading('sorgente', text='Sorgente')
+        tree.heading('messaggio', text='Messaggio')
+        tree.column('data', width=140)
+        tree.column('livello', width=70)
+        tree.column('sorgente', width=120)
+        tree.column('messaggio', width=400)
+        
+        tree.tag_configure('error', foreground='#dc3545')
+        tree.tag_configure('warning', foreground='#ffc107')
+        tree.tag_configure('info', foreground='#17a2b8')
+        
+        for err in errors:
+            level = err.get('level', 'INFO')
+            tag = level.lower() if level.lower() in ('error', 'warning', 'info') else ''
+            msg_preview = (err.get('message') or '')[:80]
+            if len(err.get('message') or '') > 80:
+                msg_preview += '...'
+            tree.insert('', 'end', values=(
+                err.get('created_at', '')[:19] if err.get('created_at') else '',
+                level,
+                err.get('source', ''),
+                msg_preview
+            ), tags=(tag,))
+        
+        scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=5)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=5)
+        
+        btn_frame = ctk.CTkFrame(parent, fg_color='transparent')
+        btn_frame.pack(fill=tk.X, pady=10)
+        
+        def export_errors():
+            try:
+                import csv
+                from tkinter import filedialog
+                filename = filedialog.asksaveasfilename(
+                    defaultextension='.csv',
+                    filetypes=[('CSV files', '*.csv')],
+                    title='Esporta Log Errori'
+                )
+                if filename:
+                    with open(filename, 'w', newline='', encoding='utf-8') as f:
+                        writer = csv.writer(f)
+                        writer.writerow(['Data', 'Livello', 'Sorgente', 'Messaggio', 'Dettagli'])
+                        for err in errors:
+                            writer.writerow([
+                                err.get('created_at', ''),
+                                err.get('level', ''),
+                                err.get('source', ''),
+                                err.get('message', ''),
+                                err.get('details', '')
+                            ])
+                    messagebox.showinfo("Esportazione", f"Log esportati in {filename}")
+            except Exception as e:
+                messagebox.showerror("Errore", f"Esportazione fallita: {e}")
+        
+        ctk.CTkButton(btn_frame, text="Esporta CSV", command=export_errors,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6).pack(side=tk.RIGHT, padx=5)
     
     def _create_simulation_bets_list(self, parent):
         """Create list of simulation bets."""
@@ -6993,34 +7228,99 @@ Evento: {event_name}"""
                 })
             
             try:
+                market_id = self.current_market['marketId']
+                market_name = self.current_market.get('marketName', '')
+                event_name = self.current_event.get('name', '') if self.current_event else ''
+                
                 if self.simulation_mode:
+                    for instr in instructions:
+                        self.bet_logger.log_order_placed(
+                            market_id=market_id,
+                            selection_id=str(instr['selectionId']),
+                            side=instr['side'],
+                            stake=instr['size'],
+                            price=instr['price'],
+                            market_name=market_name,
+                            event_name=event_name,
+                            source='SIMULATION'
+                        )
                     messagebox.showinfo("Simulazione", f"[SIMULAZIONE] {len(instructions)} scommesse piazzate!")
                     dialog.destroy()
                     return
                 
-                result = self.client.place_bets(self.current_market['marketId'], instructions)
+                result = self.client.place_bets(market_id, instructions)
                 logging.info(f"[DUTCHING] Place bets result: {result}")
+                
                 if result.get('status') == 'SUCCESS':
+                    instr_reports = result.get('instructionReports', [])
+                    for i, instr in enumerate(instructions):
+                        rep = instr_reports[i] if i < len(instr_reports) else {}
+                        bet_id = rep.get('betId')
+                        runner_name = dialog.calculated_results[i].get('runnerName', '') if i < len(dialog.calculated_results) else ''
+                        
+                        self.bet_logger.log_order_placed(
+                            market_id=market_id,
+                            selection_id=str(instr['selectionId']),
+                            side=instr['side'],
+                            stake=instr['size'],
+                            price=instr['price'],
+                            bet_id=bet_id,
+                            market_name=market_name,
+                            event_name=event_name,
+                            runner_name=runner_name,
+                            source='DUTCHING'
+                        )
+                        
+                        if bet_id:
+                            self.bet_logger.save_position(
+                                bet_id=bet_id,
+                                market_id=market_id,
+                                selection_id=str(instr['selectionId']),
+                                side=instr['side'],
+                                stake=instr['size'],
+                                price=instr['price'],
+                                status='PLACED'
+                            )
+                    
                     messagebox.showinfo("Successo", f"{len(instructions)} scommesse piazzate!")
                     dialog.destroy()
                 else:
-                    # Show detailed error info
                     error_code = result.get('errorCode', '')
                     error_msg = f"Stato: {result.get('status', 'UNKNOWN')}"
                     if error_code:
                         error_msg += f"\nErrore: {error_code}"
                     
-                    # Check individual instruction reports
                     instr_reports = result.get('instructionReports', [])
                     for i, rep in enumerate(instr_reports):
+                        instr = instructions[i] if i < len(instructions) else {}
+                        runner_name = dialog.calculated_results[i].get('runnerName', '') if i < len(dialog.calculated_results) else ''
+                        
                         if rep.get('status') != 'SUCCESS':
                             rep_error = rep.get('errorCode', '')
                             if rep_error:
                                 error_msg += f"\n- Selezione {i+1}: {rep_error}"
+                            
+                            self.bet_logger.log_order_failed(
+                                market_id=market_id,
+                                selection_id=str(instr.get('selectionId', '')),
+                                side=instr.get('side', ''),
+                                stake=instr.get('size', 0),
+                                price=instr.get('price', 0),
+                                error_code=rep_error or error_code,
+                                error_message=rep.get('errorMessage', ''),
+                                runner_name=runner_name,
+                                source='DUTCHING'
+                            )
                     
                     logging.warning(f"[DUTCHING] Bet placement failed: {error_msg}")
                     messagebox.showwarning("Attenzione", error_msg)
             except Exception as e:
+                self.bet_logger.log_error(
+                    source='DUTCHING',
+                    message=f"Exception placing bets: {str(e)}",
+                    exception=e,
+                    market_id=self.current_market.get('marketId', '') if self.current_market else ''
+                )
                 messagebox.showerror("Errore", str(e))
         
         submit_btn = tk.Button(btn_frame, text="Piazza Scommesse", bg='#27ae60', fg='white', 

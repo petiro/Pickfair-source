@@ -1,5 +1,16 @@
 # Changelog
 
+## v3.57.0
+- NUOVO: Sistema persistenza completo con SQLite (storage.py, bet_logger.py)
+- Database tabelle: bet_history, telegram_audit, error_log, cashout_history, open_positions
+- Dashboard nuovi tab: Storico P&L, Audit Telegram, Log Errori
+- Recovery automatico posizioni aperte dopo riavvio
+- Logging completo: ogni scommessa, cashout, errore salvato su DB
+- KPI da database: scommesse totali, P&L, win rate, commissioni
+- P&L giornaliero ultimi 30 giorni
+- Esportazione CSV log errori
+- Risolto: cronologia non si perde piu dopo riavvio
+
 ## v3.56.0
 - NUOVO: In MIXED mode, ogni risultato mostra 2 righe: [B] BACK e [L] LAY
 - Colori distinti: sfondo blu chiaro per BACK, rosa chiaro per LAY
