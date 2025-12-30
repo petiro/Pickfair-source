@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.55.3
+- FIX: Auto-updater ora forza chiusura istanza precedente con taskkill
+
 ## v3.55.2
 - FIX: Validazione pre-piazzamento dutching
 - Controllo stake minimo >= 2€ (Betfair Italia)

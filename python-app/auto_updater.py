@@ -202,8 +202,11 @@ def install_update(update_path, current_exe_path=None):
             # 4. Delete itself
             batch_content = f'''@echo off
 echo Aggiornamento in corso...
-echo Attendere la chiusura dell'applicazione...
-timeout /t 5 /nobreak > nul
+echo Chiusura applicazione corrente...
+
+REM Forza la chiusura del processo Pickfair
+taskkill /F /IM Pickfair.exe >nul 2>&1
+timeout /t 2 /nobreak > nul
 
 REM Pulisci cartelle temporanee PyInstaller
 for /d %%i in ("%TEMP%\\_MEI*") do rd /s /q "%%i" 2>nul
