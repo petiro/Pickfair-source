@@ -187,7 +187,12 @@ class AutoThrottle:
     Regolatore automatico carico sistema.
     
     Monitora metriche e adatta parametri operativi in base al carico.
+    Include isteresi per evitare oscillazioni rapide tra stati.
     """
+    
+    # Isteresi: tempo minimo per confermare transizione (secondi)
+    HYSTERESIS_UP = 5.0    # NORMAL -> HIGH: condizione deve persistere 5s
+    HYSTERESIS_DOWN = 10.0  # HIGH -> NORMAL: deve migliorare per 10s
     
     def __init__(
         self,
@@ -234,6 +239,10 @@ class AutoThrottle:
         
         self._enabled = True
         self._last_update = time.time()
+        
+        # Isteresi state
+        self._pending_level: Optional[LoadLevel] = None
+        self._pending_since: float = 0.0
     
     def enable(self):
         """Abilita auto-throttle."""
@@ -254,6 +263,7 @@ class AutoThrottle:
     def update(self) -> LoadLevel:
         """
         Aggiorna livello carico basato su metriche correnti.
+        Applica isteresi per evitare oscillazioni rapide.
         
         Returns:
             Livello carico corrente
@@ -262,16 +272,20 @@ class AutoThrottle:
             return self._current_level
         
         metrics = self.collector.get_metrics()
-        new_level = self._calculate_level(metrics)
+        raw_level = self._calculate_level(metrics)
+        now = time.time()
         
         with self._lock:
+            # Applica isteresi
+            new_level = self._apply_hysteresis(raw_level, now)
+            
             if new_level != self._current_level:
                 old_level = self._current_level
                 self._current_level = new_level
                 self._current_config = self.configs[new_level]
                 
                 self._level_history.append({
-                    'timestamp': time.time(),
+                    'timestamp': now,
                     'from': old_level.value,
                     'to': new_level.value,
                     'metrics': {
@@ -289,8 +303,54 @@ class AutoThrottle:
                     except Exception as e:
                         logger.error(f"[THROTTLE] Callback error: {e}")
             
-            self._last_update = time.time()
+            self._last_update = now
         
+        return self._current_level
+    
+    def _apply_hysteresis(self, raw_level: LoadLevel, now: float) -> LoadLevel:
+        """
+        Applica isteresi per evitare ping-pong tra stati.
+        
+        - Salita (verso carico maggiore): richiede 5s di persistenza
+        - Discesa (verso carico minore): richiede 10s di miglioramento
+        """
+        level_order = [LoadLevel.IDLE, LoadLevel.LOW, LoadLevel.NORMAL, LoadLevel.HIGH, LoadLevel.CRITICAL]
+        current_idx = level_order.index(self._current_level)
+        raw_idx = level_order.index(raw_level)
+        
+        # Stesso livello: reset pending
+        if raw_level == self._current_level:
+            self._pending_level = None
+            self._pending_since = 0.0
+            return self._current_level
+        
+        # Determina direzione e tempo richiesto
+        going_up = raw_idx > current_idx
+        required_time = self.HYSTERESIS_UP if going_up else self.HYSTERESIS_DOWN
+        
+        # CRITICAL: transizione immediata (emergenza)
+        if raw_level == LoadLevel.CRITICAL:
+            self._pending_level = None
+            self._pending_since = 0.0
+            return raw_level
+        
+        # Nuova transizione pendente?
+        if self._pending_level != raw_level:
+            self._pending_level = raw_level
+            self._pending_since = now
+            logger.debug(f"[THROTTLE] Pending transition: {self._current_level.value} -> {raw_level.value}")
+            return self._current_level
+        
+        # Stessa transizione pendente: controlla tempo
+        elapsed = now - self._pending_since
+        if elapsed >= required_time:
+            # Transizione confermata
+            self._pending_level = None
+            self._pending_since = 0.0
+            logger.debug(f"[THROTTLE] Hysteresis passed ({elapsed:.1f}s >= {required_time}s)")
+            return raw_level
+        
+        # Non ancora confermata
         return self._current_level
     
     def _calculate_level(self, metrics: LoadMetrics) -> LoadLevel:
@@ -345,6 +405,22 @@ class AutoThrottle:
     def get_stats(self) -> Dict:
         """Statistiche throttle."""
         metrics = self.collector.get_metrics()
+        now = time.time()
+        
+        # Info isteresi
+        hysteresis_info = None
+        if self._pending_level is not None:
+            elapsed = now - self._pending_since
+            level_order = [LoadLevel.IDLE, LoadLevel.LOW, LoadLevel.NORMAL, LoadLevel.HIGH, LoadLevel.CRITICAL]
+            going_up = level_order.index(self._pending_level) > level_order.index(self._current_level)
+            required = self.HYSTERESIS_UP if going_up else self.HYSTERESIS_DOWN
+            hysteresis_info = {
+                'pending_level': self._pending_level.value,
+                'elapsed_seconds': round(elapsed, 1),
+                'required_seconds': required,
+                'direction': 'up' if going_up else 'down'
+            }
+        
         return {
             'enabled': self._enabled,
             'current_level': self._current_level.value,
@@ -364,6 +440,7 @@ class AutoThrottle:
                 'active_markets': metrics.active_markets,
                 'active_orders': metrics.active_orders
             },
+            'hysteresis': hysteresis_info,
             'level_changes': list(self._level_history)[-10:]
         }
 

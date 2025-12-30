@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.58.1
+- FIX: Isteresi auto_throttle per evitare oscillazioni (ping-pong)
+- NORMAL -> HIGH: condizione deve persistere 5 secondi
+- HIGH -> NORMAL: deve migliorare per 10 secondi
+- CRITICAL: transizione immediata (emergenza)
+- Stats mostra stato isteresi pendente
+
 ## v3.58.0
 - NUOVO: Moduli separati per ottimizzazione performance
 - order_manager.py: Replace intelligenti con profit threshold, guard rail anti-loop
