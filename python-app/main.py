@@ -833,53 +833,65 @@ class PickfairApp:
                                          command=lambda: self._set_qb_type('LAY'))
         self.qb_lay_btn.pack(side=tk.LEFT)
         
-        qb_odds_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
-        qb_odds_frame.pack(fill=tk.X, padx=10, pady=5)
+        # Table header row: Quota | Stake | Se Vince | Se Perde
+        qb_header_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color=COLORS['bg_panel'], corner_radius=4)
+        qb_header_frame.pack(fill=tk.X, padx=10, pady=(5, 0))
         
-        ctk.CTkLabel(qb_odds_frame, text="Quota:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        ctk.CTkLabel(qb_header_frame, text="Quota", width=80, anchor='center',
+                     font=('Segoe UI', 9, 'bold'),
+                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=5, pady=3)
+        ctk.CTkLabel(qb_header_frame, text="Stake", width=80, anchor='center',
+                     font=('Segoe UI', 9, 'bold'),
+                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=5, pady=3)
+        ctk.CTkLabel(qb_header_frame, text="Se Vince", width=80, anchor='center',
+                     font=('Segoe UI', 9, 'bold'),
+                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=5, pady=3)
+        ctk.CTkLabel(qb_header_frame, text="Se Perde", width=80, anchor='center',
+                     font=('Segoe UI', 9, 'bold'),
+                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=5, pady=3)
+        
+        # Table data row: inputs and results
+        qb_data_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_data_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        # Quota input
         self.qb_odds_var = tk.StringVar(value='1.00')
-        self.qb_odds_entry = ctk.CTkEntry(qb_odds_frame, textvariable=self.qb_odds_var, width=80,
-                                           fg_color=COLORS['bg_panel'], border_color=COLORS['border'])
+        self.qb_odds_entry = ctk.CTkEntry(qb_data_frame, textvariable=self.qb_odds_var, width=80,
+                                           fg_color=COLORS['bg_panel'], border_color=COLORS['border'],
+                                           justify='center')
         self.qb_odds_entry.pack(side=tk.LEFT, padx=5)
         
-        self.qb_live_odds_label = ctk.CTkLabel(qb_odds_frame, text="(Live: -)", 
-                                                font=('Segoe UI', 9),
-                                                text_color=COLORS['text_tertiary'])
-        self.qb_live_odds_label.pack(side=tk.LEFT, padx=5)
-        
-        ctk.CTkButton(qb_odds_frame, text="Usa Live", width=70,
-                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
-                      corner_radius=6, command=self._use_live_odds).pack(side=tk.LEFT, padx=2)
-        
-        qb_stake_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
-        qb_stake_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        ctk.CTkLabel(qb_stake_frame, text="Stake (EUR):", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
-        self.qb_stake_var = tk.StringVar(value='1.00')
-        self.qb_stake_entry = ctk.CTkEntry(qb_stake_frame, textvariable=self.qb_stake_var, width=80,
-                                            fg_color=COLORS['bg_panel'], border_color=COLORS['border'])
+        # Stake input
+        self.qb_stake_var = tk.StringVar(value='10')
+        self.qb_stake_entry = ctk.CTkEntry(qb_data_frame, textvariable=self.qb_stake_var, width=80,
+                                            fg_color=COLORS['bg_panel'], border_color=COLORS['border'],
+                                            justify='center')
         self.qb_stake_entry.pack(side=tk.LEFT, padx=5)
         
-        ctk.CTkLabel(qb_stake_frame, text="(min. 1 EUR)", 
-                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(side=tk.LEFT, padx=5)
-        
-        # Se Vince / Se Perde row
-        qb_results_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
-        qb_results_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        ctk.CTkLabel(qb_results_frame, text="Se Vince:", 
-                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
-        self.qb_win_label = ctk.CTkLabel(qb_results_frame, text="-",
+        # Se Vince value
+        self.qb_win_label = ctk.CTkLabel(qb_data_frame, text="-", width=80, anchor='center',
                                           font=('Segoe UI', 10, 'bold'),
                                           text_color=COLORS['success'])
-        self.qb_win_label.pack(side=tk.LEFT, padx=(5, 20))
+        self.qb_win_label.pack(side=tk.LEFT, padx=5)
         
-        ctk.CTkLabel(qb_results_frame, text="Se Perde:", 
-                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
-        self.qb_lose_label = ctk.CTkLabel(qb_results_frame, text="-",
+        # Se Perde value
+        self.qb_lose_label = ctk.CTkLabel(qb_data_frame, text="-", width=80, anchor='center',
                                            font=('Segoe UI', 10, 'bold'),
                                            text_color=COLORS['error'])
         self.qb_lose_label.pack(side=tk.LEFT, padx=5)
+        
+        # Live odds row
+        qb_live_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
+        qb_live_frame.pack(fill=tk.X, padx=10, pady=2)
+        
+        self.qb_live_odds_label = ctk.CTkLabel(qb_live_frame, text="Live: -", 
+                                                font=('Segoe UI', 9),
+                                                text_color=COLORS['text_tertiary'])
+        self.qb_live_odds_label.pack(side=tk.LEFT)
+        
+        ctk.CTkButton(qb_live_frame, text="Usa Live", width=70, height=24,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=4, command=self._use_live_odds).pack(side=tk.LEFT, padx=10)
         
         # Persistenza row (radio buttons)
         qb_persist_frame = ctk.CTkFrame(self.quick_bet_frame, fg_color='transparent')
