@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.46.0
+- FIX: Target Profit BACK usa formula corretta: stake = target / (price - 1)
+- Nuova funzione calculate_back_target_profit() dedicata
+- Profitto netto uniforme garantito con target profit fisso
+
 ## v3.45.0
 - NUOVO: Indicatore visivo "MIXED MODE (xB + yL)" nel dutching
 - Righe swappate evidenziate in arancione

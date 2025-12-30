@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.45.0"
+APP_VERSION = "3.46.0"
 
 # Setup file logging
 def setup_logging():
@@ -6660,7 +6660,7 @@ Evento: {event_name}"""
                 mode_indicator_var.set("")
             
             try:
-                from dutching import calculate_mixed_dutching
+                from dutching import calculate_mixed_dutching, calculate_back_target_profit
                 
                 commission = 4.5
                 
@@ -6670,25 +6670,20 @@ Evento: {event_name}"""
                         results, profit, _ = calculate_mixed_dutching(selections, amount, commission)
                     else:
                         results, profit, _ = calculate_dutching_stakes(selections, amount, bet_type)
-                else:  # PROFIT mode
+                else:  # PROFIT mode - Target profit fisso
                     target_profit = float(profit_var.get().replace(',', '.'))
-                    commission_mult = 1 - (commission / 100)  # 0.955
-                    
-                    if bet_type == 'BACK' or has_swapped:
-                        # BACK dutching: profit = stake * (1/implied - 1)
-                        implied_dec = sum(1.0 / s['price'] for s in selections)
-                        if implied_dec >= 1:
-                            raise ValueError("Book value >= 100%, profitto non garantito")
-                        gross_profit_needed = target_profit / commission_mult
-                        required_stake = gross_profit_needed / (1.0 / implied_dec - 1)
-                    else:
-                        # LAY dutching: target is best case (all lose)
-                        # profit = total_stake * commission_mult
-                        required_stake = target_profit / commission_mult
                     
                     if has_swapped:
-                        results, profit, _ = calculate_mixed_dutching(selections, required_stake, commission)
+                        # Mixed BACK+LAY con target profit
+                        results, profit, _ = calculate_mixed_dutching(selections, target_profit, commission)
+                    elif bet_type == 'BACK':
+                        # BACK dutching con target profit - Formula CORRETTA
+                        # stake_i = target / (price_i - 1)
+                        results, profit, _ = calculate_back_target_profit(selections, target_profit, commission)
                     else:
+                        # LAY dutching: target is best case (all lose)
+                        commission_mult = 1 - (commission / 100)
+                        required_stake = target_profit / commission_mult
                         results, profit, _ = calculate_dutching_stakes(selections, required_stake, bet_type)
                 
                 dialog.calculated_results = results
