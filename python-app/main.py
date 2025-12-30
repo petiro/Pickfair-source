@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.57.0"
+APP_VERSION = "3.58.4"
 
 # Setup file logging
 def setup_logging():
@@ -6872,13 +6872,16 @@ Evento: {event_name}"""
         tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Configure tag colors for profit/loss
+        # Configure tag colors for profit/loss and MIXED mode rows
         tree.tag_configure('profit', foreground=COLORS['success'])
         tree.tag_configure('loss', foreground=COLORS['loss'])
         tree.tag_configure('selected', background='#e8f4fc')
         tree.tag_configure('swapped', background='#fff3e0')  # Orange tint for swapped rows
         tree.tag_configure('back_type', foreground=COLORS['back'])
         tree.tag_configure('lay_type', foreground=COLORS['lay'])
+        # MIXED mode row colors - testo visibile su sfondo alternato
+        tree.tag_configure('back_row', foreground=COLORS['back'], background='#e3f2fd')  # Light blue bg
+        tree.tag_configure('lay_row', foreground=COLORS['lay'], background='#fce4ec')  # Light pink bg
         
         # Store runner selection and offset data
         # Format: {item_id: {'selected': bool, 'offset': int, 'selectionId': int, 'side': 'BACK'|'LAY', 'runner': runner}}

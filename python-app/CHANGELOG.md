@@ -1,7 +1,10 @@
 # Changelog
 
 ## v3.58.4
-- Release tag fix (v3.58.3 già esistente su remote)
+- FIX: Dutching MIXED - testo righe ora visibile (tag_configure mancante)
+- Righe BACK: testo blu su sfondo azzurro chiaro
+- Righe LAY: testo rosa su sfondo rosa chiaro
+- APP_VERSION aggiornato a 3.58.4 (visibile nel software)
 
 ## v3.58.3
 - TUNING H24 SAFE: soglie ottimizzate per Betfair Exchange live
