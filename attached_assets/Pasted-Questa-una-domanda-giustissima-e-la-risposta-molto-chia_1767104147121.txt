@@ -1,0 +1,146 @@
+Questa è una domanda giustissima e la risposta è molto chiara:
+👉 non è Betfair, è il tuo programma (o l’integrazione dashboard).
+Ti spiego perché succede, dove guardare, e come risolvere definitivamente.
+🔴 Sintomo (riassunto)
+Durante la giornata:
+vedi le scommesse piazzate
+vedi cashout (anche non matchati)
+Il giorno dopo:
+la dashboard è vuota
+nessuna cronologia storica
+sembra che “non sia mai successo nulla”
+🎯 CAUSA PRINCIPALE (99% dei casi)
+❌ Stai usando solo stato in memoria (RAM)
+e NON stai persistendo i dati su storage permanente
+Quindi:
+finché il processo gira → dati visibili
+quando:
+riavvii
+Replit ricostruisce
+il server dorme → tutto perso
+🔍 Perché “in giornata sì”?
+Perché probabilmente stai facendo una di queste cose:
+Copia codice
+Python
+orders = []          # lista globale
+order_states = {}    # dict in RAM
+trade_history = []   # cache runtime
+La dashboard legge da lì, non da un database.
+📌 Appena il processo muore → RAM = zero
+⚠️ Cashout NON matchato: perché sparisce prima?
+Perché spesso:
+lo registri solo se MATCHED
+oppure lo consideri “transitorio”
+oppure aggiorni lo stato ma non lo salvi
+Esempio tipico (bug logico):
+Copia codice
+Python
+if cashout_matched:
+    history.append(...)
+❌ Quindi:
+cashout richiesto ma NON matchato
+evento reale
+mai scritto nello storico
+🧠 Altro problema comune (dashboard)
+Molte dashboard fanno:
+Copia codice
+Sql
+SELECT * FROM bets WHERE date = TODAY
+Quindi:
+ieri → invisibile
+oggi → visibile
+Oppure:
+filtro hard-coded
+timezone errata
+reset giornaliero automatico
+✅ COME SI RISOLVE DAVVERO (modo PRO)
+1️⃣ Devi avere uno storico persistente
+Minimo indispensabile:
+SQLite (perfetto su Replit)
+PostgreSQL
+anche file JSON (meglio di niente)
+📦 Tabella consigliata: bet_history
+campo
+descrizione
+id
+PK
+bet_id
+Betfair betId
+market_id
+market
+selection_id
+selezione
+side
+BACK / LAY
+stake
+stake
+price
+quota
+status
+PLACED / PARTIAL / MATCHED / CASHOUT_REQ / CASHED_OUT / CANCELLED
+profit
+profitto netto (se chiuso)
+matched_size
+size matchata
+timestamp
+UTC
+👉 ogni evento va scritto, non solo quelli “belli”.
+2️⃣ Loggare anche cashout NON matchati
+Quando fai cashout:
+Copia codice
+Python
+INSERT INTO bet_history (
+  bet_id,
+  status,
+  profit,
+  timestamp
+) VALUES (
+  bet_id,
+  'CASHOUT_REQUESTED',
+  estimated_profit,
+  NOW()
+)
+E poi:
+se matcha → aggiorni
+se scade → aggiorni
+se cancelli → aggiorni
+📌 Mai cancellare righe, solo cambiare stato.
+3️⃣ Separare:
+Trading engine
+Dashboard
+La dashboard NON deve leggere la RAM del bot, ma il DB.
+Flow corretto:
+Copia codice
+
+Betfair event
+↓
+Trading engine
+↓
+WRITE DB  ← punto critico
+↓
+Dashboard READ
+Se leggi direttamente dallo stato runtime → bug garantiti.
+4️⃣ Replit: problema specifico (importante)
+Su Replit:
+se non usi DB persistente
+o non monti storage → il filesystem può essere ricreato
+👉 SQLite va bene solo se il file è salvato correttamente (es. non in /tmp).
+🔥 Perché è pericoloso così com’è ora
+non puoi fare audit
+non puoi fare debug
+non puoi fare copy trading serio
+non puoi ricostruire P&L
+sembra che “il bot faccia cose strane”
+Ma in realtà non le stai salvando.
+✅ RISPOSTA SECCA ALLA TUA DOMANDA
+Perché nella dashboard non mi salva la cronologia delle scommesse fatte, cashout non matchato, ma in giornata sì?
+👉 Perché:
+stai salvando i dati solo in RAM
+oppure solo per il giorno corrente
+oppure solo per eventi MATCHED
+e al riavvio perdi tutto
+Non è Betfair.
+È assenza di persistenza + logging incompleto.
+🚀 Prossimo step (consigliato)
+Se vuoi, al prossimo messaggio posso: 1️⃣ Disegnarti schema SQLite completo 2️⃣ Scriverti BetLogger universale 3️⃣ Integrare audit + dashboard query 4️⃣ Aggiungere metriche giornaliere / storiche
+Dimmi da dove vuoi partire e lo rendiamo a prova di produzione 💪
