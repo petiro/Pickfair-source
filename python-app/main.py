@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.59.0"
+APP_VERSION = "3.60.0"
 
 # Setup file logging
 def setup_logging():
@@ -136,6 +136,32 @@ def check_single_instance():
         return None  # Block execution on error instead of allowing
 
 LIVE_REFRESH_INTERVAL = 2000  # 2 seconds for real-time odds
+
+# Market types to show in tree view (Betfair name patterns -> Italian display name)
+TREE_MARKET_TYPES = {
+    'Match Odds': 'Esito Finale',
+    'Correct Score': 'Risultato esatto',
+    'Over/Under 0.5 Goals': 'Over/Under 0,5 gol',
+    'Over/Under 1.5 Goals': 'Over/Under 1,5 gol',
+    'Over/Under 2.5 Goals': 'Over/Under 2,5 gol',
+    'Over/Under 3.5 Goals': 'Over/Under 3,5 gol',
+    'Over/Under 4.5 Goals': 'Over/Under 4,5 gol',
+    'Over/Under 5.5 Goals': 'Over/Under 5,5 gol',
+    'Over/Under 6.5 Goals': 'Over/Under 6,5 gol',
+    'Over/Under 7.5 Goals': 'Over/Under 7,5 gol',
+    'Over/Under 8.5 Goals': 'Over/Under 8,5 gol',
+    'Both Teams To Score': 'Entrambe le squadre a segno',
+    'Half Time': 'Primo tempo',
+    'Half Time Score': '1 tempo - Risultato esatto',
+    'First Half Goals 0.5': '1 tempo - Totale goal 0,5',
+    'First Half Goals 1.5': '1 tempo - Totale goal 1,5',
+    'First Half Goals 2.5': '1 tempo - Totale goal 2,5',
+    'Half Time/Full Time': 'Parziale/finale',
+    'Double Chance': 'Doppia Chance',
+}
+
+# Additional patterns for Asian Handicap (dynamic team names)
+ASIAN_HANDICAP_PATTERNS = ['+1', '+2', '-1', '-2', '+0.5', '-0.5', '+1.5', '-1.5']
 
 
 class PickfairApp:
@@ -2100,16 +2126,27 @@ class PickfairApp:
             self._load_available_markets(self.current_event['id'])
     
     def _on_event_selected(self, event):
-        """Handle event selection."""
+        """Handle event selection - supports 3-level tree: Country -> Event -> Markets."""
         selection = self.events_tree.selection()
         if not selection:
             return
         
-        event_id = selection[0]
+        item_id = selection[0]
         
         # Ignore country parent nodes (they start with "country_")
-        if event_id.startswith('country_'):
+        if item_id.startswith('country_'):
             return
+        
+        # Check if this is a market node (format: "market_EVENTID_MARKETID")
+        if item_id.startswith('market_'):
+            parts = item_id.split('_', 2)
+            if len(parts) >= 3:
+                market_id = parts[2]
+                self._load_market_from_tree(market_id)
+            return
+        
+        # This is an event node - load markets as children
+        event_id = item_id
         
         for evt in self.all_events:
             if evt['id'] == event_id:
@@ -2121,7 +2158,105 @@ class PickfairApp:
         
         self._stop_streaming()
         self._clear_selections()
-        self._load_available_markets(event_id)
+        
+        # Check if markets already loaded as children
+        children = self.events_tree.get_children(event_id)
+        if children and any(str(c).startswith('market_') for c in children):
+            # Markets already loaded, just toggle expansion
+            if self.events_tree.item(event_id, 'open'):
+                self.events_tree.item(event_id, open=False)
+            else:
+                self.events_tree.item(event_id, open=True)
+            return
+        
+        # Load markets and add as children
+        self._load_markets_for_tree(event_id)
+    
+    def _load_markets_for_tree(self, event_id):
+        """Load markets for an event and add them as children in the tree."""
+        if not self.client:
+            messagebox.showwarning("Attenzione", "Non sei connesso a Betfair")
+            return
+        
+        def fetch():
+            try:
+                logging.info(f"Loading markets for tree: {event_id}")
+                markets = self.client.get_available_markets(event_id)
+                logging.info(f"Got {len(markets) if markets else 0} markets for tree")
+                self.root.after(0, lambda: self._add_markets_to_tree(event_id, markets))
+            except Exception as e:
+                logging.error(f"Error loading markets for tree: {e}")
+        
+        threading.Thread(target=fetch, daemon=True).start()
+    
+    def _add_markets_to_tree(self, event_id, markets):
+        """Add filtered markets as children of the event in the tree."""
+        if not markets:
+            return
+        
+        # Store markets for later use
+        self.available_markets = markets
+        
+        # Filter and translate markets
+        filtered_markets = []
+        for m in markets:
+            market_name = m.get('marketName', '') or m.get('displayName', '')
+            
+            # Check if market matches our allowed types
+            display_name = None
+            
+            # Direct match in TREE_MARKET_TYPES
+            for betfair_name, italian_name in TREE_MARKET_TYPES.items():
+                if betfair_name.lower() in market_name.lower() or market_name.lower() in betfair_name.lower():
+                    display_name = italian_name
+                    break
+            
+            # Check for Asian Handicap patterns (e.g., "Team Name +1")
+            if not display_name:
+                for pattern in ASIAN_HANDICAP_PATTERNS:
+                    if pattern in market_name:
+                        display_name = market_name  # Keep original name for handicaps
+                        break
+            
+            if display_name:
+                filtered_markets.append({
+                    'marketId': m['marketId'],
+                    'displayName': display_name,
+                    'originalName': market_name,
+                    'inPlay': m.get('inPlay', False)
+                })
+        
+        # Sort markets: put Esito Finale first, then alphabetically
+        def sort_key(m):
+            if m['displayName'] == 'Esito Finale':
+                return (0, '')
+            return (1, m['displayName'])
+        
+        filtered_markets.sort(key=sort_key)
+        
+        # Add to tree
+        for m in filtered_markets:
+            market_iid = f"market_{event_id}_{m['marketId']}"
+            display = m['displayName']
+            if m['inPlay']:
+                display = f"[LIVE] {display}"
+            
+            try:
+                self.events_tree.insert(event_id, tk.END, iid=market_iid, text='', values=(display, ''))
+            except tk.TclError:
+                pass  # Market already exists
+        
+        # Expand the event node
+        self.events_tree.item(event_id, open=True)
+        
+        # Also populate the dropdown for compatibility
+        self._display_available_markets(markets)
+    
+    def _load_market_from_tree(self, market_id):
+        """Load a market selected from the tree."""
+        self._stop_streaming()
+        self._clear_selections()
+        self._load_market(market_id)
     
     def _load_available_markets(self, event_id):
         """Load all available markets for an event."""
