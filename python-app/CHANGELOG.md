@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.48.0
+- Migliorato replace_orders() con gestione nuovo betId
+- NUOVO: replace_orders_batch() per modifiche multiple
+- Tracciamento automatico betId cambiato su partial match
+- Logging dettagliato per debug replace
+
 ## v3.47.0
 - NUOVO: dynamic_cashout_single() per cashout singola posizione BACK
 - Migliorato dynamic_cashout() multi-ordine con piu dettagli

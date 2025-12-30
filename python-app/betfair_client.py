@@ -876,14 +876,34 @@ class BetfairClient:
         return self.place_bet(market_id, selection_id, 'LAY', price, size)
     
     def replace_orders(self, market_id, bet_id, new_price):
-        """Replace an existing order with a new price."""
+        """
+        Replace an existing order with a new price (replaceOrders API).
+        
+        Modifica un ordine NON abbinato senza cancellarlo/ripiazzarlo.
+        Mantiene (parzialmente) la priorita di coda.
+        
+        IMPORTANTE:
+        - Funziona solo su ordini PENDING o PARTIALLY_MATCHED
+        - Se partial match, Betfair crea NUOVO betId (restituito nel report)
+        - Latenza minore rispetto a cancel + place
+        
+        Args:
+            market_id: ID del mercato
+            bet_id: betId dell'ordine da modificare
+            new_price: nuova quota (deve essere tick valido)
+        
+        Returns:
+            Dict con status, nuovo betId (se cambiato), dettagli
+        """
         if not self.client:
             raise Exception("Non connesso a Betfair")
+        
+        logger.info(f"[REPLACE] market={market_id}, betId={bet_id}, newPrice={new_price}")
         
         instructions = [
             betfairlightweight.filters.replace_instruction(
                 bet_id=bet_id,
-                new_price=new_price
+                new_price=round(new_price, 2)
             )
         ]
         
@@ -896,11 +916,96 @@ class BetfairClient:
         
         reports = []
         for ir in instruction_reports:
+            # Estrai info dal cancel report
+            cancel_report = getattr(ir, 'cancel_instruction_report', None)
+            size_cancelled = 0
+            if cancel_report:
+                size_cancelled = getattr(cancel_report, 'size_cancelled', 0) or getattr(cancel_report, 'sizeCancelled', 0)
+            
+            # Estrai info dal place report (contiene nuovo betId!)
+            place_report = getattr(ir, 'place_instruction_report', None)
+            new_bet_id = None
+            size_matched = 0
+            average_price = 0
+            if place_report:
+                new_bet_id = getattr(place_report, 'bet_id', None) or getattr(place_report, 'betId', None)
+                size_matched = getattr(place_report, 'size_matched', 0) or getattr(place_report, 'sizeMatched', 0)
+                average_price = getattr(place_report, 'average_price_matched', 0) or getattr(place_report, 'averagePriceMatched', 0)
+            
+            report = {
+                'status': getattr(ir, 'status', 'UNKNOWN'),
+                'originalBetId': bet_id,
+                'newBetId': new_bet_id,  # IMPORTANTE: traccia questo!
+                'sizeCancelled': size_cancelled,
+                'sizeMatched': size_matched,
+                'averagePriceMatched': average_price
+            }
+            reports.append(report)
+            
+            if new_bet_id and new_bet_id != bet_id:
+                logger.info(f"[REPLACE] Nuovo betId: {bet_id} -> {new_bet_id}")
+        
+        status = getattr(result, 'status', 'UNKNOWN')
+        logger.info(f"[REPLACE] Result: {status}")
+        
+        return {
+            'status': status,
+            'instructionReports': reports
+        }
+    
+    def replace_orders_batch(self, market_id, replacements):
+        """
+        Replace multiple orders in batch (piu efficiente).
+        
+        Args:
+            market_id: ID del mercato
+            replacements: Lista di dict {'betId': '...', 'newPrice': 2.08}
+        
+        Returns:
+            Dict con status e reports per ogni ordine
+        """
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        if not replacements:
+            return {'status': 'NO_INSTRUCTIONS', 'instructionReports': []}
+        
+        logger.info(f"[REPLACE BATCH] market={market_id}, count={len(replacements)}")
+        
+        instructions = []
+        for r in replacements:
+            instructions.append(
+                betfairlightweight.filters.replace_instruction(
+                    bet_id=r['betId'],
+                    new_price=round(r['newPrice'], 2)
+                )
+            )
+        
+        result = self.client.betting.replace_orders(
+            market_id=market_id,
+            instructions=instructions
+        )
+        
+        instruction_reports = getattr(result, 'instruction_reports', None) or getattr(result, 'instructionReports', None) or []
+        
+        reports = []
+        for i, ir in enumerate(instruction_reports):
+            original_bet_id = replacements[i]['betId'] if i < len(replacements) else None
+            
+            place_report = getattr(ir, 'place_instruction_report', None)
+            new_bet_id = None
+            if place_report:
+                new_bet_id = getattr(place_report, 'bet_id', None) or getattr(place_report, 'betId', None)
+            
             reports.append({
                 'status': getattr(ir, 'status', 'UNKNOWN'),
-                'cancelInstructionReport': getattr(ir, 'cancel_instruction_report', None),
-                'placeInstructionReport': getattr(ir, 'place_instruction_report', None)
+                'originalBetId': original_bet_id,
+                'newBetId': new_bet_id,
+                'newPrice': replacements[i]['newPrice'] if i < len(replacements) else None
             })
+            
+            if new_bet_id and new_bet_id != original_bet_id:
+                logger.info(f"[REPLACE BATCH] {original_bet_id} -> {new_bet_id}")
         
         return {
             'status': getattr(result, 'status', 'UNKNOWN'),
