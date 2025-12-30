@@ -1,5 +1,8 @@
 # Changelog
 
+## v3.42.3
+- Version sync and build trigger
+
 ## v3.42.2
 - Version sync with git tag
 
