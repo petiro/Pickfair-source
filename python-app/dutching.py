@@ -557,18 +557,86 @@ def multi_market_swap(
     }
 
 
+def dynamic_cashout_single(
+    back_stake: float,
+    back_price: float,
+    lay_price: float,
+    commission: float = 4.5
+) -> Dict:
+    """
+    Cashout Dinamico Singolo - Formula semplificata per singola posizione BACK.
+    
+    Calcola lo stake LAY necessario per chiudere la posizione
+    con profitto netto uniforme (green-up).
+    
+    Formula:
+        lay_stake = (back_stake * back_price) / lay_price
+        profit_win = back_stake * (back_price - 1) - lay_stake * (lay_price - 1)
+        profit_lose = lay_stake - back_stake
+        net_profit = min(profit_win, profit_lose) * (1 - commission)
+    
+    Args:
+        back_stake: Stake della scommessa BACK originale
+        back_price: Quota BACK originale
+        lay_price: Quota LAY live attuale
+        commission: Commissione Betfair (default 4.5%)
+    
+    Returns:
+        Dict con lay_stake e net_profit
+    """
+    commission_mult = 1 - (commission / 100.0)
+    
+    if lay_price <= 1:
+        return {'lay_stake': 0, 'net_profit': 0, 'error': 'Quota LAY non valida'}
+    
+    # Formula: lay_stake = (back_stake * back_price) / lay_price
+    lay_stake = (back_stake * back_price) / lay_price
+    
+    # Profitto se VINCE: guadagno dal BACK - liability del LAY
+    profit_win = back_stake * (back_price - 1) - lay_stake * (lay_price - 1)
+    
+    # Profitto se PERDE: guadagno dal LAY - stake BACK perso
+    profit_lose = lay_stake - back_stake
+    
+    # Cashout = profitto garantito (minimo tra i due scenari)
+    gross_profit = min(profit_win, profit_lose)
+    
+    # Applica commissione solo se profitto positivo
+    net_profit = gross_profit * commission_mult if gross_profit > 0 else gross_profit
+    
+    logger.info(f"[CASHOUT] BACK {back_stake:.2f}@{back_price:.2f} -> LAY {lay_stake:.2f}@{lay_price:.2f}")
+    logger.info(f"[CASHOUT] profit_win={profit_win:.2f}, profit_lose={profit_lose:.2f}, net={net_profit:.2f}")
+    
+    return {
+        'lay_stake': round(lay_stake, 2),
+        'gross_profit': round(gross_profit, 2),
+        'net_profit': round(net_profit, 2),
+        'profit_if_wins': round(profit_win, 2),
+        'profit_if_loses': round(profit_lose, 2)
+    }
+
+
 def dynamic_cashout(
     orders: List[Dict],
     live_odds: Dict,
     commission: float = 4.5
 ) -> Dict:
     """
-    Cashout Dinamico Live - Identico all'exchange.
+    Cashout Dinamico Live Multi-Ordine - Identico all'exchange.
     
-    Calcola valore cashout basato su quote correnti.
+    Calcola valore cashout per multiple posizioni basato su quote correnti.
+    Supporta sia BACK che LAY come posizioni originali.
+    
+    Args:
+        orders: Lista di ordini {'selectionId', 'side', 'stake', 'price'}
+        live_odds: Dict {selectionId: live_price} con quote attuali
+        commission: Commissione Betfair (default 4.5%)
+    
+    Returns:
+        Dict con cashoutValue totale e dettaglio hedges
     """
     commission_mult = 1 - (commission / 100.0)
-    profit = 0.0
+    total_profit = 0.0
     hedges = []
     
     for o in orders:
@@ -578,34 +646,59 @@ def dynamic_cashout(
         entry_price = o.get('price', o.get('odds', 1))
         live_price = live_odds.get(sel_id, entry_price)
         
+        if live_price <= 1:
+            continue
+        
         if side == 'BACK':
-            hedge_stake = (entry_price / live_price) * stake if live_price > 0 else 0
-            hedge_liability = hedge_stake * (live_price - 1)
-            profit_if_wins = stake * (entry_price - 1) - hedge_liability
+            # BACK -> LAY hedge
+            # Formula: lay_stake = (back_stake * back_price) / lay_price
+            hedge_stake = (stake * entry_price) / live_price
+            
+            # Profitto se vince = back_profit - lay_liability
+            profit_if_wins = stake * (entry_price - 1) - hedge_stake * (live_price - 1)
+            # Profitto se perde = lay_stake - back_stake
             profit_if_loses = hedge_stake - stake
+            
             cashout = min(profit_if_wins, profit_if_loses)
+            hedge_side = 'LAY'
         else:
+            # LAY -> BACK hedge
+            # Formula: back_stake = lay_liability / (back_price - 1)
             entry_liability = stake * (entry_price - 1)
             hedge_stake = entry_liability / (live_price - 1) if live_price > 1 else 0
+            
+            # Profitto se perde = lay_stake - back_stake
             profit_if_loses = stake - hedge_stake
+            # Profitto se vince = back_profit - lay_liability
             profit_if_wins = hedge_stake * (live_price - 1) - entry_liability
+            
             cashout = min(profit_if_wins, profit_if_loses)
+            hedge_side = 'BACK'
         
-        profit += cashout
+        total_profit += cashout
         hedges.append({
             'selectionId': sel_id,
+            'runnerName': o.get('runnerName', ''),
             'originalSide': side,
-            'hedgeSide': 'LAY' if side == 'BACK' else 'BACK',
+            'originalStake': stake,
+            'originalPrice': entry_price,
+            'hedgeSide': hedge_side,
             'hedgeStake': round(hedge_stake, 2),
             'hedgePrice': live_price,
+            'profitIfWins': round(profit_if_wins, 2),
+            'profitIfLoses': round(profit_if_loses, 2),
             'cashoutGross': round(cashout, 2)
         })
+        
+        logger.info(f"[CASHOUT] {o.get('runnerName', sel_id)} {side}@{entry_price:.2f} -> {hedge_side}@{live_price:.2f}: gross={cashout:.2f}")
     
-    net_profit = profit * commission_mult if profit > 0 else profit
+    net_profit = total_profit * commission_mult if total_profit > 0 else total_profit
+    
+    logger.info(f"[CASHOUT] Total gross={total_profit:.2f}, net={net_profit:.2f}")
     
     return {
         'cashoutValue': round(net_profit, 2),
-        'grossProfit': round(profit, 2),
+        'grossProfit': round(total_profit, 2),
         'hedges': hedges
     }
 

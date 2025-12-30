@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.47.0
+- NUOVO: dynamic_cashout_single() per cashout singola posizione BACK
+- Migliorato dynamic_cashout() multi-ordine con piu dettagli
+- Formula corretta: lay_stake = (back_stake * back_price) / lay_price
+- Profitto netto uniforme garantito con quote live
+- Logging dettagliato per debug cashout
+
 ## v3.46.1
 - FIX CRITICO: Target Profit ora calcola correttamente stake totale
 - Formula: S = target / (1/sum(1/price) - 1), poi pesi 1/price
