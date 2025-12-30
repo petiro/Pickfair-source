@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.55.0
+- NUOVO: Pulsante MIXED nella finestra Dutching
+- Permette selezioni miste BACK + LAY individualmente
+- Doppio-click su riga per cambiare BACK ↔ LAY
+- Indicatore mostra conteggio: "MIXED: 2B + 1L"
+- Calcolo dutching misto con calculate_mixed_dutching()
+
 ## v3.54.0
 - COPY DUTCHING: Messaggio unificato per dutching in Copy Trading
 - _broadcast_copy_dutching() invia un solo messaggio con tutte le selezioni
