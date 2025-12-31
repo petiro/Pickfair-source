@@ -31,12 +31,15 @@ Key features include:
 - **Custom Parsing Rules**: Users can define custom regex patterns for Telegram signal processing.
 - **Plugin System**: Secure, sandboxed environment for custom scripts with a defined API.
 - **My Bets Panel**: Real-time order tracking with Pending/Unmatched/Matched sections, P&L live display, and inline action buttons (Cancel, Replace ±1 tick, Green-up).
-- **Trading Automation PRO**: 
-  - P&L Engine for real-time profit/loss calculation
-  - Stop Loss / Take Profit automation
-  - Trailing Stop for profit protection
+- **Trading Automation PRO (v3.60.3)**: 
+  - P&L Engine for real-time profit/loss calculation (BACK and LAY)
+  - Stop Loss / Take Profit automation with thread-safe triggers
+  - Trailing Stop for profit protection with peak tracking
   - Partial Green (hedge) for risk management
   - Tick Storage for historical quote data and OHLC aggregation
+  - Thread-safe debounce for action buttons (Cancel 1.0s, Replace 0.5s, Green 2.0s)
+  - Price fallback system using tick_storage when market data unavailable
+  - Green-up works independently of UI market selection
 
 ### System Design Choices
 - **Data Storage**: Uses an SQLite database (`pickfair.db`) for application data, Telegram session files, plugin data (JSON configs), and license keys, all stored within `%APPDATA%\Pickfair`.

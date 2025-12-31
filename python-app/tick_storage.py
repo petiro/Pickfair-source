@@ -9,7 +9,7 @@ import threading
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +80,25 @@ class TickStorage:
             if selection_id not in self.ticks:
                 return []
             return list(self.ticks[selection_id])[-limit:]
+    
+    def get_last_tick(self, selection_id: int) -> Optional[Dict]:
+        """
+        Ritorna ultimo tick come dict per fallback P&L.
+        
+        Returns:
+            Dict con 'back', 'lay', 'ltp' o None se non disponibile
+        """
+        with self.lock:
+            if selection_id not in self.ticks or len(self.ticks[selection_id]) == 0:
+                return None
+            
+            last = self.ticks[selection_id][-1]
+            return {
+                'back': last.back_price,
+                'lay': last.lay_price,
+                'ltp': last.ltp,
+                'timestamp': last.timestamp
+            }
     
     def get_ltp_history(self, selection_id: int, limit: int = 100) -> List[float]:
         """Ritorna storico LTP per grafici."""
