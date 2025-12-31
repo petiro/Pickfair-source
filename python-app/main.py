@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.60.0"  # Trading Automation PRO: P&L live, Green-up, SL/TP/TR, Tick Storage
+APP_VERSION = "3.60.2"  # Trading Automation PRO: P&L live, Green-up, SL/TP/TR, Tick Storage + Bugfix debounce/fallback
 
 # Setup file logging
 def setup_logging():
@@ -1381,6 +1381,7 @@ class PickfairApp:
                 
                 runner_names = {}
                 runner_prices = {}
+                
                 if self.current_market:
                     for r in self.current_market.get('runners', []):
                         sel_id = r.get('selectionId')
@@ -1393,6 +1394,17 @@ class PickfairApp:
                             'lay': lays[0].get('price', 0) if lays else 0
                         }
                 
+                for sel_id in list(runner_prices.keys()):
+                    prices = runner_prices[sel_id]
+                    if prices['back'] <= 1.01 or prices['lay'] <= 1.01:
+                        if hasattr(self, 'tick_storage') and self.tick_storage:
+                            last_tick = self.tick_storage.get_last_tick(sel_id)
+                            if last_tick:
+                                if prices['back'] <= 1.01 and last_tick.get('back', 0) > 1.01:
+                                    prices['back'] = last_tick['back']
+                                if prices['lay'] <= 1.01 and last_tick.get('lay', 0) > 1.01:
+                                    prices['lay'] = last_tick['lay']
+                
                 orders_snapshot = []
                 for order in all_orders:
                     order_copy = dict(order)
@@ -1400,6 +1412,14 @@ class PickfairApp:
                     if sel_id:
                         if not order_copy.get('selectionName'):
                             order_copy['selectionName'] = runner_names.get(sel_id, f"ID:{sel_id}")
+                        
+                        if sel_id not in runner_prices and hasattr(self, 'tick_storage') and self.tick_storage:
+                            last_tick = self.tick_storage.get_last_tick(sel_id)
+                            if last_tick:
+                                runner_prices[sel_id] = {
+                                    'back': last_tick.get('back', 0),
+                                    'lay': last_tick.get('lay', 0)
+                                }
                         
                         prices = runner_prices.get(sel_id, {})
                         best_back = prices.get('back', 0)
@@ -1515,9 +1535,28 @@ class PickfairApp:
         
         return result
     
+    def _check_debounce(self, action_key, min_interval):
+        """Thread-safe debounce check for action buttons."""
+        if not hasattr(self, '_action_timestamps'):
+            self._action_timestamps = {}
+        if not hasattr(self, '_debounce_lock'):
+            self._debounce_lock = threading.Lock()
+        
+        now = time.time()
+        with self._debounce_lock:
+            last_time = self._action_timestamps.get(action_key, 0)
+            if now - last_time < min_interval:
+                logging.debug(f"Debounce: {action_key} ignored (too fast)")
+                return False
+            self._action_timestamps[action_key] = now
+        return True
+    
     def _cancel_single_order(self, market_id, bet_id):
-        """Cancel a single unmatched order."""
+        """Cancel a single unmatched order with debounce."""
         if not self.client:
+            return
+        
+        if not self._check_debounce(f"cancel_{bet_id}", 1.0):
             return
         
         def cancel():
@@ -1542,8 +1581,11 @@ class PickfairApp:
             self._add_log(f"Errore annullamento ordine {bet_id}", 'error')
     
     def _replace_order_tick(self, market_id, bet_id, tick_direction):
-        """Replace order by moving price ±1 tick."""
+        """Replace order by moving price ±1 tick with debounce."""
         if not self.client:
+            return
+        
+        if not self._check_debounce(f"replace_{bet_id}", 0.5):
             return
         
         def replace():
@@ -1622,21 +1664,31 @@ class PickfairApp:
         return price
     
     def _green_up_selection(self, market_id, selection_id, order):
-        """Execute green-up (cashout) for a single selection."""
-        if not self.client or not self.current_market:
+        """Execute green-up (cashout) for a single selection with debounce."""
+        if not self.client:
+            return
+        
+        if not self._check_debounce(f"green_{selection_id}", 2.0):
             return
         
         def execute_green():
             try:
-                runners = self.current_market.get('runners', [])
                 best_lay = None
-                for r in runners:
-                    if r.get('selectionId') == selection_id:
-                        ex = r.get('ex', {})
-                        lays = ex.get('availableToLay', [])
-                        if lays:
-                            best_lay = lays[0].get('price')
-                        break
+                
+                if self.current_market:
+                    runners = self.current_market.get('runners', [])
+                    for r in runners:
+                        if r.get('selectionId') == selection_id:
+                            ex = r.get('ex', {})
+                            lays = ex.get('availableToLay', [])
+                            if lays:
+                                best_lay = lays[0].get('price')
+                            break
+                
+                if (not best_lay or best_lay <= 1) and hasattr(self, 'tick_storage') and self.tick_storage:
+                    last_tick = self.tick_storage.get_last_tick(selection_id)
+                    if last_tick and last_tick.get('lay', 0) > 1.01:
+                        best_lay = last_tick['lay']
                 
                 if not best_lay or best_lay <= 1:
                     self.root.after(0, lambda: self._add_log("Nessuna quota LAY disponibile", 'error'))

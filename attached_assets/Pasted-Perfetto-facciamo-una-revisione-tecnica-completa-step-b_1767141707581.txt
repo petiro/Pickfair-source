@@ -1,0 +1,86 @@
+Perfetto, facciamo una revisione tecnica completa, step by step, per essere sicuri che Pickfair v3.60.2 sia stabile e senza bug prima di pushare. Consideriamo backend, UI e integrazione.
+1️⃣ P&L Live per selezione
+Cosa controllare:
+[ ] pnl_engine.py calcola correttamente P&L per BACK e in futuro LAY.
+[ ] best_lay preso dal market_tracker è aggiornato e non vuoto.
+[ ] Aggiornamento ogni tick nel TreeView: delta minimo 0.01€, colore corretto.
+[ ] Gestione casi limite: price ≤ 1.01, stake = 0, ordini cancellati.
+[ ] Formula dynamic_cashout_single corretta con commissione applicata.
+Bug comuni da verificare:
+P&L che si resetta su refresh o tick mancato.
+Overflow o crash su selezione senza runner.
+P&L non aggiornato se la riga non esiste o row_id errato.
+2️⃣ Pulsanti per riga (Cancel / Replace / Green)
+Cosa controllare:
+[ ] Cancel ❌ funziona solo se ordine unmatched/pending.
+[ ] Replace ±1 tick funziona solo se order_id valido e tick target esiste.
+[ ] Green-up 🟢 calcola stake corretto, chiama place_lay_cashout.
+[ ] Click ripetuti non generano duplicazioni di ordine (idempotenza).
+[ ] Logging / audit automatico funzionante.
+[ ] Rate limiting (evitare spamming Betfair).
+Bug comuni da verificare:
+Green su ordine unmatched → errore.
+Replace fuori range quote → crash o ordine nullo.
+Pulsanti UI non refreshati se riga cancellata.
+3️⃣ Badge automazioni (SL / TP / TR)
+Cosa controllare:
+[ ] Stato automation_flags per ogni betId aggiornato correttamente.
+[ ] Badge visualizzati correttamente nella colonna AUTO.
+[ ] Tooltip mostra parametri corretti (SL @ x, TP @ y, trailing +z).
+[ ] Badge si aggiorna in tempo reale se automazione cambia stato.
+Bug comuni da verificare:
+Badge non aggiornato dopo cashout.
+Stato SL/TP errato se betId non trovato.
+Colore/ordine icone confuso → fiducia utente.
+4️⃣ Mini ladder inline
+Cosa controllare:
+[ ] Mostra solo best 3 livelli back e lay.
+[ ] Click su prezzo chiama place_back/lay corretto.
+[ ] Refresh solo su delta prezzo.
+[ ] Dati presi dal runner corretto.
+[ ] Non genera lag su refresh veloce.
+[ ] Colore corretto: BACK = blu, LAY = rosa.
+Bug comuni da verificare:
+Click su selezione sbagliata se lambda cattura variabile errata.
+Refresh continuo → UI freeze.
+Mancanza di runner → crash.
+5️⃣ Automation Engine (SL / TP / Trailing / Green-up)
+Cosa controllare:
+[ ] Engine valuta P&L e decide trigger SL/TP/Green correttamente.
+[ ] Trailing stop segue peak profit e si attiva correttamente.
+[ ] Green-up automatico calcola stake con commissione.
+[ ] State machine per betId non perde stato tra refresh.
+[ ] Override pulsante Green funziona senza conflitti.
+Bug comuni da verificare:
+Trailing stop che scatta troppo presto o non scatta.
+State machine non aggiornato → duplicazioni cashout.
+Green automatico su ordini già chiusi.
+6️⃣ Market Tracker / Tick Storage
+Cosa controllare:
+[ ] Rolling window dei tick (es. 1800) aggiornata senza memory leak.
+[ ] Aggregazione OHLC corretta per timeframe 1s, 5s, 1m.
+[ ] Nessun crash se market o selection non ha dati.
+[ ] Connessione ai moduli PnLEngine e UI stabile.
+Bug comuni da verificare:
+Tick fuori ordine temporale → P&L errato.
+Aggiornamento grafico su selection inesistente → crash.
+Memory leak se non si rimuovono vecchi tick.
+7️⃣ UI e integrazione
+Cosa controllare:
+[ ] TreeView/ttkbootstrap non crasha con refresh continuo.
+[ ] Colonne: Selection | Odds | Stake | P&L | AUTO | ACTIONS.
+[ ] Colori coerenti con stato P&L e automazioni.
+[ ] Pulsanti e mini ladder non interferiscono tra di loro.
+[ ] Scroll, resize e multi-market watchlist funzionano correttamente.
+Bug comuni da verificare:
+Pulsanti sbagliati legati alla riga.
+Refresh UI fuori thread → freeze.
+Concurrency tra tick update e click pulsante → race condition.
+✅ Checklist finale prima release
+[ ] P&L live testato su BACK reali e LAY simulati.
+[ ] Pulsanti per riga testati su tutti gli stati ordine.
+[ ] Badge SL/TP/TR aggiornati in tempo reale.
+[ ] Mini ladder funzionale senza lag.
+[ ] Automation engine testata su trailing + green-up.
+[ ] Market tracker + tick storage stabile e thread-safe.
+[ ] UI coerente e senza crash.
