@@ -25,11 +25,18 @@ Key features include:
 - **Real-time Live Betting**: Offers live odds streaming and quick bet placement.
 - **Telegram Integration**: Monitors chats for betting signals, supporting various market types (e.g., Match Odds, Correct Score, Over/Under, BTTS, Asian Handicap) and enabling auto-betting and copy trading (Master/Follower modes).
 - **Cashout Management**: Manual and automatic cashout options.
-- **Multi-Market Monitoring**: Tracks multiple events concurrently.
+- **Multi-Market Monitoring**: Tracks multiple events concurrently via Market Watch List.
 - **Simulation Mode**: Allows strategy testing with a virtual balance.
 - **Automatic Result Settlement**: Tracks and settles bets, updating statistics.
 - **Custom Parsing Rules**: Users can define custom regex patterns for Telegram signal processing.
 - **Plugin System**: Secure, sandboxed environment for custom scripts with a defined API.
+- **My Bets Panel**: Real-time order tracking with Pending/Unmatched/Matched sections, P&L live display, and inline action buttons (Cancel, Replace ±1 tick, Green-up).
+- **Trading Automation PRO**: 
+  - P&L Engine for real-time profit/loss calculation
+  - Stop Loss / Take Profit automation
+  - Trailing Stop for profit protection
+  - Partial Green (hedge) for risk management
+  - Tick Storage for historical quote data and OHLC aggregation
 
 ### System Design Choices
 - **Data Storage**: Uses an SQLite database (`pickfair.db`) for application data, Telegram session files, plugin data (JSON configs), and license keys, all stored within `%APPDATA%\Pickfair`.

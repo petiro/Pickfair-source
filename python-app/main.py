@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.60.0"
+APP_VERSION = "3.60.0"  # Trading Automation PRO: P&L live, Green-up, SL/TP/TR, Tick Storage
 
 # Setup file logging
 def setup_logging():
@@ -62,6 +62,9 @@ from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_U
 from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_theme
 from plugin_manager import PluginManager, PluginAPI, PluginInfo
 from license_manager import get_hardware_id, is_licensed, activate_license, load_license
+from pnl_engine import PnLEngine
+from automation_engine import AutomationEngine, PositionState, TrailingStopEngine, SLTPEngine, PartialGreen
+from tick_storage import TickStorage
 
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
@@ -227,6 +230,11 @@ class PickfairApp:
         self.booking_monitor_id = None
         self.auto_cashout_monitor_id = None
         self.pending_bookings = []
+        
+        # Trading automation engines
+        self.pnl_engine = PnLEngine(commission=4.5)
+        self.automation_engine = AutomationEngine(commission=4.5, on_green_up=self._on_auto_green_up)
+        self.tick_storage = TickStorage(max_ticks=1800, ohlc_interval_sec=5)
         self.account_data = {'available': 0, 'exposure': 0, 'total': 0}
         self.telegram_listener = None
         self.telegram_signal_queue = SignalQueue()
@@ -1268,62 +1276,95 @@ class PickfairApp:
     
     def _create_bet_row(self, parent, order, section_type, bg_color, text_color):
         """Create a single bet row in My Bets panel."""
-        row_frame = ctk.CTkFrame(parent, fg_color=bg_color, corner_radius=4, height=45)
+        row_frame = ctk.CTkFrame(parent, fg_color=bg_color, corner_radius=4, height=50)
         row_frame.pack(fill=tk.X, pady=1)
         row_frame.pack_propagate(False)
         
-        # Selection name
         selection_name = order.get('selectionName', order.get('selection', 'Unknown'))
-        if len(selection_name) > 15:
-            selection_name = selection_name[:14] + "..."
+        if len(selection_name) > 12:
+            selection_name = selection_name[:11] + "..."
         
         side = order.get('side', 'BACK')
         side_color = COLORS['back'] if side == 'BACK' else COLORS['lay']
         
-        # Side indicator
-        side_lbl = ctk.CTkLabel(row_frame, text=f"[{side[0]}]", width=25,
-                                font=('Segoe UI', 9, 'bold'), text_color=side_color)
-        side_lbl.pack(side=tk.LEFT, padx=2)
+        side_lbl = ctk.CTkLabel(row_frame, text=f"[{side[0]}]", width=22,
+                                font=('Segoe UI', 8, 'bold'), text_color=side_color)
+        side_lbl.pack(side=tk.LEFT, padx=1)
         
-        # Selection name
         name_lbl = ctk.CTkLabel(row_frame, text=selection_name, 
-                                font=('Segoe UI', 9), text_color=text_color, anchor='w')
-        name_lbl.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=2)
+                                font=('Segoe UI', 8), text_color=text_color, anchor='w')
+        name_lbl.pack(side=tk.LEFT, padx=1)
         
-        # Odds and Stake
+        price = order.get('price', order.get('averagePriceMatched', 0))
+        stake = order.get('sizeRemaining', order.get('sizeMatched', order.get('size', 0)))
+        
+        if section_type == 'matched':
+            pnl = order.get('pnl', 0.0)
+            pnl_color = '#4caf50' if pnl >= 0 else '#f44336'
+            pnl_text = f"{pnl:+.2f}"
+            
+            pnl_lbl = ctk.CTkLabel(row_frame, text=pnl_text, width=45,
+                                   font=('Segoe UI', 9, 'bold'), text_color=pnl_color)
+            pnl_lbl.pack(side=tk.RIGHT, padx=2)
+            
+            bet_id = order.get('betId')
+            market_id = order.get('marketId')
+            selection_id = order.get('selectionId')
+            
+            if bet_id and market_id and selection_id:
+                green_btn = ctk.CTkButton(row_frame, text="G", width=22, height=18,
+                                          fg_color='#2e7d32', hover_color='#1b5e20',
+                                          font=('Segoe UI', 8, 'bold'),
+                                          command=lambda sid=selection_id, mid=market_id, o=order: 
+                                                  self._green_up_selection(mid, sid, o))
+                green_btn.pack(side=tk.RIGHT, padx=1)
+            
+            badge = self.automation_engine.get_automation_badges(bet_id) if bet_id else ""
+            if badge:
+                badge_lbl = ctk.CTkLabel(row_frame, text=badge, width=40,
+                                         font=('Segoe UI', 7, 'bold'), text_color='#64b5f6')
+                badge_lbl.pack(side=tk.RIGHT, padx=1)
+        
         info_frame = ctk.CTkFrame(row_frame, fg_color='transparent')
         info_frame.pack(side=tk.RIGHT, padx=2)
         
-        price = order.get('price', 0)
-        stake = order.get('sizeRemaining', order.get('sizeMatched', order.get('size', 0)))
-        
         odds_lbl = ctk.CTkLabel(info_frame, text=f"{price:.2f}", 
-                                font=('Segoe UI', 9, 'bold'), text_color=text_color)
+                                font=('Segoe UI', 8, 'bold'), text_color=text_color)
         odds_lbl.pack(anchor='e')
         
         stake_lbl = ctk.CTkLabel(info_frame, text=f"€{stake:.2f}",
-                                 font=('Segoe UI', 8), text_color=text_color)
+                                 font=('Segoe UI', 7), text_color=text_color)
         stake_lbl.pack(anchor='e')
         
-        # Persistence info for pending/unmatched
         if section_type in ['pending', 'unmatched']:
             persistence = order.get('persistenceType', 'LAPSE')
-            persist_text = "Keep" if persistence == 'PERSIST' else "Lapse"
+            persist_text = "K" if persistence == 'PERSIST' else "L"
             
-            persist_lbl = ctk.CTkLabel(row_frame, text=f"Bet Persistence: {persist_text}",
+            persist_lbl = ctk.CTkLabel(row_frame, text=persist_text,
                                        font=('Segoe UI', 7), text_color=text_color)
-            persist_lbl.place(x=30, y=25)
+            persist_lbl.place(x=25, y=30)
             
-            # Cancel button for unmatched
             if section_type == 'unmatched':
                 bet_id = order.get('betId')
                 market_id = order.get('marketId')
                 if bet_id and market_id:
-                    cancel_btn = ctk.CTkButton(row_frame, text="X", width=20, height=18,
+                    cancel_btn = ctk.CTkButton(row_frame, text="X", width=20, height=16,
                                                fg_color='#c62828', hover_color='#b71c1c',
-                                               font=('Segoe UI', 8, 'bold'),
+                                               font=('Segoe UI', 7, 'bold'),
                                                command=lambda bid=bet_id, mid=market_id: self._cancel_single_order(mid, bid))
-                    cancel_btn.place(x=240, y=3)
+                    cancel_btn.pack(side=tk.RIGHT, padx=1)
+                    
+                    up_btn = ctk.CTkButton(row_frame, text="+", width=18, height=16,
+                                           fg_color='#1565c0', hover_color='#0d47a1',
+                                           font=('Segoe UI', 7, 'bold'),
+                                           command=lambda bid=bet_id, mid=market_id: self._replace_order_tick(mid, bid, 1))
+                    up_btn.pack(side=tk.RIGHT, padx=1)
+                    
+                    dn_btn = ctk.CTkButton(row_frame, text="-", width=18, height=16,
+                                           fg_color='#1565c0', hover_color='#0d47a1',
+                                           font=('Segoe UI', 7, 'bold'),
+                                           command=lambda bid=bet_id, mid=market_id: self._replace_order_tick(mid, bid, -1))
+                    dn_btn.pack(side=tk.RIGHT, padx=1)
         
         return row_frame
     
@@ -1336,22 +1377,59 @@ class PickfairApp:
             try:
                 orders = self.client.get_current_orders()
                 
-                # Add selection names from cached runner data
                 all_orders = orders.get('matched', []) + orders.get('unmatched', []) + orders.get('partiallyMatched', [])
                 
-                # Try to get selection names from current market runners
                 runner_names = {}
+                runner_prices = {}
                 if self.current_market:
                     for r in self.current_market.get('runners', []):
-                        runner_names[r['selectionId']] = r['runnerName']
+                        sel_id = r.get('selectionId')
+                        runner_names[sel_id] = r.get('runnerName', f"ID:{sel_id}")
+                        ex = r.get('ex', {})
+                        backs = ex.get('availableToBack', [])
+                        lays = ex.get('availableToLay', [])
+                        runner_prices[sel_id] = {
+                            'back': backs[0].get('price', 0) if backs else 0,
+                            'lay': lays[0].get('price', 0) if lays else 0
+                        }
                 
-                # Add selectionName to each order
+                orders_snapshot = []
                 for order in all_orders:
-                    sel_id = order.get('selectionId')
-                    if sel_id and not order.get('selectionName'):
-                        order['selectionName'] = runner_names.get(sel_id, f"ID:{sel_id}")
+                    order_copy = dict(order)
+                    sel_id = order_copy.get('selectionId')
+                    if sel_id:
+                        if not order_copy.get('selectionName'):
+                            order_copy['selectionName'] = runner_names.get(sel_id, f"ID:{sel_id}")
+                        
+                        prices = runner_prices.get(sel_id, {})
+                        best_back = prices.get('back', 0)
+                        best_lay = prices.get('lay', 0)
+                        
+                        if order_copy.get('sizeMatched', 0) > 0:
+                            pnl = self.pnl_engine.calculate_order_pnl(order_copy, best_back, best_lay)
+                            order_copy['pnl'] = pnl
+                            
+                            bet_id = order_copy.get('betId')
+                            if bet_id:
+                                action = self.automation_engine.evaluate(bet_id, pnl)
+                                if action:
+                                    logging.info(f"[AUTOMATION] Triggered {action} for bet {bet_id}")
+                    
+                    orders_snapshot.append(order_copy)
                 
-                self.root.after(0, lambda: self._update_my_bets_display(orders))
+                orders_result = {
+                    'matched': [o for o in orders_snapshot if o in orders.get('matched', []) or o.get('sizeMatched', 0) > 0 and o.get('sizeRemaining', 0) == 0],
+                    'unmatched': orders.get('unmatched', []),
+                    'partiallyMatched': orders.get('partiallyMatched', [])
+                }
+                
+                for o in orders.get('matched', []):
+                    for snap in orders_snapshot:
+                        if snap.get('betId') == o.get('betId'):
+                            o.update(snap)
+                            break
+                
+                self.root.after(0, lambda o=orders: self._update_my_bets_display(o))
             except Exception as e:
                 logging.error(f"Error fetching orders for My Bets: {e}")
         
@@ -1462,6 +1540,163 @@ class PickfairApp:
             self._add_log(f"Ordine {bet_id} annullato", 'info')
         else:
             self._add_log(f"Errore annullamento ordine {bet_id}", 'error')
+    
+    def _replace_order_tick(self, market_id, bet_id, tick_direction):
+        """Replace order by moving price ±1 tick."""
+        if not self.client:
+            return
+        
+        def replace():
+            try:
+                orders = self.client.get_current_orders([market_id])
+                target_order = None
+                for o in orders.get('unmatched', []):
+                    if o.get('betId') == bet_id:
+                        target_order = o
+                        break
+                
+                if not target_order:
+                    return
+                
+                current_price = target_order.get('price', 0)
+                new_price = self._adjust_price_by_ticks(current_price, tick_direction)
+                
+                if new_price and new_price != current_price:
+                    result = self.client.replace_orders(market_id, [{
+                        'betId': bet_id,
+                        'newPrice': new_price
+                    }])
+                    if result:
+                        self.root.after(0, lambda: self._on_order_replaced(bet_id, new_price))
+            except Exception as e:
+                logging.error(f"Error replacing order {bet_id}: {e}")
+        
+        threading.Thread(target=replace, daemon=True).start()
+    
+    def _on_order_replaced(self, bet_id, new_price):
+        """Handle order replacement result."""
+        self._refresh_my_bets_panel()
+        self._add_log(f"Ordine {bet_id} spostato a {new_price:.2f}", 'info')
+    
+    def _adjust_price_by_ticks(self, price, ticks):
+        """Adjust price by N ticks according to Betfair ladder."""
+        ladder = [1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.09, 1.10,
+                  1.12, 1.14, 1.16, 1.18, 1.20, 1.22, 1.24, 1.26, 1.28, 1.30,
+                  1.32, 1.34, 1.36, 1.38, 1.40, 1.42, 1.44, 1.46, 1.48, 1.50,
+                  1.52, 1.54, 1.56, 1.58, 1.60, 1.62, 1.64, 1.66, 1.68, 1.70,
+                  1.72, 1.74, 1.76, 1.78, 1.80, 1.82, 1.84, 1.86, 1.88, 1.90,
+                  1.92, 1.94, 1.96, 1.98, 2.00, 2.02, 2.04, 2.06, 2.08, 2.10,
+                  2.12, 2.14, 2.16, 2.18, 2.20, 2.22, 2.24, 2.26, 2.28, 2.30,
+                  2.32, 2.34, 2.36, 2.38, 2.40, 2.42, 2.44, 2.46, 2.48, 2.50,
+                  2.52, 2.54, 2.56, 2.58, 2.60, 2.62, 2.64, 2.66, 2.68, 2.70,
+                  2.72, 2.74, 2.76, 2.78, 2.80, 2.82, 2.84, 2.86, 2.88, 2.90,
+                  2.92, 2.94, 2.96, 2.98, 3.00, 3.05, 3.10, 3.15, 3.20, 3.25,
+                  3.30, 3.35, 3.40, 3.45, 3.50, 3.55, 3.60, 3.65, 3.70, 3.75,
+                  3.80, 3.85, 3.90, 3.95, 4.00, 4.10, 4.20, 4.30, 4.40, 4.50,
+                  4.60, 4.70, 4.80, 4.90, 5.00, 5.10, 5.20, 5.30, 5.40, 5.50,
+                  5.60, 5.70, 5.80, 5.90, 6.00, 6.20, 6.40, 6.60, 6.80, 7.00,
+                  7.20, 7.40, 7.60, 7.80, 8.00, 8.20, 8.40, 8.60, 8.80, 9.00,
+                  9.20, 9.40, 9.60, 9.80, 10.0, 10.5, 11.0, 11.5, 12.0, 12.5,
+                  13.0, 13.5, 14.0, 14.5, 15.0, 15.5, 16.0, 16.5, 17.0, 17.5,
+                  18.0, 18.5, 19.0, 19.5, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0,
+                  26.0, 27.0, 28.0, 29.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0,
+                  42.0, 44.0, 46.0, 48.0, 50.0, 55.0, 60.0, 65.0, 70.0, 75.0,
+                  80.0, 85.0, 90.0, 95.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0,
+                  160.0, 170.0, 180.0, 190.0, 200.0, 210.0, 220.0, 230.0, 240.0, 250.0,
+                  260.0, 270.0, 280.0, 290.0, 300.0, 310.0, 320.0, 330.0, 340.0, 350.0,
+                  360.0, 370.0, 380.0, 390.0, 400.0, 410.0, 420.0, 430.0, 440.0, 450.0,
+                  460.0, 470.0, 480.0, 490.0, 500.0, 510.0, 520.0, 530.0, 540.0, 550.0,
+                  560.0, 570.0, 580.0, 590.0, 600.0, 610.0, 620.0, 630.0, 640.0, 650.0,
+                  660.0, 670.0, 680.0, 690.0, 700.0, 710.0, 720.0, 730.0, 740.0, 750.0,
+                  760.0, 770.0, 780.0, 790.0, 800.0, 810.0, 820.0, 830.0, 840.0, 850.0,
+                  860.0, 870.0, 880.0, 890.0, 900.0, 910.0, 920.0, 930.0, 940.0, 950.0,
+                  960.0, 970.0, 980.0, 990.0, 1000.0]
+        
+        try:
+            idx = min(range(len(ladder)), key=lambda i: abs(ladder[i] - price))
+            new_idx = idx + ticks
+            if 0 <= new_idx < len(ladder):
+                return ladder[new_idx]
+        except:
+            pass
+        return price
+    
+    def _green_up_selection(self, market_id, selection_id, order):
+        """Execute green-up (cashout) for a single selection."""
+        if not self.client or not self.current_market:
+            return
+        
+        def execute_green():
+            try:
+                runners = self.current_market.get('runners', [])
+                best_lay = None
+                for r in runners:
+                    if r.get('selectionId') == selection_id:
+                        ex = r.get('ex', {})
+                        lays = ex.get('availableToLay', [])
+                        if lays:
+                            best_lay = lays[0].get('price')
+                        break
+                
+                if not best_lay or best_lay <= 1:
+                    self.root.after(0, lambda: self._add_log("Nessuna quota LAY disponibile", 'error'))
+                    return
+                
+                from dutching import dynamic_cashout_single
+                stake = order.get('sizeMatched', order.get('stake', 0))
+                price = order.get('averagePriceMatched', order.get('price', 0))
+                
+                result = dynamic_cashout_single(stake, price, best_lay, 4.5)
+                lay_stake = result.get('lay_stake', 0)
+                
+                if lay_stake > 0:
+                    bet_result = self.client.place_bet(
+                        market_id=market_id,
+                        selection_id=selection_id,
+                        side='LAY',
+                        stake=lay_stake,
+                        price=best_lay,
+                        persistence='LAPSE'
+                    )
+                    
+                    if bet_result:
+                        net_profit = result.get('net_profit', 0)
+                        self.root.after(0, lambda: self._on_green_success(selection_id, net_profit))
+                    else:
+                        self.root.after(0, lambda: self._add_log("Errore piazzamento LAY green", 'error'))
+            except Exception as e:
+                logging.error(f"Error green-up selection {selection_id}: {e}")
+                self.root.after(0, lambda: self._add_log(f"Errore green-up: {e}", 'error'))
+        
+        threading.Thread(target=execute_green, daemon=True).start()
+    
+    def _on_green_success(self, selection_id, net_profit):
+        """Handle successful green-up."""
+        self._refresh_my_bets_panel()
+        self._add_log(f"Green-up eseguito! Profitto: €{net_profit:.2f}", 'success')
+    
+    def _on_auto_green_up(self, bet_id, trigger_type):
+        """Callback for automated green-up (SL/TP/TR)."""
+        logging.info(f"[AUTOMATION] Auto green-up triggered: bet_id={bet_id} type={trigger_type}")
+        
+        with self.automation_engine.sltp_engine.lock:
+            state = self.automation_engine.sltp_engine.positions.get(bet_id)
+            if state:
+                self.root.after(0, lambda: self._execute_auto_green(state, trigger_type))
+    
+    def _execute_auto_green(self, state, trigger_type):
+        """Execute automated green-up from automation engine."""
+        if not self.client:
+            return
+        
+        order = {
+            'selectionId': state.selection_id,
+            'sizeMatched': state.stake,
+            'averagePriceMatched': state.entry_price
+        }
+        
+        self._green_up_selection(state.market_id, state.selection_id, order)
+        self._add_log(f"Auto {trigger_type} eseguito per selezione {state.selection_id}", 'info')
     
     def _cancel_all_unmatched_orders(self):
         """Cancel all unmatched orders."""
