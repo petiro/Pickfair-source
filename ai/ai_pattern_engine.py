@@ -3,10 +3,15 @@ AIPatternEngine - Analisi Weight of Money per auto-entry BACK/LAY
 
 Decide automaticamente BACK o LAY per ogni runner basandosi
 sul Weight of Money (rapporto liquidità BACK vs LAY).
+
+v3.65 - Integrazione con WoM Engine per analisi storica
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional, TYPE_CHECKING
 import logging
+
+if TYPE_CHECKING:
+    from ai.wom_engine import WoMEngine
 
 logger = logging.getLogger(__name__)
 
@@ -150,3 +155,72 @@ class AIPatternEngine:
             })
         
         return analysis
+    
+    def get_enhanced_analysis(self, selections: List[Dict], 
+                               wom_engine: Optional["WoMEngine"] = None) -> List[Dict]:
+        """
+        Ritorna analisi WoM combinata con dati storici.
+        
+        Se wom_engine è fornito, combina:
+        - WoM istantaneo (snapshot)
+        - WoM storico (time-window)
+        - Edge score aggregato
+        
+        Args:
+            selections: Lista selezioni
+            wom_engine: Istanza WoM Engine per dati storici
+            
+        Returns:
+            Lista con edge_score, suggested_side, confidence
+        """
+        instant_analysis = self.get_wom_analysis(selections)
+        
+        if wom_engine is None:
+            for item in instant_analysis:
+                item["edge_score"] = (item["wom"] - 0.5) * 2
+                item["has_history"] = False
+            return instant_analysis
+        
+        enhanced = []
+        
+        for idx, sel in enumerate(selections):
+            selection_id = sel.get("selectionId")
+            instant = instant_analysis[idx] if idx < len(instant_analysis) else {}
+            
+            hist_result = wom_engine.calculate_wom(selection_id)
+            
+            if hist_result:
+                instant_wom = instant.get("wom", 0.5)
+                hist_wom = hist_result.wom
+                combined_wom = instant_wom * 0.4 + hist_wom * 0.6
+                
+                edge_score = hist_result.edge_score * 0.7 + (instant_wom - 0.5) * 2 * 0.3
+                
+                confidence = max(instant.get("confidence", 0), hist_result.confidence)
+                
+                if combined_wom > self.wom_back_threshold:
+                    suggested_side = "BACK"
+                elif combined_wom < self.wom_lay_threshold:
+                    suggested_side = "LAY"
+                else:
+                    suggested_side = "BACK" if hist_result.wom_trend > 0 else "LAY"
+                
+                enhanced.append({
+                    "selectionId": selection_id,
+                    "runnerName": sel.get("runnerName", ""),
+                    "wom_instant": round(instant_wom, 3),
+                    "wom_historical": round(hist_wom, 3),
+                    "wom_combined": round(combined_wom, 3),
+                    "wom_trend": round(hist_result.wom_trend, 3),
+                    "edge_score": round(edge_score, 3),
+                    "suggested_side": suggested_side,
+                    "confidence": round(confidence, 2),
+                    "has_history": True,
+                    "tick_count": hist_result.tick_count
+                })
+            else:
+                instant["edge_score"] = round((instant.get("wom", 0.5) - 0.5) * 2, 3)
+                instant["has_history"] = False
+                enhanced.append(instant)
+        
+        return enhanced
