@@ -70,6 +70,23 @@ Key features include:
     - Maintains equal-profit distribution
   - Tick Replay Engine for backtesting with historical data
   - Centralized configuration in trading_config.py (BOOK_WARNING, BOOK_BLOCK, MIN_STAKE)
+- **Safety Package (v3.61)**: Comprehensive validation and security safeguards
+  - **MarketValidator** (`market_validator.py`): Validates markets for dutching compatibility
+    - DUTCHING_READY: MATCH_ODDS, WINNER, CORRECT_SCORE, MONEYLINE
+    - NON_DUTCHING: OVER_UNDER, ASIAN_HANDICAP, CORNER_MATCH_BET, BTTS
+    - UI auto-blocks AI Mixed for incompatible market types with warning banner
+  - **Profit Uniformity Validation**: `_validate_uniform_profit()` ensures equal profit distribution
+    - PROFIT_EPSILON = €0.50 max variance tolerance
+    - Raises `MixedDutchingError` if variance exceeds threshold
+  - **Auto-Green Security**: `should_auto_green()` with multi-layer protection
+    - Requires valid `placed_at` timestamp (blocks if missing/zero/None)
+    - Enforces 2.5s grace period (AUTO_GREEN_DELAY_SEC)
+    - Blocks in simulation mode or when market not OPEN
+  - **Test Coverage**: 33 pytest tests in `tests/test_dutching_safety.py`
+    - Market validation (9 tests)
+    - Profit uniformity (6 tests)
+    - Auto-green delay/simulation/status/flag (15 tests)
+    - AI Mixed stakes (3 tests)
 
 ### System Design Choices
 - **Data Storage**: Uses an SQLite database (`pickfair.db`) for application data, Telegram session files, plugin data (JSON configs), and license keys, all stored within `%APPDATA%\Pickfair`.
