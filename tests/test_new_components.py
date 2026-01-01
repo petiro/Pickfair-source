@@ -589,6 +589,73 @@ class TestPreflightCheck:
         result = controller.preflight_check(selections, total_stake=50, mode="BACK")
         
         assert any("Stake alto" in w for w in result.warnings)
+    
+    def test_preflight_low_price_warning(self):
+        """Preflight warning se quota troppo bassa (< 1.02)."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker()
+        controller = DutchingController(broker=broker, pnl_engine=None)
+        
+        selections = [
+            {"selectionId": 1, "runnerName": "Favorito", "price": 1.01},  # Troppo bassa
+            {"selectionId": 2, "runnerName": "Outsider", "price": 5.0}
+        ]
+        
+        result = controller.preflight_check(selections, total_stake=10, mode="BACK")
+        
+        assert result.price_ok is False
+        assert any("troppo bassa" in w for w in result.warnings)
+    
+    def test_preflight_book_warning(self):
+        """Preflight warning se book > 105%."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker()
+        controller = DutchingController(broker=broker, pnl_engine=None)
+        
+        # Quote con book ~108% (1/2.8 + 1/4.0 + 1/5.0 = 0.357 + 0.25 + 0.2 + extra)
+        # Meglio: 1/1.9 + 1/9.0 = 0.526 + 0.111 + ~0.4 = ~1.07
+        # Quote: 1.87 + 2.35 + 19.0 => 0.535 + 0.426 + 0.053 = 1.014 (troppo basso)
+        # Proviamo: 1.85 + 2.25 + 6.0 => 0.541 + 0.444 + 0.167 = 1.15 (troppo alto)
+        # Target ~107%: 1.9 + 2.5 + 8.0 => 0.526 + 0.4 + 0.125 = 1.051 (troppo basso)
+        # Target ~107%: 1.8 + 2.3 + 8.0 => 0.556 + 0.435 + 0.125 = 1.116 (troppo alto)
+        # Calcolo: per ottenere 107%, usiamo 1.9 + 2.4 + 12.0 => 0.526 + 0.417 + 0.083 = 1.026 (troppo basso)
+        # Usiamo quote che diano 107%: 1.85 + 2.5 + 10.0 => 0.541 + 0.4 + 0.1 = 1.041 (no)
+        # Usiamo: 1.8 + 2.4 + 15.0 => 0.556 + 0.417 + 0.067 = 1.04 (no)
+        # Semplice: usiamo 2 selezioni => 1.85 + 1.90 = 0.541 + 0.526 = 1.067 (OK!)
+        selections = [
+            {"selectionId": 1, "runnerName": "A", "price": 1.85},
+            {"selectionId": 2, "runnerName": "B", "price": 1.90}
+        ]
+        
+        result = controller.preflight_check(selections, total_stake=10, mode="BACK")
+        
+        assert result.book_ok is False
+        assert any("Book" in w and "%" in w for w in result.warnings)
+    
+    def test_preflight_book_blocks(self):
+        """Preflight blocca se book > 110%."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker()
+        controller = DutchingController(broker=broker, pnl_engine=None)
+        
+        # Quote con book ~125% (1/1.5 + 1/2.0 + 1/2.5 = 0.667 + 0.5 + 0.4 = 1.25)
+        selections = [
+            {"selectionId": 1, "runnerName": "A", "price": 1.5},
+            {"selectionId": 2, "runnerName": "B", "price": 2.0},
+            {"selectionId": 3, "runnerName": "C", "price": 2.5}
+        ]
+        
+        result = controller.preflight_check(selections, total_stake=10, mode="BACK")
+        
+        assert result.is_valid is False
+        assert result.book_ok is False
+        assert any("troppo alto" in e for e in result.errors)
 
 
 class TestPreflightBlocking:
@@ -649,6 +716,36 @@ class TestPreflightBlocking:
         assert len(result["orders"]) == 10
         # Ma mostra gli errori preflight
         assert result["preflight"]["is_valid"] is False
+    
+    def test_preflight_exposes_price_and_book_flags(self):
+        """Submit exposes price_ok, book_ok, book_pct nel payload."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        selections = [
+            {"selectionId": 1, "runnerName": "A", "price": 2.0},
+            {"selectionId": 2, "runnerName": "B", "price": 3.0}
+        ]
+        
+        result = controller.submit_dutching(
+            market_id="1.234",
+            market_type="MATCH_ODDS",
+            selections=selections,
+            total_stake=100,
+            mode="BACK",
+            dry_run=True
+        )
+        
+        # Verifica che i nuovi campi siano presenti
+        preflight = result["preflight"]
+        assert "price_ok" in preflight
+        assert "book_ok" in preflight
+        assert "book_pct" in preflight
+        assert preflight["price_ok"] is True  # Quote valide (>1.02)
+        assert preflight["book_ok"] is True   # Book ~83% (1/2 + 1/3 = 0.833)
 
 
 class TestDryRun:

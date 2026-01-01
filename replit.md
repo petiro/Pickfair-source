@@ -155,7 +155,21 @@ Key features include:
     - `on_move` callback for order updates
     - `DraggableRunnerList` container for auto-management
     - Zero impact on dutching calculations
-  - **Test Coverage**: 24 additional tests in `tests/test_new_components.py`
+  - **Preflight Check + Dry Run (v3.64)**: Pre-order validation system
+    - `preflight_check()` validates before order placement:
+      - Aggregate stake (min €2 per runner)
+      - Per-runner stake validation post-calculation
+      - Liquidity check (MIN_LIQUIDITY = €50)
+      - Spread check (MAX_SPREAD_TICKS = 5)
+      - Price check (MIN_PRICE = 1.02)
+      - Book % check (warning at 105%, block at 110%)
+    - `dry_run=True` parameter for preview without real orders
+      - Returns full order preview with P&L calculation
+      - Shows preflight warnings/errors without blocking
+    - Live mode blocks orders when preflight fails (PREFLIGHT_FAILED status)
+    - PreflightResult dataclass with granular status flags
+    - Config thresholds in trading_config.py
+  - **Test Coverage**: 40 tests in `tests/test_new_components.py`
     - AIPatternEngine WoM calculations (8 tests)
     - DutchingController validation and submit (9 tests)
     - MiniLadder/DraggableRunner data structures (4 tests)

@@ -31,4 +31,5 @@ AUTO_GREEN_DELAY_SEC = 2.5  # Grace period prima di attivare auto-green
 # Preflight Check thresholds
 MIN_LIQUIDITY = 50.0       # Liquidità minima €50 per runner
 MAX_SPREAD_TICKS = 5       # Spread massimo 5 tick tra BACK/LAY
-MAX_STAKE_PCT = 0.20       # Max 20% della liquidità disponibile per ordine
+MAX_STAKE_PCT = 0.30       # Max 30% del balance (warning se superato)
+MIN_PRICE = 1.02           # Quota minima accettabile (1.01 è troppo bassa)

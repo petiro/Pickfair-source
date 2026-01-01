@@ -20,7 +20,8 @@ from automation_engine import AutomationEngine
 from safety_logger import get_safety_logger
 from safe_mode import get_safe_mode_manager
 from trading_config import (
-    MIN_STAKE, MAX_STAKE_PCT, MIN_LIQUIDITY, MAX_SPREAD_TICKS
+    MIN_STAKE, MAX_STAKE_PCT, MIN_LIQUIDITY, MAX_SPREAD_TICKS,
+    MIN_PRICE, BOOK_WARNING, BOOK_BLOCK
 )
 
 
@@ -33,6 +34,8 @@ class PreflightResult:
     liquidity_ok: bool = True
     spread_ok: bool = True
     stake_ok: bool = True
+    price_ok: bool = True
+    book_ok: bool = True
     details: Dict = field(default_factory=dict)
 
 logger = logging.getLogger(__name__)
@@ -211,6 +214,9 @@ class DutchingController:
                     "liquidity_ok": preflight.liquidity_ok,
                     "spread_ok": preflight.spread_ok,
                     "stake_ok": preflight.stake_ok,
+                    "price_ok": preflight.price_ok,
+                    "book_ok": preflight.book_ok,
+                    "book_pct": preflight.details.get("book_pct", 0),
                     "details": preflight.details
                 }
             }
@@ -295,6 +301,9 @@ class DutchingController:
                 "liquidity_ok": preflight.liquidity_ok,
                 "spread_ok": preflight.spread_ok,
                 "stake_ok": preflight.stake_ok,
+                "price_ok": preflight.price_ok,
+                "book_ok": preflight.book_ok,
+                "book_pct": preflight.details.get("book_pct", 0),
                 "details": preflight.details
             }
         }
@@ -375,11 +384,24 @@ class DutchingController:
             )
         
         total_liquidity = 0.0
+        total_implied_prob = 0.0
         
         for sel in selections:
             runner_name = sel.get("runnerName", f"ID {sel.get('selectionId', '?')}")
+            price = sel.get("price", 0)
             back_ladder = sel.get("back_ladder", [])
             lay_ladder = sel.get("lay_ladder", [])
+            
+            # Check quota minima (troppo bassa = rischio)
+            if price > 0 and price < MIN_PRICE:
+                result.price_ok = False
+                result.warnings.append(
+                    f"{runner_name}: quota {price:.2f} troppo bassa (min {MIN_PRICE:.2f})"
+                )
+            
+            # Accumula implied probability per Book %
+            if price > 1:
+                total_implied_prob += 1.0 / price
             
             # Calcola liquidità disponibile
             back_liq = sum(p.get("size", 0) for p in back_ladder)
@@ -428,6 +450,22 @@ class DutchingController:
                 result.warnings.append(
                     f"Stake alto rispetto a liquidità ({stake_pct*100:.0f}% > {MAX_STAKE_PCT*100:.0f}%)"
                 )
+        
+        # Check Book % (somma implied prob * 100)
+        book_pct = total_implied_prob * 100
+        if book_pct > BOOK_BLOCK:
+            result.book_ok = False
+            result.is_valid = False
+            result.errors.append(
+                f"Book {book_pct:.1f}% troppo alto (blocco a {BOOK_BLOCK:.0f}%)"
+            )
+        elif book_pct > BOOK_WARNING:
+            result.book_ok = False
+            result.warnings.append(
+                f"Book {book_pct:.1f}% elevato (warning a {BOOK_WARNING:.0f}%)"
+            )
+        
+        result.details["book_pct"] = book_pct
         
         # Se ci sono errori, non è valido
         if result.errors:
