@@ -187,7 +187,7 @@ class AIPatternEngine:
             selection_id = sel.get("selectionId")
             instant = instant_analysis[idx] if idx < len(instant_analysis) else {}
             
-            hist_result = wom_engine.calculate_wom(selection_id)
+            hist_result = wom_engine.calculate_wom(selection_id) if selection_id else None
             
             if hist_result:
                 instant_wom = instant.get("wom", 0.5)

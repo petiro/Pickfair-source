@@ -903,5 +903,288 @@ class TestDryRun:
         assert broker.balance < initial_balance
 
 
+class TestWoMEngine:
+    """Test per WoM Engine - analisi storica tick."""
+    
+    def test_record_and_calculate_wom(self):
+        """Record tick e calcola WoM."""
+        from ai.wom_engine import WoMEngine
+        
+        engine = WoMEngine()
+        
+        for i in range(5):
+            engine.record_tick(
+                selection_id=1,
+                back_price=2.0,
+                back_volume=100,
+                lay_price=2.02,
+                lay_volume=50
+            )
+        
+        result = engine.calculate_wom(1)
+        
+        assert result is not None
+        assert result.selection_id == 1
+        assert result.wom > 0.5
+        assert result.tick_count == 5
+    
+    def test_wom_insufficient_ticks(self):
+        """WoM None se tick insufficienti."""
+        from ai.wom_engine import WoMEngine
+        
+        engine = WoMEngine()
+        engine.record_tick(1, 2.0, 100, 2.02, 100)
+        
+        result = engine.calculate_wom(1)
+        assert result is None
+    
+    def test_edge_score_range(self):
+        """Edge score sempre in [-1, 1]."""
+        from ai.wom_engine import WoMEngine
+        
+        engine = WoMEngine()
+        
+        for i in range(10):
+            engine.record_tick(1, 2.0, 200, 2.02, 10)
+        
+        result = engine.calculate_wom(1)
+        
+        assert -1.0 <= result.edge_score <= 1.0
+    
+    def test_get_ai_edge_score_multiple(self):
+        """get_ai_edge_score per multiple selezioni."""
+        from ai.wom_engine import WoMEngine
+        
+        engine = WoMEngine()
+        
+        for _ in range(5):
+            engine.record_tick(1, 2.0, 150, 2.02, 50)
+            engine.record_tick(2, 3.0, 50, 3.05, 150)
+        
+        selections = [
+            {"selectionId": 1, "price": 2.0},
+            {"selectionId": 2, "price": 3.0}
+        ]
+        
+        results = engine.get_ai_edge_score(selections)
+        
+        assert 1 in results
+        assert 2 in results
+        assert results[1].wom > results[2].wom
+    
+    def test_suggested_side_back(self):
+        """WoM alto suggerisce BACK."""
+        from ai.wom_engine import WoMEngine
+        
+        engine = WoMEngine()
+        
+        for _ in range(5):
+            engine.record_tick(1, 2.0, 200, 2.02, 20)
+        
+        result = engine.calculate_wom(1)
+        
+        assert result.suggested_side == "BACK"
+    
+    def test_suggested_side_lay(self):
+        """WoM basso suggerisce LAY."""
+        from ai.wom_engine import WoMEngine
+        
+        engine = WoMEngine()
+        
+        for _ in range(5):
+            engine.record_tick(1, 2.0, 20, 2.02, 200)
+        
+        result = engine.calculate_wom(1)
+        
+        assert result.suggested_side == "LAY"
+    
+    def test_clear_history(self):
+        """clear_history pulisce i tick."""
+        from ai.wom_engine import WoMEngine
+        
+        engine = WoMEngine()
+        
+        for _ in range(5):
+            engine.record_tick(1, 2.0, 100, 2.02, 100)
+        
+        engine.clear_history(1)
+        result = engine.calculate_wom(1)
+        
+        assert result is None
+    
+    def test_get_stats(self):
+        """get_stats ritorna statistiche."""
+        from ai.wom_engine import WoMEngine
+        
+        engine = WoMEngine()
+        
+        for _ in range(3):
+            engine.record_tick(1, 2.0, 100, 2.02, 100)
+            engine.record_tick(2, 3.0, 100, 3.05, 100)
+        
+        stats = engine.get_stats()
+        
+        assert stats["selections_tracked"] == 2
+        assert stats["total_ticks"] == 6
+
+
+class TestEnhancedWoMAnalysis:
+    """Test per analisi WoM combinata instant + storica."""
+    
+    def test_enhanced_analysis_with_history(self):
+        """Enhanced analysis combina dati instant e storici."""
+        from ai.ai_pattern_engine import AIPatternEngine
+        from ai.wom_engine import WoMEngine
+        
+        ai = AIPatternEngine()
+        wom = WoMEngine()
+        
+        for _ in range(5):
+            wom.record_tick(1, 2.0, 150, 2.02, 50)
+        
+        selections = [{
+            "selectionId": 1,
+            "runnerName": "Runner A",
+            "back_ladder": [{"price": 2.0, "size": 100}],
+            "lay_ladder": [{"price": 2.02, "size": 50}]
+        }]
+        
+        result = ai.get_enhanced_analysis(selections, wom)
+        
+        assert len(result) == 1
+        assert result[0]["has_history"] is True
+        assert "wom_combined" in result[0]
+        assert "edge_score" in result[0]
+    
+    def test_enhanced_analysis_without_history(self):
+        """Enhanced analysis senza dati storici."""
+        from ai.ai_pattern_engine import AIPatternEngine
+        from ai.wom_engine import WoMEngine
+        
+        ai = AIPatternEngine()
+        wom = WoMEngine()
+        
+        selections = [{
+            "selectionId": 99,
+            "runnerName": "No History",
+            "back_ladder": [{"price": 2.0, "size": 100}],
+            "lay_ladder": [{"price": 2.02, "size": 100}]
+        }]
+        
+        result = ai.get_enhanced_analysis(selections, wom)
+        
+        assert len(result) == 1
+        assert result[0]["has_history"] is False
+
+
+class TestOneClickLadder:
+    """Test per OneClickLadder - struttura dati."""
+    
+    def test_one_click_ladder_structure(self):
+        """OneClickLadder eredita da MiniLadder."""
+        from ui.mini_ladder import OneClickLadder, MiniLadder
+        
+        assert issubclass(OneClickLadder, MiniLadder)
+    
+    def test_default_stake_setter(self):
+        """set_default_stake modifica stake."""
+        from ui.mini_ladder import OneClickLadder
+        
+        ladder = type("MockLadder", (), {
+            "default_stake": 10.0,
+            "set_default_stake": OneClickLadder.set_default_stake
+        })()
+        
+        ladder.set_default_stake(50.0)
+        assert ladder.default_stake == 50.0
+    
+    def test_auto_green_setter(self):
+        """set_auto_green modifica flag."""
+        from ui.mini_ladder import OneClickLadder
+        
+        ladder = type("MockLadder", (), {
+            "auto_green_enabled": False,
+            "set_auto_green": OneClickLadder.set_auto_green
+        })()
+        
+        ladder.set_auto_green(True)
+        assert ladder.auto_green_enabled is True
+
+
+class TestControllerWoMIntegration:
+    """Test integrazione Controller + WoM Engine."""
+    
+    def test_controller_has_wom_engine(self):
+        """Controller inizializza WoM Engine."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        assert hasattr(controller, "wom_engine")
+        assert controller.wom_engine is not None
+    
+    def test_record_market_tick(self):
+        """Controller può registrare tick."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        controller.record_market_tick(1, 2.0, 100, 2.02, 100)
+        
+        stats = controller.get_wom_stats()
+        assert stats["selections_tracked"] == 1
+    
+    def test_get_wom_analysis(self):
+        """Controller espone analisi WoM."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        selections = [{
+            "selectionId": 1,
+            "runnerName": "Test",
+            "back_ladder": [{"price": 2.0, "size": 100}],
+            "lay_ladder": [{"price": 2.02, "size": 50}]
+        }]
+        
+        result = controller.get_wom_analysis(selections, use_historical=False)
+        
+        assert len(result) == 1
+        assert "wom" in result[0]
+        assert "suggested_side" in result[0]
+    
+    def test_submit_with_ai_wom_enabled(self):
+        """Submit con ai_wom_enabled parametro."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        selections = [
+            {"selectionId": 1, "runnerName": "A", "price": 2.0},
+            {"selectionId": 2, "runnerName": "B", "price": 3.0}
+        ]
+        
+        result = controller.submit_dutching(
+            market_id="1.234",
+            market_type="MATCH_ODDS",
+            selections=selections,
+            total_stake=100,
+            mode="BACK",
+            ai_enabled=False,
+            ai_wom_enabled=True,
+            dry_run=True
+        )
+        
+        assert result["status"] == "DRY_RUN"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

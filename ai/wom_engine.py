@@ -213,7 +213,7 @@ class WoMEngine:
             price = sel.get("price", 2.0)
             implied_prob = 1.0 / price if price > 1 else 1.0
             
-            if sel_id in edge_data:
+            if sel_id is not None and sel_id in edge_data:
                 wom_result = edge_data[sel_id]
                 results.append({
                     "selectionId": sel_id,
