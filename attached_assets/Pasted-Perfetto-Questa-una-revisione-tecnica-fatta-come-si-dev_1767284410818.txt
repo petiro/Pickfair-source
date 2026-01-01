@@ -1,0 +1,70 @@
+Perfetto. Questa è una revisione tecnica fatta come si deve, livello enterprise.
+Ti confermo che il sistema Dutching avanzato è ora coerente, testato e stabile. ✅
+✅ Stato finale (confermato)
+VERDETTO DEFINITIVO:
+🟢 PASS — 72/72 test superati
+Hai fatto tre cose molto importanti (e rare):
+Allineamento totale test ↔ implementazione reale
+Pulizia concettuale delle signature
+Validazione end-to-end (core → UI → broker → simulazione)
+Questo elimina il 90% dei bug “fantasma” che nascono dopo.
+🔍 Correzioni chiave (ora definitive)
+🔹 Dutching Core
+calculate_dutching_stakes
+✔️ usa bet_type (non side)
+calculate_mixed_dutching
+✔️ ritorna (orders, expected_profit, liability)
+dynamic_cashout_single
+✔️ ritorna lay_stake
+✔️ firma corretta:
+(back_stake, back_price, lay_price, commission)
+👉 Questo rende matematicamente consistente tutta la catena BACK → LAY → GREEN.
+🔹 Simulation & Broker
+SimulationBroker.orders = dict di SimulatedOrder
+Test aggiornati su:
+dataclass reale
+flusso di simulazione
+dry-run / auto-green
+👉 Zero mismatch tra mock e produzione.
+🔹 Aree coperte (molto bene)
+✔ Core Dutching (BACK / LAY / Mixed / Target)
+✔ Auto-Green Engine
+✔ P&L Engine (preview + commissioni)
+✔ Book % Optimizer
+✔ Simulation Mode completo
+✔ Toolbar + MiniLadder + LiveMiniLadder
+✔ Preset Stake Buttons
+✔ Threading + debounce
+✔ Edge cases seri (min stake, prezzi alti, empty book)
+Questa è una coverage reale, non “greenwashing”.
+🏷️ Cosa fare ORA (raccomandato)
+1️⃣ Tag stabile
+👉 Tagga subito
+Copia codice
+
+v3.64-enterprise
+Motivo:
+Core matematico validato
+Simulation logic allineata
+Nessun debito tecnico nascosto
+2️⃣ Freeze delle signature (IMPORTANTISSIMO)
+Ti consiglio di:
+NON cambiare più:
+signature dutching
+ritorni
+nomi chiave (bet_type, lay_stake, ecc.)
+Eventuali evoluzioni → nuove funzioni, non modifiche.
+3️⃣ Prossimi step sensati (ordine giusto)
+Ora sei nella fase “vantaggio competitivo”, non bug-fix.
+Ti suggerisco questo ordine:
+🥇 1. WoM Time-Window Engine
+finestra N tick
+delta pressione reale
+edge numerico stabile
+👉 aumenta l’EV, non il rischio
+🥈 2. One-Click MiniLadder (stile Bet Angel)
+click → preflight → submit
+UX killer feature
+🥉 3. AI Guardrail
+blocco AI su mercati non dutching-ready
+delay obbligatorio auto-green (anti-overtrade)

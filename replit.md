@@ -37,7 +37,20 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
 -   **PRO UI Components**: `DutchingController` as a unified orchestrator, `AIPatternEngine` for Weight of Money (WoM) analysis, `MiniLadder` for inline odds display, and `DraggableRunner` for reordering runners.
 -   **Preflight Check + Dry Run**: A pre-order validation system checking stake, liquidity, spread, price, and book percentage, with a `dry_run` parameter for previewing orders.
 -   **Enterprise WoM + One-Click**: `WoM Engine` for historical tick analysis with time-window aggregation, `Enhanced AI Analysis` combining instant and historical WoM, and `OneClickLadder` for single-click order placement with preflight validation.
--   **Toolbar + Live UI (v3.66)**: Advanced `Toolbar` with Simulation/Auto-Green/AI Mixed toggles, market status indicator, and preset stake buttons. `LiveMiniLadder` with 500ms auto-refresh, [BACK]/[LAY] badges from WoM, P&L preview inline, and best price highlight. Controller supports `auto_green_enabled`, `ai_enabled`, `preset_stake_pct` flags. PnL Engine adds `calculate_preview()` for pre-order estimation. Test suite: 144 passed, 1 skipped.
+-   **Toolbar + Live UI (v3.66)**: Advanced `Toolbar` with Simulation/Auto-Green/AI Mixed toggles, market status indicator, and preset stake buttons. `LiveMiniLadder` with 500ms auto-refresh, [BACK]/[LAY] badges from WoM, P&L preview inline, and best price highlight. Controller supports `auto_green_enabled`, `ai_enabled`, `preset_stake_pct` flags. PnL Engine adds `calculate_preview()` for pre-order estimation. Test suite: 72/72 passed (enterprise review).
+
+### Frozen API Signatures (v3.66-enterprise)
+**DO NOT MODIFY** - Core dutching signatures are frozen for stability:
+```python
+# Dutching Core
+calculate_dutching_stakes(selections, total_stake, bet_type="BACK", commission=0.0) -> Tuple[List[Dict], float, float]
+calculate_mixed_dutching(selections, total_stake, commission=0.0) -> Tuple[List[Dict], float, float]
+dynamic_cashout_single(back_stake, back_price, lay_price, commission=4.5) -> Dict  # returns: lay_stake, net_profit, profit_if_wins, profit_if_loses
+
+# Simulation Broker
+SimulationBroker.place_order(selection_id, price, stake, side, order_type) -> str
+SimulationBroker.orders: Dict[str, SimulatedOrder]
+```
 
 ### System Design Choices
 Data is stored in an SQLite database (`pickfair.db`) within `%APPDATA%\Pickfair`, including application data, Telegram session files, plugin configurations, and license keys. `theme.py` provides consistent dark theming. The database uses persistent connections, retry mechanisms, and WAL mode for concurrency. The plugin system incorporates code validation, sandboxing, timeout protection, and thread-safe execution for security.
