@@ -49,13 +49,14 @@ class TelegramListener:
             'league': r'🏆\s*(.+?)(?:\n|$)',
             'score': r'(\d+)\s*[-–]\s*(\d+)',
             'time': r'(\d+)m',
-            'odds': r'@?\s*(\d+[.,]\d+)',
+            'odds': r'@\s*(\d+[.,]\d+)',
             'stake': r'(?:stake|puntata|€)\s*(\d+(?:[.,]\d+)?)',
             'back': r'\b(back|punta|P\.Exc\.)\b',
             'lay': r'\b(lay|banca|B\.Exc\.)\b',
             'over': r'\b(over|sopra)\s*(\d+[.,]?\d*)',
             'under': r'\b(under|sotto)\s*(\d+[.,]?\d*)',
             'next_goal': r'NEXT\s*GOL|PROSSIMO\s*GOL',
+            'ignore_patterns': [r'📈Quota\s*\d+[.,]?\d*', r'📊\d+[.,]?\d+%'],
         }
     
     def set_signal_patterns(self, patterns: Dict):
