@@ -46,8 +46,16 @@ Key features include:
   - Price fallback system using tick_storage when market data unavailable
   - Green-up works independently of UI market selection
   - Simulation Broker for testing strategies without real money
+    - Exchange-realistic behavior: reserves full stake/liability at placement
+    - Partial matching support with slippage simulation via price_ladder
+    - Proper liability accounting for LAY with price improvement (price_requested vs price)
+    - cancel_order handles partial matches correctly
+    - settle_market releases unmatched exposure and settles matched portions
   - Book Optimizer for automatic stake redistribution when book > 105%
+    - Iterative rebalancing after min_stake clamping (€2 minimum)
+    - Maintains equal-profit distribution
   - Tick Replay Engine for backtesting with historical data
+  - Centralized configuration in trading_config.py (BOOK_WARNING, BOOK_BLOCK, MIN_STAKE)
 
 ### System Design Choices
 - **Data Storage**: Uses an SQLite database (`pickfair.db`) for application data, Telegram session files, plugin data (JSON configs), and license keys, all stored within `%APPDATA%\Pickfair`.
