@@ -149,6 +149,24 @@ class TestLiveMiniLadderStructure:
         assert hasattr(LiveMiniLadder, 'update_selections')
         assert hasattr(LiveMiniLadder, 'stop')
         assert hasattr(LiveMiniLadder, 'start')
+    
+    def test_live_ladder_refresh_interval(self):
+        """LiveMiniLadder ha attributo refresh_interval."""
+        from ui.mini_ladder import LiveMiniLadder
+        
+        import inspect
+        sig = inspect.signature(LiveMiniLadder.__init__)
+        params = list(sig.parameters.keys())
+        assert 'refresh_interval' in params
+    
+    def test_live_ladder_controller_integration(self):
+        """LiveMiniLadder accetta controller."""
+        from ui.mini_ladder import LiveMiniLadder
+        
+        import inspect
+        sig = inspect.signature(LiveMiniLadder.__init__)
+        params = list(sig.parameters.keys())
+        assert 'controller' in params
 
 
 class TestControllerToolbarIntegration:
