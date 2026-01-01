@@ -133,6 +133,33 @@ Key features include:
     - Realtime (1×), Fast (5×), Ultra Fast (10×) modes
     - Separate buffers for UI and automation throttling
     - Time compression for sleeps
+- **PRO UI Components (v3.63)**: Advanced UI/AI features
+  - **DutchingController** (`controllers/dutching_controller.py`): Unified orchestrator
+    - Single entry point for all dutching operations
+    - Coordinates UI → validation → AI → dutching → broker
+    - Safe mode integration with automatic blocking
+    - Market validation before AI operations
+    - Auto-registers SL/TP/Trailing for placed orders
+  - **AIPatternEngine** (`ai/ai_pattern_engine.py`): Weight of Money analysis
+    - Calculates WoM = back_vol / (back_vol + lay_vol)
+    - WoM > 0.55 → BACK, WoM < 0.45 → LAY, else BACK default
+    - Forces at least 1 BACK + 1 LAY for mixed dutching
+    - `get_wom_analysis()` for UI preview with confidence scores
+  - **MiniLadder** (`ui/mini_ladder.py`): Inline ladder display
+    - Shows 3 BACK + 3 LAY levels per runner
+    - Best price highlighted with distinct color
+    - Click-on-price for quick selection
+    - Real-time updates via `update_prices()`
+  - **DraggableRunner** (`ui/draggable_runner.py`): Drag & drop reordering
+    - Visual drag with lift and cursor feedback
+    - `on_move` callback for order updates
+    - `DraggableRunnerList` container for auto-management
+    - Zero impact on dutching calculations
+  - **Test Coverage**: 24 additional tests in `tests/test_new_components.py`
+    - AIPatternEngine WoM calculations (8 tests)
+    - DutchingController validation and submit (9 tests)
+    - MiniLadder/DraggableRunner data structures (4 tests)
+    - Integration tests (3 tests)
 
 ### System Design Choices
 - **Data Storage**: Uses an SQLite database (`pickfair.db`) for application data, Telegram session files, plugin data (JSON configs), and license keys, all stored within `%APPDATA%\Pickfair`.
