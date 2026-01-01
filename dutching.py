@@ -386,3 +386,171 @@ def calculate_mixed_dutching(
     implied_back = sum(1/s['price'] for s in back_sels) * 100 if back_sels else 0
     
     return results, round(avg_profit, 2), round(implied_back, 2)
+
+
+def calculate_ai_mixed_stakes(
+    selections: List[Dict],
+    total_stake: float,
+    commission: float = 4.5,
+    min_stake: float = 2.0
+) -> Tuple[List[Dict], float, float]:
+    """
+    AI Mixed Auto-Entry: Calcola automaticamente BACK o LAY per ogni runner
+    basandosi sulla probabilità implicita per massimizzare il profitto uniforme.
+    
+    Logica:
+    - Calcola probabilità implicita: impl_prob = 1 / odds
+    - Runner con impl_prob > soglia (1/N media) → BACK (sottovalutato dal mercato)
+    - Runner con impl_prob < soglia → LAY (sopravvalutato dal mercato)
+    - Calcola stakes per profitto uniforme indipendentemente dall'esito
+    
+    Args:
+        selections: Lista di {'selectionId': int, 'runnerName': str, 'price': float}
+        total_stake: Stake totale da distribuire
+        commission: Commissione Betfair (default 4.5%)
+        min_stake: Stake minimo per ordine (default €2)
+    
+    Returns:
+        Tuple di (selections_with_stakes, guaranteed_profit, book_percentage)
+    """
+    import numpy as np
+    
+    if not selections:
+        raise ValueError("Nessuna selezione")
+    
+    if total_stake <= 0:
+        raise ValueError("Stake deve essere positivo")
+    
+    valid_selections = [s for s in selections if s.get('price') and s['price'] > 1.0]
+    
+    if not valid_selections:
+        raise ValueError("Nessuna quota valida")
+    
+    n = len(valid_selections)
+    
+    # Calcola probabilità implicite
+    impl_probs = [1.0 / s['price'] for s in valid_selections]
+    total_impl = sum(impl_probs)
+    avg_prob = total_impl / n  # Soglia media
+    
+    # Determina BACK o LAY per ogni runner
+    # BACK se probabilità implicita > media (sottovalutato, buon value)
+    # LAY se probabilità implicita < media (sopravvalutato)
+    ai_selections = []
+    for i, sel in enumerate(valid_selections):
+        side = 'BACK' if impl_probs[i] >= avg_prob else 'LAY'
+        ai_selections.append({
+            **sel,
+            'effectiveType': side,
+            'impliedProbability': impl_probs[i] * 100
+        })
+    
+    back_count = sum(1 for s in ai_selections if s['effectiveType'] == 'BACK')
+    lay_count = n - back_count
+    
+    # Se tutti BACK o tutti LAY, usa calcolo standard
+    if lay_count == 0:
+        results, profit, book = _calculate_back_dutching(valid_selections, total_stake, commission)
+        for r in results:
+            r['effectiveType'] = 'BACK'
+            r['aiSelected'] = True
+        return results, profit, book
+    
+    if back_count == 0:
+        results, profit, book = _calculate_lay_dutching(valid_selections, total_stake, commission)
+        for r in results:
+            r['effectiveType'] = 'LAY'
+            r['aiSelected'] = True
+        return results, profit, book
+    
+    # Mixed: calcola con sistema lineare
+    A_full = np.zeros((n + 1, n + 1))
+    b_full = np.zeros(n + 1)
+    
+    for k in range(n):
+        for i in range(n):
+            sel = ai_selections[i]
+            price = sel['price']
+            is_back = sel['effectiveType'] == 'BACK'
+            
+            if i == k:
+                if is_back:
+                    A_full[k, i] = price - 1
+                else:
+                    A_full[k, i] = -(price - 1)
+            else:
+                if is_back:
+                    A_full[k, i] = -1
+                else:
+                    A_full[k, i] = 1
+        A_full[k, n] = -1
+        b_full[k] = 0
+    
+    for i in range(n):
+        A_full[n, i] = 1
+    A_full[n, n] = 0
+    b_full[n] = total_stake
+    
+    try:
+        solution = np.linalg.solve(A_full, b_full)
+        stakes = solution[:n]
+        profit = solution[n]
+        
+        if np.any(stakes < 0):
+            raise ValueError("Combinazione AI non risolvibile - stakes negativi")
+        
+    except np.linalg.LinAlgError:
+        raise ValueError("Sistema AI non risolvibile")
+    
+    # Applica min_stake e ricalcola iterativamente
+    final_stakes = []
+    for i in range(n):
+        s = max(stakes[i], min_stake)
+        final_stakes.append(round(s, 2))
+    
+    commission_mult = 1 - (commission / 100.0)
+    
+    results = []
+    for i, sel in enumerate(ai_selections):
+        stake = final_stakes[i]
+        price = sel['price']
+        eff_type = sel['effectiveType']
+        
+        # Calcola P&L per ogni scenario (se runner i vince)
+        gross_profit = 0.0
+        for j, other in enumerate(ai_selections):
+            other_stake = final_stakes[j]
+            other_price = other['price']
+            other_is_back = other['effectiveType'] == 'BACK'
+            
+            if j == i:
+                if other_is_back:
+                    gross_profit += other_stake * (other_price - 1)
+                else:
+                    gross_profit -= other_stake * (other_price - 1)
+            else:
+                if other_is_back:
+                    gross_profit -= other_stake
+                else:
+                    gross_profit += other_stake
+        
+        net_profit = gross_profit * commission_mult if gross_profit > 0 else gross_profit
+        
+        results.append({
+            'selectionId': sel['selectionId'],
+            'runnerName': sel['runnerName'],
+            'price': price,
+            'stake': stake,
+            'effectiveType': eff_type,
+            'profitIfWins': round(net_profit, 2),
+            'grossProfit': round(gross_profit, 2),
+            'potentialReturn': round(stake * price, 2) if eff_type == 'BACK' else stake,
+            'liability': round(stake * (price - 1), 2) if eff_type == 'LAY' else 0,
+            'impliedProbability': sel['impliedProbability'],
+            'aiSelected': True
+        })
+    
+    avg_profit = sum(r['profitIfWins'] for r in results) / len(results) if results else 0
+    book_pct = total_impl * 100
+    
+    return results, round(avg_profit, 2), round(book_pct, 2)

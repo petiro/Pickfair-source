@@ -13,11 +13,12 @@ from dutching_state import DutchingState, DutchingMode, RunnerState
 from dutching import (
     calculate_dutching_stakes, 
     calculate_mixed_dutching,
+    calculate_ai_mixed_stakes,
     validate_selections,
     format_currency,
     MIN_BACK_STAKE
 )
-from trading_config import BOOK_WARNING, BOOK_BLOCK
+from trading_config import BOOK_WARNING, BOOK_BLOCK, MIN_STAKE
 
 
 class DutchingConfirmationWindow:
@@ -69,6 +70,11 @@ class DutchingConfirmationWindow:
         self._global_offset_var = tk.StringVar(value="0")
         self._swap_all_var = tk.BooleanVar(value=False)
         self._mixed_mode_var = tk.BooleanVar(value=False)
+        
+        # PRO Features
+        self._ai_mode_var = tk.BooleanVar(value=False)
+        self._auto_green_var = tk.BooleanVar(value=False)
+        self._simulation_var = tk.BooleanVar(value=getattr(self.state, 'simulation_mode', False))
         
         # Mappa checkbox per runner (modalità normale)
         self._runner_checkboxes: Dict[int, tk.BooleanVar] = {}
@@ -218,15 +224,25 @@ class DutchingConfirmationWindow:
         )
         self.mixed_btn.grid(row=2, column=2, padx=30, pady=5)
         
+        # Pulsante AI Mode (PRO)
+        self.ai_btn = ctk.CTkButton(
+            mode_frame, text="AI Auto",
+            command=self._toggle_ai_mode,
+            fg_color=COLORS['button_secondary'],
+            hover_color=COLORS['bg_hover'],
+            width=80
+        )
+        self.ai_btn.grid(row=1, column=3, padx=5, pady=5)
+        
         # Book Value
         self.book_label = ctk.CTkLabel(
-            mode_frame, text="Book Value: 0%",
-            font=FONTS['default'],
+            mode_frame, text="Book: 0%",
+            font=FONTS['mono'],
             text_color=COLORS['text_secondary']
         )
-        self.book_label.grid(row=1, column=3, rowspan=2, padx=15, pady=5, sticky="e")
+        self.book_label.grid(row=2, column=3, padx=5, pady=5)
         
-        mode_frame.grid_columnconfigure(3, weight=1)
+        mode_frame.grid_columnconfigure(4, weight=1)
     
     def _build_runner_table(self, parent):
         """Tabella runner principale."""
@@ -581,6 +597,39 @@ class DutchingConfirmationWindow:
         # Per ora aggiorna solo lo stato visivo
         self._recalculate()
     
+    def _toggle_ai_mode(self):
+        """Toggle modalità AI Auto-Entry (determina automaticamente BACK/LAY)."""
+        self._ai_mode_var.set(not self._ai_mode_var.get())
+        
+        if self._ai_mode_var.get():
+            self.ai_btn.configure(
+                fg_color=COLORS['profit'],
+                text="AI: ON"
+            )
+            # Disabilita mixed mode quando AI è attivo
+            self._mixed_mode_var.set(False)
+            self.mixed_btn.configure(
+                fg_color=COLORS['button_secondary'],
+                text="Mixed Mode",
+                state="disabled"
+            )
+        else:
+            self.ai_btn.configure(
+                fg_color=COLORS['button_secondary'],
+                text="AI Auto"
+            )
+            self.mixed_btn.configure(state="normal")
+        
+        self._populate_runner_rows()
+        self._recalculate()
+    
+    def _on_simulation_toggle(self):
+        """Toggle modalità simulazione."""
+        sim_mode = self._simulation_var.get()
+        if hasattr(self.state, 'simulation_mode'):
+            self.state.simulation_mode = sim_mode
+        print(f"[Dutching] Simulation mode: {'ON' if sim_mode else 'OFF'}")
+    
     def _build_footer(self, parent):
         """Footer con controlli globali."""
         footer_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8)
@@ -663,6 +712,27 @@ class DutchingConfirmationWindow:
             hover_color=COLORS['lay_hover']
         )
         swap_all.pack(side=tk.LEFT, padx=(0, 15))
+        
+        # Auto-Green checkbox (PRO)
+        auto_green = ctk.CTkCheckBox(
+            controls_frame, text="Auto-Green",
+            variable=self._auto_green_var,
+            text_color=COLORS['text_primary'],
+            fg_color=COLORS['profit'],
+            hover_color=COLORS['button_success']
+        )
+        auto_green.pack(side=tk.LEFT, padx=(0, 15))
+        
+        # Simulation Mode checkbox
+        sim_check = ctk.CTkCheckBox(
+            controls_frame, text="SIM",
+            variable=self._simulation_var,
+            command=self._on_simulation_toggle,
+            text_color=COLORS['text_primary'],
+            fg_color=COLORS['warning'],
+            hover_color=COLORS['warning']
+        )
+        sim_check.pack(side=tk.LEFT, padx=(0, 15))
         
         # Total label
         self.total_label = ctk.CTkLabel(
@@ -887,8 +957,19 @@ class DutchingConfirmationWindow:
                 avg_odds = sum(s['price'] for s in selections) / len(selections)
                 total_stake = self.state.target_profit / (avg_odds - 1) * len(selections)
             
-            # Calcola
-            if has_back and has_lay:
+            # Calcola - AI mode usa calcolo automatico BACK/LAY
+            if self._ai_mode_var.get():
+                # AI Auto-Entry: determina automaticamente BACK/LAY per ogni runner
+                results, avg_profit, book = calculate_ai_mixed_stakes(
+                    selections, total_stake, self.state.commission, MIN_STAKE
+                )
+                # Aggiorna stato runner con side determinato da AI
+                for r in results:
+                    for runner in self.state.runners:
+                        if runner.selection_id == r['selectionId']:
+                            runner.swap = (r['effectiveType'] == 'LAY')
+                            break
+            elif has_back and has_lay:
                 results, avg_profit, book = calculate_mixed_dutching(
                     selections, total_stake, self.state.commission
                 )
