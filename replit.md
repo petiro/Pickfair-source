@@ -33,8 +33,14 @@ Key features include:
     - Explicit error handling: raises ValueError with Italian messages when allocation fails
     - Budget protection: validates total stake does not exceed limit after min_stake clamping
     - Profit verification: ensures avg_profit > 0 after all normalizations
+    - Profit variance guard: raises ValueError if profit variance > PROFIT_EPSILON (€0.50) after normalization
   - **Auto-Green Toggle**: UI toggle that adds metadata to orders for downstream monitoring
+    - Grace period (AUTO_GREEN_DELAY_SEC = 2.5s) before auto-green becomes eligible
+    - is_auto_green_eligible() checks elapsed time from placed_at timestamp
   - **Simulation Mode Toggle**: Test strategies without real money risk
+    - Red banner in header when active
+    - Blocks real order submission when enabled
+    - DutchingState.simulation_mode property for backend sync
 - **Real-time Live Betting**: Offers live odds streaming and quick bet placement.
 - **Telegram Integration**: Monitors chats for betting signals, supporting various market types (e.g., Match Odds, Correct Score, Over/Under, BTTS, Asian Handicap) and enabling auto-betting and copy trading (Master/Follower modes).
 - **Cashout Management**: Manual and automatic cashout options.
