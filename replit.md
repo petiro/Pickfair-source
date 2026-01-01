@@ -42,7 +42,11 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - **WoM Time-Window Engine**: Multi-timeframe WoM analysis (5s/15s/30s/60s), delta pressure, momentum, volatility. Thread-safe snapshot-based calculations.
     - **AI Guardrail**: Protection system with market readiness check, WoM data validation, auto-green grace period (3s), order rate limiting (10/min), consecutive error circuit breaker.
     - **One-Click MiniLadder**: Click → preflight → submit with auto-green support.
-    - Test suite: 109 tests passed (72 core + 37 new modules).
+-   **v3.68 Liquidity Guard**:
+    - Configurable liquidity protection: blocks orders when available liquidity < stake × multiplier (default 3x)
+    - Absolute minimum check: €50 required (prevents dead market orders)
+    - Warning-only mode available for experienced traders
+    - Test suite: 121 tests passed (72 core + 37 WoM/Guardrail + 12 Liquidity Guard).
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:

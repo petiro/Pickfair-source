@@ -23,7 +23,9 @@ from safety_logger import get_safety_logger
 from safe_mode import get_safe_mode_manager
 from trading_config import (
     MIN_STAKE, MAX_STAKE_PCT, MIN_LIQUIDITY, MAX_SPREAD_TICKS,
-    MIN_PRICE, BOOK_WARNING, BOOK_BLOCK
+    MIN_PRICE, BOOK_WARNING, BOOK_BLOCK,
+    LIQUIDITY_GUARD_ENABLED, LIQUIDITY_MULTIPLIER,
+    MIN_LIQUIDITY_ABSOLUTE, LIQUIDITY_WARNING_ONLY
 )
 
 
@@ -34,6 +36,7 @@ class PreflightResult:
     warnings: List[str] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
     liquidity_ok: bool = True
+    liquidity_guard_ok: bool = True
     spread_ok: bool = True
     stake_ok: bool = True
     price_ok: bool = True
@@ -222,6 +225,20 @@ class DutchingController:
                         f"{r.get('runnerName', 'Runner')}: liability €{liability:.2f} < min €{MIN_STAKE:.2f}"
                     )
         
+        # LIQUIDITY GUARD (v3.68) - verifica su risultati calcolati
+        results_with_ladders = self._merge_ladders_to_results(results, selections)
+        liq_ok, liq_msgs = self._check_liquidity_guard(results_with_ladders, mode)
+        if not liq_ok:
+            preflight.liquidity_guard_ok = False
+            if LIQUIDITY_WARNING_ONLY:
+                preflight.warnings.extend(liq_msgs)
+            else:
+                preflight.is_valid = False
+                preflight.errors.extend(liq_msgs)
+        elif liq_msgs:
+            preflight.warnings.extend(liq_msgs)
+        preflight.details["liquidity_guard"] = liq_ok
+        
         # BLOCCO: se preflight fallisce, non piazzare ordini
         if not preflight.is_valid and not dry_run:
             logger.warning(f"[CONTROLLER] Preflight fallito: {preflight.errors}")
@@ -240,6 +257,7 @@ class DutchingController:
                     "warnings": preflight.warnings,
                     "errors": preflight.errors,
                     "liquidity_ok": preflight.liquidity_ok,
+                    "liquidity_guard_ok": preflight.liquidity_guard_ok,
                     "spread_ok": preflight.spread_ok,
                     "stake_ok": preflight.stake_ok,
                     "price_ok": preflight.price_ok,
@@ -327,6 +345,7 @@ class DutchingController:
                 "warnings": preflight.warnings,
                 "errors": preflight.errors,
                 "liquidity_ok": preflight.liquidity_ok,
+                "liquidity_guard_ok": preflight.liquidity_guard_ok,
                 "spread_ok": preflight.spread_ok,
                 "stake_ok": preflight.stake_ok,
                 "price_ok": preflight.price_ok,
@@ -495,6 +514,9 @@ class DutchingController:
         
         result.details["book_pct"] = book_pct
         
+        # NOTA: Liquidity Guard viene eseguito in submit_dutching
+        # sui risultati calcolati (con stake reali), non qui sulle selections raw
+        
         # Se ci sono errori, non è valido
         if result.errors:
             result.is_valid = False
@@ -503,6 +525,98 @@ class DutchingController:
         logger.info(f"[PREFLIGHT] valid={result.is_valid}, warnings={len(result.warnings)}, errors={len(result.errors)}")
         
         return result
+    
+    def _check_liquidity_guard(
+        self,
+        selections: List[Dict],
+        mode: str = "BACK"
+    ) -> Tuple[bool, List[str]]:
+        """
+        Verifica che la liquidità sia sufficiente per eseguire l'ordine.
+        
+        Regole:
+        - BACK: available_back >= stake * LIQUIDITY_MULTIPLIER
+        - LAY: available_lay >= liability * LIQUIDITY_MULTIPLIER
+        - Minimo assoluto: liquidità >= MIN_LIQUIDITY_ABSOLUTE
+        
+        Args:
+            selections: Lista selezioni con back_ladder, lay_ladder, stake
+            mode: 'BACK', 'LAY', o 'MIXED'
+            
+        Returns:
+            (is_ok, messages) - True se passa, lista messaggi warning/errore
+        """
+        if not LIQUIDITY_GUARD_ENABLED:
+            return True, []
+        
+        messages = []
+        
+        for sel in selections:
+            runner_name = sel.get("runnerName", f"ID {sel.get('selectionId', '?')}")
+            stake = sel.get("stake", 0)
+            price = sel.get("price", 1)
+            side = sel.get("side", sel.get("effectiveType", mode))
+            
+            back_ladder = sel.get("back_ladder", [])
+            lay_ladder = sel.get("lay_ladder", [])
+            
+            back_liq = sum(p.get("size", 0) for p in back_ladder)
+            lay_liq = sum(p.get("size", 0) for p in lay_ladder)
+            
+            if side == "BACK":
+                available = back_liq
+                required = stake * LIQUIDITY_MULTIPLIER
+            else:
+                liability = stake * (price - 1) if price > 1 else stake
+                available = lay_liq
+                required = liability * LIQUIDITY_MULTIPLIER
+            
+            if available < MIN_LIQUIDITY_ABSOLUTE:
+                msg = f"{runner_name}: liquidità troppo bassa (€{available:.0f} < €{MIN_LIQUIDITY_ABSOLUTE:.0f})"
+                return False, [msg]
+            
+            if available < required:
+                msg = (
+                    f"{runner_name}: liquidità insufficiente "
+                    f"(€{available:.0f} < €{required:.0f} richiesti)"
+                )
+                messages.append(msg)
+                if not LIQUIDITY_WARNING_ONLY:
+                    return False, messages
+        
+        return len(messages) == 0, messages
+    
+    def _merge_ladders_to_results(
+        self,
+        results: List[Dict],
+        selections: List[Dict]
+    ) -> List[Dict]:
+        """
+        Unisce i ladder dalle selections ai results calcolati.
+        
+        I results del dutching hanno stake calcolati ma non hanno
+        i ladder originali. Li recuperiamo dalle selections.
+        
+        Args:
+            results: Lista risultati dutching con stake
+            selections: Lista originale con back_ladder, lay_ladder
+            
+        Returns:
+            Lista con stake calcolati + ladder originali
+        """
+        sel_by_id = {s.get("selectionId"): s for s in selections}
+        merged = []
+        
+        for r in results:
+            sel_id = r.get("selectionId")
+            original = sel_by_id.get(sel_id, {})
+            
+            merged_item = dict(r)
+            merged_item["back_ladder"] = original.get("back_ladder", [])
+            merged_item["lay_ladder"] = original.get("lay_ladder", [])
+            merged.append(merged_item)
+        
+        return merged
     
     def record_market_tick(self, selection_id: int, 
                            back_price: float, back_volume: float,
