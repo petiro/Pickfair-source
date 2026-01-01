@@ -362,3 +362,190 @@ class OneClickLadder(MiniLadder):
     def set_auto_green(self, enabled: bool):
         """Abilita/disabilita auto-green per one-click."""
         self.auto_green_enabled = enabled
+
+
+class LiveMiniLadder(ctk.CTkFrame):
+    """
+    Versione live della MiniLadder con:
+    - Aggiornamento automatico ogni 500ms
+    - Badge [BACK]/[LAY] da AI WoM
+    - P&L preview inline
+    - Highlight miglior quota
+    
+    v3.66 - Live updates con edge badge
+    """
+    
+    def __init__(
+        self,
+        parent,
+        selections: List[Dict],
+        controller: Optional["DutchingController"] = None,
+        refresh_interval: int = 500,
+        **kwargs
+    ):
+        """
+        Args:
+            selections: Lista selezioni iniziali
+            controller: DutchingController per WoM e P&L
+            refresh_interval: Intervallo refresh in ms (default 500)
+        """
+        super().__init__(parent, fg_color="transparent", **kwargs)
+        
+        self.selections = selections
+        self.controller = controller
+        self.refresh_interval = refresh_interval
+        
+        self.runner_frames = {}
+        self.name_labels = {}
+        self.badge_labels = {}
+        self.pnl_labels = {}
+        self.price_buttons = {}
+        
+        self._is_running = True
+        self._build()
+        self._start_refresh()
+    
+    def _build(self):
+        """Costruisce UI per ogni runner."""
+        for idx, sel in enumerate(self.selections):
+            sel_id = sel.get("selectionId", idx)
+            
+            frame = ctk.CTkFrame(self, fg_color=COLORS.get("bg_secondary", "#2b2b2b"))
+            frame.pack(fill="x", pady=2, padx=2)
+            
+            name_lbl = ctk.CTkLabel(
+                frame,
+                text=sel.get("runnerName", f"Runner {sel_id}"),
+                font=("Roboto", 11),
+                anchor="w",
+                width=120
+            )
+            name_lbl.pack(side="left", padx=4)
+            
+            side = sel.get("side", "BACK")
+            badge_color = COLORS.get("back", "#1e88e5") if side == "BACK" else COLORS.get("lay", "#e5399b")
+            badge_lbl = ctk.CTkLabel(
+                frame,
+                text=f"[{side}]",
+                font=("Roboto", 10, "bold"),
+                fg_color=badge_color,
+                corner_radius=3,
+                width=50,
+                text_color="white"
+            )
+            badge_lbl.pack(side="left", padx=4)
+            
+            price = sel.get("price", 2.0)
+            price_btn = ctk.CTkButton(
+                frame,
+                text=f"{price:.2f}",
+                font=("Roboto", 11),
+                width=60,
+                height=26,
+                fg_color=COLORS.get("bg_tertiary", "#3d3d3d"),
+                hover_color=COLORS.get("back", "#1e88e5"),
+                command=lambda s=sel: self._on_price_click(s)
+            )
+            price_btn.pack(side="left", padx=4)
+            
+            pnl_lbl = ctk.CTkLabel(
+                frame,
+                text="P&L: 0.00",
+                font=("Roboto", 10),
+                text_color=COLORS.get("text_secondary", "#888888"),
+                width=80
+            )
+            pnl_lbl.pack(side="right", padx=4)
+            
+            self.runner_frames[sel_id] = frame
+            self.name_labels[sel_id] = name_lbl
+            self.badge_labels[sel_id] = badge_lbl
+            self.pnl_labels[sel_id] = pnl_lbl
+            self.price_buttons[sel_id] = price_btn
+    
+    def _start_refresh(self):
+        """Avvia ciclo di refresh."""
+        if self._is_running:
+            self._refresh()
+            self.after(self.refresh_interval, self._start_refresh)
+    
+    def _refresh(self):
+        """Aggiorna quote, badge e P&L."""
+        if not self.controller or not self.selections:
+            return
+        
+        edge_scores = {}
+        if hasattr(self.controller, 'wom_engine') and self.controller.wom_engine:
+            try:
+                edge_scores = self.controller.wom_engine.get_ai_edge_score(self.selections)
+            except Exception:
+                pass
+        
+        best_price_sel = max(self.selections, key=lambda x: x.get("price", 0))
+        best_sel_id = best_price_sel.get("selectionId")
+        
+        for sel in self.selections:
+            sel_id = sel.get("selectionId")
+            if sel_id not in self.badge_labels:
+                continue
+            
+            edge = edge_scores.get(sel_id)
+            if edge:
+                side = edge.suggested_side if hasattr(edge, 'suggested_side') else edge.get('side', 'BACK')
+            else:
+                side = sel.get("side", "BACK")
+            
+            sel["side"] = side
+            
+            badge_color = COLORS.get("back", "#1e88e5") if side == "BACK" else COLORS.get("lay", "#e5399b")
+            self.badge_labels[sel_id].configure(text=f"[{side}]", fg_color=badge_color)
+            
+            pnl = 0.0
+            if hasattr(self.controller, 'pnl_engine') and self.controller.pnl_engine:
+                try:
+                    pnl = self.controller.pnl_engine.calculate_preview(sel, side)
+                except Exception:
+                    pass
+            
+            pnl_color = COLORS.get("profit", "#4caf50") if pnl >= 0 else COLORS.get("loss", "#f44336")
+            self.pnl_labels[sel_id].configure(
+                text=f"P&L: {pnl:.2f}",
+                text_color=pnl_color
+            )
+            
+            if sel_id == best_sel_id:
+                self.name_labels[sel_id].configure(
+                    fg_color=COLORS.get("warning", "#ff9800"),
+                    corner_radius=3
+                )
+            else:
+                self.name_labels[sel_id].configure(fg_color="transparent")
+    
+    def _on_price_click(self, selection: Dict):
+        """Handler click su prezzo per one-click order."""
+        if not self.controller:
+            return
+        
+        result = self.controller.submit_dutching(
+            market_id=selection.get("marketId", ""),
+            market_type=selection.get("marketType", "MATCH_ODDS"),
+            selections=[selection],
+            total_stake=selection.get("presetStake", 5.0),
+            mode=selection.get("side", "BACK"),
+            ai_enabled=True,
+            dry_run=False
+        )
+        print(f"One-click order result: {result}")
+    
+    def update_selections(self, selections: List[Dict]):
+        """Aggiorna lista selezioni."""
+        self.selections = selections
+    
+    def stop(self):
+        """Ferma il refresh loop."""
+        self._is_running = False
+    
+    def start(self):
+        """Riavvia il refresh loop."""
+        self._is_running = True
+        self._start_refresh()

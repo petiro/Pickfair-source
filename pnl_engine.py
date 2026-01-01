@@ -166,3 +166,32 @@ class PnLEngine:
             return False
         
         return True
+    
+    def calculate_preview(self, selection: Dict, side: str = 'BACK') -> float:
+        """
+        Calcola P&L preview per un singolo runner (prima del piazzamento).
+        
+        Utile per MiniLadder preview.
+        
+        Args:
+            selection: Dict con stake, price
+            side: 'BACK' o 'LAY'
+            
+        Returns:
+            P&L stimato
+        """
+        stake = selection.get('stake', selection.get('presetStake', 5.0))
+        price = selection.get('price', 2.0)
+        commission_pct = self.commission / 100.0
+        
+        if price <= 1:
+            return 0.0
+        
+        if side == 'BACK':
+            gross_profit = stake * (price - 1)
+            net_profit = gross_profit * (1 - commission_pct)
+        else:
+            liability = stake * (price - 1)
+            net_profit = stake * (1 - commission_pct) - liability * commission_pct
+        
+        return round(net_profit, 2)

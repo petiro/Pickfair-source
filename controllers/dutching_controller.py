@@ -70,6 +70,10 @@ class DutchingController:
         self.pnl_engine = pnl_engine
         self.simulation = simulation
         
+        self.auto_green_enabled = True
+        self.ai_enabled = True
+        self.preset_stake_pct = 1.0
+        
         self.ai_engine = AIPatternEngine()
         self.wom_engine = get_wom_engine()
         self.market_validator = MarketValidator()
