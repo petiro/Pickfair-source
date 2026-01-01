@@ -68,6 +68,7 @@ class DutchingState:
         # Market info
         self._market_id: str = ""
         self._market_name: str = ""
+        self._market_type: str = ""
         self._market_status: str = "OPEN"
         self._event_name: str = ""
         self._start_time: str = ""
@@ -112,6 +113,14 @@ class DutchingState:
     @property
     def market_status(self) -> str:
         return self._market_status
+    
+    @property
+    def market_type(self) -> str:
+        return self._market_type
+    
+    @market_type.setter
+    def market_type(self, value: str):
+        self._market_type = value
     
     @property
     def simulation_mode(self) -> bool:

@@ -9,6 +9,39 @@ from typing import List, Dict, Tuple
 MIN_BACK_STAKE = 1.00  # EUR - Italian regulatory minimum
 MAX_WINNINGS = 10000.00  # EUR
 
+
+class MixedDutchingError(Exception):
+    """Errore specifico per AI Mixed Dutching."""
+    pass
+
+
+def _validate_uniform_profit(stakes: Dict[int, Dict], epsilon: float = 0.50) -> None:
+    """
+    Valida che i profitti siano uniformi entro tolleranza.
+    
+    Args:
+        stakes: Dict con {selection_id: {'profit_if_win': float}}
+        epsilon: Tolleranza massima varianza (default €0.50)
+        
+    Raises:
+        MixedDutchingError: Se varianza profitto > epsilon
+    """
+    if not stakes:
+        return
+    
+    profits = [s['profit_if_win'] for s in stakes.values()]
+    
+    if not profits:
+        return
+    
+    variance = max(profits) - min(profits)
+    
+    if variance > epsilon:
+        raise MixedDutchingError(
+            f"Profitto non uniforme: varianza {variance:.2f}€ > tolleranza {epsilon}€. "
+            "Modifica le selezioni o aumenta lo stake totale."
+        )
+
 def calculate_dutching_stakes(
     selections: List[Dict],
     total_stake: float,

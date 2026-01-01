@@ -19,6 +19,7 @@ from dutching import (
     MIN_BACK_STAKE
 )
 from trading_config import BOOK_WARNING, BOOK_BLOCK, MIN_STAKE
+from market_validator import MarketValidator
 
 
 class DutchingConfirmationWindow:
@@ -609,14 +610,23 @@ class DutchingConfirmationWindow:
     
     def _toggle_ai_mode(self):
         """Toggle modalità AI Auto-Entry (determina automaticamente BACK/LAY)."""
-        self._ai_mode_var.set(not self._ai_mode_var.get())
+        new_state = not self._ai_mode_var.get()
+        
+        if new_state:
+            market_type = getattr(self.state, 'market_type', '')
+            if not MarketValidator.is_dutching_ready(market_type):
+                self._ai_mode_var.set(False)
+                self._show_market_warning()
+                return
+            self._hide_market_warning()
+        
+        self._ai_mode_var.set(new_state)
         
         if self._ai_mode_var.get():
             self.ai_btn.configure(
                 fg_color=COLORS['profit'],
                 text="AI: ON"
             )
-            # Disabilita mixed mode quando AI è attivo
             self._mixed_mode_var.set(False)
             self.mixed_btn.configure(
                 fg_color=COLORS['button_secondary'],
@@ -629,9 +639,29 @@ class DutchingConfirmationWindow:
                 text="AI Auto"
             )
             self.mixed_btn.configure(state="normal")
+            self._hide_market_warning()
         
         self._populate_runner_rows()
         self._recalculate()
+    
+    def _show_market_warning(self):
+        """Mostra warning mercato non dutching-ready."""
+        if not hasattr(self, '_market_warning_label'):
+            self._market_warning_label = ctk.CTkLabel(
+                self.window,
+                text="",
+                font=FONTS['small'],
+                text_color="#FF5555"
+            )
+        self._market_warning_label.configure(
+            text="Mercato NON DUTCHING-READY\nAI disabilitata"
+        )
+        self._market_warning_label.place(relx=0.5, y=10, anchor="n")
+    
+    def _hide_market_warning(self):
+        """Nasconde warning mercato."""
+        if hasattr(self, '_market_warning_label'):
+            self._market_warning_label.place_forget()
     
     def _on_simulation_toggle(self):
         """Toggle modalità simulazione."""

@@ -5,15 +5,86 @@ Gestione automatica delle posizioni con:
 - Stop Loss (chiusura su perdita massima)
 - Take Profit (chiusura su profitto target)
 - Trailing Stop (protegge profitto seguendo il massimo raggiunto)
+- Auto-Green con delay di sicurezza
 """
 
 import logging
 import threading
-from typing import Dict, Optional, Callable
+import time
+from typing import Dict, Optional, Callable, Any
 from dataclasses import dataclass, field
 from enum import Enum
 
+from trading_config import AUTO_GREEN_DELAY_SEC
+
 logger = logging.getLogger(__name__)
+
+
+def should_auto_green(order: Any, market_status: str) -> bool:
+    """
+    Verifica se un ordine è idoneo per auto-green.
+    
+    Condizioni richieste:
+    1. auto_green=True nei metadata
+    2. simulation=False (mai auto-green in simulazione)
+    3. market_status="OPEN"
+    4. placed_at presente e valido
+    5. Tempo trascorso >= AUTO_GREEN_DELAY_SEC (2.5s)
+    
+    Args:
+        order: Oggetto ordine con attributo .meta (dict)
+        market_status: Stato mercato Betfair ("OPEN", "SUSPENDED", "CLOSED")
+        
+    Returns:
+        True se ordine idoneo per auto-green
+    """
+    meta = getattr(order, 'meta', None) or {}
+    
+    if not meta.get("auto_green"):
+        return False
+    
+    if meta.get("simulation"):
+        return False
+    
+    if market_status != "OPEN":
+        return False
+    
+    placed_at = meta.get("placed_at")
+    if not placed_at:
+        return False
+    
+    if time.time() - placed_at < AUTO_GREEN_DELAY_SEC:
+        return False
+    
+    return True
+
+
+def get_auto_green_remaining_delay(order: Any) -> float:
+    """
+    Calcola tempo rimanente prima che auto-green sia attivo.
+    
+    Args:
+        order: Oggetto ordine con meta.placed_at
+        
+    Returns:
+        Secondi rimanenti (0 se già idoneo, -1 se non applicabile)
+    """
+    meta = getattr(order, 'meta', None) or {}
+    
+    if not meta.get("auto_green"):
+        return -1
+    
+    if meta.get("simulation"):
+        return -1
+    
+    placed_at = meta.get("placed_at")
+    if not placed_at:
+        return -1
+    
+    elapsed = time.time() - placed_at
+    remaining = AUTO_GREEN_DELAY_SEC - elapsed
+    
+    return max(0, remaining)
 
 
 class AutomationType(Enum):
