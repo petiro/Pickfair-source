@@ -72,6 +72,9 @@ class DutchingState:
         self._event_name: str = ""
         self._start_time: str = ""
         
+        # Simulation mode
+        self._simulation_mode: bool = False
+        
         # Callback per aggiornamento UI
         self._on_change: Optional[Callable] = None
     
@@ -109,6 +112,14 @@ class DutchingState:
     @property
     def market_status(self) -> str:
         return self._market_status
+    
+    @property
+    def simulation_mode(self) -> bool:
+        return self._simulation_mode
+    
+    @simulation_mode.setter
+    def simulation_mode(self, value: bool):
+        self._simulation_mode = value
     
     # === RUNNERS ===
     

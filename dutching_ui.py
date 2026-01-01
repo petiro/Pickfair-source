@@ -146,6 +146,16 @@ class DutchingConfirmationWindow:
             width=80
         )
         self.status_badge.pack(side=tk.RIGHT, padx=15, pady=10)
+        
+        # Simulation Mode banner (nascosto di default)
+        self._sim_banner = ctk.CTkLabel(
+            header_frame,
+            text="SIMULATION MODE",
+            font=FONTS['heading'],
+            text_color="#FF4444",
+            fg_color="transparent"
+        )
+        # Non visualizzato di default - pack_forget chiamato in _update_simulation_banner
     
     def _build_mode_section(self, parent):
         """Sezione Dutching Type."""
@@ -626,9 +636,24 @@ class DutchingConfirmationWindow:
     def _on_simulation_toggle(self):
         """Toggle modalità simulazione."""
         sim_mode = self._simulation_var.get()
-        if hasattr(self.state, 'simulation_mode'):
-            self.state.simulation_mode = sim_mode
+        
+        # Propaga a DutchingState per sincronizzazione backend
+        self.state.simulation_mode = sim_mode
+        
+        # Aggiorna banner simulazione nell'header
+        self._update_simulation_banner(sim_mode)
+        
         print(f"[Dutching] Simulation mode: {'ON' if sim_mode else 'OFF'}")
+    
+    def _update_simulation_banner(self, active: bool):
+        """Mostra/nasconde banner SIMULATION MODE."""
+        if not hasattr(self, '_sim_banner'):
+            return
+        if active:
+            self._sim_banner.configure(text="SIMULATION MODE", text_color="#FF4444")
+            self._sim_banner.pack(side=tk.TOP, fill=tk.X, pady=2)
+        else:
+            self._sim_banner.pack_forget()
     
     def _build_footer(self, parent):
         """Footer con controlli globali."""
@@ -917,15 +942,31 @@ class DutchingConfirmationWindow:
         
         if messagebox.askyesno("Conferma", msg, parent=self.window):
             # Aggiungi metadata agli ordini
+            import time
+            placed_at = time.time()
             for order in orders:
                 order['auto_green'] = auto_green
                 order['simulation'] = sim_mode
                 order['market_id'] = self.state.market_id
+                order['placed_at'] = placed_at
             
-            self.on_submit(orders)
-            
-            if auto_green:
-                print(f"[Dutching] Auto-Green attivo - monitoring P&L per green-up automatico")
+            if sim_mode:
+                # Simulation mode: non inviare a Betfair, solo log
+                print(f"[Dutching] SIMULATION: {len(orders)} ordini simulati per €{total:.2f}")
+                for o in orders:
+                    print(f"  [SIM] {o['side']} {o['runnerName']} @ {o['price']} €{o['size']:.2f}")
+                messagebox.showinfo(
+                    "Simulazione", 
+                    f"Ordini SIMULATI piazzati: {len(orders)} per €{total:.2f}\n"
+                    "Nessun ordine reale inviato a Betfair.",
+                    parent=self.window
+                )
+            else:
+                # Ordini reali
+                self.on_submit(orders)
+                
+                if auto_green:
+                    print(f"[Dutching] Auto-Green attivo - monitoring P&L per green-up automatico")
             
             self.window.destroy()
     
@@ -936,6 +977,9 @@ class DutchingConfirmationWindow:
     
     def _recalculate(self):
         """Ricalcola stake e aggiorna UI."""
+        # Reset highlight prima di ogni ricalcolo per evitare highlight stale
+        self._reset_all_highlights()
+        
         try:
             # Leggi parametri
             mode = self._mode_var.get()
@@ -1067,6 +1111,19 @@ class DutchingConfirmationWindow:
         self._stake_var.set(f"{new_stake:.2f}")
         self._mode_var.set("stake")
         self._recalculate()
+    
+    def _reset_all_highlights(self):
+        """Reset tutti gli highlight quote prima di ricalcolo."""
+        for runner in self.state.runners:
+            sel_id = runner.selection_id
+            if sel_id not in self._runner_widgets:
+                continue
+            widgets = self._runner_widgets[sel_id]
+            if 'odds_entry' in widgets:
+                try:
+                    widgets['odds_entry'].configure(border_color=COLORS['border'], border_width=1)
+                except Exception:
+                    pass
     
     def _find_best_odds(self):
         """Trova runner con migliore quota (BACK=max, LAY=min)."""

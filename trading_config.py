@@ -21,3 +21,9 @@ SESSION_TIMEOUT_MIN = 20  # Timeout sessione 20 minuti
 
 # Simulation defaults
 SIM_INITIAL_BALANCE = 10000.0  # Bilancio iniziale simulazione
+
+# AI Mixed Dutching
+PROFIT_EPSILON = 0.50  # Tolleranza max €0.50 varianza profitto tra scenari
+
+# Auto-Green
+AUTO_GREEN_DELAY_SEC = 2.5  # Grace period prima di attivare auto-green

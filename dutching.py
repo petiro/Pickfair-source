@@ -590,13 +590,23 @@ def calculate_ai_mixed_stakes(
             'aiSelected': True
         })
     
-    avg_profit = sum(r['profitIfWins'] for r in results) / len(results) if results else 0
+    profits = [r['profitIfWins'] for r in results]
+    avg_profit = sum(profits) / len(profits) if profits else 0
     
     # Verifica finale: profitto deve essere positivo dopo tutte le normalizzazioni
     if avg_profit <= 0:
         raise ValueError(
             "AI Mixed: Profitto non garantito dopo applicazione stake minimo. "
             "Aumenta lo stake totale o modifica le selezioni."
+        )
+    
+    # Verifica uniformità profitto (varianza entro tolleranza)
+    from trading_config import PROFIT_EPSILON
+    profit_variance = max(profits) - min(profits) if profits else 0
+    if profit_variance > PROFIT_EPSILON:
+        raise ValueError(
+            f"AI Mixed: Profitto non uniforme (varianza {profit_variance:.2f}€ > {PROFIT_EPSILON}€). "
+            "Modifica le selezioni o aumenta lo stake."
         )
     
     book_pct = total_impl * 100

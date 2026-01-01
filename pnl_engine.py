@@ -127,3 +127,42 @@ class PnLEngine:
         for order in orders:
             total_pnl += self.calculate_order_pnl(order, best_back, best_lay)
         return round(total_pnl, 2)
+    
+    @staticmethod
+    def is_auto_green_eligible(order: Dict, current_time: Optional[float] = None) -> bool:
+        """
+        Verifica se un ordine è idoneo per auto-green.
+        
+        Requisiti:
+        - Ordine ha flag auto_green=True
+        - Non è in modalità simulazione
+        - È passato il grace period (AUTO_GREEN_DELAY_SEC)
+        
+        Args:
+            order: Dict con metadata ordine
+            current_time: Timestamp corrente (default: time.time())
+            
+        Returns:
+            True se l'ordine può essere auto-greened
+        """
+        import time
+        from trading_config import AUTO_GREEN_DELAY_SEC
+        
+        if not order.get('auto_green', False):
+            return False
+        
+        if order.get('simulation', False):
+            return False
+        
+        placed_at = order.get('placed_at', 0)
+        if not placed_at:
+            return False
+        
+        now = current_time or time.time()
+        elapsed = now - placed_at
+        
+        if elapsed < AUTO_GREEN_DELAY_SEC:
+            logger.debug(f"Auto-green: {elapsed:.1f}s < {AUTO_GREEN_DELAY_SEC}s grace period")
+            return False
+        
+        return True
