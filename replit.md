@@ -87,6 +87,25 @@ Key features include:
     - Profit uniformity (6 tests)
     - Auto-green delay/simulation/status/flag (15 tests)
     - AI Mixed stakes (3 tests)
+- **Safety Logger** (`safety_logger.py`): Automatic logging for audit and debugging
+  - Thread-safe singleton with daily log rotation
+  - Logs to `%APPDATA%/Pickfair/logs/safety_YYYYMMDD.log`
+  - Event types: MIXED_DUTCH_ERR, AI_BLOCKED, AUTO_GREEN_DENIED, SAFE_MODE
+  - Dedicated methods: `log_mixed_dutching_error()`, `log_ai_blocked()`, `log_auto_green_denied()`, `log_safe_mode_triggered()`
+- **Safe Mode Manager** (`safe_mode.py`): Auto-disable after consecutive errors
+  - Triggers after 2 consecutive errors (CONSECUTIVE_ERRORS_THRESHOLD)
+  - `report_error()` increments counter, triggers safe mode if threshold reached
+  - `report_success()` resets error counter
+  - `reset()` for manual recovery (requires explicit user action)
+  - Callback registration for UI integration (auto-disable AI toggle)
+- **Performance Tests** (`tests/test_performance.py`): Load and stress testing
+  - 100 dutching calculations in <1s
+  - 100 AI Mixed attempts in <5s
+  - 50 concurrent calculations thread-safe
+  - 1000 tick updates with auto-green in <0.5s
+  - 1000+ log entries under load
+  - Concurrent error reporting thread-safety
+  - Full workflow stress test (44 tests total, 43 pass + 1 intentional skip)
 
 ### System Design Choices
 - **Data Storage**: Uses an SQLite database (`pickfair.db`) for application data, Telegram session files, plugin data (JSON configs), and license keys, all stored within `%APPDATA%\Pickfair`.
