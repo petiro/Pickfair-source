@@ -3,12 +3,17 @@ MiniLadder - Mini ladder inline PRO per dutching UI
 
 Mostra 3 livelli BACK/LAY per ogni runner con highlight del best price.
 Stile professionale tipo Bet Angel.
+
+v3.65 - One-Click Actions con preflight automatico
 """
 
 import customtkinter as ctk
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, TYPE_CHECKING
 
 from theme import COLORS
+
+if TYPE_CHECKING:
+    from controllers.dutching_controller import DutchingController
 
 
 class MiniLadder(ctk.CTkFrame):
@@ -234,3 +239,126 @@ class MiniLadder(ctk.CTkFrame):
                     lbl.configure(border_width=2, border_color="#00ff00")
                 else:
                     lbl.configure(border_width=0)
+    
+    def set_edge_badge(self, edge_score: float, confidence: float):
+        """
+        Mostra badge edge AI sotto la ladder.
+        
+        Args:
+            edge_score: Score [-1, 1] dove + = BACK, - = LAY
+            confidence: Confidenza [0, 1]
+        """
+        if not hasattr(self, "_edge_badge"):
+            self._edge_badge = ctk.CTkLabel(
+                self,
+                text="",
+                font=("Roboto", 9),
+                corner_radius=3,
+                width=60,
+                height=18
+            )
+            self._edge_badge.pack(pady=(2, 0))
+        
+        if abs(edge_score) < 0.1:
+            self._edge_badge.configure(
+                text=f"NEUTRAL {confidence:.0%}",
+                fg_color=COLORS.get("bg_tertiary", "#444444"),
+                text_color=COLORS.get("text_secondary", "#888888")
+            )
+        elif edge_score > 0:
+            strength = "STRONG " if edge_score > 0.5 else ""
+            self._edge_badge.configure(
+                text=f"{strength}BACK {confidence:.0%}",
+                fg_color=COLORS.get("back", "#1e88e5"),
+                text_color="white"
+            )
+        else:
+            strength = "STRONG " if edge_score < -0.5 else ""
+            self._edge_badge.configure(
+                text=f"{strength}LAY {confidence:.0%}",
+                fg_color=COLORS.get("lay", "#e5399b"),
+                text_color="white"
+            )
+
+
+class OneClickLadder(MiniLadder):
+    """
+    MiniLadder con supporto one-click order.
+    
+    Click su best price:
+    1. Esegue preflight_check automatico
+    2. Piazza ordine singolo (non dutching) se preflight OK
+    3. Attiva Auto-Green se toggle abilitato
+    """
+    
+    def __init__(
+        self,
+        parent,
+        runner: Dict,
+        controller: Optional["DutchingController"] = None,
+        market_id: str = "",
+        market_type: str = "MATCH_ODDS",
+        default_stake: float = 10.0,
+        auto_green: bool = False,
+        on_order_result: Optional[Callable] = None,
+        **kwargs
+    ):
+        """
+        Args:
+            controller: DutchingController per piazzamento ordini
+            market_id: ID mercato Betfair
+            market_type: Tipo mercato
+            default_stake: Stake default per one-click
+            auto_green: Se abilitare auto-green
+            on_order_result: Callback(result_dict) dopo piazzamento
+        """
+        self.controller = controller
+        self.market_id = market_id
+        self.market_type = market_type
+        self.default_stake = default_stake
+        self.auto_green_enabled = auto_green
+        self.on_order_result = on_order_result
+        
+        super().__init__(parent, runner, on_price_click=self._handle_one_click, **kwargs)
+    
+    def _handle_one_click(self, selection_id: int, side: str, price: float):
+        """
+        Gestisce one-click order.
+        
+        Args:
+            selection_id: ID runner
+            side: 'BACK' o 'LAY'
+            price: Prezzo cliccato
+        """
+        if not self.controller:
+            return
+        
+        selection = {
+            "selectionId": selection_id,
+            "runnerName": self.runner.get("runnerName", f"Runner {selection_id}"),
+            "price": price,
+            "back_ladder": self.runner.get("back_ladder", []),
+            "lay_ladder": self.runner.get("lay_ladder", [])
+        }
+        
+        result = self.controller.submit_dutching(
+            market_id=self.market_id,
+            market_type=self.market_type,
+            selections=[selection],
+            total_stake=self.default_stake,
+            mode=side,
+            ai_enabled=False,
+            auto_green=self.auto_green_enabled,
+            dry_run=False
+        )
+        
+        if self.on_order_result:
+            self.on_order_result(result)
+    
+    def set_default_stake(self, stake: float):
+        """Imposta stake default per one-click."""
+        self.default_stake = stake
+    
+    def set_auto_green(self, enabled: bool):
+        """Abilita/disabilita auto-green per one-click."""
+        self.auto_green_enabled = enabled

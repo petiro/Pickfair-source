@@ -16,6 +16,7 @@ from dutching import (
     calculate_mixed_dutching
 )
 from ai.ai_pattern_engine import AIPatternEngine
+from ai.wom_engine import WoMEngine, get_wom_engine
 from automation_engine import AutomationEngine
 from safety_logger import get_safety_logger
 from safe_mode import get_safe_mode_manager
@@ -70,6 +71,7 @@ class DutchingController:
         self.simulation = simulation
         
         self.ai_engine = AIPatternEngine()
+        self.wom_engine = get_wom_engine()
         self.market_validator = MarketValidator()
         self.automation = AutomationEngine()
         self.safety_logger = get_safety_logger()
@@ -83,6 +85,7 @@ class DutchingController:
         total_stake: float,
         mode: str = "BACK",
         ai_enabled: bool = False,
+        ai_wom_enabled: bool = False,
         auto_green: bool = False,
         commission: float = 4.5,
         stop_loss: Optional[float] = None,
@@ -100,6 +103,7 @@ class DutchingController:
             total_stake: Stake totale da distribuire
             mode: 'BACK', 'LAY', o 'MIXED'
             ai_enabled: Se True, usa AI per decidere BACK/LAY per runner
+            ai_wom_enabled: Se True, usa WoM storico per migliorare decisioni AI
             auto_green: Se True, imposta metadata per auto-green
             commission: Commissione % (default 4.5 Italia)
             stop_loss: Valore SL (opzionale)
@@ -475,3 +479,40 @@ class DutchingController:
         logger.info(f"[PREFLIGHT] valid={result.is_valid}, warnings={len(result.warnings)}, errors={len(result.errors)}")
         
         return result
+    
+    def record_market_tick(self, selection_id: int, 
+                           back_price: float, back_volume: float,
+                           lay_price: float, lay_volume: float):
+        """
+        Registra tick di mercato per analisi WoM storica.
+        
+        Args:
+            selection_id: ID runner
+            back_price: Miglior prezzo BACK
+            back_volume: Volume BACK
+            lay_price: Miglior prezzo LAY  
+            lay_volume: Volume LAY
+        """
+        self.wom_engine.record_tick(
+            selection_id, back_price, back_volume, lay_price, lay_volume
+        )
+    
+    def get_wom_analysis(self, selections: List[Dict], 
+                         use_historical: bool = True) -> List[Dict]:
+        """
+        Ottiene analisi WoM per selezioni.
+        
+        Args:
+            selections: Lista selezioni con back_ladder, lay_ladder
+            use_historical: Se usare dati storici (WoM Engine)
+            
+        Returns:
+            Lista con edge_score, suggested_side, confidence per runner
+        """
+        if use_historical:
+            return self.ai_engine.get_enhanced_analysis(selections, self.wom_engine)
+        return self.ai_engine.get_wom_analysis(selections)
+    
+    def get_wom_stats(self) -> Dict:
+        """Ritorna statistiche WoM Engine."""
+        return self.wom_engine.get_stats()
