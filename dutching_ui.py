@@ -67,12 +67,19 @@ class DutchingConfirmationWindow:
         self._live_odds_var = tk.BooleanVar(value=self.state.live_odds)
         self._global_offset_var = tk.StringVar(value="0")
         self._swap_all_var = tk.BooleanVar(value=False)
+        self._mixed_mode_var = tk.BooleanVar(value=False)
         
-        # Mappa checkbox per runner
+        # Mappa checkbox per runner (modalità normale)
         self._runner_checkboxes: Dict[int, tk.BooleanVar] = {}
         self._runner_swap_vars: Dict[int, tk.BooleanVar] = {}
         self._runner_offset_vars: Dict[int, tk.StringVar] = {}
         self._runner_odds_vars: Dict[int, tk.StringVar] = {}
+        
+        # Mappa checkbox per modalità Mixed (BACK e LAY separati)
+        self._runner_back_vars: Dict[int, tk.BooleanVar] = {}
+        self._runner_lay_vars: Dict[int, tk.BooleanVar] = {}
+        self._runner_back_stake_vars: Dict[int, tk.StringVar] = {}
+        self._runner_lay_stake_vars: Dict[int, tk.StringVar] = {}
         
         # Mappa widget righe per aggiornamento
         self._runner_widgets: Dict[int, Dict] = {}
@@ -198,7 +205,17 @@ class DutchingConfirmationWindow:
             fg_color=COLORS['back'],
             hover_color=COLORS['back_hover']
         )
-        auto_check.grid(row=1, column=2, rowspan=2, padx=30, pady=5)
+        auto_check.grid(row=1, column=2, padx=30, pady=5)
+        
+        # Pulsante Mixed Mode
+        self.mixed_btn = ctk.CTkButton(
+            mode_frame, text="Mixed Mode",
+            command=self._toggle_mixed_mode,
+            fg_color=COLORS['button_secondary'],
+            hover_color=COLORS['bg_hover'],
+            width=120
+        )
+        self.mixed_btn.grid(row=2, column=2, padx=30, pady=5)
         
         # Book Value
         self.book_label = ctk.CTkLabel(
@@ -252,9 +269,18 @@ class DutchingConfirmationWindow:
         self._runner_swap_vars.clear()
         self._runner_offset_vars.clear()
         self._runner_odds_vars.clear()
+        self._runner_back_vars.clear()
+        self._runner_lay_vars.clear()
+        self._runner_widgets.clear()
         
-        for idx, runner in enumerate(self.state.runners):
-            self._create_runner_row(idx, runner)
+        if self._mixed_mode_var.get():
+            # Modalità Mixed: due righe per runner (BACK + LAY)
+            for idx, runner in enumerate(self.state.runners):
+                self._create_mixed_runner_rows(idx, runner)
+        else:
+            # Modalità normale: una riga per runner
+            for idx, runner in enumerate(self.state.runners):
+                self._create_runner_row(idx, runner)
     
     def _create_runner_row(self, idx: int, runner: RunnerState):
         """Crea singola riga runner."""
@@ -383,6 +409,176 @@ class DutchingConfirmationWindow:
             'name_label': name_label,
             'odds_entry': odds_entry,
         }
+    
+    def _create_mixed_runner_rows(self, idx: int, runner: RunnerState):
+        """Crea due righe per runner: BACK (blu) e LAY (rosa)."""
+        sel_id = runner.selection_id
+        
+        # Contenitore per le due righe
+        container = ctk.CTkFrame(self.runners_scroll, fg_color="transparent")
+        container.pack(fill=tk.X, pady=2)
+        
+        # === RIGA BACK (blu) ===
+        back_frame = ctk.CTkFrame(
+            container,
+            fg_color=COLORS['back'],
+            corner_radius=4
+        )
+        back_frame.pack(fill=tk.X, pady=1)
+        
+        # Checkbox BACK
+        back_var = tk.BooleanVar(value=True)
+        self._runner_back_vars[sel_id] = back_var
+        
+        back_check = ctk.CTkCheckBox(
+            back_frame, text="",
+            variable=back_var,
+            command=lambda s=sel_id: self._toggle_back(s),
+            width=40,
+            fg_color=COLORS['text_primary'],
+            checkmark_color=COLORS['back']
+        )
+        back_check.grid(row=0, column=0, padx=5, pady=6)
+        
+        # Nome + "BACK"
+        back_name = ctk.CTkLabel(
+            back_frame, text=f"{runner.runner_name} - BACK",
+            font=FONTS['default'],
+            text_color=COLORS['bg_dark'],
+            width=220, anchor="w"
+        )
+        back_name.grid(row=0, column=1, padx=5, pady=6, sticky="w")
+        
+        # Odds BACK
+        back_odds = ctk.CTkLabel(
+            back_frame, text=f"{runner.odds:.2f}",
+            font=FONTS['mono'],
+            text_color=COLORS['bg_dark'],
+            width=80
+        )
+        back_odds.grid(row=0, column=2, padx=5, pady=6)
+        
+        # Stake BACK
+        back_stake_var = tk.StringVar(value="0.00")
+        self._runner_back_stake_vars[sel_id] = back_stake_var
+        
+        back_stake = ctk.CTkLabel(
+            back_frame, textvariable=back_stake_var,
+            font=FONTS['mono'],
+            text_color=COLORS['bg_dark'],
+            width=100
+        )
+        back_stake.grid(row=0, column=3, padx=5, pady=6)
+        
+        # P&L BACK
+        back_pnl = ctk.CTkLabel(
+            back_frame, text="€0.00",
+            font=('Segoe UI', 10, 'bold'),
+            text_color=COLORS['bg_dark'],
+            width=100
+        )
+        back_pnl.grid(row=0, column=4, padx=5, pady=6)
+        
+        # === RIGA LAY (rosa) ===
+        lay_frame = ctk.CTkFrame(
+            container,
+            fg_color=COLORS['lay'],
+            corner_radius=4
+        )
+        lay_frame.pack(fill=tk.X, pady=1)
+        
+        # Checkbox LAY
+        lay_var = tk.BooleanVar(value=False)
+        self._runner_lay_vars[sel_id] = lay_var
+        
+        lay_check = ctk.CTkCheckBox(
+            lay_frame, text="",
+            variable=lay_var,
+            command=lambda s=sel_id: self._toggle_lay(s),
+            width=40,
+            fg_color=COLORS['text_primary'],
+            checkmark_color=COLORS['lay']
+        )
+        lay_check.grid(row=0, column=0, padx=5, pady=6)
+        
+        # Nome + "LAY"
+        lay_name = ctk.CTkLabel(
+            lay_frame, text=f"{runner.runner_name} - LAY",
+            font=FONTS['default'],
+            text_color=COLORS['bg_dark'],
+            width=220, anchor="w"
+        )
+        lay_name.grid(row=0, column=1, padx=5, pady=6, sticky="w")
+        
+        # Odds LAY
+        lay_odds = ctk.CTkLabel(
+            lay_frame, text=f"{runner.odds:.2f}",
+            font=FONTS['mono'],
+            text_color=COLORS['bg_dark'],
+            width=80
+        )
+        lay_odds.grid(row=0, column=2, padx=5, pady=6)
+        
+        # Stake LAY
+        lay_stake_var = tk.StringVar(value="0.00")
+        self._runner_lay_stake_vars[sel_id] = lay_stake_var
+        
+        lay_stake = ctk.CTkLabel(
+            lay_frame, textvariable=lay_stake_var,
+            font=FONTS['mono'],
+            text_color=COLORS['bg_dark'],
+            width=100
+        )
+        lay_stake.grid(row=0, column=3, padx=5, pady=6)
+        
+        # P&L LAY
+        lay_pnl = ctk.CTkLabel(
+            lay_frame, text="€0.00",
+            font=('Segoe UI', 10, 'bold'),
+            text_color=COLORS['bg_dark'],
+            width=100
+        )
+        lay_pnl.grid(row=0, column=4, padx=5, pady=6)
+        
+        # Salva widget per update
+        self._runner_widgets[sel_id] = {
+            'back_frame': back_frame,
+            'lay_frame': lay_frame,
+            'back_stake': back_stake,
+            'lay_stake': lay_stake,
+            'back_pnl': back_pnl,
+            'lay_pnl': lay_pnl,
+        }
+    
+    def _toggle_mixed_mode(self):
+        """Toggle modalità Mixed BACK/LAY."""
+        self._mixed_mode_var.set(not self._mixed_mode_var.get())
+        
+        # Aggiorna aspetto pulsante
+        if self._mixed_mode_var.get():
+            self.mixed_btn.configure(
+                fg_color=COLORS['warning'],
+                text="Mixed: ON"
+            )
+        else:
+            self.mixed_btn.configure(
+                fg_color=COLORS['button_secondary'],
+                text="Mixed Mode"
+            )
+        
+        # Ricostruisci tabella
+        self._populate_runner_rows()
+        self._recalculate()
+    
+    def _toggle_back(self, selection_id: int):
+        """Toggle selezione BACK in modalità Mixed."""
+        # Per ora aggiorna solo lo stato visivo
+        self._recalculate()
+    
+    def _toggle_lay(self, selection_id: int):
+        """Toggle selezione LAY in modalità Mixed."""
+        # Per ora aggiorna solo lo stato visivo
+        self._recalculate()
     
     def _build_footer(self, parent):
         """Footer con controlli globali."""
