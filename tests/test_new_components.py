@@ -448,5 +448,363 @@ class TestIntegration:
             assert "TR" in badges
 
 
+class TestPreflightCheck:
+    """Test per preflight_check()."""
+    
+    def test_preflight_no_selections(self):
+        """Preflight fallisce senza selezioni."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker()
+        controller = DutchingController(broker=broker, pnl_engine=None)
+        
+        result = controller.preflight_check([], 100)
+        
+        assert result.is_valid is False
+        assert "Nessuna selezione" in result.errors
+    
+    def test_preflight_stake_too_low(self):
+        """Preflight rileva stake insufficiente."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker()
+        controller = DutchingController(broker=broker, pnl_engine=None)
+        
+        selections = [
+            {"selectionId": 1, "runnerName": "A", "price": 2.0},
+            {"selectionId": 2, "runnerName": "B", "price": 3.0},
+            {"selectionId": 3, "runnerName": "C", "price": 4.0}
+        ]
+        
+        # 3 selezioni × €2 min = €6 minimo
+        result = controller.preflight_check(selections, total_stake=4.0)
+        
+        assert result.is_valid is False
+        assert result.stake_ok is False
+        assert any("insufficiente" in e for e in result.errors)
+    
+    def test_preflight_low_liquidity_warning(self):
+        """Preflight avvisa su liquidità bassa."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker()
+        controller = DutchingController(broker=broker, pnl_engine=None)
+        
+        # Liquidità sotto soglia (€50)
+        selections = [
+            {
+                "selectionId": 1,
+                "runnerName": "Runner A",
+                "price": 2.0,
+                "back_ladder": [{"size": 20}],
+                "lay_ladder": [{"size": 100}]
+            }
+        ]
+        
+        result = controller.preflight_check(selections, total_stake=10, mode="BACK")
+        
+        assert result.liquidity_ok is False
+        assert any("liquidità" in w.lower() for w in result.warnings)
+    
+    def test_preflight_wide_spread_warning(self):
+        """Preflight avvisa su spread largo."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker()
+        controller = DutchingController(broker=broker, pnl_engine=None)
+        
+        # Spread largo: 2.00 BACK vs 2.50 LAY = 25 tick a 0.02
+        selections = [
+            {
+                "selectionId": 1,
+                "runnerName": "Runner A",
+                "price": 2.0,
+                "back_ladder": [{"price": 2.00, "size": 100}],
+                "lay_ladder": [{"price": 2.50, "size": 100}]
+            }
+        ]
+        
+        result = controller.preflight_check(selections, total_stake=10)
+        
+        assert result.spread_ok is False
+        assert any("spread" in w.lower() for w in result.warnings)
+    
+    def test_preflight_all_ok(self):
+        """Preflight passa con condizioni valide."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker()
+        controller = DutchingController(broker=broker, pnl_engine=None)
+        
+        # Buona liquidità, spread stretto
+        selections = [
+            {
+                "selectionId": 1,
+                "runnerName": "Runner A",
+                "price": 2.0,
+                "back_ladder": [{"price": 2.00, "size": 500}],
+                "lay_ladder": [{"price": 2.02, "size": 500}]
+            },
+            {
+                "selectionId": 2,
+                "runnerName": "Runner B",
+                "price": 3.0,
+                "back_ladder": [{"price": 3.00, "size": 400}],
+                "lay_ladder": [{"price": 3.05, "size": 400}]
+            }
+        ]
+        
+        result = controller.preflight_check(selections, total_stake=50)
+        
+        assert result.is_valid is True
+        assert result.liquidity_ok is True
+        assert result.spread_ok is True
+        assert result.stake_ok is True
+        assert len(result.errors) == 0
+    
+    def test_preflight_high_stake_warning(self):
+        """Preflight avvisa se stake > 20% liquidità."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker()
+        controller = DutchingController(broker=broker, pnl_engine=None)
+        
+        # Liquidità €100, stake €50 = 50% > 20%
+        selections = [
+            {
+                "selectionId": 1,
+                "runnerName": "Runner A",
+                "price": 2.0,
+                "back_ladder": [{"price": 2.00, "size": 100}],
+                "lay_ladder": [{"price": 2.02, "size": 100}]
+            }
+        ]
+        
+        result = controller.preflight_check(selections, total_stake=50, mode="BACK")
+        
+        assert any("Stake alto" in w for w in result.warnings)
+
+
+class TestPreflightBlocking:
+    """Test che preflight blocchi ordini non validi."""
+    
+    def test_preflight_blocks_low_stake_per_runner(self):
+        """Preflight blocca ordini con stake per-runner < €2."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        # 10 selezioni con stake totale €10 = €1 per runner (< €2 min)
+        selections = [
+            {"selectionId": i, "runnerName": f"Runner {i}", "price": 2.0}
+            for i in range(1, 11)
+        ]
+        
+        result = controller.submit_dutching(
+            market_id="1.234",
+            market_type="MATCH_ODDS",
+            selections=selections,
+            total_stake=10,  # €1 per runner
+            mode="BACK",
+            dry_run=False
+        )
+        
+        assert result["status"] == "PREFLIGHT_FAILED"
+        assert len(result["orders"]) == 0
+        assert result["preflight"]["stake_ok"] is False
+    
+    def test_dry_run_still_shows_preflight_errors(self):
+        """Dry run mostra errori preflight ma non blocca."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        # Stake molto basso per runner
+        selections = [
+            {"selectionId": i, "runnerName": f"Runner {i}", "price": 2.0}
+            for i in range(1, 11)
+        ]
+        
+        result = controller.submit_dutching(
+            market_id="1.234",
+            market_type="MATCH_ODDS",
+            selections=selections,
+            total_stake=10,
+            mode="BACK",
+            dry_run=True  # Dry run continua comunque
+        )
+        
+        # Dry run ritorna comunque gli ordini preview
+        assert result["status"] == "DRY_RUN"
+        assert len(result["orders"]) == 10
+        # Ma mostra gli errori preflight
+        assert result["preflight"]["is_valid"] is False
+
+
+class TestDryRun:
+    """Test per dry_run mode."""
+    
+    def test_dry_run_no_orders_placed(self):
+        """Dry run non piazza ordini reali."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        initial_balance = broker.balance
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        selections = [
+            {"selectionId": 1, "runnerName": "A", "price": 2.0},
+            {"selectionId": 2, "runnerName": "B", "price": 3.0}
+        ]
+        
+        result = controller.submit_dutching(
+            market_id="1.234",
+            market_type="MATCH_ODDS",
+            selections=selections,
+            total_stake=100,
+            mode="BACK",
+            dry_run=True
+        )
+        
+        assert result["status"] == "DRY_RUN"
+        assert result["dry_run"] is True
+        assert len(result["orders"]) == 2
+        
+        # Bilancio invariato
+        assert broker.balance == initial_balance
+        
+        # Ordini hanno flag dry_run
+        for order in result["orders"]:
+            assert order.get("dry_run") is True
+            assert order["status"] == "DRY_RUN"
+    
+    def test_dry_run_includes_preflight(self):
+        """Dry run include risultato preflight."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        selections = [
+            {
+                "selectionId": 1,
+                "runnerName": "A",
+                "price": 2.0,
+                "back_ladder": [{"price": 2.0, "size": 500}],
+                "lay_ladder": [{"price": 2.02, "size": 500}]
+            }
+        ]
+        
+        result = controller.submit_dutching(
+            market_id="1.234",
+            market_type="MATCH_ODDS",
+            selections=selections,
+            total_stake=20,
+            mode="BACK",
+            dry_run=True
+        )
+        
+        assert "preflight" in result
+        preflight = result["preflight"]
+        assert "is_valid" in preflight
+        assert "warnings" in preflight
+        assert "errors" in preflight
+    
+    def test_dry_run_calculates_profit(self):
+        """Dry run calcola profitto correttamente."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        selections = [
+            {"selectionId": 1, "runnerName": "A", "price": 2.0},
+            {"selectionId": 2, "runnerName": "B", "price": 3.0}
+        ]
+        
+        result = controller.submit_dutching(
+            market_id="1.234",
+            market_type="MATCH_ODDS",
+            selections=selections,
+            total_stake=100,
+            mode="BACK",
+            dry_run=True
+        )
+        
+        assert "profit" in result
+        assert result["profit"] != 0  # Dovrebbe calcolare profitto
+    
+    def test_dry_run_with_auto_green(self):
+        """Dry run funziona con auto_green enabled."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        selections = [
+            {"selectionId": 1, "runnerName": "A", "price": 2.0},
+            {"selectionId": 2, "runnerName": "B", "price": 3.0}
+        ]
+        
+        result = controller.submit_dutching(
+            market_id="1.234",
+            market_type="MATCH_ODDS",
+            selections=selections,
+            total_stake=100,
+            mode="BACK",
+            auto_green=True,
+            dry_run=True
+        )
+        
+        assert result["status"] == "DRY_RUN"
+        assert result["auto_green"] is True
+        # Verifica che gli ordini abbiano metadata auto_green
+        for order in result["orders"]:
+            assert order.get("auto_green") is True
+            assert "placed_at" in order
+    
+    def test_live_run_places_orders(self):
+        """Live run (dry_run=False) piazza ordini."""
+        from controllers.dutching_controller import DutchingController
+        from simulation_broker import SimulationBroker
+        
+        broker = SimulationBroker(initial_balance=1000)
+        initial_balance = broker.balance
+        controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
+        
+        selections = [
+            {"selectionId": 1, "runnerName": "A", "price": 2.0},
+            {"selectionId": 2, "runnerName": "B", "price": 3.0}
+        ]
+        
+        result = controller.submit_dutching(
+            market_id="1.234",
+            market_type="MATCH_ODDS",
+            selections=selections,
+            total_stake=100,
+            mode="BACK",
+            dry_run=False
+        )
+        
+        assert result["status"] == "OK"
+        assert result["dry_run"] is False
+        # Bilancio ridotto (ordini piazzati)
+        assert broker.balance < initial_balance
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
