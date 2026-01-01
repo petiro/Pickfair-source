@@ -4973,7 +4973,9 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 )
                 self.root.after(0, lambda: self._notify_new_signal(signal))
                 
-                if settings.get('auto_bet') and signal.get('event') and signal.get('over_line') is not None:
+                if signal.get('market_type') == 'CASHOUT':
+                    self.root.after(100, lambda: self._process_telegram_cashout(signal, settings))
+                elif settings.get('auto_bet') and signal.get('event') and signal.get('over_line') is not None:
                     self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
             
             def on_status(status, message):
@@ -5340,6 +5342,146 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         except Exception as e:
             log_failed_bet(f"Eccezione: {str(e)}")
             messagebox.showerror("Auto-Bet Errore", f"Errore: {str(e)}")
+    
+    def _process_telegram_cashout(self, signal, settings):
+        """Process cashout command from Telegram signal."""
+        if not self.client:
+            messagebox.showwarning("Cashout", "Non connesso a Betfair")
+            return
+        
+        cashout_type = signal.get('cashout_type', 'SINGLE')
+        event_name = signal.get('event', '')
+        
+        try:
+            if cashout_type == 'ALL':
+                positions = self._get_all_open_positions()
+                if not positions:
+                    messagebox.showinfo("Cashout", "Nessuna posizione aperta da chiudere")
+                    return
+                
+                success_count = 0
+                for pos in positions:
+                    result = self._execute_cashout_position(pos)
+                    if result:
+                        success_count += 1
+                
+                messagebox.showinfo("Cashout ALL", f"Chiuse {success_count}/{len(positions)} posizioni")
+                
+            else:
+                if not event_name:
+                    messagebox.showwarning("Cashout", "Evento non specificato nel segnale")
+                    return
+                
+                positions = self._get_all_open_positions()
+                matched_positions = []
+                event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ')
+                
+                for pos in positions:
+                    pos_event = pos.get('event_name', '').lower().replace(' v ', ' ').replace(' vs ', ' ')
+                    if self._fuzzy_match(event_lower, pos_event):
+                        matched_positions.append(pos)
+                
+                if not matched_positions:
+                    messagebox.showwarning("Cashout", f"Nessuna posizione trovata per: {event_name}")
+                    return
+                
+                success_count = 0
+                for pos in matched_positions:
+                    result = self._execute_cashout_position(pos)
+                    if result:
+                        success_count += 1
+                
+                messagebox.showinfo("Cashout", f"Chiuse {success_count}/{len(matched_positions)} posizioni per {event_name}")
+        
+        except Exception as e:
+            messagebox.showerror("Cashout Errore", f"Errore: {str(e)}")
+    
+    def _get_all_open_positions(self):
+        """Get all open positions from current orders."""
+        if not self.client:
+            return []
+        
+        try:
+            orders = self.client.get_current_orders()
+            positions = []
+            
+            for order in orders.get('currentOrders', []):
+                if order.get('status') == 'EXECUTABLE' or order.get('sizeMatched', 0) > 0:
+                    positions.append({
+                        'bet_id': order.get('betId'),
+                        'market_id': order.get('marketId'),
+                        'selection_id': order.get('selectionId'),
+                        'side': order.get('side'),
+                        'price': order.get('priceMatched', order.get('price')),
+                        'stake': order.get('sizeMatched', order.get('size')),
+                        'event_name': order.get('marketName', ''),
+                    })
+            
+            return positions
+        except Exception:
+            return []
+    
+    def _execute_cashout_position(self, pos):
+        """Execute cashout for a single position."""
+        try:
+            from dutching import dynamic_cashout_single
+            
+            market_id = pos.get('market_id')
+            selection_id = pos.get('selection_id')
+            side = pos.get('side')
+            stake = pos.get('stake', 0)
+            price = pos.get('price', 0)
+            
+            if not all([market_id, selection_id, stake, price]):
+                return False
+            
+            market_book = self.client.get_market_book(market_id)
+            current_price = None
+            
+            for runner in market_book.get('runners', []):
+                if runner['selectionId'] == selection_id:
+                    if side == 'BACK':
+                        lay_prices = runner.get('ex', {}).get('availableToLay', [])
+                        if lay_prices:
+                            current_price = lay_prices[0]['price']
+                    else:
+                        back_prices = runner.get('ex', {}).get('availableToBack', [])
+                        if back_prices:
+                            current_price = back_prices[0]['price']
+                    break
+            
+            if not current_price:
+                return False
+            
+            cashout_side = 'LAY' if side == 'BACK' else 'BACK'
+            cashout_info = dynamic_cashout_single(stake, price, current_price, commission=4.5)
+            cashout_stake = cashout_info.get('lay_stake', 0)
+            
+            if cashout_stake <= 0:
+                return False
+            
+            if self.simulation_mode:
+                return True
+            
+            result = self.client.place_bet(
+                market_id=market_id,
+                selection_id=selection_id,
+                side=cashout_side,
+                price=current_price,
+                stake=cashout_stake
+            )
+            
+            return result.get('status') == 'SUCCESS'
+        
+        except Exception:
+            return False
+    
+    def _fuzzy_match(self, str1, str2):
+        """Simple fuzzy match for event names."""
+        words1 = set(str1.split())
+        words2 = set(str2.split())
+        common = words1 & words2
+        return len(common) >= 2
     
     def _show_multi_market_monitor(self):
         """Show multi-market monitor window."""
