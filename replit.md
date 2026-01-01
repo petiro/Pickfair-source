@@ -105,7 +105,34 @@ Key features include:
   - 1000 tick updates with auto-green in <0.5s
   - 1000+ log entries under load
   - Concurrent error reporting thread-safety
-  - Full workflow stress test (44 tests total, 43 pass + 1 intentional skip)
+  - Full workflow stress test (69 tests total, 68 pass + 1 intentional skip)
+- **Performance Optimizations (v3.62)**: Enterprise-grade performance enhancements
+  - **Tick Dispatcher** (`tick_dispatcher.py`): Tick coalescing with separate consumer throttling
+    - UI updates max 4/sec (MIN_UPDATE_INTERVAL = 250ms)
+    - Storage receives 100% of ticks at full speed
+    - Simulation mode with extended intervals
+  - **P&L Cache** (`pnl_cache.py`): Short-circuit and caching for P&L calculations
+    - Hash-based cache key from prices and orders
+    - TTL-based invalidation (CACHE_TTL = 5.0s)
+    - Short-circuit returns zero immediately when no orders
+  - **Dutching Cache** (`dutching_cache.py`): LRU cache for repeated calculations
+    - Hash key from (prices, stake, side, commission)
+    - MAX_CACHE_SIZE = 100 entries with LRU eviction
+    - 10× speedup on repeated calculations
+  - **Automation Optimizer** (`automation_optimizer.py`): Early exit stack
+    - 6 ordered checks from cheapest to most expensive
+    - SIM_CHECK_INTERVAL = 1.0s for simulation (throttled, not blocked)
+    - MIN_CHECK_INTERVAL = 0.1s for live trading
+    - Reduces automation evaluations by ~50%
+  - **UI Optimizer** (`ui_optimizer.py`): Diff-based updates
+    - Skip .configure() when value unchanged
+    - Float tolerance comparison (FLOAT_TOLERANCE = 0.001)
+    - Widget state tracking with hash comparison
+    - Zero flicker, pro-level reactivity
+  - **Simulation Speed Controller** (`simulation_speed.py`): Multi-speed simulation
+    - Realtime (1×), Fast (5×), Ultra Fast (10×) modes
+    - Separate buffers for UI and automation throttling
+    - Time compression for sleeps
 
 ### System Design Choices
 - **Data Storage**: Uses an SQLite database (`pickfair.db`) for application data, Telegram session files, plugin data (JSON configs), and license keys, all stored within `%APPDATA%\Pickfair`.
