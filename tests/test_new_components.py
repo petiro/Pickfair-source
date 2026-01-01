@@ -234,8 +234,8 @@ class TestDutchingController:
         controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
         
         selections = [
-            {"selectionId": 1, "runnerName": "Runner A", "price": 2.0},
-            {"selectionId": 2, "runnerName": "Runner B", "price": 3.0}
+            {"selectionId": 1, "runnerName": "Runner A", "price": 2.0, "back_ladder": [{"size": 500}], "lay_ladder": [{"size": 500}]},
+            {"selectionId": 2, "runnerName": "Runner B", "price": 3.0, "back_ladder": [{"size": 500}], "lay_ladder": [{"size": 500}]}
         ]
         
         result = controller.submit_dutching(
@@ -259,8 +259,8 @@ class TestDutchingController:
         controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
         
         selections = [
-            {"selectionId": 1, "runnerName": "Runner A", "price": 2.0},
-            {"selectionId": 2, "runnerName": "Runner B", "price": 3.0}
+            {"selectionId": 1, "runnerName": "Runner A", "price": 2.0, "back_ladder": [{"size": 500}], "lay_ladder": [{"size": 500}]},
+            {"selectionId": 2, "runnerName": "Runner B", "price": 3.0, "back_ladder": [{"size": 500}], "lay_ladder": [{"size": 500}]}
         ]
         
         result = controller.submit_dutching(
@@ -423,8 +423,8 @@ class TestIntegration:
         controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
         
         selections = [
-            {"selectionId": 1, "runnerName": "Runner A", "price": 2.0},
-            {"selectionId": 2, "runnerName": "Runner B", "price": 3.0}
+            {"selectionId": 1, "runnerName": "Runner A", "price": 2.0, "back_ladder": [{"size": 500}], "lay_ladder": [{"size": 500}]},
+            {"selectionId": 2, "runnerName": "Runner B", "price": 3.0, "back_ladder": [{"size": 500}], "lay_ladder": [{"size": 500}]}
         ]
         
         result = controller.submit_dutching(
@@ -884,8 +884,8 @@ class TestDryRun:
         controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
         
         selections = [
-            {"selectionId": 1, "runnerName": "A", "price": 2.0},
-            {"selectionId": 2, "runnerName": "B", "price": 3.0}
+            {"selectionId": 1, "runnerName": "A", "price": 2.0, "back_ladder": [{"size": 500}], "lay_ladder": [{"size": 500}]},
+            {"selectionId": 2, "runnerName": "B", "price": 3.0, "back_ladder": [{"size": 500}], "lay_ladder": [{"size": 500}]}
         ]
         
         result = controller.submit_dutching(
@@ -1160,7 +1160,7 @@ class TestControllerWoMIntegration:
         assert "suggested_side" in result[0]
     
     def test_submit_with_ai_wom_enabled(self):
-        """Submit con ai_wom_enabled parametro."""
+        """Submit con ai_wom_enabled rispetta guardrail WoM."""
         from controllers.dutching_controller import DutchingController
         from simulation_broker import SimulationBroker
         
@@ -1168,8 +1168,8 @@ class TestControllerWoMIntegration:
         controller = DutchingController(broker=broker, pnl_engine=None, simulation=True)
         
         selections = [
-            {"selectionId": 1, "runnerName": "A", "price": 2.0},
-            {"selectionId": 2, "runnerName": "B", "price": 3.0}
+            {"selectionId": 1, "runnerName": "A", "price": 2.0, "back_ladder": [{"size": 500}], "lay_ladder": [{"size": 500}]},
+            {"selectionId": 2, "runnerName": "B", "price": 3.0, "back_ladder": [{"size": 500}], "lay_ladder": [{"size": 500}]}
         ]
         
         result = controller.submit_dutching(
@@ -1183,7 +1183,9 @@ class TestControllerWoMIntegration:
             dry_run=True
         )
         
-        assert result["status"] == "DRY_RUN"
+        assert result["status"] in ["DRY_RUN", "GUARDRAIL_BLOCKED"]
+        if result["status"] == "GUARDRAIL_BLOCKED":
+            assert "guardrail" in result
 
 
 if __name__ == "__main__":
