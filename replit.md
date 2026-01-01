@@ -21,7 +21,12 @@ The core application logic is managed by `main.py`, integrating with `betfair_cl
 
 ### Feature Specifications
 Key features include:
-- **Advanced Dutching**: Supports mixed BACK/LAY bets.
+- **Advanced Dutching**: Supports mixed BACK/LAY bets with PRO features:
+  - Best odds highlighting (green border on best quote)
+  - Auto-remove suspended runners checkbox
+  - Book warning at 105% (orange), blocking at 110% (red, disables Submit)
+  - P&L preview showing guaranteed profit and worst-case loss
+  - Preset stake buttons (25% / 50% / 100%)
 - **Real-time Live Betting**: Offers live odds streaming and quick bet placement.
 - **Telegram Integration**: Monitors chats for betting signals, supporting various market types (e.g., Match Odds, Correct Score, Over/Under, BTTS, Asian Handicap) and enabling auto-betting and copy trading (Master/Follower modes).
 - **Cashout Management**: Manual and automatic cashout options.
