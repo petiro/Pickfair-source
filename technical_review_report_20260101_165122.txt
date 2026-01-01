@@ -1,0 +1,51 @@
+============================================================
+REVISIONE TECNICA COMPLETA - PICKFAIR DUTCHING AVANZATO
+Versione: v3.66-toolbar
+Timestamp: 2026-01-01 16:51:22
+============================================================
+
+RIASSUNTO RAPIDO TEST CRITICI:
+----------------------------------------
+  [OK] Dutching BACK Uniform Profit
+  [OK] Dutching LAY Liabilities
+  [OK] Mixed BACK+LAY Balance
+  [OK] Target Profit
+  [OK] Simulation Mode
+  [OK] Dry Run Preview
+  [OK] Auto-Green Simulation
+  [OK] P&L Preview BACK
+  [OK] Toolbar Toggles
+  [OK] LiveMiniLadder Refresh
+  [OK] Book % Warning
+  [OK] Preset Stake Buttons
+  [OK] Edge Case Empty
+  [OK] Commission Italian
+  [OK] Controller Integration
+
+============================================================
+RISULTATI GLOBALI:
+----------------------------------------
+  Totale test eseguiti: 72
+  Test superati:        72
+  Test falliti:         0
+  Errori:               0
+  Skipped:              0
+============================================================
+
+============================================================
+AREE TESTATE:
+----------------------------------------
+  [x] Core Dutching (BACK/LAY/Mixed/Target Profit)
+  [x] UI Components (Toolbar/MiniLadder/LiveMiniLadder)
+  [x] Simulation Mode (Broker/Controller/DryRun)
+  [x] Auto-Green Engine
+  [x] P&L Engine (Preview/Commissioni)
+  [x] Book % Optimizer
+  [x] Preset Stake Buttons
+  [x] Edge Cases (Empty/MinStake/HighPrice)
+  [x] Threading & Debounce
+  [x] Controller Integration
+============================================================
+
+VERDETTO FINALE: PASS
+

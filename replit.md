@@ -37,7 +37,12 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
 -   **PRO UI Components**: `DutchingController` as a unified orchestrator, `AIPatternEngine` for Weight of Money (WoM) analysis, `MiniLadder` for inline odds display, and `DraggableRunner` for reordering runners.
 -   **Preflight Check + Dry Run**: A pre-order validation system checking stake, liquidity, spread, price, and book percentage, with a `dry_run` parameter for previewing orders.
 -   **Enterprise WoM + One-Click**: `WoM Engine` for historical tick analysis with time-window aggregation, `Enhanced AI Analysis` combining instant and historical WoM, and `OneClickLadder` for single-click order placement with preflight validation.
--   **Toolbar + Live UI (v3.66)**: Advanced `Toolbar` with Simulation/Auto-Green/AI Mixed toggles, market status indicator, and preset stake buttons. `LiveMiniLadder` with 500ms auto-refresh, [BACK]/[LAY] badges from WoM, P&L preview inline, and best price highlight. Controller supports `auto_green_enabled`, `ai_enabled`, `preset_stake_pct` flags. PnL Engine adds `calculate_preview()` for pre-order estimation. Test suite: 72/72 passed (enterprise review).
+-   **Toolbar + Live UI (v3.66)**: Advanced `Toolbar` with Simulation/Auto-Green/AI Mixed toggles, market status indicator, and preset stake buttons. `LiveMiniLadder` with 500ms auto-refresh, [BACK]/[LAY] badges from WoM, P&L preview inline, and best price highlight. Controller supports `auto_green_enabled`, `ai_enabled`, `preset_stake_pct` flags. PnL Engine adds `calculate_preview()` for pre-order estimation.
+-   **v3.67 Advanced Features**:
+    - **WoM Time-Window Engine**: Multi-timeframe WoM analysis (5s/15s/30s/60s), delta pressure, momentum, volatility. Thread-safe snapshot-based calculations.
+    - **AI Guardrail**: Protection system with market readiness check, WoM data validation, auto-green grace period (3s), order rate limiting (10/min), consecutive error circuit breaker.
+    - **One-Click MiniLadder**: Click → preflight → submit with auto-green support.
+    - Test suite: 109 tests passed (72 core + 37 new modules).
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:

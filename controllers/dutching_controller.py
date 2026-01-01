@@ -17,6 +17,7 @@ from dutching import (
 )
 from ai.ai_pattern_engine import AIPatternEngine
 from ai.wom_engine import WoMEngine, get_wom_engine
+from ai.ai_guardrail import AIGuardrail, get_guardrail
 from automation_engine import AutomationEngine
 from safety_logger import get_safety_logger
 from safe_mode import get_safe_mode_manager
@@ -76,6 +77,7 @@ class DutchingController:
         
         self.ai_engine = AIPatternEngine()
         self.wom_engine = get_wom_engine()
+        self.guardrail = get_guardrail()
         self.market_validator = MarketValidator()
         self.automation = AutomationEngine()
         self.safety_logger = get_safety_logger()
@@ -127,6 +129,24 @@ class DutchingController:
         if self.safe_mode.is_safe_mode_active:
             self.safety_logger.log_safe_mode_triggered(0, "submit_dutching blocked")
             raise RuntimeError("SAFE MODE attivo: dutching bloccato")
+        
+        # GUARDRAIL check (v3.67)
+        if ai_enabled or ai_wom_enabled:
+            first_sel_id = selections[0].get("selectionId") if selections else None
+            guardrail_result = self.check_guardrail(market_type, first_sel_id)
+            if not guardrail_result["can_proceed"]:
+                self.safety_logger.log_ai_blocked(
+                    market_type=market_type,
+                    reason=f"GUARDRAIL: {guardrail_result['reasons']}"
+                )
+                return {
+                    "status": "GUARDRAIL_BLOCKED",
+                    "orders": [],
+                    "simulation": self.simulation,
+                    "mode": mode,
+                    "guardrail": guardrail_result,
+                    "dry_run": dry_run
+                }
         
         # Market validation per AI
         if ai_enabled:
@@ -520,3 +540,71 @@ class DutchingController:
     def get_wom_stats(self) -> Dict:
         """Ritorna statistiche WoM Engine."""
         return self.wom_engine.get_stats()
+    
+    # ========== v3.67 Guardrail Integration ==========
+    
+    def check_guardrail(self, market_type: str, selection_id: Optional[int] = None) -> Dict:
+        """
+        Esegue controllo guardrail completo.
+        
+        Args:
+            market_type: Tipo mercato
+            selection_id: ID selezione per dati WoM (opzionale)
+            
+        Returns:
+            Dict con can_proceed, level, reasons, warnings
+        """
+        tick_count = 0
+        wom_confidence = 0.5
+        volatility = 0.0
+        
+        if selection_id:
+            wom_result = self.wom_engine.calculate_enhanced_wom(selection_id)
+            if wom_result:
+                tick_count = wom_result.tick_count
+                wom_confidence = wom_result.confidence
+                volatility = wom_result.volatility
+        
+        return self.guardrail.full_check(
+            market_type=market_type,
+            tick_count=tick_count,
+            wom_confidence=wom_confidence,
+            volatility=volatility
+        )
+    
+    def check_auto_green_ready(self, bet_id: str) -> tuple:
+        """
+        Verifica se un ordine può essere green-uppato.
+        
+        Args:
+            bet_id: ID ordine
+            
+        Returns:
+            (can_green, remaining_seconds)
+        """
+        return self.guardrail.check_auto_green_grace(bet_id)
+    
+    def register_for_auto_green(self, bet_id: str):
+        """
+        Registra ordine per auto-green con grace period.
+        
+        Args:
+            bet_id: ID ordine
+        """
+        self.guardrail.register_order_for_auto_green(bet_id)
+    
+    def get_time_window_signal(self, selection_id: int) -> Dict:
+        """
+        Ottiene segnale trading basato su analisi time-window.
+        
+        Args:
+            selection_id: ID runner
+            
+        Returns:
+            Dict con signal, strength, side, reasoning, wom_data
+        """
+        return self.wom_engine.get_time_window_signal(selection_id)
+    
+    def get_guardrail_status(self) -> Dict:
+        """Ritorna stato corrente guardrail."""
+        return self.guardrail.get_status()
