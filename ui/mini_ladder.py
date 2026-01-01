@@ -5,12 +5,14 @@ Mostra 3 livelli BACK/LAY per ogni runner con highlight del best price.
 Stile professionale tipo Bet Angel.
 
 v3.65 - One-Click Actions con preflight automatico
+v3.68 - UI Indicator liquidita (dot colorato + tooltip)
 """
 
 import customtkinter as ctk
 from typing import Dict, List, Optional, Callable, TYPE_CHECKING
 
 from theme import COLORS
+from safety_logger import evaluate_runner_liquidity, LiquidityStatus
 
 if TYPE_CHECKING:
     from controllers.dutching_controller import DutchingController
@@ -24,6 +26,7 @@ class MiniLadder(ctk.CTkFrame):
     - Best price evidenziato con bordo verde
     - Click su prezzo per selezione rapida
     - Aggiornamento real-time via update_prices()
+    - Liquidity indicator (dot colorato verde/giallo/rosso) v3.68
     """
     
     def __init__(
@@ -31,7 +34,9 @@ class MiniLadder(ctk.CTkFrame):
         parent, 
         runner: Dict,
         on_price_click: Optional[Callable] = None,
-        levels: int = 3
+        levels: int = 3,
+        stake: float = 0.0,
+        side: str = "BACK"
     ):
         """
         Args:
@@ -39,21 +44,26 @@ class MiniLadder(ctk.CTkFrame):
             runner: Dict con runnerName, selectionId, back_ladder, lay_ladder
             on_price_click: Callback(selection_id, side, price) su click prezzo
             levels: Numero livelli da mostrare (default 3)
+            stake: Stake previsto per questo runner (per indicator liquidita)
+            side: Tipo scommessa BACK/LAY per valutazione liquidita
         """
         super().__init__(parent, fg_color="transparent")
         
         self.runner = runner
         self.on_price_click = on_price_click
         self.levels = levels
+        self.stake = stake
+        self.side = side
         
         self.back_labels = []
         self.lay_labels = []
+        self.liquidity_indicator = None
         
         self._build()
     
     def _build(self):
         """Costruisce UI della mini ladder."""
-        # Header con nome runner
+        # Header con nome runner + liquidity indicator
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(fill="x", pady=(0, 2))
         
@@ -63,6 +73,20 @@ class MiniLadder(ctk.CTkFrame):
             font=("Roboto", 12, "bold"),
             anchor="w"
         ).pack(side="left", fill="x", expand=True)
+        
+        # Liquidity indicator (dot colorato)
+        self.liquidity_indicator = ctk.CTkLabel(
+            header,
+            text="",
+            width=12,
+            height=12,
+            corner_radius=6,
+            fg_color="#4CAF50"
+        )
+        self.liquidity_indicator.pack(side="right", padx=4)
+        
+        # Aggiorna indicator iniziale
+        self._update_liquidity_indicator()
         
         # Container prezzi
         prices_frame = ctk.CTkFrame(self, fg_color=COLORS.get("bg_secondary", "#2b2b2b"))
@@ -190,6 +214,9 @@ class MiniLadder(ctk.CTkFrame):
                     fg_color=COLORS.get("lay_bg", "#5f1e3a"),
                     text_color=COLORS.get("text_secondary", "#888888")
                 )
+        
+        # Aggiorna indicator liquidita con nuovi dati ladder
+        self._update_liquidity_indicator()
     
     def _on_back_click(self, index: int):
         """Handler click su prezzo BACK."""
@@ -239,6 +266,63 @@ class MiniLadder(ctk.CTkFrame):
                     lbl.configure(border_width=2, border_color="#00ff00")
                 else:
                     lbl.configure(border_width=0)
+    
+    def _update_liquidity_indicator(self):
+        """Aggiorna il dot colorato in base alla liquidita disponibile."""
+        if not self.liquidity_indicator:
+            return
+        
+        # Ottieni liquidita e prezzo dal ladder corretto per il side
+        back_ladder = self.runner.get("back_ladder", [])
+        lay_ladder = self.runner.get("lay_ladder", [])
+        
+        if self.side == "BACK":
+            ladder = back_ladder
+            available_liq = sum(p.get("size", 0) for p in back_ladder)
+            price = back_ladder[0].get("price", 1.0) if back_ladder else 1.0
+        else:
+            ladder = lay_ladder
+            available_liq = sum(p.get("size", 0) for p in lay_ladder)
+            price = lay_ladder[0].get("price", 1.0) if lay_ladder else 1.0
+        
+        # Valuta status liquidita (usa stesse soglie del Liquidity Guard)
+        result = evaluate_runner_liquidity(
+            stake=self.stake,
+            available_liquidity=available_liq,
+            side=self.side,
+            price=price
+        )
+        
+        # Aggiorna colore dot
+        self.liquidity_indicator.configure(fg_color=result["color"])
+        
+        # Tooltip simulato (CustomTkinter non ha tooltip nativo)
+        self._liq_tooltip = result["tooltip"]
+    
+    def set_stake(self, stake: float, side: str = None):
+        """
+        Aggiorna stake e ricalcola indicator liquidita.
+        
+        Args:
+            stake: Nuovo stake previsto
+            side: Nuovo side (opzionale)
+        """
+        self.stake = stake
+        if side:
+            self.side = side
+        self._update_liquidity_indicator()
+    
+    def update_liquidity(self, stake: float, side: str = "BACK"):
+        """
+        Aggiorna indicator liquidita con nuovi parametri.
+        
+        Args:
+            stake: Stake per valutazione
+            side: BACK o LAY
+        """
+        self.stake = stake
+        self.side = side
+        self._update_liquidity_indicator()
     
     def set_edge_badge(self, edge_score: float, confidence: float):
         """

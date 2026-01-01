@@ -26,6 +26,8 @@ class SafetyEventType(Enum):
     SAFE_MODE_TRIGGERED = "SAFE_MODE"
     PROFIT_VALIDATION_FAILED = "PROFIT_VAL_FAIL"
     MARKET_VALIDATION_FAILED = "MARKET_VAL_FAIL"
+    LIQUIDITY_BLOCK = "LIQ_BLOCK"
+    LIQUIDITY_WARNING = "LIQ_WARN"
 
 
 class SafetyLogger:
@@ -226,6 +228,64 @@ class SafetyLogger:
             {"market_id": market_id or "N/A"}
         )
     
+    def log_liquidity_block(
+        self,
+        market_id: str,
+        selection_id: int,
+        runner_name: str,
+        stake: float,
+        available_liquidity: float,
+        required_liquidity: float,
+        side: str,
+        reason: str = "INSUFFICIENT_LIQUIDITY",
+        simulation: bool = False
+    ):
+        """
+        Logga blocco ordine per liquidita insufficiente.
+        
+        Telemetria completa per analisi e tuning soglie.
+        """
+        self.log_event(
+            SafetyEventType.LIQUIDITY_BLOCK,
+            f"Ordine bloccato - {runner_name}",
+            {
+                "market_id": market_id,
+                "selection_id": selection_id,
+                "stake": f"EUR{stake:.2f}",
+                "available": f"EUR{available_liquidity:.2f}",
+                "required": f"EUR{required_liquidity:.2f}",
+                "side": side,
+                "reason": reason,
+                "simulation": simulation
+            }
+        )
+    
+    def log_liquidity_warning(
+        self,
+        market_id: str,
+        selection_id: int,
+        runner_name: str,
+        stake: float,
+        available_liquidity: float,
+        required_liquidity: float,
+        side: str,
+        simulation: bool = False
+    ):
+        """Logga warning liquidita (quando in warning-only mode)."""
+        self.log_event(
+            SafetyEventType.LIQUIDITY_WARNING,
+            f"Warning liquidita - {runner_name}",
+            {
+                "market_id": market_id,
+                "selection_id": selection_id,
+                "stake": f"EUR{stake:.2f}",
+                "available": f"EUR{available_liquidity:.2f}",
+                "required": f"EUR{required_liquidity:.2f}",
+                "side": side,
+                "simulation": simulation
+            }
+        )
+    
     def get_log_path(self) -> Path:
         """Restituisce il path del file log corrente."""
         return self._log_dir / self._get_log_filename()
@@ -240,3 +300,110 @@ def get_safety_logger() -> SafetyLogger:
     if _safety_logger is None:
         _safety_logger = SafetyLogger()
     return _safety_logger
+
+
+class LiquidityStatus:
+    """Status liquidita per UI indicator."""
+    OK = "OK"
+    BORDERLINE = "BORDERLINE"
+    DRY = "DRY"
+
+
+def evaluate_runner_liquidity(
+    stake: float,
+    available_liquidity: float,
+    side: str = "BACK",
+    price: float = 1.0,
+    multiplier: Optional[float] = None,
+    min_absolute: Optional[float] = None,
+    warning_only: Optional[bool] = None
+) -> Dict[str, Any]:
+    """
+    Valuta lo status liquidita di un runner per UI indicator.
+    
+    Logica ALLINEATA con Liquidity Guard - usa stesse soglie.
+    
+    Args:
+        stake: Stake richiesto
+        available_liquidity: Liquidita disponibile sul ladder
+        side: BACK o LAY
+        price: Prezzo (per calcolo liability LAY)
+        multiplier: Soglia moltiplicatore (None = usa config)
+        min_absolute: Minimo assoluto (None = usa config)
+        warning_only: Se True, insufficiente = BORDERLINE; se False = DRY (None = usa config)
+    
+    Returns:
+        Dict con:
+            - status: OK / BORDERLINE / DRY
+            - ratio: Rapporto liquidita/richiesto (considerando multiplier)
+            - color: Colore per UI (#4CAF50 / #FFC107 / #F44336)
+            - tooltip: Testo descrittivo
+            - will_block: True se il guard bloccherebbe questo ordine
+    """
+    from trading_config import (
+        LIQUIDITY_MULTIPLIER, MIN_LIQUIDITY_ABSOLUTE, LIQUIDITY_WARNING_ONLY
+    )
+    
+    if multiplier is None:
+        multiplier = LIQUIDITY_MULTIPLIER
+    if min_absolute is None:
+        min_absolute = MIN_LIQUIDITY_ABSOLUTE
+    if warning_only is None:
+        warning_only = LIQUIDITY_WARNING_ONLY
+    
+    if stake <= 0:
+        return {
+            "status": LiquidityStatus.OK,
+            "ratio": float('inf'),
+            "color": "#4CAF50",
+            "tooltip": "Nessuno stake richiesto",
+            "will_block": False
+        }
+    
+    if side == "LAY":
+        base_required = stake * (price - 1) if price > 1 else stake
+    else:
+        base_required = stake
+    
+    required_with_multiplier = base_required * multiplier
+    
+    if available_liquidity < min_absolute:
+        return {
+            "status": LiquidityStatus.DRY,
+            "ratio": 0.0,
+            "color": "#F44336",
+            "tooltip": f"Liquidita: EUR{available_liquidity:.0f} < min EUR{min_absolute:.0f}",
+            "will_block": True
+        }
+    
+    if available_liquidity <= 0:
+        return {
+            "status": LiquidityStatus.DRY,
+            "ratio": 0.0,
+            "color": "#F44336",
+            "tooltip": f"Liquidita: EUR0 - Richiesto: EUR{required_with_multiplier:.2f}",
+            "will_block": True
+        }
+    
+    ratio = available_liquidity / required_with_multiplier
+    
+    if ratio >= 1.0:
+        status = LiquidityStatus.OK
+        color = "#4CAF50"
+        will_block = False
+    elif warning_only:
+        status = LiquidityStatus.BORDERLINE
+        color = "#FFC107"
+        will_block = False
+    else:
+        status = LiquidityStatus.DRY
+        color = "#F44336"
+        will_block = True
+    
+    return {
+        "status": status,
+        "ratio": ratio,
+        "color": color,
+        "tooltip": f"Liquidita: EUR{available_liquidity:.0f} / EUR{required_with_multiplier:.0f} richiesti",
+        "will_block": will_block
+    }

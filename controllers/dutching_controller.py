@@ -227,7 +227,7 @@ class DutchingController:
         
         # LIQUIDITY GUARD (v3.68) - verifica su risultati calcolati
         results_with_ladders = self._merge_ladders_to_results(results, selections)
-        liq_ok, liq_msgs = self._check_liquidity_guard(results_with_ladders, mode)
+        liq_ok, liq_msgs = self._check_liquidity_guard(results_with_ladders, mode, market_id)
         if not liq_ok:
             preflight.liquidity_guard_ok = False
             if LIQUIDITY_WARNING_ONLY:
@@ -529,7 +529,8 @@ class DutchingController:
     def _check_liquidity_guard(
         self,
         selections: List[Dict],
-        mode: str = "BACK"
+        mode: str = "BACK",
+        market_id: str = ""
     ) -> Tuple[bool, List[str]]:
         """
         Verifica che la liquidità sia sufficiente per eseguire l'ordine.
@@ -539,9 +540,12 @@ class DutchingController:
         - LAY: available_lay >= liability * LIQUIDITY_MULTIPLIER
         - Minimo assoluto: liquidità >= MIN_LIQUIDITY_ABSOLUTE
         
+        Include telemetria automatica per blocchi/warning.
+        
         Args:
             selections: Lista selezioni con back_ladder, lay_ladder, stake
             mode: 'BACK', 'LAY', o 'MIXED'
+            market_id: ID mercato per telemetria
             
         Returns:
             (is_ok, messages) - True se passa, lista messaggi warning/errore
@@ -552,7 +556,8 @@ class DutchingController:
         messages = []
         
         for sel in selections:
-            runner_name = sel.get("runnerName", f"ID {sel.get('selectionId', '?')}")
+            selection_id = sel.get("selectionId", 0)
+            runner_name = sel.get("runnerName", f"ID {selection_id}")
             stake = sel.get("stake", 0)
             price = sel.get("price", 1)
             side = sel.get("side", sel.get("effectiveType", mode))
@@ -573,6 +578,17 @@ class DutchingController:
             
             if available < MIN_LIQUIDITY_ABSOLUTE:
                 msg = f"{runner_name}: liquidità troppo bassa (€{available:.0f} < €{MIN_LIQUIDITY_ABSOLUTE:.0f})"
+                self.safety_logger.log_liquidity_block(
+                    market_id=market_id,
+                    selection_id=selection_id,
+                    runner_name=runner_name,
+                    stake=stake,
+                    available_liquidity=available,
+                    required_liquidity=MIN_LIQUIDITY_ABSOLUTE,
+                    side=side,
+                    reason="BELOW_ABSOLUTE_MINIMUM",
+                    simulation=self.simulation
+                )
                 return False, [msg]
             
             if available < required:
@@ -581,7 +597,30 @@ class DutchingController:
                     f"(€{available:.0f} < €{required:.0f} richiesti)"
                 )
                 messages.append(msg)
-                if not LIQUIDITY_WARNING_ONLY:
+                
+                if LIQUIDITY_WARNING_ONLY:
+                    self.safety_logger.log_liquidity_warning(
+                        market_id=market_id,
+                        selection_id=selection_id,
+                        runner_name=runner_name,
+                        stake=stake,
+                        available_liquidity=available,
+                        required_liquidity=required,
+                        side=side,
+                        simulation=self.simulation
+                    )
+                else:
+                    self.safety_logger.log_liquidity_block(
+                        market_id=market_id,
+                        selection_id=selection_id,
+                        runner_name=runner_name,
+                        stake=stake,
+                        available_liquidity=available,
+                        required_liquidity=required,
+                        side=side,
+                        reason="INSUFFICIENT_LIQUIDITY",
+                        simulation=self.simulation
+                    )
                     return False, messages
         
         return len(messages) == 0, messages
