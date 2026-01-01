@@ -1,0 +1,102 @@
+============================================================
+REVISIONE TECNICA COMPLETA - PICKFAIR DUTCHING AVANZATO
+Versione: v3.66-toolbar
+Timestamp: 2026-01-01 15:53:54
+============================================================
+
+RIASSUNTO RAPIDO TEST CRITICI:
+----------------------------------------
+  [OK] Dutching BACK Uniform Profit
+  [OK] Dutching LAY Liabilities
+  [!!] Mixed BACK+LAY Balance
+  [!!] Target Profit
+  [OK] Simulation Mode
+  [OK] Dry Run Preview
+  [OK] Auto-Green Simulation
+  [OK] P&L Preview BACK
+  [OK] Toolbar Toggles
+  [OK] LiveMiniLadder Refresh
+  [OK] Book % Warning
+  [OK] Preset Stake Buttons
+  [OK] Edge Case Empty
+  [OK] Commission Italian
+  [OK] Controller Integration
+
+============================================================
+RISULTATI GLOBALI:
+----------------------------------------
+  Totale test eseguiti: 72
+  Test superati:        65
+  Test falliti:         0
+  Errori:               7
+  Skipped:              0
+============================================================
+
+DETTAGLIO ERRORI:
+----------------------------------------
+  - test_auto_green_matched_orders (tests.test_dutching_advanced.TestAutoGreenSimulation.test_auto_green_matched_orders)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 185, in test_auto_green_matched_orders
+        result = dynamic_cashout_single(
+                 ^^^^^^^^^^^^^^^^^^^^^^^
+    TypeError: dynamic_cashout_single() got an unexpected keyword argument 'current_price'
+
+  - test_auto_green_partial_fill (tests.test_dutching_advanced.TestAutoGreenSimulation.test_auto_green_partial_fill)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 195, in test_auto_green_partial_fill
+        result = dynamic_cashout_single(
+                 ^^^^^^^^^^^^^^^^^^^^^^^
+    TypeError: dynamic_cashout_single() got an unexpected keyword argument 'current_price'
+
+  - test_target_profit_reached (tests.test_dutching_advanced.TestBackTargetProfit.test_target_profit_reached)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 98, in test_target_profit_reached
+        profits = [r['profitIfWins'] for r in results]
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 98, in <listcomp>
+
+  - test_cashout_returns_dict (tests.test_dutching_advanced.TestDynamicCashout.test_cashout_returns_dict)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 171, in test_cashout_returns_dict
+        result = dynamic_cashout_single(
+                 ^^^^^^^^^^^^^^^^^^^^^^^
+    TypeError: dynamic_cashout_single() got an unexpected keyword argument 'current_price'
+
+  - test_cashout_single_back (tests.test_dutching_advanced.TestDynamicCashout.test_cashout_single_back)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 161, in test_cashout_single_back
+        result = dynamic_cashout_single(
+                 ^^^^^^^^^^^^^^^^^^^^^^^
+    TypeError: dynamic_cashout_single() got an unexpected keyword argument 'current_price'
+
+  - test_mixed_sides_assigned (tests.test_dutching_advanced.TestMixedDutching.test_mixed_sides_assigned)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 152, in test_mixed_sides_assigned
+        sides = [r.get('side', 'BACK') for r in results]
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 152, in <listcomp>
+
+  - test_mixed_uniform_profit (tests.test_dutching_advanced.TestMixedDutching.test_mixed_uniform_profit)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 144, in test_mixed_uniform_profit
+        profits = [r['profitIfWins'] for r in results]
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 144, in <listcomp>
+
+============================================================
+AREE TESTATE:
+----------------------------------------
+  [x] Core Dutching (BACK/LAY/Mixed/Target Profit)
+  [x] UI Components (Toolbar/MiniLadder/LiveMiniLadder)
+  [x] Simulation Mode (Broker/Controller/DryRun)
+  [x] Auto-Green Engine
+  [x] P&L Engine (Preview/Commissioni)
+  [x] Book % Optimizer
+  [x] Preset Stake Buttons
+  [x] Edge Cases (Empty/MinStake/HighPrice)
+  [x] Threading & Debounce
+  [x] Controller Integration
+============================================================
+
+VERDETTO FINALE: FAIL
+

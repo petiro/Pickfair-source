@@ -1,0 +1,81 @@
+============================================================
+REVISIONE TECNICA COMPLETA - PICKFAIR DUTCHING AVANZATO
+Versione: v3.66-toolbar
+Timestamp: 2026-01-01 15:50:17
+============================================================
+
+RIASSUNTO RAPIDO TEST CRITICI:
+----------------------------------------
+  [OK] Dutching BACK Uniform Profit
+  [OK] Dutching LAY Liabilities
+  [OK] Mixed BACK+LAY Balance
+  [OK] Target Profit
+  [OK] Simulation Mode
+  [OK] Dry Run Preview
+  [OK] Auto-Green Simulation
+  [OK] P&L Preview BACK
+  [OK] Toolbar Toggles
+  [OK] LiveMiniLadder Refresh
+  [OK] Book % Warning
+  [OK] Preset Stake Buttons
+  [OK] Edge Case Empty
+  [OK] Commission Italian
+  [OK] Controller Integration
+
+============================================================
+RISULTATI GLOBALI:
+----------------------------------------
+  Totale test eseguiti: 41
+  Test superati:        37
+  Test falliti:         0
+  Errori:               4
+  Skipped:              0
+============================================================
+
+DETTAGLIO ERRORI:
+----------------------------------------
+  - test_partial_fill_tracked (tests.test_simulation_mode.TestPartialFillSimulation.test_partial_fill_tracked)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_simulation_mode.py", line 221, in test_partial_fill_tracked
+        broker.place_orders(
+        ^^^^^^^^^^^^^^^^^^^
+    AttributeError: 'SimulationBroker' object has no attribute 'place_orders'
+
+  - test_broker_balance_deducted (tests.test_simulation_mode.TestSimulationBroker.test_broker_balance_deducted)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_simulation_mode.py", line 70, in test_broker_balance_deducted
+        broker.place_orders(
+        ^^^^^^^^^^^^^^^^^^^
+    AttributeError: 'SimulationBroker' object has no attribute 'place_orders'
+
+  - test_broker_place_order (tests.test_simulation_mode.TestSimulationBroker.test_broker_place_order)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_simulation_mode.py", line 42, in test_broker_place_order
+        result = broker.place_orders(
+                 ^^^^^^^^^^^^^^^^^^^
+    AttributeError: 'SimulationBroker' object has no attribute 'place_orders'
+
+  - test_broker_tracks_orders (tests.test_simulation_mode.TestSimulationBroker.test_broker_tracks_orders)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_simulation_mode.py", line 56, in test_broker_tracks_orders
+        broker.place_orders(
+        ^^^^^^^^^^^^^^^^^^^
+    AttributeError: 'SimulationBroker' object has no attribute 'place_orders'
+
+============================================================
+AREE TESTATE:
+----------------------------------------
+  [x] Core Dutching (BACK/LAY/Mixed/Target Profit)
+  [x] UI Components (Toolbar/MiniLadder/LiveMiniLadder)
+  [x] Simulation Mode (Broker/Controller/DryRun)
+  [x] Auto-Green Engine
+  [x] P&L Engine (Preview/Commissioni)
+  [x] Book % Optimizer
+  [x] Preset Stake Buttons
+  [x] Edge Cases (Empty/MinStake/HighPrice)
+  [x] Threading & Debounce
+  [x] Controller Integration
+============================================================
+
+VERDETTO FINALE: FAIL
+

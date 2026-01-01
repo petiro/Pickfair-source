@@ -1,0 +1,60 @@
+============================================================
+REVISIONE TECNICA COMPLETA - PICKFAIR DUTCHING AVANZATO
+Versione: v3.66-toolbar
+Timestamp: 2026-01-01 15:50:56
+============================================================
+
+RIASSUNTO RAPIDO TEST CRITICI:
+----------------------------------------
+  [OK] Dutching BACK Uniform Profit
+  [OK] Dutching LAY Liabilities
+  [OK] Mixed BACK+LAY Balance
+  [OK] Target Profit
+  [OK] Simulation Mode
+  [OK] Dry Run Preview
+  [OK] Auto-Green Simulation
+  [OK] P&L Preview BACK
+  [OK] Toolbar Toggles
+  [OK] LiveMiniLadder Refresh
+  [OK] Book % Warning
+  [OK] Preset Stake Buttons
+  [OK] Edge Case Empty
+  [OK] Commission Italian
+  [OK] Controller Integration
+
+============================================================
+RISULTATI GLOBALI:
+----------------------------------------
+  Totale test eseguiti: 41
+  Test superati:        40
+  Test falliti:         0
+  Errori:               1
+  Skipped:              0
+============================================================
+
+DETTAGLIO ERRORI:
+----------------------------------------
+  - test_partial_fill_tracked (tests.test_simulation_mode.TestPartialFillSimulation.test_partial_fill_tracked)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_simulation_mode.py", line 224, in test_partial_fill_tracked
+        order = broker.orders[0]
+                ~~~~~~~~~~~~~^^^
+    KeyError: 0
+
+============================================================
+AREE TESTATE:
+----------------------------------------
+  [x] Core Dutching (BACK/LAY/Mixed/Target Profit)
+  [x] UI Components (Toolbar/MiniLadder/LiveMiniLadder)
+  [x] Simulation Mode (Broker/Controller/DryRun)
+  [x] Auto-Green Engine
+  [x] P&L Engine (Preview/Commissioni)
+  [x] Book % Optimizer
+  [x] Preset Stake Buttons
+  [x] Edge Cases (Empty/MinStake/HighPrice)
+  [x] Threading & Debounce
+  [x] Controller Integration
+============================================================
+
+VERDETTO FINALE: FAIL
+

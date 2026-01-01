@@ -1,0 +1,74 @@
+============================================================
+REVISIONE TECNICA COMPLETA - PICKFAIR DUTCHING AVANZATO
+Versione: v3.66-toolbar
+Timestamp: 2026-01-01 15:55:23
+============================================================
+
+RIASSUNTO RAPIDO TEST CRITICI:
+----------------------------------------
+  [OK] Dutching BACK Uniform Profit
+  [OK] Dutching LAY Liabilities
+  [OK] Mixed BACK+LAY Balance
+  [OK] Target Profit
+  [OK] Simulation Mode
+  [OK] Dry Run Preview
+  [OK] Auto-Green Simulation
+  [OK] P&L Preview BACK
+  [OK] Toolbar Toggles
+  [OK] LiveMiniLadder Refresh
+  [OK] Book % Warning
+  [OK] Preset Stake Buttons
+  [OK] Edge Case Empty
+  [OK] Commission Italian
+  [OK] Controller Integration
+
+============================================================
+RISULTATI GLOBALI:
+----------------------------------------
+  Totale test eseguiti: 72
+  Test superati:        69
+  Test falliti:         3
+  Errori:               0
+  Skipped:              0
+============================================================
+
+DETTAGLIO FALLIMENTI:
+----------------------------------------
+  - test_auto_green_matched_orders (tests.test_dutching_advanced.TestAutoGreenSimulation.test_auto_green_matched_orders)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 190, in test_auto_green_matched_orders
+        self.assertIn('green_stake', result)
+    AssertionError: 'green_stake' not found in {'lay_stake': 22.86, 'gross_profit': 2.86, 'net_profit': 2.73, 'profit_if_wins': 2.86, 'profit_if_loses': 2.86}
+    
+
+  - test_auto_green_partial_fill (tests.test_dutching_advanced.TestAutoGreenSimulation.test_auto_green_partial_fill)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 200, in test_auto_green_partial_fill
+        self.assertIn('green_stake', result)
+    AssertionError: 'green_stake' not found in {'lay_stake': 10.91, 'gross_profit': 0.91, 'net_profit': 0.87, 'profit_if_wins': 0.91, 'profit_if_loses': 0.91}
+    
+
+  - test_cashout_single_back (tests.test_dutching_advanced.TestDynamicCashout.test_cashout_single_back)
+    Traceback (most recent call last):
+      File "/home/runner/workspace/tests/test_dutching_advanced.py", line 166, in test_cashout_single_back
+        self.assertIn('green_stake', result)
+    AssertionError: 'green_stake' not found in {'lay_stake': 21.33, 'gross_profit': 1.33, 'net_profit': 1.27, 'profit_if_wins': 1.33, 'profit_if_loses': 1.33}
+    
+
+============================================================
+AREE TESTATE:
+----------------------------------------
+  [x] Core Dutching (BACK/LAY/Mixed/Target Profit)
+  [x] UI Components (Toolbar/MiniLadder/LiveMiniLadder)
+  [x] Simulation Mode (Broker/Controller/DryRun)
+  [x] Auto-Green Engine
+  [x] P&L Engine (Preview/Commissioni)
+  [x] Book % Optimizer
+  [x] Preset Stake Buttons
+  [x] Edge Cases (Empty/MinStake/HighPrice)
+  [x] Threading & Debounce
+  [x] Controller Integration
+============================================================
+
+VERDETTO FINALE: FAIL
+
