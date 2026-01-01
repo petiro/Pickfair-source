@@ -45,6 +45,9 @@ Key features include:
   - Thread-safe debounce for action buttons (Cancel 1.0s, Replace 0.5s, Green 2.0s)
   - Price fallback system using tick_storage when market data unavailable
   - Green-up works independently of UI market selection
+  - Simulation Broker for testing strategies without real money
+  - Book Optimizer for automatic stake redistribution when book > 105%
+  - Tick Replay Engine for backtesting with historical data
 
 ### System Design Choices
 - **Data Storage**: Uses an SQLite database (`pickfair.db`) for application data, Telegram session files, plugin data (JSON configs), and license keys, all stored within `%APPDATA%\Pickfair`.
