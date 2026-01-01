@@ -585,9 +585,36 @@ class DutchingConfirmationWindow:
         footer_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8)
         footer_frame.pack(fill=tk.X)
         
+        # Riga 0: Preset stake + P&L preview
+        preset_frame = ctk.CTkFrame(footer_frame, fg_color="transparent")
+        preset_frame.pack(fill=tk.X, padx=15, pady=(10, 5))
+        
+        # Preset stake buttons (25%, 50%, 100%)
+        preset_label = ctk.CTkLabel(preset_frame, text="Stake:",
+                                   text_color=COLORS['text_secondary'], font=FONTS['small'])
+        preset_label.pack(side=tk.LEFT, padx=(0, 5))
+        
+        for pct in (25, 50, 100):
+            btn = ctk.CTkButton(
+                preset_frame, text=f"{pct}%",
+                command=lambda p=pct: self._set_stake_percent(p),
+                fg_color=COLORS['button_secondary'],
+                hover_color=COLORS['bg_hover'],
+                width=50, height=28
+            )
+            btn.pack(side=tk.LEFT, padx=2)
+        
+        # P&L Preview (Net + Worst case)
+        self.pnl_preview_label = ctk.CTkLabel(
+            preset_frame, text="Net P&L: €0.00 | Worst: €0.00",
+            font=FONTS['mono'],
+            text_color=COLORS['profit']
+        )
+        self.pnl_preview_label.pack(side=tk.RIGHT)
+        
         # Riga 1: Controlli
         controls_frame = ctk.CTkFrame(footer_frame, fg_color="transparent")
-        controls_frame.pack(fill=tk.X, padx=15, pady=10)
+        controls_frame.pack(fill=tk.X, padx=15, pady=5)
         
         # Live Odds checkbox
         live_check = ctk.CTkCheckBox(
@@ -597,7 +624,18 @@ class DutchingConfirmationWindow:
             fg_color=COLORS['back'],
             hover_color=COLORS['back_hover']
         )
-        live_check.pack(side=tk.LEFT, padx=(0, 20))
+        live_check.pack(side=tk.LEFT, padx=(0, 15))
+        
+        # Auto-remove suspended checkbox
+        self._auto_remove_var = tk.BooleanVar(value=True)
+        auto_remove = ctk.CTkCheckBox(
+            controls_frame, text="Auto-remove suspended",
+            variable=self._auto_remove_var,
+            text_color=COLORS['text_primary'],
+            fg_color=COLORS['warning'],
+            hover_color=COLORS['warning']
+        )
+        auto_remove.pack(side=tk.LEFT, padx=(0, 15))
         
         # Global Offset
         offset_label = ctk.CTkLabel(controls_frame, text="Global Offset:",
@@ -606,12 +644,12 @@ class DutchingConfirmationWindow:
         
         offset_entry = ctk.CTkEntry(
             controls_frame, textvariable=self._global_offset_var,
-            width=60, font=FONTS['small'],
+            width=50, font=FONTS['small'],
             fg_color=COLORS['bg_surface'],
             text_color=COLORS['text_primary'],
             justify="center"
         )
-        offset_entry.pack(side=tk.LEFT, padx=(0, 20))
+        offset_entry.pack(side=tk.LEFT, padx=(0, 15))
         offset_entry.bind('<Return>', self._on_global_offset_change)
         
         # Swap All checkbox
@@ -623,7 +661,7 @@ class DutchingConfirmationWindow:
             fg_color=COLORS['lay'],
             hover_color=COLORS['lay_hover']
         )
-        swap_all.pack(side=tk.LEFT, padx=(0, 20))
+        swap_all.pack(side=tk.LEFT, padx=(0, 15))
         
         # Total label
         self.total_label = ctk.CTkLabel(
@@ -908,10 +946,142 @@ class DutchingConfirmationWindow:
             odds_color = COLORS['lay'] if runner.swap else COLORS['back']
             widgets['odds_entry'].configure(text_color=odds_color)
     
+    def _set_stake_percent(self, percent: int):
+        """Imposta stake come percentuale dello stake corrente."""
+        try:
+            current = float(self._stake_var.get())
+        except ValueError:
+            current = 100.0
+        
+        # Usa lo stake base (100) se non impostato
+        base_stake = 100.0 if current < 10 else current
+        new_stake = base_stake * percent / 100
+        self._stake_var.set(f"{new_stake:.2f}")
+        self._mode_var.set("stake")
+        self._recalculate()
+    
+    def _find_best_odds(self):
+        """Trova runner con migliore quota (BACK=max, LAY=min)."""
+        best_back = None
+        best_lay = None
+        
+        # Cerca tra tutti i runner inclusi
+        for runner in self.state.runners:
+            if not runner.included:
+                continue
+            if runner.effective_type == 'BACK':
+                if best_back is None or runner.effective_odds > best_back.effective_odds:
+                    best_back = runner
+            else:  # LAY
+                if best_lay is None or runner.effective_odds < best_lay.effective_odds:
+                    best_lay = runner
+        
+        return best_back, best_lay
+    
+    def _highlight_best_odds(self):
+        """Evidenzia runner con migliore quota."""
+        if self._mixed_mode_var.get():
+            # In modalità mixed non evidenziamo (troppo complesso)
+            return
+        
+        best_back, best_lay = self._find_best_odds()
+        
+        for runner in self.state.runners:
+            sel_id = runner.selection_id
+            if sel_id not in self._runner_widgets:
+                continue
+            
+            widgets = self._runner_widgets[sel_id]
+            
+            # Verifica se è il migliore
+            is_best = (runner == best_back or runner == best_lay)
+            
+            # Applica highlight solo se odds_entry esiste (modalità normale)
+            if 'odds_entry' in widgets:
+                try:
+                    if is_best and runner.included:
+                        widgets['odds_entry'].configure(border_color=COLORS['profit'], border_width=2)
+                    else:
+                        widgets['odds_entry'].configure(border_color=COLORS['border'], border_width=1)
+                except Exception:
+                    pass  # Widget potrebbe non esistere più
+    
+    def _update_pnl_preview(self):
+        """Aggiorna preview P&L netto e worst case."""
+        included = self.state.included_runners
+        total_stake = self.state.get_total_stake()
+        
+        if not included or total_stake <= 0:
+            self.pnl_preview_label.configure(
+                text="Net P&L: €0.00 | Worst: -€0.00",
+                text_color=COLORS['text_secondary']
+            )
+            return
+        
+        # Profitti per ogni scenario (se quel runner vince)
+        profits = [r.profit_if_wins for r in included if r.stake > 0]
+        
+        if not profits:
+            self.pnl_preview_label.configure(
+                text="Net P&L: €0.00 | Worst: -€0.00",
+                text_color=COLORS['text_secondary']
+            )
+            return
+        
+        # Profitto garantito = minimo tra tutti i profitti (dutching uniforme)
+        guaranteed_profit = min(profits)
+        
+        # Worst case = se nessuna vince (perdi tutto lo stake)
+        worst_case = -total_stake
+        
+        # Colore basato sul profitto garantito
+        if guaranteed_profit > 0:
+            color = COLORS['profit']
+            pnl_text = f"+€{guaranteed_profit:.2f}"
+        elif guaranteed_profit >= 0:
+            color = COLORS['text_primary']
+            pnl_text = f"€{guaranteed_profit:.2f}"
+        else:
+            color = COLORS['loss']
+            pnl_text = f"-€{abs(guaranteed_profit):.2f}"
+        
+        self.pnl_preview_label.configure(
+            text=f"Guaranteed: {pnl_text} | Loss: -€{total_stake:.2f}",
+            text_color=color
+        )
+    
     def _update_totals(self, total_stake: float, book_value: float):
-        """Aggiorna totali footer."""
+        """Aggiorna totali footer con warning book > 105%."""
         self.total_label.configure(text=f"Total: €{total_stake:.2f}")
-        self.book_label.configure(text=f"Book Value: {book_value:.1f}%")
+        
+        # Verifica selezioni minime
+        included_count = len(self.state.included_runners)
+        has_valid_selections = included_count >= 2 and total_stake >= 2.0
+        
+        # Warning book value
+        if book_value > 110:
+            book_text = f"Book: {book_value:.1f}%"
+            book_color = COLORS['loss']
+            can_submit = False
+        elif book_value > 105:
+            book_text = f"Book: {book_value:.1f}%"
+            book_color = COLORS['warning']
+            can_submit = has_valid_selections
+        elif book_value > 0:
+            book_text = f"Book: {book_value:.1f}%"
+            book_color = COLORS['profit'] if book_value < 100 else COLORS['text_primary']
+            can_submit = has_valid_selections
+        else:
+            book_text = "Book: --%"
+            book_color = COLORS['text_tertiary']
+            can_submit = False
+        
+        self.book_label.configure(text=book_text, text_color=book_color)
+        self.submit_btn.configure(state=tk.NORMAL if can_submit else tk.DISABLED)
+        
+        # Aggiorna highlight e P&L preview
+        self._highlight_best_odds()
+        self._update_pnl_preview()
 
 
 def open_dutching_window(parent, market_data: Dict, runners: List[Dict],
