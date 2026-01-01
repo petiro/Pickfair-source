@@ -18,6 +18,7 @@ from telegram_listener import TelegramListener, SignalQueue
 from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
 from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_theme
 from plugin_manager import PluginManager, PluginAPI, PluginInfo
+from dutching_ui import open_dutching_window
 
 APP_NAME = "Pickfair"
 APP_VERSION = "3.19.1"
@@ -560,6 +561,11 @@ class PickfairApp:
         ctk.CTkButton(btn_frame, text="Cancella Selezioni", command=self._clear_selections,
                       fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
                       corner_radius=6).pack(side=tk.LEFT)
+        
+        ctk.CTkButton(btn_frame, text="Dutching Pro", command=self._open_dutching_window,
+                      fg_color=COLORS['info'], hover_color=COLORS['info_hover'],
+                      corner_radius=6, width=100).pack(side=tk.LEFT, padx=10)
+        
         self.place_btn = ctk.CTkButton(btn_frame, text="Piazza Scommesse", command=self._place_bets, 
                                        state=tk.DISABLED,
                                        fg_color=COLORS['button_success'], hover_color='#4caf50',
@@ -1876,6 +1882,115 @@ class PickfairApp:
             self.place_btn.configure(state=tk.DISABLED)
         
         self.selections_text.configure(state=tk.DISABLED)
+    
+    def _open_dutching_window(self):
+        """Open advanced Dutching Confirmation window."""
+        if not self.current_market:
+            messagebox.showwarning("Attenzione", "Seleziona prima un mercato.")
+            return
+        
+        if not self.client:
+            messagebox.showwarning("Attenzione", "Connettiti prima a Betfair.")
+            return
+        
+        market_id = self.current_market['marketId']
+        market_name = self.current_market.get('marketName', '')
+        event_name = self.current_event.get('name', '') if self.current_event else ''
+        start_time = self.current_event.get('openDate', '')[:16] if self.current_event else ''
+        status = self.market_status
+        
+        runners = []
+        for item in self.runners_tree.get_children():
+            values = self.runners_tree.item(item, 'values')
+            sel_id = self.runners_tree.item(item, 'tags')[0] if self.runners_tree.item(item, 'tags') else None
+            
+            if sel_id:
+                try:
+                    back_price = float(values[2]) if values[2] else 0
+                except (ValueError, IndexError):
+                    back_price = 0
+                
+                runners.append({
+                    'selectionId': int(sel_id),
+                    'runnerName': values[1] if len(values) > 1 else '',
+                    'price': back_price
+                })
+        
+        if not runners:
+            messagebox.showwarning("Attenzione", "Nessun runner disponibile.")
+            return
+        
+        market_data = {
+            'marketId': market_id,
+            'marketName': market_name,
+            'eventName': event_name,
+            'startTime': start_time,
+            'status': status
+        }
+        
+        def on_submit(orders):
+            self._place_dutching_orders(orders)
+        
+        def on_refresh():
+            self._refresh_market_prices()
+        
+        open_dutching_window(
+            parent=self.root,
+            market_data=market_data,
+            runners=runners,
+            on_submit=on_submit,
+            on_refresh=on_refresh
+        )
+    
+    def _place_dutching_orders(self, orders):
+        """Place orders from Dutching Confirmation window."""
+        if not orders:
+            return
+        
+        if not self.current_market or not self.client:
+            messagebox.showerror("Errore", "Connessione o mercato non disponibile.")
+            return
+        
+        market_id = self.current_market['marketId']
+        
+        if self.simulation_mode:
+            for order in orders:
+                self.db.add_simulated_bet(
+                    market_id=market_id,
+                    selection_id=order['selectionId'],
+                    runner_name=order['runnerName'],
+                    side=order['side'],
+                    price=order['price'],
+                    stake=order['size']
+                )
+            messagebox.showinfo("Simulazione", f"Piazzati {len(orders)} ordini simulati.")
+            return
+        
+        try:
+            instructions = []
+            for order in orders:
+                instructions.append({
+                    'selectionId': order['selectionId'],
+                    'side': order['side'],
+                    'orderType': 'LIMIT',
+                    'limitOrder': {
+                        'size': round(order['size'], 2),
+                        'price': order['price'],
+                        'persistenceType': 'LAPSE'
+                    }
+                })
+            
+            result = self.client.place_orders(market_id, instructions)
+            
+            if result and result.get('status') == 'SUCCESS':
+                messagebox.showinfo("Successo", f"Piazzati {len(orders)} ordini Dutching.")
+                self._refresh_data()
+            else:
+                error_msg = result.get('errorCode', 'Errore sconosciuto') if result else 'Nessuna risposta'
+                messagebox.showerror("Errore", f"Errore piazzamento: {error_msg}")
+                
+        except Exception as e:
+            messagebox.showerror("Errore", f"Errore: {str(e)}")
     
     def _place_bets(self):
         """Place the calculated bets (real or simulated)."""
