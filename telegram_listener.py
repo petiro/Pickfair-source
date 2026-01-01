@@ -56,6 +56,8 @@ class TelegramListener:
             'over': r'\b(over|sopra)\s*(\d+[.,]?\d*)',
             'under': r'\b(under|sotto)\s*(\d+[.,]?\d*)',
             'next_goal': r'NEXT\s*GOL|PROSSIMO\s*GOL',
+            'cashout': r'\b(COPY\s*CASHOUT|cashout|CASHOUT)\b',
+            'cashout_all': r'\b(CASHOUT\s*ALL|CASHOUT\s*TUTTO|CHIUDI\s*TUTTO)\b',
             'ignore_patterns': [r'📈Quota\s*\d+[.,]?\d*', r'📊\d+[.,]?\d+%'],
         }
     
@@ -97,7 +99,21 @@ class TelegramListener:
             'score_away': None,
             'over_line': None,
             'minute': None,
+            'cashout_type': None,
         }
+        
+        if re.search(self.signal_patterns['cashout_all'], text, re.IGNORECASE):
+            signal['market_type'] = 'CASHOUT'
+            signal['cashout_type'] = 'ALL'
+            return signal
+        
+        if re.search(self.signal_patterns['cashout'], text, re.IGNORECASE):
+            signal['market_type'] = 'CASHOUT'
+            signal['cashout_type'] = 'SINGLE'
+            event_match = re.search(self.signal_patterns['event'], text)
+            if event_match:
+                signal['event'] = event_match.group(1).strip()
+            return signal
         
         event_match = re.search(self.signal_patterns['event'], text)
         if event_match:
