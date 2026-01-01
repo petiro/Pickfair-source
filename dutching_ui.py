@@ -908,10 +908,25 @@ class DutchingConfirmationWindow:
         
         # Conferma
         total = sum(o['size'] for o in orders)
-        msg = f"Piazzare {len(orders)} ordini per totale €{total:.2f}?"
+        auto_green = self._auto_green_var.get()
+        sim_mode = self._simulation_var.get()
+        
+        mode_text = " [SIM]" if sim_mode else ""
+        green_text = " + Auto-Green" if auto_green else ""
+        msg = f"Piazzare {len(orders)} ordini per totale €{total:.2f}{mode_text}{green_text}?"
         
         if messagebox.askyesno("Conferma", msg, parent=self.window):
+            # Aggiungi metadata agli ordini
+            for order in orders:
+                order['auto_green'] = auto_green
+                order['simulation'] = sim_mode
+                order['market_id'] = self.state.market_id
+            
             self.on_submit(orders)
+            
+            if auto_green:
+                print(f"[Dutching] Auto-Green attivo - monitoring P&L per green-up automatico")
+            
             self.window.destroy()
     
     def _on_state_change(self):
@@ -988,6 +1003,8 @@ class DutchingConfirmationWindow:
             # Aggiorna UI
             self._update_runner_display()
             self._update_totals(self.state.get_total_stake(), book)
+            self._highlight_best_odds()
+            self._update_pnl_preview()
             
         except Exception as e:
             print(f"[Dutching] Errore calcolo: {e}")
@@ -995,6 +1012,8 @@ class DutchingConfirmationWindow:
     
     def _update_runner_display(self):
         """Aggiorna display righe runner."""
+        ai_mode_active = self._ai_mode_var.get()
+        
         for runner in self.state.runners:
             sel_id = runner.selection_id
             
@@ -1020,9 +1039,16 @@ class DutchingConfirmationWindow:
             
             widgets['profit_label'].configure(text=profit_text, text_color=profit_color)
             
-            # Nome colore
-            name_color = COLORS['text_primary'] if runner.included else COLORS['text_tertiary']
-            widgets['name_label'].configure(text_color=name_color)
+            # Nome con badge AI se attivo
+            if ai_mode_active and runner.included:
+                side_badge = "[LAY]" if runner.swap else "[BACK]"
+                name_display = f"{runner.runner_name} {side_badge}"
+                name_color = COLORS['lay'] if runner.swap else COLORS['back']
+            else:
+                name_display = runner.runner_name
+                name_color = COLORS['text_primary'] if runner.included else COLORS['text_tertiary']
+            
+            widgets['name_label'].configure(text=name_display, text_color=name_color)
             
             # Odds colore
             odds_color = COLORS['lay'] if runner.swap else COLORS['back']
@@ -1061,11 +1087,8 @@ class DutchingConfirmationWindow:
         return best_back, best_lay
     
     def _highlight_best_odds(self):
-        """Evidenzia runner con migliore quota."""
-        if self._mixed_mode_var.get():
-            # In modalità mixed non evidenziamo (troppo complesso)
-            return
-        
+        """Evidenzia runner con migliore quota (funziona anche con AI mode)."""
+        # Trova migliori quote tra runner inclusi
         best_back, best_lay = self._find_best_odds()
         
         for runner in self.state.runners:
@@ -1078,7 +1101,7 @@ class DutchingConfirmationWindow:
             # Verifica se è il migliore
             is_best = (runner == best_back or runner == best_lay)
             
-            # Applica highlight solo se odds_entry esiste (modalità normale)
+            # Applica highlight solo se odds_entry esiste (modalità normale e AI)
             if 'odds_entry' in widgets:
                 try:
                     if is_best and runner.included:

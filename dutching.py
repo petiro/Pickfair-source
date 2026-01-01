@@ -448,7 +448,21 @@ def calculate_ai_mixed_stakes(
     back_count = sum(1 for s in ai_selections if s['effectiveType'] == 'BACK')
     lay_count = n - back_count
     
-    # Se tutti BACK o tutti LAY, usa calcolo standard
+    # Forza mixed: se tutti BACK, converti il runner con minore probabilità a LAY
+    if lay_count == 0 and n > 1:
+        min_prob_idx = impl_probs.index(min(impl_probs))
+        ai_selections[min_prob_idx]['effectiveType'] = 'LAY'
+        back_count -= 1
+        lay_count = 1
+    
+    # Forza mixed: se tutti LAY, converti il runner con maggiore probabilità a BACK
+    if back_count == 0 and n > 1:
+        max_prob_idx = impl_probs.index(max(impl_probs))
+        ai_selections[max_prob_idx]['effectiveType'] = 'BACK'
+        back_count = 1
+        lay_count -= 1
+    
+    # Se ancora tutti BACK o tutti LAY (singolo runner), usa calcolo standard
     if lay_count == 0:
         results, profit, book = _calculate_back_dutching(valid_selections, total_stake, commission)
         for r in results:
@@ -497,16 +511,39 @@ def calculate_ai_mixed_stakes(
         profit = solution[n]
         
         if np.any(stakes < 0):
-            raise ValueError("Combinazione AI non risolvibile - stakes negativi")
+            # Fallback a pure BACK dutching se mixed non funziona
+            results, profit, book = _calculate_back_dutching(valid_selections, total_stake, commission)
+            for r in results:
+                r['effectiveType'] = 'BACK'
+                r['aiSelected'] = True
+                r['aiFallback'] = True
+            return results, profit, book
         
     except np.linalg.LinAlgError:
-        raise ValueError("Sistema AI non risolvibile")
+        # Fallback a pure BACK dutching se sistema non risolvibile
+        results, profit, book = _calculate_back_dutching(valid_selections, total_stake, commission)
+        for r in results:
+            r['effectiveType'] = 'BACK'
+            r['aiSelected'] = True
+            r['aiFallback'] = True
+        return results, profit, book
     
-    # Applica min_stake e ricalcola iterativamente
+    # Applica min_stake e normalizza se necessario
     final_stakes = []
     for i in range(n):
         s = max(stakes[i], min_stake)
-        final_stakes.append(round(s, 2))
+        final_stakes.append(s)
+    
+    # Normalizza se la somma supera il budget
+    total_calculated = sum(final_stakes)
+    if total_calculated > total_stake * 1.1:  # Tolleranza 10% per rounding
+        # Scala proporzionalmente mantenendo min_stake
+        scale_factor = total_stake / total_calculated
+        for i in range(n):
+            final_stakes[i] = max(min_stake, final_stakes[i] * scale_factor)
+    
+    # Arrotonda dopo normalizzazione
+    final_stakes = [round(s, 2) for s in final_stakes]
     
     commission_mult = 1 - (commission / 100.0)
     
@@ -554,3 +591,59 @@ def calculate_ai_mixed_stakes(
     book_pct = total_impl * 100
     
     return results, round(avg_profit, 2), round(book_pct, 2)
+
+
+def dynamic_cashout_single(
+    back_stake: float,
+    back_price: float,
+    lay_price: float,
+    commission: float = 4.5
+) -> Dict:
+    """
+    Cashout Dinamico Singolo - Formula semplificata per singola posizione BACK.
+    
+    Calcola lo stake LAY necessario per chiudere la posizione
+    con profitto netto uniforme (green-up).
+    
+    Formula:
+        lay_stake = (back_stake * back_price) / lay_price
+        profit_win = back_stake * (back_price - 1) - lay_stake * (lay_price - 1)
+        profit_lose = lay_stake - back_stake
+        net_profit = min(profit_win, profit_lose) * (1 - commission)
+    
+    Args:
+        back_stake: Stake della scommessa BACK originale
+        back_price: Quota BACK originale
+        lay_price: Quota LAY live attuale
+        commission: Commissione Betfair (default 4.5%)
+    
+    Returns:
+        Dict con lay_stake e net_profit
+    """
+    commission_mult = 1 - (commission / 100.0)
+    
+    if lay_price <= 1:
+        return {'lay_stake': 0, 'net_profit': 0, 'error': 'Quota LAY non valida'}
+    
+    # Formula: lay_stake = (back_stake * back_price) / lay_price
+    lay_stake = (back_stake * back_price) / lay_price
+    
+    # Profitto se VINCE: guadagno dal BACK - liability del LAY
+    profit_win = back_stake * (back_price - 1) - lay_stake * (lay_price - 1)
+    
+    # Profitto se PERDE: guadagno dal LAY - stake BACK perso
+    profit_lose = lay_stake - back_stake
+    
+    # Cashout = profitto garantito (minimo tra i due scenari)
+    gross_profit = min(profit_win, profit_lose)
+    
+    # Applica commissione solo se profitto positivo
+    net_profit = gross_profit * commission_mult if gross_profit > 0 else gross_profit
+    
+    return {
+        'lay_stake': round(lay_stake, 2),
+        'gross_profit': round(gross_profit, 2),
+        'net_profit': round(net_profit, 2),
+        'profit_if_wins': round(profit_win, 2),
+        'profit_if_loses': round(profit_lose, 2)
+    }
