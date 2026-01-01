@@ -17,6 +17,7 @@ from dutching import (
     format_currency,
     MIN_BACK_STAKE
 )
+from trading_config import BOOK_WARNING, BOOK_BLOCK
 
 
 class DutchingConfirmationWindow:
@@ -1058,12 +1059,12 @@ class DutchingConfirmationWindow:
         included_count = len(self.state.included_runners)
         has_valid_selections = included_count >= 2 and total_stake >= 2.0
         
-        # Warning book value
-        if book_value > 110:
+        # Warning book value (usa costanti configurabili)
+        if book_value > BOOK_BLOCK:
             book_text = f"Book: {book_value:.1f}%"
             book_color = COLORS['loss']
             can_submit = False
-        elif book_value > 105:
+        elif book_value > BOOK_WARNING:
             book_text = f"Book: {book_value:.1f}%"
             book_color = COLORS['warning']
             can_submit = has_valid_selections
