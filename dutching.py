@@ -510,23 +510,18 @@ def calculate_ai_mixed_stakes(
         stakes = solution[:n]
         profit = solution[n]
         
-        if np.any(stakes < 0):
-            # Fallback a pure BACK dutching se mixed non funziona
-            results, profit, book = _calculate_back_dutching(valid_selections, total_stake, commission)
-            for r in results:
-                r['effectiveType'] = 'BACK'
-                r['aiSelected'] = True
-                r['aiFallback'] = True
-            return results, profit, book
+        if np.any(stakes < 0) or profit <= 0:
+            # Mixed non risolvibile con queste quote - solleva errore esplicito
+            raise ValueError(
+                "AI Mixed: Combinazione quote non produce profitto positivo. "
+                "Prova a modificare le selezioni o usa dutching standard."
+            )
         
     except np.linalg.LinAlgError:
-        # Fallback a pure BACK dutching se sistema non risolvibile
-        results, profit, book = _calculate_back_dutching(valid_selections, total_stake, commission)
-        for r in results:
-            r['effectiveType'] = 'BACK'
-            r['aiSelected'] = True
-            r['aiFallback'] = True
-        return results, profit, book
+        raise ValueError(
+            "AI Mixed: Sistema di equazioni non risolvibile. "
+            "Prova con selezioni diverse."
+        )
     
     # Applica min_stake e normalizza se necessario
     final_stakes = []
@@ -544,6 +539,14 @@ def calculate_ai_mixed_stakes(
     
     # Arrotonda dopo normalizzazione
     final_stakes = [round(s, 2) for s in final_stakes]
+    
+    # Verifica che la somma non superi il budget
+    final_total = sum(final_stakes)
+    if final_total > total_stake * 1.05:  # Tolleranza 5%
+        raise ValueError(
+            f"AI Mixed: Stake minimo ({min_stake}€) richiede {final_total:.2f}€, "
+            f"ma budget è {total_stake:.2f}€. Aumenta lo stake totale o riduci le selezioni."
+        )
     
     commission_mult = 1 - (commission / 100.0)
     
@@ -588,6 +591,14 @@ def calculate_ai_mixed_stakes(
         })
     
     avg_profit = sum(r['profitIfWins'] for r in results) / len(results) if results else 0
+    
+    # Verifica finale: profitto deve essere positivo dopo tutte le normalizzazioni
+    if avg_profit <= 0:
+        raise ValueError(
+            "AI Mixed: Profitto non garantito dopo applicazione stake minimo. "
+            "Aumenta lo stake totale o modifica le selezioni."
+        )
+    
     book_pct = total_impl * 100
     
     return results, round(avg_profit, 2), round(book_pct, 2)

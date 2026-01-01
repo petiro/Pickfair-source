@@ -27,6 +27,14 @@ Key features include:
   - Book warning at 105% (orange), blocking at 110% (red, disables Submit)
   - P&L preview showing guaranteed profit and worst-case loss
   - Preset stake buttons (25% / 50% / 100%)
+  - **AI Mixed Auto-Entry**: Automatic BACK/LAY classification based on implied probability
+    - Calculates avg_prob = sum(1/price)/n as threshold
+    - Forces mixed positions (at least 1 BACK + 1 LAY) when n>1
+    - Explicit error handling: raises ValueError with Italian messages when allocation fails
+    - Budget protection: validates total stake does not exceed limit after min_stake clamping
+    - Profit verification: ensures avg_profit > 0 after all normalizations
+  - **Auto-Green Toggle**: UI toggle that adds metadata to orders for downstream monitoring
+  - **Simulation Mode Toggle**: Test strategies without real money risk
 - **Real-time Live Betting**: Offers live odds streaming and quick bet placement.
 - **Telegram Integration**: Monitors chats for betting signals, supporting various market types (e.g., Match Odds, Correct Score, Over/Under, BTTS, Asian Handicap) and enabling auto-betting and copy trading (Master/Follower modes).
 - **Cashout Management**: Manual and automatic cashout options.
