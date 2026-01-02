@@ -65,6 +65,22 @@ class TelegramListener:
         """Update signal parsing patterns."""
         self.signal_patterns.update(patterns)
     
+    def set_database(self, db):
+        """Set database reference for loading custom patterns."""
+        self.db = db
+        self.reload_custom_patterns()
+    
+    def reload_custom_patterns(self):
+        """Reload custom patterns from database."""
+        if hasattr(self, 'db') and self.db:
+            try:
+                self.custom_patterns = self.db.get_signal_patterns(enabled_only=True)
+            except Exception as e:
+                print(f"Error loading custom patterns: {e}")
+                self.custom_patterns = []
+        else:
+            self.custom_patterns = []
+    
     def set_monitored_chats(self, chat_ids: List[int]):
         """Set list of chat IDs to monitor."""
         self.monitored_chats = chat_ids
@@ -101,6 +117,24 @@ class TelegramListener:
             'minute': None,
             'cashout_type': None,
         }
+        
+        custom_patterns = getattr(self, 'custom_patterns', [])
+        for cp in custom_patterns:
+            try:
+                pattern = cp.get('pattern', '')
+                if pattern and re.search(pattern, text, re.IGNORECASE):
+                    signal['market_type'] = cp.get('market_type', 'CUSTOM')
+                    signal['side'] = cp.get('bet_side', 'BACK')
+                    signal['selection'] = cp.get('name', 'Custom Pattern')
+                    event_match = re.search(self.signal_patterns['event'], text)
+                    if event_match:
+                        signal['event'] = event_match.group(1).strip()
+                    odds_match = re.search(self.signal_patterns['odds'], text)
+                    if odds_match:
+                        signal['odds'] = float(odds_match.group(1).replace(',', '.'))
+                    return signal
+            except re.error:
+                continue
         
         if re.search(self.signal_patterns['cashout_all'], text, re.IGNORECASE):
             signal['market_type'] = 'CASHOUT'
