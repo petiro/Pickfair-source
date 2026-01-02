@@ -6614,12 +6614,44 @@ class PickfairApp:
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=3, column=1, pady=3, padx=5)
         
         ctk.CTkLabel(form_frame, text="Tipo Mercato:", text_color=COLORS['text_secondary']).grid(row=4, column=0, sticky=tk.W, pady=3)
-        market_types = ['OVER_UNDER_X5', 'OVER_UNDER_05', 'OVER_UNDER_15', 'OVER_UNDER_25', 'OVER_UNDER_35',
-                        'OVER_UNDER_45', 'OVER_UNDER_55', 'BOTH_TEAMS_TO_SCORE', 'OVER_UNDER_15_FH',
-                        'OVER_UNDER_05_FH', 'DOUBLE_CHANCE', 'MATCH_ODDS', 'CORRECT_SCORE', 'ASIAN_HANDICAP',
-                        'DRAW_NO_BET', 'HALF_TIME_FULL_TIME', 'NEXT_GOAL', 'FIRST_GOAL_SCORER',
-                        'ANYTIME_GOALSCORER', 'CORNERS', 'CARDS', 'WINNER', 'SET_BETTING',
-                        'CASHOUT', 'CASHOUT_ALL']
+        market_types = [
+            # Match Winner
+            'MATCH_ODDS', 'MATCH_ODDS_HT', 'DRAW_NO_BET', 'DOUBLE_CHANCE',
+            # Double Chance variants
+            'DOUBLE_CHANCE_HOME_DRAW', 'DOUBLE_CHANCE_DRAW_AWAY', 'DOUBLE_CHANCE_HOME_AWAY',
+            # Half Time
+            'HALF_TIME', 'HALF_TIME_HOME', 'HALF_TIME_DRAW', 'HALF_TIME_AWAY',
+            # Half Time / Full Time
+            'HALF_TIME_FULL_TIME', 'HT_FT_HOME_HOME', 'HT_FT_HOME_DRAW', 'HT_FT_HOME_AWAY',
+            'HT_FT_DRAW_HOME', 'HT_FT_DRAW_DRAW', 'HT_FT_DRAW_AWAY',
+            'HT_FT_AWAY_HOME', 'HT_FT_AWAY_DRAW', 'HT_FT_AWAY_AWAY',
+            # Over/Under Full Time
+            'OVER_UNDER_05', 'OVER_UNDER_15', 'OVER_UNDER_25', 'OVER_UNDER_35',
+            'OVER_UNDER_45', 'OVER_UNDER_55', 'OVER_UNDER_65', 'OVER_UNDER_75', 'OVER_UNDER_85',
+            # Over/Under First Half
+            'OVER_UNDER_05_FH', 'OVER_UNDER_15_FH', 'OVER_UNDER_25_FH',
+            # Both Teams to Score
+            'BOTH_TEAMS_TO_SCORE', 'BTTS_YES', 'BTTS_NO',
+            # Goals
+            'NEXT_GOAL', 'FIRST_GOAL_SCORER', 'ANYTIME_GOALSCORER', 'LAST_GOAL_SCORER',
+            # Correct Score Full Time
+            'CORRECT_SCORE', 'CS_0_0', 'CS_1_0', 'CS_2_0', 'CS_3_0', 'CS_0_1', 'CS_0_2', 'CS_0_3',
+            'CS_1_1', 'CS_2_1', 'CS_2_2', 'CS_3_1', 'CS_3_2', 'CS_1_2', 'CS_1_3',
+            # Correct Score Half Time
+            'HALF_TIME_SCORE', 'HT_CS_0_0', 'HT_CS_1_0', 'HT_CS_2_0', 'HT_CS_0_1', 'HT_CS_0_2',
+            'HT_CS_1_1', 'HT_CS_2_1', 'HT_CS_1_2',
+            # Handicap
+            'ASIAN_HANDICAP', 'HANDICAP_HOME_PLUS1', 'HANDICAP_HOME_PLUS2', 'HANDICAP_HOME_MINUS1',
+            'HANDICAP_AWAY_PLUS1', 'HANDICAP_AWAY_PLUS2', 'HANDICAP_AWAY_MINUS1',
+            # Corners
+            'CORNERS', 'TOTAL_CORNERS', 'CORNERS_OVER_UNDER',
+            # Cards
+            'CARDS', 'TOTAL_CARDS', 'CARDS_OVER_UNDER',
+            # Tennis/Other Sports
+            'WINNER', 'SET_BETTING', 'SET_WINNER', 'GAME_WINNER',
+            # Special
+            'CASHOUT', 'CASHOUT_ALL'
+        ]
         market_var = tk.StringVar(value=existing_pattern.get('market_type', market_types[0]) if existing_pattern else market_types[0])
         market_menu = ctk.CTkOptionMenu(form_frame, variable=market_var, values=market_types,
                                         fg_color=COLORS['bg_card'], button_color=COLORS['button_primary'],
