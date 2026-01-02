@@ -5239,6 +5239,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 session_path=session_path
             )
             
+            self.telegram_listener.set_database(self.db)
+            
             chats = self.db.get_telegram_chats()
             chat_ids = [int(c['chat_id']) for c in chats if c.get('enabled')]
             self.telegram_listener.set_monitored_chats(chat_ids)
