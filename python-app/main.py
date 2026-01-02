@@ -2773,7 +2773,14 @@ class PickfairApp:
         self._populate_events_tree()
     
     def _populate_events_tree(self):
-        """Populate events tree based on current search filter."""
+        """Populate events tree based on current search filter, preserving selection."""
+        # Save current selection and expanded countries before clearing
+        current_selection = self.events_tree.selection()
+        expanded_countries = []
+        for item in self.events_tree.get_children():
+            if item.startswith('country_') and self.events_tree.item(item, 'open'):
+                expanded_countries.append(item)
+        
         self.events_tree.delete(*self.events_tree.get_children())
         search = self.search_var.get().lower()
         
@@ -2797,7 +2804,9 @@ class PickfairApp:
             
             for country in sorted(countries.keys()):
                 country_id = f"country_{country}"
-                self.events_tree.insert('', tk.END, iid=country_id, text=country, open=False)
+                # Restore expanded state
+                was_open = country_id in expanded_countries
+                self.events_tree.insert('', tk.END, iid=country_id, text=country, open=was_open)
                 
                 for event in countries[country]:
                     date_str = self._format_event_date(event)
@@ -2805,6 +2814,15 @@ class PickfairApp:
                         event['name'],
                         date_str
                     ))
+        
+        # Restore selection if it still exists
+        for sel_id in current_selection:
+            try:
+                if self.events_tree.exists(sel_id):
+                    self.events_tree.selection_add(sel_id)
+                    self.events_tree.see(sel_id)
+            except:
+                pass
     
     def _format_event_date(self, event):
         """Format event date for display, with LIVE indicator for in-play events."""
