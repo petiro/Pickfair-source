@@ -8759,34 +8759,23 @@ Evento: {event_name}"""
         bet_frame.pack(fill=tk.X)
         
         back_btn = ctk.CTkButton(bet_frame, text="BACK", fg_color=COLORS['back'], 
-                                 hover_color=COLORS['back_hover'], width=70, corner_radius=6,
+                                 hover_color=COLORS['back_hover'], width=80, corner_radius=6,
                                  command=lambda: [bet_type_var.set('BACK'), update_bet_type_buttons()])
         back_btn.pack(side=tk.LEFT, padx=2)
         
         lay_btn = ctk.CTkButton(bet_frame, text="LAY", fg_color=COLORS['button_secondary'], 
-                                hover_color=COLORS['bg_hover'], width=70, corner_radius=6,
+                                hover_color=COLORS['bg_hover'], width=80, corner_radius=6,
                                 command=lambda: [bet_type_var.set('LAY'), update_bet_type_buttons()])
         lay_btn.pack(side=tk.LEFT, padx=2)
-        
-        mixed_btn = ctk.CTkButton(bet_frame, text="MIXED", fg_color=COLORS['button_secondary'], 
-                                  hover_color=COLORS['bg_hover'], width=70, corner_radius=6,
-                                  command=lambda: [bet_type_var.set('MIXED'), update_bet_type_buttons()])
-        mixed_btn.pack(side=tk.LEFT, padx=2)
         
         def update_bet_type_buttons():
             bet_type = bet_type_var.get()
             if bet_type == 'BACK':
                 back_btn.configure(fg_color=COLORS['back'])
                 lay_btn.configure(fg_color=COLORS['button_secondary'])
-                mixed_btn.configure(fg_color=COLORS['button_secondary'])
-            elif bet_type == 'LAY':
+            else:  # LAY
                 back_btn.configure(fg_color=COLORS['button_secondary'])
                 lay_btn.configure(fg_color=COLORS['lay'])
-                mixed_btn.configure(fg_color=COLORS['button_secondary'])
-            else:  # MIXED
-                back_btn.configure(fg_color=COLORS['button_secondary'])
-                lay_btn.configure(fg_color=COLORS['button_secondary'])
-                mixed_btn.configure(fg_color=COLORS['warning'])  # Orange for MIXED
             repopulate_tree()
             recalculate()
         
@@ -8796,11 +8785,6 @@ Evento: {event_name}"""
         book_value_var = tk.StringVar(value="Book Value: -")
         ttk.Label(book_frame, textvariable=book_value_var, font=('Arial', 10, 'bold')).pack()
         
-        # Mixed Mode indicator
-        mode_indicator_var = tk.StringVar(value="")
-        mode_indicator_label = ctk.CTkLabel(book_frame, textvariable=mode_indicator_var, 
-                                            font=('Arial', 10, 'bold'), text_color=COLORS['warning'])
-        mode_indicator_label.pack(pady=(5, 0))
         
         # ============ MIDDLE SECTION: Runners Table ============
         table_frame = ttk.Frame(main_frame)
@@ -8838,9 +8822,6 @@ Evento: {event_name}"""
         tree.tag_configure('swapped', background='#fff3e0')  # Orange tint for swapped rows
         tree.tag_configure('back_type', foreground=COLORS['back'])
         tree.tag_configure('lay_type', foreground=COLORS['lay'])
-        # MIXED mode row colors - testo visibile su sfondo alternato
-        tree.tag_configure('back_row', foreground=COLORS['back'], background='#e3f2fd')  # Light blue bg
-        tree.tag_configure('lay_row', foreground=COLORS['lay'], background='#fce4ec')  # Light pink bg
         
         # Store runner selection and offset data
         # Format: {item_id: {'selected': bool, 'offset': int, 'selectionId': int, 'side': 'BACK'|'LAY', 'runner': runner}}
@@ -8859,7 +8840,7 @@ Evento: {event_name}"""
             base_runners.append(runner)
         
         def repopulate_tree():
-            """Repopulate tree based on current bet type mode."""
+            """Repopulate tree based on current bet type mode (BACK or LAY only)."""
             nonlocal runner_selections
             
             # Clear tree
@@ -8872,81 +8853,32 @@ Evento: {event_name}"""
             
             bet_type = bet_type_var.get()
             
-            if bet_type == 'MIXED':
-                # MIXED mode: show 2 rows per runner (BACK and LAY)
-                for runner in base_runners:
-                    sel_id = runner['selectionId']
-                    back_price = runner.get('backPrice', 0) or 0
-                    lay_price = runner.get('layPrice', 0) or 0
-                    
-                    # BACK row
-                    item_id_back = f"{sel_id}_B"
-                    runner_selections[item_id_back] = {
-                        'selected': old_selections.get(item_id_back, False),
-                        'offset': 0,
-                        'selectionId': sel_id,
-                        'side': 'BACK',
-                        'runner': runner
-                    }
-                    back_str = f"{back_price:.2f}" if back_price > 0 else '-'
-                    tree.insert('', tk.END, iid=item_id_back, values=(
-                        '[B]' if runner_selections[item_id_back]['selected'] else '[ ]',
-                        f"[B] {runner['runnerName']}",
-                        '0',
-                        back_str,
-                        '-',
-                        '-'
-                    ), tags=('back_row',))
-                    
-                    # LAY row
-                    item_id_lay = f"{sel_id}_L"
-                    runner_selections[item_id_lay] = {
-                        'selected': old_selections.get(item_id_lay, False),
-                        'offset': 0,
-                        'selectionId': sel_id,
-                        'side': 'LAY',
-                        'runner': runner
-                    }
-                    lay_str = f"{lay_price:.2f}" if lay_price > 0 else '-'
-                    tree.insert('', tk.END, iid=item_id_lay, values=(
-                        '[L]' if runner_selections[item_id_lay]['selected'] else '[ ]',
-                        f"[L] {runner['runnerName']}",
-                        '0',
-                        lay_str,
-                        '-',
-                        '-'
-                    ), tags=('lay_row',))
-            else:
-                # BACK or LAY mode: 1 row per runner
-                for runner in base_runners:
-                    sel_id = runner['selectionId']
-                    back_price = runner.get('backPrice', 0) or 0
-                    lay_price = runner.get('layPrice', 0) or 0
-                    
-                    item_id = str(sel_id)
-                    runner_selections[item_id] = {
-                        'selected': old_selections.get(item_id, False),
-                        'offset': 0,
-                        'selectionId': sel_id,
-                        'side': bet_type,
-                        'runner': runner
-                    }
-                    
-                    price = back_price if bet_type == 'BACK' else lay_price
-                    price_str = f"{price:.2f}" if price > 0 else '-'
-                    
-                    tree.insert('', tk.END, iid=item_id, values=(
-                        '[ ]',
-                        runner['runnerName'],
-                        '0',
-                        price_str,
-                        '-',
-                        '-'
-                    ))
-        
-        # Configure additional tag colors
-        tree.tag_configure('back_row', background='#e3f2fd')  # Light blue tint
-        tree.tag_configure('lay_row', background='#fce4ec')   # Light pink tint
+            # BACK or LAY mode: 1 row per runner
+            for runner in base_runners:
+                sel_id = runner['selectionId']
+                back_price = runner.get('backPrice', 0) or 0
+                lay_price = runner.get('layPrice', 0) or 0
+                
+                item_id = str(sel_id)
+                runner_selections[item_id] = {
+                    'selected': old_selections.get(item_id, False),
+                    'offset': 0,
+                    'selectionId': sel_id,
+                    'side': bet_type,
+                    'runner': runner
+                }
+                
+                price = back_price if bet_type == 'BACK' else lay_price
+                price_str = f"{price:.2f}" if price > 0 else '-'
+                
+                tree.insert('', tk.END, iid=item_id, values=(
+                    '[ ]',
+                    runner['runnerName'],
+                    '0',
+                    price_str,
+                    '-',
+                    '-'
+                ))
         
         # Initial population
         repopulate_tree()
@@ -9011,10 +8943,9 @@ Evento: {event_name}"""
             data = runner_selections[item_id]
             runner = data['runner']
             bet_type = bet_type_var.get()
-            effective_type = data.get('side', bet_type)
             
-            # Get price based on effective type
-            if effective_type == 'BACK':
+            # Get price based on bet type
+            if bet_type == 'BACK':
                 base_price = runner.get('backPrice', 0) or 0
             else:
                 base_price = runner.get('layPrice', 0) or 0
@@ -9023,21 +8954,13 @@ Evento: {event_name}"""
             price = apply_price_offset(base_price, data['offset'])
             price_str = f"{price:.2f}" if price > 0 else '-'
             
-            # Selection indicator with type
-            if data['selected']:
-                type_tag = 'B' if effective_type == 'BACK' else 'L'
-                sel_indicator = f'[{type_tag}]'
-            else:
-                sel_indicator = '[ ]'
+            # Selection indicator
+            sel_indicator = '[X]' if data['selected'] else '[ ]'
             
             # Get calculated stake/profit if available
             stake_str = '-'
             profit_str = '-'
             tags = []
-            
-            # Apply row color based on side in MIXED mode
-            if bet_type == 'MIXED':
-                tags.append('back_row' if effective_type == 'BACK' else 'lay_row')
             
             if dialog.calculated_results:
                 for r in dialog.calculated_results:
@@ -9052,15 +8975,9 @@ Evento: {event_name}"""
                             tags.append('loss')
                         break
             
-            # Runner name with type indicator in MIXED mode
-            if bet_type == 'MIXED':
-                runner_display = f"[{effective_type[0]}] {runner['runnerName']}"
-            else:
-                runner_display = runner['runnerName']
-            
             tree.item(item_id, values=(
                 sel_indicator,
-                runner_display,
+                runner['runnerName'],
                 str(data['offset']),
                 price_str,
                 stake_str,
@@ -9098,26 +9015,19 @@ Evento: {event_name}"""
             return max(1.01, min(1000, round(new_price, 2)))
         
         def recalculate():
-            """Recalculate dutching stakes."""
+            """Recalculate dutching stakes (BACK or LAY only)."""
             bet_type = bet_type_var.get()
             mode = dutching_mode.get()
             
-            # Gather selected runners with their effective type and prices
+            # Gather selected runners with prices
             selections = []
-            has_mixed = False
-            is_mixed_mode = (bet_type == 'MIXED')
             
             for item_id, data in runner_selections.items():
                 if data['selected']:
                     runner = data['runner']
-                    effective_type = data.get('side', bet_type)
                     
-                    # Check if we have mixed types
-                    if is_mixed_mode:
-                        has_mixed = True
-                    
-                    # Get base price based on effective type
-                    if effective_type == 'BACK':
+                    # Get base price based on bet type
+                    if bet_type == 'BACK':
                         base_price = runner.get('backPrice', 0) or 0
                     else:
                         base_price = runner.get('layPrice', 0) or 0
@@ -9131,14 +9041,13 @@ Evento: {event_name}"""
                             'selectionId': data['selectionId'],
                             'runnerName': runner['runnerName'],
                             'price': price,
-                            'effectiveType': effective_type
+                            'effectiveType': bet_type
                         })
             
             if not selections:
                 dialog.calculated_results = None
                 book_value_var.set("Book Value: -")
                 total_var.set("Totale: -")
-                mode_indicator_var.set("")
                 for item_id in runner_selections:
                     update_row(item_id)
                 return
@@ -9147,37 +9056,18 @@ Evento: {event_name}"""
             implied = sum(1.0 / s['price'] for s in selections) * 100
             book_value_var.set(f"Book Value: {implied:.1f}%")
             
-            # Check if we have mixed BACK+LAY
-            back_count = sum(1 for s in selections if s['effectiveType'] == 'BACK')
-            lay_count = sum(1 for s in selections if s['effectiveType'] == 'LAY')
-            has_mixed = back_count > 0 and lay_count > 0
-            
-            # Update mixed mode indicator
-            if is_mixed_mode:
-                mode_indicator_var.set(f"MIXED: {back_count}B + {lay_count}L")
-            elif has_mixed:
-                mode_indicator_var.set(f"MIXED: {back_count}B + {lay_count}L")
-            else:
-                mode_indicator_var.set("")
-            
             try:
-                from dutching import calculate_mixed_dutching, calculate_back_target_profit
+                from dutching import calculate_back_target_profit
                 
                 commission = 4.5
                 
                 if mode == 'STAKE':
                     amount = float(stake_var.get().replace(',', '.'))
-                    if has_mixed:
-                        results, profit, _ = calculate_mixed_dutching(selections, amount, commission)
-                    else:
-                        results, profit, _ = calculate_dutching_stakes(selections, amount, bet_type if not is_mixed_mode else selections[0]['effectiveType'])
+                    results, profit, _ = calculate_dutching_stakes(selections, amount, bet_type)
                 else:  # PROFIT mode - Target profit fisso
                     target_profit = float(profit_var.get().replace(',', '.'))
                     
-                    if has_mixed:
-                        # Mixed BACK+LAY con target profit
-                        results, profit, _ = calculate_mixed_dutching(selections, target_profit, commission)
-                    elif bet_type == 'BACK' or (is_mixed_mode and back_count > 0):
+                    if bet_type == 'BACK':
                         # BACK dutching con target profit
                         results, profit, _ = calculate_back_target_profit(selections, target_profit, commission)
                     else:
@@ -9188,7 +9078,6 @@ Evento: {event_name}"""
                 
                 dialog.calculated_results = results
                 dialog.bet_type = bet_type
-                dialog.has_mixed = has_mixed
                 
                 total_stake = sum(r['stake'] for r in results)
                 total_var.set(f"Totale: {total_stake:.2f} EUR")
