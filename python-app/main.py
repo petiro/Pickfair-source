@@ -593,8 +593,9 @@ class PickfairApp:
     
     def _create_events_panel(self, parent):
         """Create events list panel with country grouping."""
-        events_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8)
-        events_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+        events_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8, width=250)
+        events_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 5))
+        events_frame.pack_propagate(False)
         
         # Title label (replaces LabelFrame text)
         ctk.CTkLabel(events_frame, text="Partite", font=FONTS['heading'], 
@@ -651,9 +652,9 @@ class PickfairApp:
         self.events_tree.heading('#0', text='Nazione')
         self.events_tree.heading('name', text='Partita')
         self.events_tree.heading('date', text='Data')
-        self.events_tree.column('#0', width=80, minwidth=60)
-        self.events_tree.column('name', width=150, minwidth=100)
-        self.events_tree.column('date', width=70, minwidth=60)
+        self.events_tree.column('#0', width=50, minwidth=40)
+        self.events_tree.column('name', width=120, minwidth=80)
+        self.events_tree.column('date', width=60, minwidth=50)
         
         scrollbar = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.events_tree.yview)
         self.events_tree.configure(yscrollcommand=scrollbar.set)
@@ -3316,13 +3317,20 @@ class PickfairApp:
             try:
                 price_text = plbl.cget('text')
                 p = float(price_text) if price_text and price_text != '-' else 0
+                print(f"[CLICK] Cell clicked: sid={sid}, price={p}, type={bt}")
                 self._on_ladder_cell_click(sid, p, bt)
-            except (ValueError, TypeError):
-                pass
+            except (ValueError, TypeError) as ex:
+                print(f"[CLICK ERROR] {ex}")
         
+        # Bind to frame and labels - use bind on underlying tkinter widget for CTkLabel
         cell_frame.bind('<Button-1>', on_click)
-        price_lbl.bind('<Button-1>', on_click)
-        size_lbl.bind('<Button-1>', on_click)
+        try:
+            price_lbl._label.bind('<Button-1>', on_click)
+            size_lbl._label.bind('<Button-1>', on_click)
+        except AttributeError:
+            # Fallback for older customtkinter versions
+            price_lbl.bind('<Button-1>', on_click)
+            size_lbl.bind('<Button-1>', on_click)
         
         return cell_dict
     
@@ -3340,15 +3348,17 @@ class PickfairApp:
         if not price or price <= 0:
             return
         
-        # Find runner data
+        # Find runner data - handle both string and int selection_id
         runner = None
+        sid_str = str(selection_id)
         if self.current_market:
             for r in self.current_market.get('runners', []):
-                if str(r['selectionId']) == selection_id:
+                if str(r['selectionId']) == sid_str:
                     runner = r
                     break
         
         if not runner:
+            print(f"[DEBUG] Runner not found for selection_id={selection_id}, market has {len(self.current_market.get('runners', []))} runners")
             return
         
         # Get default stake from settings or use 10
