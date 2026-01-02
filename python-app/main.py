@@ -745,17 +745,17 @@ class PickfairApp:
         header_inner = ctk.CTkFrame(header_frame, fg_color='transparent')
         header_inner.pack(fill=tk.BOTH, expand=True)
         
-        # Configure header grid columns
-        header_inner.grid_columnconfigure(0, weight=0, minsize=25)   # Select checkbox
-        header_inner.grid_columnconfigure(1, weight=1, minsize=130)  # Name
-        header_inner.grid_columnconfigure(2, weight=0, minsize=55)   # LTP
-        header_inner.grid_columnconfigure(3, weight=0, minsize=55)   # Back3
-        header_inner.grid_columnconfigure(4, weight=0, minsize=55)   # Back2
-        header_inner.grid_columnconfigure(5, weight=0, minsize=55)   # Back1 (best)
-        header_inner.grid_columnconfigure(6, weight=0, minsize=55)   # Lay1 (best)
-        header_inner.grid_columnconfigure(7, weight=0, minsize=55)   # Lay2
-        header_inner.grid_columnconfigure(8, weight=0, minsize=55)   # Lay3
-        header_inner.grid_columnconfigure(9, weight=0, minsize=60)   # Volume
+        # Configure header grid columns (compact for better fit)
+        header_inner.grid_columnconfigure(0, weight=0, minsize=22)   # Select checkbox
+        header_inner.grid_columnconfigure(1, weight=1, minsize=100)  # Name
+        header_inner.grid_columnconfigure(2, weight=0, minsize=45)   # LTP
+        header_inner.grid_columnconfigure(3, weight=0, minsize=45)   # Back3
+        header_inner.grid_columnconfigure(4, weight=0, minsize=45)   # Back2
+        header_inner.grid_columnconfigure(5, weight=0, minsize=45)   # Back1 (best)
+        header_inner.grid_columnconfigure(6, weight=0, minsize=45)   # Lay1 (best)
+        header_inner.grid_columnconfigure(7, weight=0, minsize=45)   # Lay2
+        header_inner.grid_columnconfigure(8, weight=0, minsize=45)   # Lay3
+        header_inner.grid_columnconfigure(9, weight=0, minsize=50)   # Volume
         
         # Header labels
         ctk.CTkLabel(header_inner, text="", width=25).grid(row=0, column=0, padx=1, pady=2)
@@ -783,17 +783,17 @@ class PickfairApp:
         self.runners_scroll = ctk.CTkScrollableFrame(runners_container, fg_color='transparent', height=350)
         self.runners_scroll.pack(fill=tk.BOTH, expand=True)
         
-        # Configure scroll frame grid
-        self.runners_scroll.grid_columnconfigure(0, weight=0, minsize=25)
-        self.runners_scroll.grid_columnconfigure(1, weight=1, minsize=130)
-        self.runners_scroll.grid_columnconfigure(2, weight=0, minsize=55)
-        self.runners_scroll.grid_columnconfigure(3, weight=0, minsize=55)
-        self.runners_scroll.grid_columnconfigure(4, weight=0, minsize=55)
-        self.runners_scroll.grid_columnconfigure(5, weight=0, minsize=55)
-        self.runners_scroll.grid_columnconfigure(6, weight=0, minsize=55)
-        self.runners_scroll.grid_columnconfigure(7, weight=0, minsize=55)
-        self.runners_scroll.grid_columnconfigure(8, weight=0, minsize=55)
-        self.runners_scroll.grid_columnconfigure(9, weight=0, minsize=60)
+        # Configure scroll frame grid (compact for better fit)
+        self.runners_scroll.grid_columnconfigure(0, weight=0, minsize=22)
+        self.runners_scroll.grid_columnconfigure(1, weight=1, minsize=100)
+        self.runners_scroll.grid_columnconfigure(2, weight=0, minsize=45)
+        self.runners_scroll.grid_columnconfigure(3, weight=0, minsize=45)
+        self.runners_scroll.grid_columnconfigure(4, weight=0, minsize=45)
+        self.runners_scroll.grid_columnconfigure(5, weight=0, minsize=45)
+        self.runners_scroll.grid_columnconfigure(6, weight=0, minsize=45)
+        self.runners_scroll.grid_columnconfigure(7, weight=0, minsize=45)
+        self.runners_scroll.grid_columnconfigure(8, weight=0, minsize=45)
+        self.runners_scroll.grid_columnconfigure(9, weight=0, minsize=50)
         
         # Dictionary to store runner row widgets for updates
         self.runner_rows = {}
@@ -3287,7 +3287,7 @@ class PickfairApp:
     def _create_price_cell(self, row, col, price, size, bg_color, text_color, is_back, selection_id):
         """Create a single price cell with quote on top, liquidity below."""
         cell_frame = ctk.CTkFrame(self.runners_scroll, fg_color=bg_color, corner_radius=3, 
-                                  width=55, height=40)
+                                  width=44, height=38)
         cell_frame.grid(row=row, column=col, padx=1, pady=1, sticky='nsew')
         cell_frame.grid_propagate(False)
         
