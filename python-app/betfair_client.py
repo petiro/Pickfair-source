@@ -689,14 +689,33 @@ class BetfairClient:
             lay_price = None
             back_size = None
             lay_size = None
+            back_prices = []  # 3 levels: [[price, size], ...]
+            lay_prices = []   # 3 levels: [[price, size], ...]
+            ltp = None
+            total_matched = 0
             
-            if runner_prices and runner_prices.ex:
-                if runner_prices.ex.available_to_back:
-                    back_price = runner_prices.ex.available_to_back[0].price
-                    back_size = runner_prices.ex.available_to_back[0].size
-                if runner_prices.ex.available_to_lay:
-                    lay_price = runner_prices.ex.available_to_lay[0].price
-                    lay_size = runner_prices.ex.available_to_lay[0].size
+            if runner_prices:
+                # Last Traded Price
+                if hasattr(runner_prices, 'last_price_traded'):
+                    ltp = runner_prices.last_price_traded
+                # Total Matched Volume
+                if hasattr(runner_prices, 'total_matched'):
+                    total_matched = runner_prices.total_matched or 0
+                
+                if runner_prices.ex:
+                    # Get up to 3 levels of back prices
+                    if runner_prices.ex.available_to_back:
+                        for i, offer in enumerate(runner_prices.ex.available_to_back[:3]):
+                            back_prices.append([offer.price, offer.size])
+                        back_price = runner_prices.ex.available_to_back[0].price
+                        back_size = runner_prices.ex.available_to_back[0].size
+                    
+                    # Get up to 3 levels of lay prices
+                    if runner_prices.ex.available_to_lay:
+                        for i, offer in enumerate(runner_prices.ex.available_to_lay[:3]):
+                            lay_prices.append([offer.price, offer.size])
+                        lay_price = runner_prices.ex.available_to_lay[0].price
+                        lay_size = runner_prices.ex.available_to_lay[0].size
             
             runners.append({
                 'selectionId': runner.selection_id,
@@ -706,6 +725,10 @@ class BetfairClient:
                 'layPrice': lay_price,
                 'backSize': back_size,
                 'laySize': lay_size,
+                'backPrices': back_prices,
+                'layPrices': lay_prices,
+                'lastPriceTraded': ltp,
+                'totalMatched': total_matched,
                 'status': runner_prices.status if runner_prices else 'ACTIVE'
             })
         
