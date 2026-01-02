@@ -757,6 +757,7 @@ class PickfairApp:
         header_inner.grid_columnconfigure(7, weight=0, minsize=45)   # Lay2
         header_inner.grid_columnconfigure(8, weight=0, minsize=45)   # Lay3
         header_inner.grid_columnconfigure(9, weight=0, minsize=50)   # Volume
+        header_inner.grid_columnconfigure(10, weight=0, minsize=60)  # P&L
         
         # Header labels
         ctk.CTkLabel(header_inner, text="", width=25).grid(row=0, column=0, padx=1, pady=2)
@@ -779,6 +780,8 @@ class PickfairApp:
         
         ctk.CTkLabel(header_inner, text="Volume", font=('Segoe UI', 9, 'bold'),
                      text_color=COLORS['text_secondary']).grid(row=0, column=9, padx=1, pady=2)
+        ctk.CTkLabel(header_inner, text="P&L", font=('Segoe UI', 9, 'bold'),
+                     text_color=COLORS['text_secondary']).grid(row=0, column=10, padx=1, pady=2)
         
         # Scrollable runner rows container
         self.runners_scroll = ctk.CTkScrollableFrame(runners_container, fg_color='transparent', height=350)
@@ -795,6 +798,7 @@ class PickfairApp:
         self.runners_scroll.grid_columnconfigure(7, weight=0, minsize=45)
         self.runners_scroll.grid_columnconfigure(8, weight=0, minsize=45)
         self.runners_scroll.grid_columnconfigure(9, weight=0, minsize=50)
+        self.runners_scroll.grid_columnconfigure(10, weight=0, minsize=60)
         
         # Dictionary to store runner row widgets for updates
         self.runner_rows = {}
@@ -2557,6 +2561,17 @@ class PickfairApp:
                         if 'ltp_lbl' in widgets and data.get('ltp'):
                             ltp_val = data['ltp']
                             widgets['ltp_lbl'].configure(text=f"{ltp_val:.2f}" if ltp_val else "-")
+                        
+                        # Update P&L for this runner (live profit/loss calculation)
+                        if 'pnl_lbl' in widgets:
+                            pnl = self._calculate_runner_pnl(selection_id, back_price, lay_price)
+                            if pnl is not None:
+                                pnl_text = f"+{pnl:.2f}" if pnl >= 0 else f"{pnl:.2f}"
+                                pnl_color = COLORS['success'] if pnl >= 0 else COLORS['loss']
+                                widgets['pnl_lbl'].configure(text=pnl_text, text_color=pnl_color)
+                                widgets['pnl_frame'].configure(fg_color=COLORS['bg_card'])
+                            else:
+                                widgets['pnl_lbl'].configure(text="-", text_color=COLORS['text_tertiary'])
                     
                     # Flash effect for price changes
                     if old_back and new_back != old_back:
@@ -2588,6 +2603,62 @@ class PickfairApp:
                 self.runners_tree.item(selection_id, tags=('runner_row',))
         except:
             pass
+    
+    def _calculate_runner_pnl(self, selection_id, current_back, current_lay):
+        """Calculate live P&L for a runner based on open positions.
+        
+        Returns the potential profit/loss if this runner wins, based on:
+        - BACK positions: profit = stake * (price - 1) if wins, -stake if loses
+        - LAY positions: profit = stake if loses (other wins), -stake * (price - 1) if wins
+        
+        For green-up preview, shows potential green profit at current prices.
+        """
+        if not hasattr(self, 'market_cashout_positions') or not self.market_cashout_positions:
+            return None
+        
+        sid = str(selection_id)
+        total_pnl = 0.0
+        has_position = False
+        
+        for bet_id, pos in self.market_cashout_positions.items():
+            if str(pos.get('selection_id')) != sid:
+                continue
+            
+            has_position = True
+            side = pos.get('side', 'BACK')
+            stake = pos.get('stake', 0)
+            matched_price = pos.get('price', 0)
+            
+            if stake <= 0 or matched_price <= 0:
+                continue
+            
+            if side == 'BACK':
+                # BACK position: green-up by LAYing at current_lay
+                if current_lay and current_lay > 0:
+                    # Potential profit if we lay to green now
+                    liability = stake * matched_price
+                    green_stake = liability / current_lay
+                    profit_if_wins = stake * (matched_price - 1) - green_stake * (current_lay - 1)
+                    profit_if_loses = green_stake - stake
+                    # Show minimum guaranteed (green profit)
+                    total_pnl += min(profit_if_wins, profit_if_loses)
+                else:
+                    # No lay available - show raw profit if wins
+                    total_pnl += stake * (matched_price - 1)
+            else:
+                # LAY position: green-up by BACKing at current_back
+                if current_back and current_back > 0:
+                    liability = stake * (matched_price - 1)
+                    # Potential profit if we back to green now
+                    green_stake = liability / (current_back - 1) if current_back > 1 else 0
+                    profit_if_wins = -liability + green_stake * (current_back - 1)
+                    profit_if_loses = stake - green_stake
+                    total_pnl += min(profit_if_wins, profit_if_loses) if green_stake > 0 else -liability
+                else:
+                    # No back available - show raw profit if loses
+                    total_pnl += stake
+        
+        return total_pnl if has_position else None
     
     def _update_cashout_from_buffer(self):
         """Update cashout values using realtime prices from stream buffer.
@@ -3330,6 +3401,16 @@ class PickfairApp:
                                text_color=COLORS['text_tertiary'])
         vol_lbl.pack(fill=tk.BOTH, expand=True, pady=2)
         widgets['vol_lbl'] = vol_lbl
+        
+        # P&L cell (live profit/loss)
+        pnl_frame = ctk.CTkFrame(self.runners_scroll, fg_color=row_bg, corner_radius=0)
+        pnl_frame.grid(row=row_idx, column=10, padx=1, pady=1, sticky='nsew')
+        
+        pnl_lbl = ctk.CTkLabel(pnl_frame, text="-", font=('Segoe UI', 10, 'bold'),
+                               text_color=COLORS['text_tertiary'])
+        pnl_lbl.pack(fill=tk.BOTH, expand=True, pady=2)
+        widgets['pnl_lbl'] = pnl_lbl
+        widgets['pnl_frame'] = pnl_frame
         
         return widgets
     
