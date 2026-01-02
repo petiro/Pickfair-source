@@ -122,17 +122,60 @@ class TelegramListener:
         for cp in custom_patterns:
             try:
                 pattern = cp.get('pattern', '')
-                if pattern and re.search(pattern, text, re.IGNORECASE):
-                    signal['market_type'] = cp.get('market_type', 'CUSTOM')
-                    signal['side'] = cp.get('bet_side', 'BACK')
+                if not pattern or not re.search(pattern, text, re.IGNORECASE):
+                    continue
+                
+                event_match = re.search(self.signal_patterns['event'], text)
+                if event_match:
+                    signal['event'] = event_match.group(1).strip()
+                
+                score_match = re.search(self.signal_patterns['score'], text)
+                if score_match:
+                    signal['score_home'] = int(score_match.group(1))
+                    signal['score_away'] = int(score_match.group(2))
+                
+                time_match = re.search(self.signal_patterns['time'], text)
+                if time_match:
+                    signal['minute'] = int(time_match.group(1))
+                
+                odds_match = re.search(self.signal_patterns['odds'], text)
+                if odds_match:
+                    signal['odds'] = float(odds_match.group(1).replace(',', '.'))
+                
+                min_minute = cp.get('min_minute')
+                max_minute = cp.get('max_minute')
+                if min_minute and signal['minute'] is not None and signal['minute'] < min_minute:
+                    continue
+                if max_minute and signal['minute'] is not None and signal['minute'] > max_minute:
+                    continue
+                
+                min_score = cp.get('min_score')
+                max_score = cp.get('max_score')
+                total_goals = (signal['score_home'] or 0) + (signal['score_away'] or 0)
+                if min_score is not None and total_goals < min_score:
+                    continue
+                if max_score is not None and total_goals > max_score:
+                    continue
+                
+                if cp.get('live_only') and signal['minute'] is None:
+                    continue
+                
+                signal['market_type'] = cp.get('market_type', 'CUSTOM')
+                signal['side'] = cp.get('bet_side', 'BACK')
+                
+                selection_template = cp.get('selection_template', '')
+                if selection_template:
+                    selection = selection_template
+                    selection = selection.replace('{home_score}', str(signal['score_home'] or 0))
+                    selection = selection.replace('{away_score}', str(signal['score_away'] or 0))
+                    selection = selection.replace('{minute}', str(signal['minute'] or 0))
+                    selection = selection.replace('{total_goals}', str(total_goals))
+                    selection = selection.replace('{over_line}', str(total_goals + 0.5))
+                    signal['selection'] = selection
+                else:
                     signal['selection'] = cp.get('name', 'Custom Pattern')
-                    event_match = re.search(self.signal_patterns['event'], text)
-                    if event_match:
-                        signal['event'] = event_match.group(1).strip()
-                    odds_match = re.search(self.signal_patterns['odds'], text)
-                    if odds_match:
-                        signal['odds'] = float(odds_match.group(1).replace(',', '.'))
-                    return signal
+                
+                return signal
             except re.error:
                 continue
         
