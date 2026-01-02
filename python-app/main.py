@@ -6614,8 +6614,11 @@ class PickfairApp:
                      fg_color=COLORS['bg_card'], border_color=COLORS['border']).grid(row=3, column=1, pady=3, padx=5)
         
         ctk.CTkLabel(form_frame, text="Tipo Mercato:", text_color=COLORS['text_secondary']).grid(row=4, column=0, sticky=tk.W, pady=3)
-        market_types = ['OVER_UNDER_X5', 'BOTH_TEAMS_TO_SCORE', 'OVER_UNDER_15_FH', 'DOUBLE_CHANCE',
-                        'MATCH_ODDS', 'CORRECT_SCORE', 'ASIAN_HANDICAP', 'DRAW_NO_BET', 'HALF_TIME_FULL_TIME',
+        market_types = ['OVER_UNDER_X5', 'OVER_UNDER_05', 'OVER_UNDER_15', 'OVER_UNDER_25', 'OVER_UNDER_35',
+                        'OVER_UNDER_45', 'OVER_UNDER_55', 'BOTH_TEAMS_TO_SCORE', 'OVER_UNDER_15_FH',
+                        'OVER_UNDER_05_FH', 'DOUBLE_CHANCE', 'MATCH_ODDS', 'CORRECT_SCORE', 'ASIAN_HANDICAP',
+                        'DRAW_NO_BET', 'HALF_TIME_FULL_TIME', 'NEXT_GOAL', 'FIRST_GOAL_SCORER',
+                        'ANYTIME_GOALSCORER', 'CORNERS', 'CARDS', 'WINNER', 'SET_BETTING',
                         'CASHOUT', 'CASHOUT_ALL']
         market_var = tk.StringVar(value=existing_pattern.get('market_type', market_types[0]) if existing_pattern else market_types[0])
         market_menu = ctk.CTkOptionMenu(form_frame, variable=market_var, values=market_types,
