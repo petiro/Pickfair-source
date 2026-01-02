@@ -2309,23 +2309,29 @@ class PickfairApp:
     def _start_session_keepalive(self):
         """Start periodic session keep-alive to prevent timeout."""
         self.keepalive_id = None
+        self._keepalive_fail_count = 0
         
         def keepalive():
             if self.client:
                 try:
-                    # Simple API call to keep session alive
-                    self.client.get_account_balance()
+                    # Use betfairlightweight's native keep_alive method
+                    self.client.keep_alive()
+                    self._keepalive_fail_count = 0
+                    logging.debug("Session keepalive: OK")
                 except Exception as e:
-                    print(f"Keepalive failed: {e}")
-                    # Try to re-login silently if session expired
-                    self._try_silent_relogin()
+                    self._keepalive_fail_count += 1
+                    logging.warning(f"Keepalive failed ({self._keepalive_fail_count}): {e}")
+                    
+                    if self._keepalive_fail_count >= 2:
+                        # Try to re-login silently if session expired
+                        self._try_silent_relogin()
             
-            # Schedule next keepalive (every 10 minutes)
+            # Schedule next keepalive (every 5 minutes - more frequent)
             if self.client:
-                self.keepalive_id = self.root.after(600000, keepalive)
+                self.keepalive_id = self.root.after(300000, keepalive)
         
-        # First keepalive after 10 minutes
-        self.keepalive_id = self.root.after(600000, keepalive)
+        # First keepalive after 5 minutes
+        self.keepalive_id = self.root.after(300000, keepalive)
     
     def _stop_session_keepalive(self):
         """Stop session keep-alive."""

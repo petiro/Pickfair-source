@@ -357,6 +357,20 @@ class BetfairClient:
         self._cleanup_temp_files()
         self.client = None
     
+    def keep_alive(self):
+        """Keep session alive - call periodically to prevent timeout."""
+        if not self.client:
+            raise Exception("Non connesso a Betfair")
+        
+        try:
+            # betfairlightweight has native keep_alive method
+            self.client.keep_alive()
+            return True
+        except AttributeError:
+            # Fallback: use simple API call to keep session alive
+            self.get_account_funds()
+            return True
+    
     @with_retry
     def get_account_funds(self):
         """Get account balance."""
