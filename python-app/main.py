@@ -3132,7 +3132,22 @@ class PickfairApp:
     
     def _display_market(self, market):
         """Display market runners with professional ladder-style UI."""
+        if not market or not market.get('runners'):
+            return  # Ignore empty market data
+        
+        # Check if this is the same market - only update cells, don't recreate
+        same_market = (self.current_market and 
+                       self.current_market.get('marketId') == market.get('marketId') and
+                       self.runner_rows)
+        
         self.current_market = market
+        
+        if same_market:
+            # Just update existing cells with new prices
+            self._update_ladder_prices(market)
+            return
+        
+        # New market - clear and recreate UI
         self.runners_tree.delete(*self.runners_tree.get_children())
         
         # Clear existing runner rows
@@ -3366,6 +3381,86 @@ class PickfairApp:
             size_lbl.bind('<Button-1>', on_click)
         
         return cell_dict
+    
+    def _update_ladder_prices(self, market):
+        """Update existing ladder cells with new prices (no widget recreation)."""
+        if not market or not market.get('runners'):
+            return
+        
+        for runner in market['runners']:
+            selection_id = str(runner['selectionId'])
+            
+            if selection_id not in self.runner_rows:
+                continue
+            
+            widgets = self.runner_rows[selection_id]
+            
+            # Extract price levels
+            back_prices = runner.get('backPrices', [])
+            lay_prices = runner.get('layPrices', [])
+            
+            # Fallback to single price if no levels
+            if not back_prices:
+                bp = runner.get('backPrice', 0)
+                bs = runner.get('backSize', 0)
+                if bp:
+                    back_prices = [[bp, bs]]
+            
+            if not lay_prices:
+                lp = runner.get('layPrice', 0)
+                ls = runner.get('laySize', 0)
+                if lp:
+                    lay_prices = [[lp, ls]]
+            
+            # Pad to 3 levels
+            while len(back_prices) < 3:
+                back_prices.append([0, 0])
+            while len(lay_prices) < 3:
+                lay_prices.append([0, 0])
+            
+            # Update LTP
+            ltp = runner.get('lastPriceTraded', 0)
+            if 'ltp_lbl' in widgets:
+                widgets['ltp_lbl'].configure(text=f"{ltp:.2f}" if ltp else "-")
+            
+            # Update BACK cells (3 cells, reversed order)
+            back_cells = widgets.get('back_cells', [])
+            for i, cell in enumerate(back_cells):
+                level_idx = 2 - i  # Reverse order
+                if level_idx < len(back_prices):
+                    price, size = back_prices[level_idx]
+                else:
+                    price, size = 0, 0
+                
+                price_text = f"{price:.2f}" if price and price > 0 else "-"
+                size_text = f"{size/1000:.1f}K" if size and size >= 1000 else (f"{size:.0f}" if size and size > 0 else "")
+                
+                if 'price_lbl' in cell:
+                    cell['price_lbl'].configure(text=price_text)
+                if 'size_lbl' in cell:
+                    cell['size_lbl'].configure(text=size_text)
+            
+            # Update LAY cells (3 cells, normal order)
+            lay_cells = widgets.get('lay_cells', [])
+            for i, cell in enumerate(lay_cells):
+                if i < len(lay_prices):
+                    price, size = lay_prices[i]
+                else:
+                    price, size = 0, 0
+                
+                price_text = f"{price:.2f}" if price and price > 0 else "-"
+                size_text = f"{size/1000:.1f}K" if size and size >= 1000 else (f"{size:.0f}" if size and size > 0 else "")
+                
+                if 'price_lbl' in cell:
+                    cell['price_lbl'].configure(text=price_text)
+                if 'size_lbl' in cell:
+                    cell['size_lbl'].configure(text=size_text)
+            
+            # Update volume
+            total_matched = runner.get('totalMatched', 0)
+            if 'vol_lbl' in widgets:
+                vol_text = f"{total_matched/1000:.0f}K" if total_matched >= 1000 else f"{total_matched:.0f}"
+                widgets['vol_lbl'].configure(text=vol_text)
     
     def _on_ladder_row_click(self, selection_id):
         """Handle click on runner name in ladder."""
