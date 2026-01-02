@@ -5038,7 +5038,7 @@ class PickfairApp:
         
         columns = ('market', 'inplay', 'status', 'min_pl', 'max_pl', 'start_time', 
                    'p_bets', 'u_bets', 'm_bets', 'last_refresh')
-        self.market_watch_tree = ttk.Treeview(tree_frame, columns=columns, show='headings', height=15)
+        self.market_watch_tree = ttk.Treeview(tree_frame, columns=columns, show='headings', height=25)
         
         self.market_watch_tree.heading('market', text='Mercato')
         self.market_watch_tree.heading('inplay', text='In-Play')
@@ -7700,15 +7700,21 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         """Create view for bet bookings."""
         bookings = self.db.get_pending_bookings()
         
+        tree_frame = ttk.Frame(parent)
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
         columns = ('runner', 'quota_target', 'stake', 'tipo', 'stato')
-        tree = ttk.Treeview(parent, columns=columns, show='headings', height=8)
+        tree = ttk.Treeview(tree_frame, columns=columns, show='headings', height=20)
         tree.heading('runner', text='Selezione')
         tree.heading('quota_target', text='Quota Target')
         tree.heading('stake', text='Stake')
         tree.heading('tipo', text='Tipo')
         tree.heading('stato', text='Stato')
         
-        tree.pack(fill=tk.BOTH, expand=True)
+        scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         for booking in bookings:
             tree.insert('', tk.END, iid=str(booking['id']), values=(
