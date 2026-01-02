@@ -6575,6 +6575,8 @@ class PickfairApp:
             "Casa Vince": ("(home|casa|1)", "MATCH_ODDS"),
             "Pareggio": ("(draw|pari|x)", "MATCH_ODDS"),
             "Trasferta Vince": ("(away|trasferta|2)", "MATCH_ODDS"),
+            "Cashout Evento": ("(cashout|CASHOUT|cash.?out)", "CASHOUT"),
+            "Cashout Tutto": ("(cashout.?all|cashout.?tutto|chiudi.?tutto)", "CASHOUT_ALL"),
             "Personalizzato...": ("", "OVER_UNDER_X5"),
         }
         
@@ -6613,7 +6615,8 @@ class PickfairApp:
         
         ctk.CTkLabel(form_frame, text="Tipo Mercato:", text_color=COLORS['text_secondary']).grid(row=4, column=0, sticky=tk.W, pady=3)
         market_types = ['OVER_UNDER_X5', 'BOTH_TEAMS_TO_SCORE', 'OVER_UNDER_15_FH', 'DOUBLE_CHANCE',
-                        'MATCH_ODDS', 'CORRECT_SCORE', 'ASIAN_HANDICAP', 'DRAW_NO_BET', 'HALF_TIME_FULL_TIME']
+                        'MATCH_ODDS', 'CORRECT_SCORE', 'ASIAN_HANDICAP', 'DRAW_NO_BET', 'HALF_TIME_FULL_TIME',
+                        'CASHOUT', 'CASHOUT_ALL']
         market_var = tk.StringVar(value=existing_pattern.get('market_type', market_types[0]) if existing_pattern else market_types[0])
         market_menu = ctk.CTkOptionMenu(form_frame, variable=market_var, values=market_types,
                                         fg_color=COLORS['bg_card'], button_color=COLORS['button_primary'],
