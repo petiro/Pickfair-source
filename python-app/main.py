@@ -2535,6 +2535,29 @@ class PickfairApp:
                     # Update tree
                     self.runners_tree.item(selection_id, values=current_values)
                     
+                    # Update CTk ladder cells (runner_rows)
+                    if selection_id in self.runner_rows:
+                        widgets = self.runner_rows[selection_id]
+                        
+                        # Update best back cell (column 5 = index 2 in back_cells)
+                        if 'back_cells' in widgets and len(widgets['back_cells']) > 2:
+                            best_back = widgets['back_cells'][2]  # Best back is last
+                            if best_back and 'price_lbl' in best_back:
+                                best_back['price_lbl'].configure(text=new_back)
+                                best_back['size_lbl'].configure(text=new_back_size)
+                        
+                        # Update best lay cell (column 6 = index 0 in lay_cells)
+                        if 'lay_cells' in widgets and len(widgets['lay_cells']) > 0:
+                            best_lay = widgets['lay_cells'][0]  # Best lay is first
+                            if best_lay and 'price_lbl' in best_lay:
+                                best_lay['price_lbl'].configure(text=new_lay)
+                                best_lay['size_lbl'].configure(text=new_lay_size)
+                        
+                        # Update LTP if available
+                        if 'ltp_lbl' in widgets and data.get('ltp'):
+                            ltp_val = data['ltp']
+                            widgets['ltp_lbl'].configure(text=f"{ltp_val:.2f}" if ltp_val else "-")
+                    
                     # Flash effect for price changes
                     if old_back and new_back != old_back:
                         try:
@@ -3117,6 +3140,9 @@ class PickfairApp:
             widget.destroy()
         self.runner_rows = {}
         
+        # Cache runner metadata for quick bet (stable reference even after streaming updates)
+        self.runner_meta = {}
+        
         # Update market status
         self.market_status = market.get('status', 'OPEN')
         is_inplay = market.get('inPlay', False)
@@ -3176,6 +3202,13 @@ class PickfairApp:
                 ltp, back_levels, lay_levels, total_matched
             )
             self.runner_rows[selection_id] = row_widgets
+            
+            # Cache runner metadata for quick bet access
+            self.runner_meta[selection_id] = {
+                'selectionId': runner['selectionId'],
+                'runnerName': runner['runnerName'],
+                'sortPriority': runner.get('sortPriority', 0)
+            }
             
             # Add to legacy tree for compatibility
             self.runners_tree.insert('', tk.END, iid=selection_id, values=(
@@ -3346,20 +3379,29 @@ class PickfairApp:
     def _on_ladder_cell_click(self, selection_id, price, bet_type):
         """Handle click on price cell - open quick bet panel."""
         if not price or price <= 0:
+            print(f"[DEBUG] Invalid price: {price}")
             return
         
-        # Find runner data - handle both string and int selection_id
-        runner = None
+        # Use cached runner metadata (stable even after streaming updates)
         sid_str = str(selection_id)
-        if self.current_market:
-            for r in self.current_market.get('runners', []):
-                if str(r['selectionId']) == sid_str:
-                    runner = r
-                    break
+        runner = None
+        
+        # First try cached metadata
+        if hasattr(self, 'runner_meta') and sid_str in self.runner_meta:
+            runner = self.runner_meta[sid_str]
+        else:
+            # Fallback to current_market
+            if self.current_market:
+                for r in self.current_market.get('runners', []):
+                    if str(r['selectionId']) == sid_str:
+                        runner = r
+                        break
         
         if not runner:
-            print(f"[DEBUG] Runner not found for selection_id={selection_id}, market has {len(self.current_market.get('runners', []))} runners")
+            print(f"[DEBUG] Runner not found for selection_id={selection_id}")
             return
+        
+        print(f"[DEBUG] Opening quick bet: runner={runner.get('runnerName')}, price={price}, type={bet_type}")
         
         # Get default stake from settings or use 10
         default_stake = 10.0
