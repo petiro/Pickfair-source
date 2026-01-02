@@ -5,6 +5,7 @@ Professional trading interface colors
 
 COLORS = {
     'bg_dark': '#0b111a',
+    'bg_main': '#0f151e',
     'bg_surface': '#121a26',
     'bg_panel': '#1a2633',
     'bg_card': '#1f2d3d',
