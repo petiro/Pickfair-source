@@ -43,6 +43,9 @@ COLORS = {
     'button_danger': '#ef5350',
     'button_success': '#66bb6a',
     
+    'accent': '#26c6da',
+    'accent_hover': '#00acc1',
+    
     # Treeview tag colors
     'clickable_back': '#0066cc',
     'clickable_lay': '#cc0066',
