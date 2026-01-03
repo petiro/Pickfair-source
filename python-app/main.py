@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.60.3"  # Trading Automation PRO: P&L live, Green-up, SL/TP/TR, Tick Storage + Full Checklist Review
+APP_VERSION = "3.70.2"  # Single-click fix, Quote popup, Live P&L, Cashout binding, Market persistence
 
 # Setup file logging
 def setup_logging():
