@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.5"  # FIX FREEZE: Order stream runs fully in background thread
+APP_VERSION = "3.70.6"  # FIX FREEZE: Order stream + connection logging
 
 # Setup file logging
 def setup_logging():
@@ -2346,25 +2346,35 @@ class PickfairApp:
     
     def _on_connected(self):
         """Handle successful connection."""
+        logging.info("[CONNECT] _on_connected: Starting...")
+        
         self.status_label.configure(text="Connesso a Betfair Italia", text_color=COLORS['success'])
         self.connect_btn.configure(text="Disconnetti", state=tk.NORMAL)
         self.refresh_btn.configure(state=tk.NORMAL)
+        logging.debug("[CONNECT] UI updated")
         
         self._update_balance()
+        logging.debug("[CONNECT] _update_balance queued")
+        
         self._load_events()
+        logging.debug("[CONNECT] _load_events queued")
         
         # Auto-enable refresh on connect
         self.auto_refresh_var.set(True)
         self._start_auto_refresh()
+        logging.debug("[CONNECT] Auto-refresh started")
         
         # Start session keep-alive to prevent disconnection
         self._start_session_keepalive()
+        logging.debug("[CONNECT] Keepalive started")
         
         # Start Order Stream for real-time order updates
         self._start_order_stream()
+        logging.debug("[CONNECT] Order stream queued")
         
         # Refresh dashboard tab with connected data
         self._refresh_dashboard_tab()
+        logging.info("[CONNECT] _on_connected: Complete - UI should be responsive")
     
     def _start_session_keepalive(self):
         """Start periodic session keep-alive to prevent timeout."""

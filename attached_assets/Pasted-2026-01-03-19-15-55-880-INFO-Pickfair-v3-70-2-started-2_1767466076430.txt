@@ -1,0 +1,171 @@
+2026-01-03 19:15:55,880 [INFO] === Pickfair v3.70.2 started ===
+2026-01-03 19:15:55,881 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-03 19:16:02,346 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2026-01-03 19:16:02,347 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2026-01-03 19:16:03,750 [INFO] [STORAGE] Database tables initialized
+2026-01-03 19:16:03,750 [INFO] [STORAGE] Database initialized: C:\Users\chiara\AppData\Roaming\Pickfair\pickfair_history.db
+2026-01-03 19:16:03,751 [DEBUG] cryptg not available - using standard encryption
+2026-01-03 19:16:03,774 [INFO] Single instance check passed - mutex acquired
+2026-01-03 19:16:13,814 [INFO] [STORAGE] Schema migration check complete
+2026-01-03 19:16:13,815 [INFO] [STORAGE] Index check complete
+2026-01-03 19:16:13,842 [INFO] [STORAGE] DB version set to 3588
+2026-01-03 19:16:13,891 [INFO] [STORAGE] Persistent storage initialized
+2026-01-03 19:16:24,980 [INFO] [DASHBOARD] Auto-refresh timer started (5s interval)
+2026-01-03 19:16:24,980 [INFO] [PERF] Performance logging started (10s interval)
+2026-01-03 19:16:24,997 [INFO] [STORAGE] Recovered 0 open positions
+2026-01-03 19:16:25,017 [INFO] [RECOVERY] No open positions to recover
+2026-01-03 19:16:36,058 [DEBUG] Starting new HTTPS connection (1): identitysso-cert.betfair.it:443
+2026-01-03 19:16:36,650 [DEBUG] https://identitysso-cert.betfair.it:443 "POST /api/certlogin HTTP/11" 200 125
+2026-01-03 19:16:36,708 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-03 19:16:36,709 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-03 19:16:36,717 [INFO] _start_order_stream: Starting...
+2026-01-03 19:20:09,256 [INFO] === Pickfair v3.70.2 started ===
+2026-01-03 19:20:09,256 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-03 19:20:13,580 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2026-01-03 19:20:13,581 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2026-01-03 19:20:14,110 [INFO] [STORAGE] Database tables initialized
+2026-01-03 19:20:14,110 [INFO] [STORAGE] Database initialized: C:\Users\chiara\AppData\Roaming\Pickfair\pickfair_history.db
+2026-01-03 19:20:14,111 [DEBUG] cryptg not available - using standard encryption
+2026-01-03 19:20:14,145 [INFO] Single instance check passed - mutex acquired
+2026-01-03 19:20:14,866 [INFO] [STORAGE] Schema migration check complete
+2026-01-03 19:20:14,868 [INFO] [STORAGE] Index check complete
+2026-01-03 19:20:14,888 [INFO] [STORAGE] DB version set to 3588
+2026-01-03 19:20:14,890 [INFO] [STORAGE] Persistent storage initialized
+2026-01-03 19:20:20,070 [INFO] [DASHBOARD] Auto-refresh timer started (5s interval)
+2026-01-03 19:20:20,070 [INFO] [PERF] Performance logging started (10s interval)
+2026-01-03 19:20:20,074 [INFO] [STORAGE] Recovered 0 open positions
+2026-01-03 19:20:20,104 [INFO] [RECOVERY] No open positions to recover
+2026-01-03 19:20:28,036 [DEBUG] Starting new HTTPS connection (1): identitysso-cert.betfair.it:443
+2026-01-03 19:20:28,790 [DEBUG] https://identitysso-cert.betfair.it:443 "POST /api/certlogin HTTP/11" 200 125
+2026-01-03 19:20:28,842 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-03 19:20:28,844 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-03 19:20:28,851 [INFO] _start_order_stream: Starting...
+2026-01-03 19:21:36,264 [INFO] === Pickfair v3.70.2 started ===
+2026-01-03 19:21:36,506 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-03 19:21:39,313 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2026-01-03 19:21:39,314 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2026-01-03 19:21:39,467 [INFO] [STORAGE] Database tables initialized
+2026-01-03 19:21:39,467 [INFO] [STORAGE] Database initialized: C:\Users\chiara\AppData\Roaming\Pickfair\pickfair_history.db
+2026-01-03 19:21:39,468 [DEBUG] cryptg not available - using standard encryption
+2026-01-03 19:21:39,487 [INFO] Single instance check passed - mutex acquired
+2026-01-03 19:21:39,919 [INFO] [STORAGE] Schema migration check complete
+2026-01-03 19:21:39,920 [INFO] [STORAGE] Index check complete
+2026-01-03 19:21:40,001 [INFO] [STORAGE] DB version set to 3588
+2026-01-03 19:21:40,002 [INFO] [STORAGE] Persistent storage initialized
+2026-01-03 19:21:43,401 [INFO] [DASHBOARD] Auto-refresh timer started (5s interval)
+2026-01-03 19:21:43,401 [INFO] [PERF] Performance logging started (10s interval)
+2026-01-03 19:21:43,405 [INFO] [STORAGE] Recovered 0 open positions
+2026-01-03 19:21:43,406 [INFO] [RECOVERY] No open positions to recover
+2026-01-03 19:22:09,891 [DEBUG] Starting new HTTPS connection (1): identitysso-cert.betfair.it:443
+2026-01-03 19:22:10,507 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-03 19:22:10,528 [DEBUG] https://identitysso-cert.betfair.it:443 "POST /api/certlogin HTTP/11" 200 125
+2026-01-03 19:22:10,584 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-03 19:22:10,584 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-03 19:22:10,584 [INFO] _start_order_stream: Starting...
+2026-01-03 19:22:10,736 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 184
+2026-01-03 19:35:58,770 [INFO] === Pickfair v3.70.4 started ===
+2026-01-03 19:35:58,814 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-03 19:35:58,814 [INFO] Importing modules...
+2026-01-03 19:35:58,815 [DEBUG] Importing database...
+2026-01-03 19:35:58,840 [DEBUG] Importing betfair_client...
+2026-01-03 19:35:59,539 [DEBUG] Importing storage...
+2026-01-03 19:35:59,541 [DEBUG] Importing bet_logger...
+2026-01-03 19:35:59,543 [DEBUG] Importing betfair_stream...
+2026-01-03 19:35:59,544 [DEBUG] Importing dutching...
+2026-01-03 19:35:59,546 [DEBUG] Importing telegram_listener...
+2026-01-03 19:36:00,704 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2026-01-03 19:36:00,705 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2026-01-03 19:36:01,649 [INFO] [STORAGE] Database tables initialized
+2026-01-03 19:36:01,650 [INFO] [STORAGE] Database initialized: C:\Users\chiara\AppData\Roaming\Pickfair\pickfair_history.db
+2026-01-03 19:36:01,650 [DEBUG] cryptg not available - using standard encryption
+2026-01-03 19:36:01,651 [DEBUG] Importing auto_updater...
+2026-01-03 19:36:01,653 [DEBUG] Importing theme...
+2026-01-03 19:36:01,654 [DEBUG] Importing plugin_manager...
+2026-01-03 19:36:01,713 [DEBUG] Importing license_manager...
+2026-01-03 19:36:01,717 [DEBUG] Importing pnl_engine...
+2026-01-03 19:36:01,718 [DEBUG] Importing automation_engine...
+2026-01-03 19:36:01,721 [DEBUG] Importing tick_storage...
+2026-01-03 19:36:01,725 [INFO] All modules imported successfully
+2026-01-03 19:36:01,726 [INFO] Single instance check passed - mutex acquired
+2026-01-03 19:36:03,559 [INFO] [STORAGE] Schema migration check complete
+2026-01-03 19:36:03,560 [INFO] [STORAGE] Index check complete
+2026-01-03 19:36:03,597 [INFO] [STORAGE] DB version set to 3588
+2026-01-03 19:36:03,598 [INFO] [STORAGE] Persistent storage initialized
+2026-01-03 19:36:09,182 [INFO] [DASHBOARD] Auto-refresh timer started (5s interval)
+2026-01-03 19:36:09,183 [INFO] [PERF] Performance logging started (10s interval)
+2026-01-03 19:36:09,186 [INFO] [STORAGE] Recovered 0 open positions
+2026-01-03 19:36:09,276 [INFO] [RECOVERY] No open positions to recover
+2026-01-03 19:36:38,258 [INFO] === Pickfair v3.70.4 started ===
+2026-01-03 19:36:38,259 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-03 19:36:38,259 [INFO] Importing modules...
+2026-01-03 19:36:38,260 [DEBUG] Importing database...
+2026-01-03 19:36:38,366 [DEBUG] Importing betfair_client...
+2026-01-03 19:36:39,733 [DEBUG] Importing storage...
+2026-01-03 19:36:39,735 [DEBUG] Importing bet_logger...
+2026-01-03 19:36:39,736 [DEBUG] Importing betfair_stream...
+2026-01-03 19:36:39,737 [DEBUG] Importing dutching...
+2026-01-03 19:36:39,740 [DEBUG] Importing telegram_listener...
+2026-01-03 19:36:40,692 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2026-01-03 19:36:40,692 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2026-01-03 19:36:40,880 [INFO] [STORAGE] Database tables initialized
+2026-01-03 19:36:40,880 [INFO] [STORAGE] Database initialized: C:\Users\chiara\AppData\Roaming\Pickfair\pickfair_history.db
+2026-01-03 19:36:40,881 [DEBUG] cryptg not available - using standard encryption
+2026-01-03 19:36:40,882 [DEBUG] Importing auto_updater...
+2026-01-03 19:36:40,884 [DEBUG] Importing theme...
+2026-01-03 19:36:40,885 [DEBUG] Importing plugin_manager...
+2026-01-03 19:36:40,891 [DEBUG] Importing license_manager...
+2026-01-03 19:36:40,894 [DEBUG] Importing pnl_engine...
+2026-01-03 19:36:40,895 [DEBUG] Importing automation_engine...
+2026-01-03 19:36:40,898 [DEBUG] Importing tick_storage...
+2026-01-03 19:36:40,902 [INFO] All modules imported successfully
+2026-01-03 19:36:40,903 [INFO] Single instance check passed - mutex acquired
+2026-01-03 19:36:41,244 [INFO] [STORAGE] Schema migration check complete
+2026-01-03 19:36:41,245 [INFO] [STORAGE] Index check complete
+2026-01-03 19:36:41,335 [INFO] [STORAGE] DB version set to 3588
+2026-01-03 19:36:41,337 [INFO] [STORAGE] Persistent storage initialized
+2026-01-03 19:36:45,131 [INFO] [DASHBOARD] Auto-refresh timer started (5s interval)
+2026-01-03 19:36:45,132 [INFO] [PERF] Performance logging started (10s interval)
+2026-01-03 19:36:45,134 [INFO] [STORAGE] Recovered 0 open positions
+2026-01-03 19:36:45,142 [INFO] [RECOVERY] No open positions to recover
+2026-01-03 19:36:56,031 [DEBUG] Starting new HTTPS connection (1): identitysso-cert.betfair.it:443
+2026-01-03 19:36:56,573 [DEBUG] https://identitysso-cert.betfair.it:443 "POST /api/certlogin HTTP/11" 200 125
+2026-01-03 19:36:56,633 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-03 19:36:56,633 [DEBUG] Starting new HTTPS connection (2): api.betfair.com:443
+2026-01-03 19:36:56,649 [INFO] _start_order_stream: Starting...
+2026-01-03 19:46:25,585 [INFO] === Pickfair v3.70.5 started ===
+2026-01-03 19:46:25,585 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-03 19:46:25,585 [INFO] Importing modules...
+2026-01-03 19:46:25,585 [DEBUG] Importing database...
+2026-01-03 19:46:25,710 [DEBUG] Importing betfair_client...
+2026-01-03 19:46:26,517 [DEBUG] Importing storage...
+2026-01-03 19:46:26,517 [DEBUG] Importing bet_logger...
+2026-01-03 19:46:26,600 [DEBUG] Importing betfair_stream...
+2026-01-03 19:46:26,600 [DEBUG] Importing dutching...
+2026-01-03 19:46:26,600 [DEBUG] Importing telegram_listener...
+2026-01-03 19:46:28,117 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2026-01-03 19:46:28,117 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2026-01-03 19:46:28,460 [INFO] [STORAGE] Database tables initialized
+2026-01-03 19:46:28,460 [INFO] [STORAGE] Database initialized: C:\Users\chiara\AppData\Roaming\Pickfair\pickfair_history.db
+2026-01-03 19:46:28,460 [DEBUG] cryptg not available - using standard encryption
+2026-01-03 19:46:28,460 [DEBUG] Importing auto_updater...
+2026-01-03 19:46:28,460 [DEBUG] Importing theme...
+2026-01-03 19:46:28,460 [DEBUG] Importing plugin_manager...
+2026-01-03 19:46:28,477 [DEBUG] Importing license_manager...
+2026-01-03 19:46:28,477 [DEBUG] Importing pnl_engine...
+2026-01-03 19:46:28,477 [DEBUG] Importing automation_engine...
+2026-01-03 19:46:28,477 [DEBUG] Importing tick_storage...
+2026-01-03 19:46:28,477 [INFO] All modules imported successfully
+2026-01-03 19:46:28,524 [INFO] Single instance check passed - mutex acquired
+2026-01-03 19:46:29,186 [INFO] [STORAGE] Schema migration check complete
+2026-01-03 19:46:29,186 [INFO] [STORAGE] Index check complete
+2026-01-03 19:46:29,201 [INFO] [STORAGE] DB version set to 3588
+2026-01-03 19:46:29,217 [INFO] [STORAGE] Persistent storage initialized
+2026-01-03 19:46:32,890 [INFO] [DASHBOARD] Auto-refresh timer started (5s interval)
+2026-01-03 19:46:32,890 [INFO] [PERF] Performance logging started (10s interval)
+2026-01-03 19:46:32,896 [INFO] [STORAGE] Recovered 0 open positions
+2026-01-03 19:46:32,912 [INFO] [RECOVERY] No open positions to recover
+2026-01-03 19:46:40,420 [DEBUG] Starting new HTTPS connection (1): identitysso-cert.betfair.it:443
+2026-01-03 19:46:40,964 [DEBUG] https://identitysso-cert.betfair.it:443 "POST /api/certlogin HTTP/11" 200 125
+2026-01-03 19:46:41,030 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-03 19:46:41,031 [DEBUG] Starting new HTTPS connection (2): api.betfair.com:443
+2026-01-03 19:46:41,039 [INFO] _start_order_stream: Queuing background start...
