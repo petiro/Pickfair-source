@@ -922,107 +922,105 @@ class TelegramListener:
             logging.info(f"[PARSER] Signal declined (❌), skipping")
             return None
         
-        # P.Exc. signals (Exchange - LAY mode by default for IN LEVA)
+        # Helper function: Calculate OVER SUCCESSIVO from current score
+        def calc_over_successivo(score_home, score_away):
+            """Calculate next over line from current score. 0-0 -> Over 0.5, 1-0 -> Over 1.5, etc."""
+            if score_home is not None and score_away is not None:
+                total = score_home + score_away
+                return total + 0.5
+            return 0.5  # Default to Over 0.5 if no score
+        
+        # P.Exc. signals (Exchange) - ALL bet OVER SUCCESSIVO BACK
         p_exc_over_leva = re.search(self.signal_patterns['p_exc_over_leva'], text, re.IGNORECASE)
         if p_exc_over_leva:
-            line = p_exc_over_leva.group(1).replace(',', '.')
+            over_line = calc_over_successivo(signal['score_home'], signal['score_away'])
             signal['market_type'] = 'OVER_UNDER'
-            signal['selection'] = f"Over {line}"
-            signal['over_line'] = float(line)
-            signal['side'] = 'LAY'  # IN LEVA = LAY mode
-            signal['bet_side'] = 'LAY'
+            signal['selection'] = f"Over {over_line}"
+            signal['over_line'] = over_line
+            signal['side'] = 'BACK'
+            signal['bet_side'] = 'BACK'
             signal['live_only'] = True
         
         p_exc_non_termina = re.search(self.signal_patterns['p_exc_non_termina'], text, re.IGNORECASE)
         if p_exc_non_termina and not signal['market_type']:
-            home = p_exc_non_termina.group(1)
-            away = p_exc_non_termina.group(2)
-            signal['market_type'] = 'CORRECT_SCORE'
-            signal['selection'] = f"{home} - {away}"
-            signal['side'] = 'LAY'  # NON TERMINA = LAY the score
-            signal['bet_side'] = 'LAY'
+            over_line = calc_over_successivo(signal['score_home'], signal['score_away'])
+            signal['market_type'] = 'OVER_UNDER'
+            signal['selection'] = f"Over {over_line}"
+            signal['over_line'] = over_line
+            signal['side'] = 'BACK'
+            signal['bet_side'] = 'BACK'
             signal['live_only'] = True
         
         p_exc_gol_2_tempo = re.search(self.signal_patterns['p_exc_gol_2_tempo'], text, re.IGNORECASE)
         if p_exc_gol_2_tempo and not signal['market_type']:
-            signal['market_type'] = 'SECOND_HALF_GOALS'
-            signal['selection'] = 'Over 0.5'
-            signal['over_line'] = 0.5
+            over_line = calc_over_successivo(signal['score_home'], signal['score_away'])
+            signal['market_type'] = 'OVER_UNDER'
+            signal['selection'] = f"Over {over_line}"
+            signal['over_line'] = over_line
             signal['side'] = 'BACK'
             signal['bet_side'] = 'BACK'
             signal['live_only'] = True
         
         p_exc_next_gol = re.search(self.signal_patterns['p_exc_next_gol'], text, re.IGNORECASE)
         if p_exc_next_gol and not signal['market_type']:
-            # Check if it's 2nd half specific
-            if '2 TEMPO' in text.upper():
-                signal['market_type'] = 'NEXT_GOAL_2ND_HALF'
-            else:
-                signal['market_type'] = 'NEXT_GOAL'
-            if signal['score_home'] is not None and signal['score_away'] is not None:
-                signal['selection'] = f"Over {signal['over_line']}"
-            else:
-                signal['selection'] = 'Yes'
+            over_line = calc_over_successivo(signal['score_home'], signal['score_away'])
+            signal['market_type'] = 'OVER_UNDER'
+            signal['selection'] = f"Over {over_line}"
+            signal['over_line'] = over_line
             signal['side'] = 'BACK'
             signal['bet_side'] = 'BACK'
             signal['live_only'] = True
         
-        # P.Bet. signals (Betting - BACK mode by default)
+        # P.Bet. signals (Betting) - ALL bet OVER SUCCESSIVO BACK
         p_bet_over_successivo = re.search(self.signal_patterns['p_bet_over_successivo'], text, re.IGNORECASE)
         if p_bet_over_successivo and not signal['market_type']:
-            # Next over - calculate from current score
-            if signal['score_home'] is not None and signal['score_away'] is not None:
-                total = signal['score_home'] + signal['score_away']
-                signal['over_line'] = total + 0.5
-                signal['selection'] = f"Over {signal['over_line']}"
-            else:
-                signal['selection'] = 'Over'
+            over_line = calc_over_successivo(signal['score_home'], signal['score_away'])
             signal['market_type'] = 'OVER_UNDER'
+            signal['selection'] = f"Over {over_line}"
+            signal['over_line'] = over_line
             signal['side'] = 'BACK'
             signal['bet_side'] = 'BACK'
             signal['live_only'] = True
         
         p_bet_prematch_ht = re.search(self.signal_patterns['p_bet_prematch_ht'], text, re.IGNORECASE)
         if p_bet_prematch_ht and not signal['market_type']:
-            line = p_bet_prematch_ht.group(1).replace(',', '.') if p_bet_prematch_ht.group(1) else '0.5'
-            signal['market_type'] = 'FIRST_HALF_GOALS'
-            signal['selection'] = f"Over {line}"
-            signal['over_line'] = float(line)
+            over_line = calc_over_successivo(signal['score_home'], signal['score_away'])
+            signal['market_type'] = 'OVER_UNDER'
+            signal['selection'] = f"Over {over_line}"
+            signal['over_line'] = over_line
             signal['side'] = 'BACK'
             signal['bet_side'] = 'BACK'
-            signal['event_filter'] = 'PRE_MATCH'
+            signal['live_only'] = True
         
         p_bet_ht_live = re.search(self.signal_patterns['p_bet_ht_live'], text, re.IGNORECASE)
         if p_bet_ht_live and not signal['market_type']:
-            line = p_bet_ht_live.group(1).replace(',', '.') if p_bet_ht_live.group(1) else '0.5'
-            signal['market_type'] = 'FIRST_HALF_GOALS'
-            signal['selection'] = f"Over {line}"
-            signal['over_line'] = float(line)
+            over_line = calc_over_successivo(signal['score_home'], signal['score_away'])
+            signal['market_type'] = 'OVER_UNDER'
+            signal['selection'] = f"Over {over_line}"
+            signal['over_line'] = over_line
             signal['side'] = 'BACK'
             signal['bet_side'] = 'BACK'
             signal['live_only'] = True
         
         p_bet_gol_2_tempo = re.search(self.signal_patterns['p_bet_gol_2_tempo'], text, re.IGNORECASE)
         if p_bet_gol_2_tempo and not signal['market_type']:
-            signal['market_type'] = 'SECOND_HALF_GOALS'
-            signal['selection'] = 'Over 0.5'
-            signal['over_line'] = 0.5
+            over_line = calc_over_successivo(signal['score_home'], signal['score_away'])
+            signal['market_type'] = 'OVER_UNDER'
+            signal['selection'] = f"Over {over_line}"
+            signal['over_line'] = over_line
             signal['side'] = 'BACK'
             signal['bet_side'] = 'BACK'
             signal['live_only'] = True
         
         p_bet_asiatico = re.search(self.signal_patterns['p_bet_asiatico'], text, re.IGNORECASE)
         if p_bet_asiatico and not signal['market_type']:
-            signal['market_type'] = 'ASIAN_HANDICAP'
+            over_line = calc_over_successivo(signal['score_home'], signal['score_away'])
+            signal['market_type'] = 'OVER_UNDER'
+            signal['selection'] = f"Over {over_line}"
+            signal['over_line'] = over_line
             signal['side'] = 'BACK'
             signal['bet_side'] = 'BACK'
-            signal['event_filter'] = 'PRE_MATCH'
-            # Asian handicap selection needs more specific parsing
-            ah_line_match = re.search(r'(\d+[.,]?\d*)\s*HT', text, re.IGNORECASE)
-            if ah_line_match:
-                line = ah_line_match.group(1).replace(',', '.')
-                signal['selection'] = f"Over {line}"
-                signal['over_line'] = float(line)
+            signal['live_only'] = True
         
         for custom in self.custom_patterns:
             try:
