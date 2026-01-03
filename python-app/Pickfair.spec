@@ -14,7 +14,8 @@ def find_ssl_dlls():
     ssl_dlls = []
     
     # STEP 1: Check for bundled DLLs in third_party folder (PREFERRED)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # In PyInstaller .spec context, use current working directory
+    script_dir = os.getcwd()
     third_party_paths = [
         os.path.join(script_dir, 'third_party'),
         os.path.join(script_dir, 'third_party', 'openssl'),
