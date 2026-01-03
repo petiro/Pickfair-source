@@ -60,9 +60,9 @@ _original_api_client_init = betfairlightweight.APIClient.__init__
 
 def _patched_api_client_init(self, *args, **kwargs):
     _original_api_client_init(self, *args, **kwargs)
-    # Replace session with TLS 1.2 + timeout session
-    self.session = create_tls12_session(timeout=30)
-    logger.info("[TLS] Forced TLS 1.2 session for Windows 7 compatibility")
+    # Replace session with TLS 1.2 + 5 second timeout session (Windows 7 compatibility)
+    self.session = create_tls12_session(timeout=5)
+    logger.info("[TLS] Forced TLS 1.2 + 5s timeout for Windows 7 compatibility")
 
 betfairlightweight.APIClient.__init__ = _patched_api_client_init
 
@@ -351,7 +351,7 @@ class BetfairClient:
         except:
             pass
     
-    def login(self, password, timeout=30):
+    def login(self, password, timeout=5):
         """
         Login to Betfair Italy using SSL certificate authentication.
         Uses locale="italy" for Italian Exchange endpoints.
