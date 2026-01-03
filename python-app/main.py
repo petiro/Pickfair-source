@@ -3654,8 +3654,12 @@ class PickfairApp:
         except:
             pass
         
-        # Open quick bet panel with correct parameters
-        self._show_quick_bet_panel(runner, selection_id, bet_type, price, default_stake)
+        # Minimum stake check (€1 for Italian regulations)
+        if default_stake < 1.0:
+            default_stake = 1.0
+        
+        # Open quick bet popup dialog (user prefers popup over side panel)
+        self._show_quick_bet_dialog(runner, bet_type, price, default_stake)
     
     def _show_ladder_context_menu(self, event, selection_id):
         """Show context menu for ladder row."""
