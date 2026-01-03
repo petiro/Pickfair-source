@@ -2408,10 +2408,17 @@ class PickfairApp:
             return
         
         # Stop existing stream first to avoid races
-        self._stop_order_stream()
+        logging.debug("_start_order_stream: Stopping existing stream...")
+        try:
+            self._stop_order_stream()
+        except Exception as e:
+            logging.error(f"_start_order_stream: Error stopping existing stream: {e}")
+        logging.debug("_start_order_stream: Existing stream stopped")
         
         try:
+            logging.debug("_start_order_stream: Getting settings from DB...")
             settings = self.db.get_settings()
+            logging.debug("_start_order_stream: Settings retrieved")
             app_key = settings.get('app_key', '')
             # Session token is stored in settings, not separate table
             session_token = settings.get('session_token', '')
