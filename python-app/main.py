@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.4"  # P.Exc/P.Bet parsing, Lock fix, Login timeout, Order stream logging
+APP_VERSION = "3.70.5"  # FIX FREEZE: Order stream runs fully in background thread
 
 # Setup file logging
 def setup_logging():
@@ -2400,61 +2400,65 @@ class PickfairApp:
             self.keepalive_id = None
     
     def _start_order_stream(self):
-        """Start Order Stream for real-time order updates."""
-        logging.info("_start_order_stream: Starting...")
+        """Start Order Stream for real-time order updates.
+        
+        Runs entirely in background thread to prevent UI freeze.
+        """
+        logging.info("_start_order_stream: Queuing background start...")
         
         if not self.client:
             logging.warning("_start_order_stream: No client, aborting")
             return
         
-        # Stop existing stream first to avoid races
-        logging.debug("_start_order_stream: Stopping existing stream...")
-        try:
-            self._stop_order_stream()
-        except Exception as e:
-            logging.error(f"_start_order_stream: Error stopping existing stream: {e}")
-        logging.debug("_start_order_stream: Existing stream stopped")
-        
-        try:
-            logging.debug("_start_order_stream: Getting settings from DB...")
-            settings = self.db.get_settings()
-            logging.debug("_start_order_stream: Settings retrieved")
-            app_key = settings.get('app_key', '')
-            # Session token is stored in settings, not separate table
-            session_token = settings.get('session_token', '')
-            logging.info(f"_start_order_stream: app_key={app_key[:8] if app_key else 'NONE'}..., session={bool(session_token)}")
-            
-            if not app_key or not session_token:
-                logging.warning("Order Stream: Missing app_key or session_token")
-                return
-            
-            self.order_stream = BetfairStream(app_key, session_token, use_italian_exchange=True)
-            self.order_stream.set_callbacks(
-                on_order_change=self._on_order_stream_update,
-                on_status_change=self._on_order_stream_status,
-                on_error=self._on_order_stream_error,
-                on_market_change=self._on_market_stream_update
-            )
-            
-            # Cache reference for thread safety
-            stream_ref = self.order_stream
-            
-            def connect_stream():
-                if stream_ref is None:
+        def background_stream_setup():
+            """All stream setup runs in background to keep UI responsive."""
+            try:
+                logging.debug("_start_order_stream: [BG] Stopping existing stream...")
+                # Stop existing stream (thread-safe)
+                if hasattr(self, 'order_stream') and self.order_stream:
+                    try:
+                        self.order_stream.disconnect()
+                    except Exception as e:
+                        logging.error(f"_start_order_stream: [BG] Error stopping stream: {e}")
+                    self.order_stream = None
+                logging.debug("_start_order_stream: [BG] Existing stream stopped")
+                
+                logging.debug("_start_order_stream: [BG] Getting settings from DB...")
+                settings = self.db.get_settings()
+                logging.debug("_start_order_stream: [BG] Settings retrieved")
+                
+                app_key = settings.get('app_key', '')
+                session_token = settings.get('session_token', '')
+                logging.info(f"_start_order_stream: [BG] app_key={app_key[:8] if app_key else 'NONE'}..., session={bool(session_token)}")
+                
+                if not app_key or not session_token:
+                    logging.warning("Order Stream: [BG] Missing app_key or session_token")
                     return
-                try:
-                    if stream_ref.connect():
-                        stream_ref.subscribe_orders()
-                        logging.info("Order Stream: Connected and subscribed")
-                    else:
-                        logging.error("Order Stream: Failed to connect")
-                except Exception as e:
-                    logging.error(f"Order Stream connect error: {e}")
-            
-            threading.Thread(target=connect_stream, daemon=True).start()
-            
-        except Exception as e:
-            logging.error(f"Order Stream init error: {e}")
+                
+                logging.debug("_start_order_stream: [BG] Creating BetfairStream...")
+                stream = BetfairStream(app_key, session_token, use_italian_exchange=True)
+                stream.set_callbacks(
+                    on_order_change=self._on_order_stream_update,
+                    on_status_change=self._on_order_stream_status,
+                    on_error=self._on_order_stream_error,
+                    on_market_change=self._on_market_stream_update
+                )
+                self.order_stream = stream
+                logging.debug("_start_order_stream: [BG] BetfairStream created")
+                
+                logging.debug("_start_order_stream: [BG] Connecting...")
+                if stream.connect():
+                    stream.subscribe_orders()
+                    logging.info("Order Stream: [BG] Connected and subscribed")
+                else:
+                    logging.error("Order Stream: [BG] Failed to connect")
+                    
+            except Exception as e:
+                logging.error(f"Order Stream: [BG] Setup error: {e}")
+        
+        # Run ALL setup in background thread
+        threading.Thread(target=background_stream_setup, daemon=True, name="OrderStreamSetup").start()
+        logging.info("_start_order_stream: Background thread started")
     
     def _stop_order_stream(self):
         """Stop Order Stream."""
