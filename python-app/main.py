@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.8"  # My Bets integrated in Dutching panel
+APP_VERSION = "3.70.9"  # Fix freeze: delayed My Bets auto-refresh
 
 # Setup file logging
 def setup_logging():
@@ -1958,15 +1958,16 @@ class PickfairApp:
     
     def _start_my_bets_auto_refresh(self):
         """Start auto-refresh for My Bets panel."""
-        if self.my_bets_refresh_id:
+        if hasattr(self, 'my_bets_refresh_id') and self.my_bets_refresh_id:
             self.root.after_cancel(self.my_bets_refresh_id)
         
         def refresh_loop():
-            if self.client:
+            if self.client and self.client.session_token:
                 self._refresh_my_bets_panel()
-            self.my_bets_refresh_id = self.root.after(3000, refresh_loop)  # Refresh every 3 seconds
+            self.my_bets_refresh_id = self.root.after(5000, refresh_loop)  # Refresh every 5 seconds
         
-        self.my_bets_refresh_id = self.root.after(1000, refresh_loop)
+        # Delay first refresh to allow app to fully initialize
+        self.my_bets_refresh_id = self.root.after(10000, refresh_loop)  # Start after 10 seconds
     
     def _update_placed_bets(self):
         """Update placed bets list for current market."""
