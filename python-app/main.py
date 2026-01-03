@@ -670,6 +670,8 @@ class PickfairApp:
         h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
         
         self.events_tree.bind('<<TreeviewSelect>>', self._on_event_selected)
+        # Add double-click binding for direct market load (backup for single-click issues)
+        self.events_tree.bind('<Double-Button-1>', self._on_tree_double_click)
         
         self.all_events = []
         self.auto_refresh_id = None
@@ -3071,6 +3073,25 @@ class PickfairApp:
         
         # Load markets and add as children
         self._load_markets_for_tree(event_id)
+
+    def _on_tree_double_click(self, event):
+        """Handle double-click on tree - force load market if clicked on market node."""
+        # Get item at click position
+        item_id = self.events_tree.identify_row(event.y)
+        if not item_id:
+            return
+        
+        # Only handle market nodes
+        if item_id.startswith('market_'):
+            parts = item_id.split('_', 2)
+            if len(parts) >= 3:
+                market_id = parts[2]
+                # Force select this item
+                self.events_tree.selection_set(item_id)
+                # Force reload by clearing state
+                self.current_market = None
+                self.runner_rows = {}
+                self._load_market_from_tree(market_id)
     
     def _load_markets_for_tree(self, event_id):
         """Load markets for an event and add them as children in the tree."""
@@ -3153,6 +3174,16 @@ class PickfairApp:
     
     def _load_market_from_tree(self, market_id):
         """Load a market selected from the tree."""
+        # Force reload by clearing current market reference
+        # This ensures the first click always loads fresh data
+        if self.current_market and self.current_market.get('marketId') == market_id:
+            # Same market - still refresh to ensure quotes are shown
+            pass
+        else:
+            # Different market - clear everything
+            self.current_market = None
+            self.runner_rows = {}
+        
         self._stop_streaming()
         self._clear_selections()
         self._load_market(market_id)
