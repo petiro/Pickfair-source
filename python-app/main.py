@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.7"  # FIX FREEZE: SSL + horizontal scroll added
+APP_VERSION = "3.70.8"  # My Bets integrated in Dutching panel
 
 # Setup file logging
 def setup_logging():
@@ -580,8 +580,7 @@ class PickfairApp:
         
         self._create_events_panel(self.trading_tab)
         self._create_market_panel(self.trading_tab)
-        self._create_dutching_panel(self.trading_tab)
-        self._create_my_bets_panel(self.trading_tab)
+        self._create_dutching_panel(self.trading_tab)  # My Bets is now inside Dutching panel
         
         self._create_dashboard_tab()
         self._create_telegram_tab()
@@ -1225,6 +1224,114 @@ class PickfairApp:
         self.polling_fallback_id = None
         self.market_cashout_fetch_cancelled = False  # Cancellation flag
         self.market_cashout_positions = {}
+        
+        # Add My Bets section inside Dutching panel
+        self._create_my_bets_section(dutch_frame)
+    
+    def _create_my_bets_section(self, parent):
+        """Create My Bets section embedded in Dutching panel."""
+        # Separator before My Bets
+        separator = ctk.CTkFrame(parent, fg_color=COLORS['border'], height=2)
+        separator.pack(fill=tk.X, padx=10, pady=10)
+        
+        # Title with controls
+        header_frame = ctk.CTkFrame(parent, fg_color='transparent')
+        header_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        
+        ctk.CTkLabel(header_frame, text="My Bets", font=('Segoe UI', 11, 'bold'),
+                     text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        # Cancel All button
+        self.cancel_all_btn = ctk.CTkButton(header_frame, text="Annulla Tutti", 
+                                            fg_color=COLORS['loss'], hover_color='#c62828',
+                                            corner_radius=6, width=90, height=26,
+                                            command=self._cancel_all_unmatched_orders)
+        self.cancel_all_btn.pack(side=tk.RIGHT)
+        
+        # ========== PENDING BETS SECTION (Red background) ==========
+        pending_frame = ctk.CTkFrame(parent, fg_color='#4a1a1a', corner_radius=6)
+        pending_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        
+        pending_header = ctk.CTkFrame(pending_frame, fg_color='#5c2020', corner_radius=0)
+        pending_header.pack(fill=tk.X)
+        
+        ctk.CTkLabel(pending_header, text="Pending Bets", font=('Segoe UI', 10, 'bold'),
+                     text_color='#ffcdd2').pack(side=tk.LEFT, padx=8, pady=4)
+        
+        self.pending_count_label = ctk.CTkLabel(pending_header, text="(0)", 
+                                                 font=('Segoe UI', 9),
+                                                 text_color='#ef9a9a')
+        self.pending_count_label.pack(side=tk.LEFT)
+        
+        # Pending bets list
+        self.pending_bets_list = ctk.CTkFrame(pending_frame, fg_color='transparent')
+        self.pending_bets_list.pack(fill=tk.X, padx=5, pady=5)
+        
+        self.pending_no_data = ctk.CTkLabel(self.pending_bets_list, text="Nessun ordine pending",
+                                             font=('Segoe UI', 9), text_color='#ef9a9a')
+        self.pending_no_data.pack(pady=5)
+        
+        # ========== UNMATCHED BETS SECTION (Gray background) ==========
+        unmatched_frame = ctk.CTkFrame(parent, fg_color='#3a3a3a', corner_radius=6)
+        unmatched_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        
+        unmatched_header = ctk.CTkFrame(unmatched_frame, fg_color='#4a4a4a', corner_radius=0)
+        unmatched_header.pack(fill=tk.X)
+        
+        ctk.CTkLabel(unmatched_header, text="Unmatched Bets", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e0').pack(side=tk.LEFT, padx=8, pady=4)
+        
+        self.unmatched_count_label = ctk.CTkLabel(unmatched_header, text="(0)", 
+                                                   font=('Segoe UI', 9),
+                                                   text_color='#bdbdbd')
+        self.unmatched_count_label.pack(side=tk.LEFT)
+        
+        # Unmatched bets list
+        self.unmatched_bets_list = ctk.CTkFrame(unmatched_frame, fg_color='transparent')
+        self.unmatched_bets_list.pack(fill=tk.X, padx=5, pady=5)
+        
+        self.unmatched_no_data = ctk.CTkLabel(self.unmatched_bets_list, text="Nessun ordine unmatched",
+                                               font=('Segoe UI', 9), text_color='#bdbdbd')
+        self.unmatched_no_data.pack(pady=5)
+        
+        # ========== MATCHED BETS SECTION (Green background) ==========
+        matched_frame = ctk.CTkFrame(parent, fg_color='#1a3a1a', corner_radius=6)
+        matched_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        
+        matched_header = ctk.CTkFrame(matched_frame, fg_color='#205020', corner_radius=0)
+        matched_header.pack(fill=tk.X)
+        
+        ctk.CTkLabel(matched_header, text="Matched Bets", font=('Segoe UI', 10, 'bold'),
+                     text_color='#c8e6c9').pack(side=tk.LEFT, padx=8, pady=4)
+        
+        self.matched_count_label = ctk.CTkLabel(matched_header, text="(0)", 
+                                                 font=('Segoe UI', 9),
+                                                 text_color='#a5d6a7')
+        self.matched_count_label.pack(side=tk.LEFT)
+        
+        # Checkbox for consolidated view
+        self.consolidated_view_var = tk.BooleanVar(value=False)
+        ctk.CTkCheckBox(matched_header, text="Consolidato", 
+                        variable=self.consolidated_view_var,
+                        command=self._refresh_my_bets_panel,
+                        fg_color=COLORS['success'], hover_color='#4caf50',
+                        text_color='#c8e6c9', width=80,
+                        font=('Segoe UI', 8)).pack(side=tk.RIGHT, padx=5)
+        
+        # Matched bets list
+        self.matched_bets_list = ctk.CTkFrame(matched_frame, fg_color='transparent')
+        self.matched_bets_list.pack(fill=tk.X, padx=5, pady=5)
+        
+        self.matched_no_data = ctk.CTkLabel(self.matched_bets_list, text="Nessun ordine matched",
+                                             font=('Segoe UI', 9), text_color='#a5d6a7')
+        self.matched_no_data.pack(pady=5)
+        
+        # Store order data for operations
+        self.my_bets_data = {'pending': [], 'unmatched': [], 'matched': []}
+        
+        # Auto-refresh timer
+        self.my_bets_refresh_id = None
+        self._start_my_bets_auto_refresh()
     
     def _create_my_bets_panel(self, parent):
         """Create My Bets panel with Pending, Unmatched, and Matched sections."""
