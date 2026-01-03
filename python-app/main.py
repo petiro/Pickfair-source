@@ -2875,13 +2875,33 @@ class PickfairApp:
         self._populate_events_tree()
     
     def _populate_events_tree(self):
-        """Populate events tree based on current search filter, preserving selection."""
+        """Populate events tree based on current search filter, preserving selection and loaded markets."""
         # Save current selection and expanded countries before clearing
         current_selection = self.events_tree.selection()
         expanded_countries = []
+        expanded_events = []
+        loaded_markets = {}  # {event_id: [(market_iid, values, tags), ...]}
+        
         for item in self.events_tree.get_children():
-            if item.startswith('country_') and self.events_tree.item(item, 'open'):
-                expanded_countries.append(item)
+            if item.startswith('country_'):
+                if self.events_tree.item(item, 'open'):
+                    expanded_countries.append(item)
+                # Check for expanded events with markets
+                for child in self.events_tree.get_children(item):
+                    if self.events_tree.item(child, 'open'):
+                        expanded_events.append(child)
+                    # Save any loaded markets
+                    market_children = self.events_tree.get_children(child)
+                    if market_children and any(str(mc).startswith('market_') for mc in market_children):
+                        loaded_markets[child] = []
+                        for mc in market_children:
+                            if str(mc).startswith('market_'):
+                                loaded_markets[child].append({
+                                    'iid': mc,
+                                    'text': self.events_tree.item(mc, 'text'),
+                                    'values': self.events_tree.item(mc, 'values'),
+                                    'tags': self.events_tree.item(mc, 'tags')
+                                })
         
         self.events_tree.delete(*self.events_tree.get_children())
         search = self.search_var.get().lower()
@@ -2912,10 +2932,25 @@ class PickfairApp:
                 
                 for event in countries[country]:
                     date_str = self._format_event_date(event)
-                    self.events_tree.insert(country_id, tk.END, iid=event['id'], values=(
+                    event_id = event['id']
+                    was_event_open = event_id in expanded_events or event_id in loaded_markets
+                    self.events_tree.insert(country_id, tk.END, iid=event_id, values=(
                         event['name'],
                         date_str
-                    ))
+                    ), open=was_event_open)
+                    
+                    # Restore previously loaded markets
+                    if event_id in loaded_markets:
+                        for market_data in loaded_markets[event_id]:
+                            try:
+                                self.events_tree.insert(event_id, tk.END, 
+                                    iid=market_data['iid'],
+                                    text=market_data['text'],
+                                    values=market_data['values'],
+                                    tags=market_data['tags']
+                                )
+                            except tk.TclError:
+                                pass  # Market already exists or invalid
         
         # Restore selection if it still exists
         for sel_id in current_selection:
