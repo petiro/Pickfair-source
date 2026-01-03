@@ -17,19 +17,42 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Set up Python 3.7
+    - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
-        python-version: '3.7'
+        python-version: '3.11'
+    
+    - name: Install OpenSSL
+      run: |
+        choco install openssl -y
+        echo "C:\Program Files\OpenSSL-Win64\bin" >> $env:GITHUB_PATH
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller customtkinter numpy betfairlightweight telethon requests
+        pip install pyinstaller customtkinter numpy betfairlightweight telethon requests cryptography cffi
+    
+    - name: Show SSL DLL locations
+      run: |
+        echo "Python location:"
+        python -c "import sys; print(sys.executable)"
+        echo "Looking for SSL DLLs..."
+        Get-ChildItem -Path "C:\Program Files\OpenSSL-Win64\bin" -Filter "*.dll" | Select-Object Name
+        Get-ChildItem -Path (Split-Path (python -c "import sys; print(sys.executable)")) -Filter "libssl*" -ErrorAction SilentlyContinue
     
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --windowed --name Pickfair main.py --hidden-import=customtkinter
+        pyinstaller Pickfair.spec --noconfirm
+    
+    - name: Verify build
+      run: |
+        if (Test-Path "dist\Pickfair.exe") {
+          echo "Build successful!"
+          Get-Item "dist\Pickfair.exe" | Select-Object Name, Length
+        } else {
+          echo "Build failed - exe not found"
+          exit 1
+        }
     
     - name: Upload to Pickfair public repo
       uses: softprops/action-gh-release@v1
@@ -38,3 +61,10 @@ jobs:
         files: dist/Pickfair.exe
         repository: petiro/Pickfair
         token: ${{ secrets.RELEASE_TOKEN }}
+    
+    - name: Upload artifact (for manual runs)
+      uses: actions/upload-artifact@v4
+      if: "!startsWith(github.ref, 'refs/tags/')"
+      with:
+        name: Pickfair-exe
+        path: dist/Pickfair.exe
