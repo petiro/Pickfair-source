@@ -9,10 +9,12 @@ def find_ssl_dlls():
     """Find OpenSSL DLLs in Python installation or system paths."""
     ssl_dlls = []
     dll_patterns = [
-        'libssl*.dll', 
-        'libcrypto*.dll',
-        'ssleay*.dll',
-        'libeay*.dll',
+        'libssl*.dll',        # OpenSSL 3.x: libssl-3.dll, libssl-3-x64.dll
+        'libcrypto*.dll',     # OpenSSL 3.x: libcrypto-3.dll, libcrypto-3-x64.dll
+        'libssl-1_1*.dll',    # OpenSSL 1.1.1: libssl-1_1.dll, libssl-1_1-x64.dll  
+        'libcrypto-1_1*.dll', # OpenSSL 1.1.1: libcrypto-1_1.dll, libcrypto-1_1-x64.dll
+        'ssleay*.dll',        # Old OpenSSL
+        'libeay*.dll',        # Old OpenSSL
     ]
     
     search_paths = [
