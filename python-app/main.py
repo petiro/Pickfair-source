@@ -702,24 +702,19 @@ class PickfairApp:
         self.events_tree.column('name', width=180, minwidth=180, stretch=False)
         self.events_tree.column('date', width=75, minwidth=70)
         
-        # Scrollbars frame for proper layout
-        scroll_frame = ttk.Frame(tree_container)
-        scroll_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Vertical scrollbar
-        v_scrollbar = ttk.Scrollbar(scroll_frame, orient=tk.VERTICAL, command=self.events_tree.yview)
-        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        # Horizontal scrollbar
+        # Horizontal scrollbar - pack FIRST at bottom
         h_scrollbar = ttk.Scrollbar(tree_container, orient=tk.HORIZONTAL, command=self.events_tree.xview)
         h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
         
+        # Vertical scrollbar - pack at right
+        v_scrollbar = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.events_tree.yview)
+        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Tree - pack last to fill remaining space
+        self.events_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
         # Configure tree scrolling
         self.events_tree.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
-        
-        # Pack tree inside scroll_frame
-        self.events_tree.master = scroll_frame
-        self.events_tree.pack(in_=scroll_frame, side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         # Use ButtonRelease-1 for reliable single-click handling
         # (TreeviewSelect fires before selection is updated - causes double-click bug)
