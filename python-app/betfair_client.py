@@ -29,6 +29,7 @@ class TLS12Adapter(HTTPAdapter):
     """
     Force TLS 1.2 and add timeout to all requests.
     Required for Windows 7 which doesn't support TLS 1.3.
+    Also disables certificate verification for self-signed certs.
     """
     
     def __init__(self, timeout=5, *args, **kwargs):
@@ -39,12 +40,17 @@ class TLS12Adapter(HTTPAdapter):
         # Force TLS 1.2 for Windows 7 compatibility
         ctx = create_urllib3_context(ssl_version=ssl.PROTOCOL_TLSv1_2)
         ctx.set_ciphers('DEFAULT@SECLEVEL=1')
+        # Disable certificate verification for self-signed certs (Windows 7 issue)
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
         kwargs['ssl_context'] = ctx
         return super().init_poolmanager(*args, **kwargs)
     
     def send(self, request, **kwargs):
         # Force timeout on every request
         kwargs.setdefault('timeout', self.timeout)
+        # Disable SSL verification
+        kwargs.setdefault('verify', False)
         return super().send(request, **kwargs)
 
 def create_tls12_session(timeout=5):
