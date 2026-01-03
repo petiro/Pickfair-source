@@ -832,6 +832,9 @@ class TelegramListener:
         Returns dict with keys: event, side, selection, market_type, odds, stake, raw_text
         or None if no valid signal found.
         """
+        import logging
+        logging.info(f"[PARSER] parse_signal called with: {text[:100]}...")
+        
         signal = {
             'raw_text': text,
             'timestamp': datetime.now().isoformat(),
@@ -1060,8 +1063,10 @@ class TelegramListener:
             return signal
         
         if signal['side'] and signal['selection']:
+            logging.info(f"[PARSER] Match found: event={signal.get('event')}, market={signal.get('market_type')}, selection={signal.get('selection')}")
             return signal
         
+        logging.info(f"[PARSER] No match - event={signal.get('event')}, market={signal.get('market_type')}, selection={signal.get('selection')}")
         return None
     
     async def _connect(self):
@@ -1120,6 +1125,7 @@ class TelegramListener:
             message = event.message
             text = message.text or ''
             logging.info(f"[TG] Text: {text[:100]}...")
+            logging.info(f"[TG] Callbacks: signal={self.signal_callback is not None}, message={self.message_callback is not None}, status={self.status_callback is not None}")
             
             chat_id = event.chat_id
             sender_id = event.sender_id
