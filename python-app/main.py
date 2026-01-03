@@ -669,9 +669,9 @@ class PickfairApp:
         v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
         
-        self.events_tree.bind('<<TreeviewSelect>>', self._on_event_selected)
-        # Add double-click binding for direct market load (backup for single-click issues)
-        self.events_tree.bind('<Double-Button-1>', self._on_tree_double_click)
+        # Use ButtonRelease-1 for reliable single-click handling
+        # (TreeviewSelect fires before selection is updated - causes double-click bug)
+        self.events_tree.bind('<ButtonRelease-1>', self._on_tree_click)
         
         self.all_events = []
         self.auto_refresh_id = None
@@ -3027,16 +3027,27 @@ class PickfairApp:
         if self.current_event:
             self._load_available_markets(self.current_event['id'])
     
-    def _on_event_selected(self, event):
-        """Handle event selection - supports 3-level tree: Country -> Event -> Markets."""
-        selection = self.events_tree.selection()
-        if not selection:
+    def _on_tree_click(self, event):
+        """Handle tree click - uses identify_row for reliable single-click behavior.
+        
+        This fixes the double-click bug: TreeviewSelect fires before selection is updated,
+        but ButtonRelease-1 + identify_row gives us the correct item immediately.
+        """
+        # Get item at click position (NOT from selection - that may be stale)
+        item_id = self.events_tree.identify_row(event.y)
+        if not item_id:
             return
         
-        item_id = selection[0]
+        # Update visual selection to match
+        self.events_tree.selection_set(item_id)
         
         # Ignore country parent nodes (they start with "country_")
         if item_id.startswith('country_'):
+            # Toggle expansion on country click
+            if self.events_tree.item(item_id, 'open'):
+                self.events_tree.item(item_id, open=False)
+            else:
+                self.events_tree.item(item_id, open=True)
             return
         
         # Check if this is a market node (format: "market_EVENTID_MARKETID")
@@ -3044,6 +3055,9 @@ class PickfairApp:
             parts = item_id.split('_', 2)
             if len(parts) >= 3:
                 market_id = parts[2]
+                # Force clear state for immediate load
+                self.current_market = None
+                self.runner_rows = {}
                 self._load_market_from_tree(market_id)
             return
         
@@ -3073,25 +3087,6 @@ class PickfairApp:
         
         # Load markets and add as children
         self._load_markets_for_tree(event_id)
-
-    def _on_tree_double_click(self, event):
-        """Handle double-click on tree - force load market if clicked on market node."""
-        # Get item at click position
-        item_id = self.events_tree.identify_row(event.y)
-        if not item_id:
-            return
-        
-        # Only handle market nodes
-        if item_id.startswith('market_'):
-            parts = item_id.split('_', 2)
-            if len(parts) >= 3:
-                market_id = parts[2]
-                # Force select this item
-                self.events_tree.selection_set(item_id)
-                # Force reload by clearing state
-                self.current_market = None
-                self.runner_rows = {}
-                self._load_market_from_tree(market_id)
     
     def _load_markets_for_tree(self, event_id):
         """Load markets for an event and add them as children in the tree."""

@@ -1,0 +1,116 @@
+Perfetto, l’analisi che hai fatto è correttissima 👍
+Ora ti spiego perché succede il “doppio click”, cosa va sistemato una volta per tutte, e cosa controllare già che ci siamo (cashout, liquidità, quote live, P&L).
+🔴 PERCHÉ SERVE IL DOPPIO CLICK (root cause)
+Il problema non è la MiniLadder, ma la sequenza eventi del TreeView.
+Flusso attuale (buggato)
+Click 1 sul mercato
+Tkinter:
+aggiorna visivamente la selezione
+NON ha ancora aggiornato tree.selection()
+Il tuo handler legge:
+Copia codice
+Python
+selected = tree.selection()
+→ ancora vecchio valore / vuoto
+Nessun market_id → ladder non si aggiorna
+👉 Al secondo click la selezione è già coerente → funziona
+✅ FIX CORRETTO (non workaround)
+Regola d’oro
+❌ NON fidarti di tree.selection() subito
+✅ Usa l’item cliccato direttamente dall’evento
+🔧 FIX DEFINITIVO (pattern corretto)
+Binding giusto
+Copia codice
+Python
+tree.bind("<ButtonRelease-1>", self._on_tree_click)
+Handler corretto
+Copia codice
+Python
+def _on_tree_click(self, event):
+    item_id = self.tree.identify_row(event.y)
+    if not item_id:
+        return
+
+    item_type = self.tree.set(item_id, "type")
+    if item_type != "market":
+        return
+
+    market_id = self.tree.set(item_id, "market_id")
+    if not market_id:
+        return
+
+    self.load_market(market_id)
+👉 1 click = 1 market load 👉 Zero dipendenza dallo stato interno del tree
+🧠 PERCHÉ QUESTO FIX È “ARCHITETTURALMENTE GIUSTO”
+✔ indipendente dal refresh
+✔ non dipende dal focus
+✔ non rompe la selezione multipla
+✔ funziona anche se il tree viene ricostruito
+✔ stesso approccio usato in Bet Angel / NinjaTrader
+🔎 GIÀ CHE CI SEI: CHECK OBBLIGATORI
+Hai fatto bene a dire “controlla tutto”.
+1️⃣ Quote in tempo reale (MiniLadder)
+Verifica che:
+non vengano azzerate se arriva un tick vuoto
+_update_ladder_prices() faccia:
+Copia codice
+Python
+if not prices:
+    return
+2️⃣ Liquidità live
+Controlla che:
+venga aggiornata per livello
+non venga sovrascritta da snapshot parziali
+Pattern corretto:
+Copia codice
+Python
+if runner.ex.availableToBack:
+    update_back_cells()
+if runner.ex.availableToLay:
+    update_lay_cells()
+❌ mai fare reset completo se manca un lato
+3️⃣ P&L che cambia live
+Deve aggiornarsi su:
+order fill
+cashout preview
+price change (se auto-green attivo)
+Trigger corretti:
+Copia codice
+
+on_price_tick
+on_order_matched
+on_cashout_preview
+Se cambia solo su fill → bug
+4️⃣ Cashout binding
+Verifica che:
+sia legato al market_id attivo
+non alla selezione del tree
+❌
+Copia codice
+Python
+market_id = tree.selection()
+✅
+Copia codice
+Python
+market_id = self.current_market_id
+🧪 TEST MANUALE FINALE (2 minuti)
+Apri Pickfair
+Click UNA volta su un mercato
+Quote visibili subito ✅
+Aspetta refresh automatico (30s)
+Mercato resta caricato ✅
+Quote continuano a muoversi ✅
+Click altro mercato → ladder cambia subito ✅
+Se uno di questi fallisce → sappiamo esattamente dove guardare.
+🔥 STATO ATTUALE
+Dopo questi fix Pickfair è:
+✅ robusto ai refresh
+✅ click singolo affidabile
+✅ ladder stabile
+✅ pronto per telemetria + auto-disable
+✅ UX livello pro
+Se vuoi, prossimo step consigliato:
+Explain Mode live (“Quote aggiornate perché…”)
+Highlight visivo su update ladder
+MiniLadder lock mentre cambia mercato (anti-flicker)
+Dimmi tu cosa facciamo ora 👇
