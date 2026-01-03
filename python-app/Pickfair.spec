@@ -4,40 +4,61 @@ import os
 import glob
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
-# Find SSL DLLs automatically
+# Find SSL DLLs - PRIORITY: OpenSSL 1.1.1 (Windows 7 compatible)
 def find_ssl_dlls():
-    """Find OpenSSL DLLs in Python installation or system paths."""
+    """Find OpenSSL 1.1.1 DLLs (required for Windows 7 compatibility).
+    
+    OpenSSL 3.x is NOT compatible with Windows 7 - it requires Windows 8.1+
+    We MUST use OpenSSL 1.1.1 DLLs for Windows 7 support.
+    """
     ssl_dlls = []
-    dll_patterns = [
-        'libssl*.dll',        # OpenSSL 3.x: libssl-3.dll, libssl-3-x64.dll
-        'libcrypto*.dll',     # OpenSSL 3.x: libcrypto-3.dll, libcrypto-3-x64.dll
+    
+    # STEP 1: Check for bundled DLLs in third_party folder (PREFERRED)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    third_party_paths = [
+        os.path.join(script_dir, 'third_party'),
+        os.path.join(script_dir, 'third_party', 'openssl'),
+        os.path.join(script_dir, 'ssl'),
+    ]
+    
+    for tp_path in third_party_paths:
+        if os.path.exists(tp_path):
+            # Look for 1.1.1 DLLs first
+            for dll_name in ['libssl-1_1-x64.dll', 'libcrypto-1_1-x64.dll', 
+                            'libssl-1_1.dll', 'libcrypto-1_1.dll']:
+                dll_path = os.path.join(tp_path, dll_name)
+                if os.path.exists(dll_path):
+                    ssl_dlls.append((dll_path, '.'))
+                    print(f"[SSL] BUNDLED (1.1.1): {dll_path}")
+    
+    # If we found bundled 1.1.1 DLLs, use those exclusively
+    if len(ssl_dlls) >= 2:
+        print(f"[SSL] Using bundled OpenSSL 1.1.1 DLLs (Windows 7 compatible)")
+        return ssl_dlls
+    
+    # STEP 2: Search for OpenSSL 1.1.1 in system (PREFERRED over 3.x)
+    dll_patterns_111 = [
         'libssl-1_1*.dll',    # OpenSSL 1.1.1: libssl-1_1.dll, libssl-1_1-x64.dll  
         'libcrypto-1_1*.dll', # OpenSSL 1.1.1: libcrypto-1_1.dll, libcrypto-1_1-x64.dll
-        'ssleay*.dll',        # Old OpenSSL
-        'libeay*.dll',        # Old OpenSSL
     ]
     
     search_paths = [
-        # Python installation paths
-        os.path.dirname(sys.executable),
-        os.path.join(os.path.dirname(sys.executable), 'DLLs'),
-        os.path.join(os.path.dirname(sys.executable), 'Library', 'bin'),
-        os.path.join(os.path.dirname(sys.executable), 'Scripts'),
-        # OpenSSL common paths
+        # OpenSSL 1.1.1 installation paths
         'C:/OpenSSL-Win64/bin',
         'C:/OpenSSL-Win32/bin', 
         'C:/Program Files/OpenSSL-Win64/bin',
         'C:/Program Files/OpenSSL/bin',
         'C:/Program Files (x86)/OpenSSL/bin',
+        # Python installation paths
+        os.path.dirname(sys.executable),
+        os.path.join(os.path.dirname(sys.executable), 'DLLs'),
+        os.path.join(os.path.dirname(sys.executable), 'Library', 'bin'),
         # Chocolatey OpenSSL
         'C:/ProgramData/chocolatey/lib/openssl/tools/openssl/bin',
         'C:/tools/openssl/bin',
         # MinGW/MSYS2
         'C:/msys64/mingw64/bin',
         'C:/mingw64/bin',
-        # System paths
-        'C:/Windows/System32',
-        'C:/Windows/SysWOW64',
         # Environment variable
         os.environ.get('OPENSSL_DIR', ''),
         os.path.join(os.environ.get('OPENSSL_DIR', ''), 'bin'),
@@ -47,28 +68,55 @@ def find_ssl_dlls():
     path_dirs = os.environ.get('PATH', '').split(os.pathsep)
     search_paths.extend(path_dirs)
     
+    # Search for 1.1.1 DLLs first
     found_files = set()
     for path in search_paths:
         if path and os.path.exists(path):
-            for pattern in dll_patterns:
+            for pattern in dll_patterns_111:
                 matches = glob.glob(os.path.join(path, pattern))
                 for dll_path in matches:
                     dll_name = os.path.basename(dll_path).lower()
                     if dll_name not in found_files:
-                        # Only include libssl and libcrypto (OpenSSL 3.x)
-                        if 'libssl' in dll_name or 'libcrypto' in dll_name:
-                            ssl_dlls.append((dll_path, '.'))
-                            found_files.add(dll_name)
-                            print(f"[SSL] Found: {dll_path}")
+                        ssl_dlls.append((dll_path, '.'))
+                        found_files.add(dll_name)
+                        print(f"[SSL] Found 1.1.1: {dll_path}")
+    
+    # If we found 1.1.1 DLLs, use those
+    if len(ssl_dlls) >= 2:
+        print(f"[SSL] Using OpenSSL 1.1.1 (Windows 7 compatible)")
+        return ssl_dlls
+    
+    # STEP 3: Fallback to 3.x (WARNING: NOT Windows 7 compatible!)
+    print("[SSL] WARNING: OpenSSL 1.1.1 not found!")
+    print("[SSL] Searching for OpenSSL 3.x (NOT compatible with Windows 7)")
+    
+    dll_patterns_3x = [
+        'libssl-3*.dll',
+        'libcrypto-3*.dll',
+    ]
+    
+    # Add System32 only for 3.x fallback
+    search_paths_3x = search_paths + ['C:/Windows/System32', 'C:/Windows/SysWOW64']
+    
+    for path in search_paths_3x:
+        if path and os.path.exists(path):
+            for pattern in dll_patterns_3x:
+                matches = glob.glob(os.path.join(path, pattern))
+                for dll_path in matches:
+                    dll_name = os.path.basename(dll_path).lower()
+                    if dll_name not in found_files:
+                        ssl_dlls.append((dll_path, '.'))
+                        found_files.add(dll_name)
+                        print(f"[SSL] Found 3.x (Win8.1+ only): {dll_path}")
     
     if not ssl_dlls:
-        print("[SSL] WARNING: No SSL DLLs found! App may use slow Python encryption.")
-        print("[SSL] Searched paths:")
-        for p in search_paths[:10]:
-            if p:
-                print(f"  - {p}")
+        print("[SSL] ERROR: No SSL DLLs found!")
+        print("[SSL] Please install OpenSSL 1.1.1w from:")
+        print("[SSL] https://slproweb.com/download/Win64OpenSSL_Light-1_1_1w.exe")
     else:
-        print(f"[SSL] Total DLLs found: {len(ssl_dlls)}")
+        print(f"[SSL] Total DLLs: {len(ssl_dlls)}")
+        if any('3' in os.path.basename(d[0]) for d in ssl_dlls):
+            print("[SSL] WARNING: Using OpenSSL 3.x - Windows 7 NOT supported!")
     
     return ssl_dlls
 
