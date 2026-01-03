@@ -1116,9 +1116,10 @@ class TelegramListener:
         
         @self.client.on(events.NewMessage(chats=self.monitored_chats if self.monitored_chats else None))
         async def handler(event):
-            logging.debug(f"NewMessage event from chat {event.chat_id}")
+            logging.info(f"[TG] NewMessage from chat {event.chat_id}")
             message = event.message
             text = message.text or ''
+            logging.info(f"[TG] Text: {text[:100]}...")
             
             chat_id = event.chat_id
             sender_id = event.sender_id
