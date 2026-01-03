@@ -43,11 +43,18 @@ def find_ssl_dlls():
     ]
     
     search_paths = [
-        # OpenSSL 1.1.1 installation paths
+        # OpenSSL 1.1.1 installation paths (root and bin)
+        'C:/OpenSSL-Win64',
         'C:/OpenSSL-Win64/bin',
+        'C:/OpenSSL-Win32',
         'C:/OpenSSL-Win32/bin', 
+        'C:/Program Files/OpenSSL-Win64',
         'C:/Program Files/OpenSSL-Win64/bin',
+        'C:/Programmi/OpenSSL-Win64',       # Italian Windows
+        'C:/Programmi/OpenSSL-Win64/bin',
+        'C:/Program Files/OpenSSL',
         'C:/Program Files/OpenSSL/bin',
+        'C:/Program Files (x86)/OpenSSL',
         'C:/Program Files (x86)/OpenSSL/bin',
         # Python installation paths
         os.path.dirname(sys.executable),
