@@ -51,20 +51,43 @@ def setup_logging():
 
 LOG_FILE = setup_logging()
 
-from database import Database
-from betfair_client import BetfairClient, MARKET_TYPES
-from storage import get_persistent_storage
-from bet_logger import get_bet_logger
-from betfair_stream import BetfairStream
-from dutching import calculate_dutching_stakes, validate_selections, format_currency
-from telegram_listener import TelegramListener, SignalQueue
-from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
-from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_theme
-from plugin_manager import PluginManager, PluginAPI, PluginInfo
-from license_manager import get_hardware_id, is_licensed, activate_license, load_license
-from pnl_engine import PnLEngine
-from automation_engine import AutomationEngine, PositionState, TrailingStopEngine, SLTPEngine, PartialGreen
-from tick_storage import TickStorage
+# Import with logging to detect slow/blocking imports
+logging.info("Importing modules...")
+try:
+    logging.debug("Importing database...")
+    from database import Database
+    logging.debug("Importing betfair_client...")
+    from betfair_client import BetfairClient, MARKET_TYPES
+    logging.debug("Importing storage...")
+    from storage import get_persistent_storage
+    logging.debug("Importing bet_logger...")
+    from bet_logger import get_bet_logger
+    logging.debug("Importing betfair_stream...")
+    from betfair_stream import BetfairStream
+    logging.debug("Importing dutching...")
+    from dutching import calculate_dutching_stakes, validate_selections, format_currency
+    logging.debug("Importing telegram_listener...")
+    from telegram_listener import TelegramListener, SignalQueue
+    logging.debug("Importing auto_updater...")
+    from auto_updater import check_for_updates, show_update_dialog, DEFAULT_UPDATE_URL
+    logging.debug("Importing theme...")
+    from theme import COLORS, FONTS, configure_customtkinter, configure_ttk_dark_theme
+    logging.debug("Importing plugin_manager...")
+    from plugin_manager import PluginManager, PluginAPI, PluginInfo
+    logging.debug("Importing license_manager...")
+    from license_manager import get_hardware_id, is_licensed, activate_license, load_license
+    logging.debug("Importing pnl_engine...")
+    from pnl_engine import PnLEngine
+    logging.debug("Importing automation_engine...")
+    from automation_engine import AutomationEngine, PositionState, TrailingStopEngine, SLTPEngine, PartialGreen
+    logging.debug("Importing tick_storage...")
+    from tick_storage import TickStorage
+    logging.info("All modules imported successfully")
+except Exception as e:
+    logging.error(f"Failed to import modules: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
