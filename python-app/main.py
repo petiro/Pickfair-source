@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.2"  # Single-click fix, Quote popup, Live P&L, Cashout binding, Market persistence
+APP_VERSION = "3.70.4"  # P.Exc/P.Bet parsing, Lock fix, Login timeout, Order stream logging
 
 # Setup file logging
 def setup_logging():
