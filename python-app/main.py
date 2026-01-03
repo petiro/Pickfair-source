@@ -653,14 +653,21 @@ class PickfairApp:
         self.events_tree.heading('name', text='Partita')
         self.events_tree.heading('date', text='Data')
         self.events_tree.column('#0', width=50, minwidth=40)
-        self.events_tree.column('name', width=120, minwidth=80)
-        self.events_tree.column('date', width=60, minwidth=50)
+        self.events_tree.column('name', width=180, minwidth=180, stretch=False)
+        self.events_tree.column('date', width=75, minwidth=70)
         
-        scrollbar = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.events_tree.yview)
-        self.events_tree.configure(yscrollcommand=scrollbar.set)
+        # Vertical scrollbar
+        v_scrollbar = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.events_tree.yview)
+        self.events_tree.configure(yscrollcommand=v_scrollbar.set)
         
+        # Horizontal scrollbar for long match names
+        h_scrollbar = ttk.Scrollbar(tree_container, orient=tk.HORIZONTAL, command=self.events_tree.xview)
+        self.events_tree.configure(xscrollcommand=h_scrollbar.set)
+        
+        # Pack: tree and scrollbars
         self.events_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
         
         self.events_tree.bind('<<TreeviewSelect>>', self._on_event_selected)
         
