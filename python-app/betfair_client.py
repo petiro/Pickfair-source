@@ -302,10 +302,14 @@ class BetfairClient:
         except:
             pass
     
-    def login(self, password):
+    def login(self, password, timeout=30):
         """
         Login to Betfair Italy using SSL certificate authentication.
         Uses locale="italy" for Italian Exchange endpoints.
+        
+        Args:
+            password: Betfair account password
+            timeout: Login timeout in seconds (default 30)
         """
         certs_dir = self._create_temp_cert_files()
         
@@ -317,6 +321,11 @@ class BetfairClient:
                 certs=certs_dir,
                 locale="italy"
             )
+            
+            # Set request timeout to prevent hanging
+            import requests
+            self.client.session = requests.Session()
+            self.client.session.timeout = timeout
             
             self.client.login()
             

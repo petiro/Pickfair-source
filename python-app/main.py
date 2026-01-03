@@ -77,7 +77,6 @@ def check_single_instance():
         # Use Windows mutex for reliable single instance check
         try:
             import ctypes
-            from ctypes import wintypes
             
             kernel32 = ctypes.windll.kernel32
             
@@ -87,7 +86,8 @@ def check_single_instance():
             
             if handle == 0:
                 logging.error("Failed to create mutex")
-                return None
+                # Don't block - allow app to run
+                return "SKIP"
             
             # ERROR_ALREADY_EXISTS = 183
             last_error = kernel32.GetLastError()
@@ -100,8 +100,8 @@ def check_single_instance():
             return handle  # Keep handle open
             
         except Exception as e:
-            logging.error(f"Mutex check failed: {e}, trying fallback lock file")
-            # Fall through to lock file method
+            logging.error(f"Mutex check failed: {e}, allowing app to run")
+            return "SKIP"  # Allow app to run on error
     
     # Fallback: Lock file method for non-Windows or if mutex fails
     if os.name == 'nt':
@@ -111,12 +111,32 @@ def check_single_instance():
     os.makedirs(lock_dir, exist_ok=True)
     lock_file = os.path.join(lock_dir, 'pickfair.lock')
     
+    # Check if lock file is stale (process not running)
+    try:
+        if os.path.exists(lock_file):
+            # Try to read PID from lock file
+            try:
+                with open(lock_file, 'r') as f:
+                    pid = int(f.read().strip())
+                # Check if process is still running
+                import psutil
+                if not psutil.pid_exists(pid):
+                    logging.info(f"Stale lock file found (PID {pid} not running), removing")
+                    os.remove(lock_file)
+            except (ValueError, ImportError, OSError):
+                # Can't verify, try to acquire anyway
+                pass
+    except Exception as e:
+        logging.debug(f"Lock file check failed: {e}")
+    
     try:
         if os.name == 'nt':
             import msvcrt
             fd = os.open(lock_file, os.O_CREAT | os.O_RDWR)
             try:
                 msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+                # Write PID to lock file
+                os.write(fd, str(os.getpid()).encode())
                 logging.info("Single instance check passed - lock file acquired")
                 return fd
             except IOError:
@@ -128,6 +148,9 @@ def check_single_instance():
             fd = open(lock_file, 'w')
             try:
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                # Write PID to lock file
+                fd.write(str(os.getpid()))
+                fd.flush()
                 logging.info("Single instance check passed - flock acquired")
                 return fd
             except IOError:
@@ -135,8 +158,8 @@ def check_single_instance():
                 fd.close()
                 return None
     except Exception as e:
-        logging.error(f"Single instance check failed: {e}")
-        return None  # Block execution on error instead of allowing
+        logging.error(f"Single instance check failed: {e}, allowing app to run")
+        return "SKIP"  # Allow app to run on error
 
 LIVE_REFRESH_INTERVAL = 2000  # 2 seconds for real-time odds
 
@@ -11548,8 +11571,16 @@ def main():
         root.destroy()
         return
     
-    app = PickfairApp()
-    app.run()
+    # lock == "SKIP" means allow app to run despite check failure
+    
+    try:
+        app = PickfairApp()
+        app.run()
+    except Exception as e:
+        logging.error(f"Application crashed: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 if __name__ == "__main__":
