@@ -1718,9 +1718,9 @@ class PickfairApp:
                         market_id=market_id,
                         selection_id=selection_id,
                         side='LAY',
-                        stake=lay_stake,
                         price=best_lay,
-                        persistence='LAPSE'
+                        size=lay_stake,
+                        persistence_type='LAPSE'
                     )
                     
                     if bet_result:
