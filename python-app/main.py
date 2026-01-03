@@ -5231,6 +5231,7 @@ class PickfairApp:
         self.dashboard_notebook.add("Storico P&L")
         self.dashboard_notebook.add("Audit Telegram")
         self.dashboard_notebook.add("Log Errori")
+        self.dashboard_notebook.add("Log Sistema")
         self.dashboard_notebook.add("Performance")
         
         self.dashboard_market_watch_frame = self.dashboard_notebook.tab("Market Watch")
@@ -5242,7 +5243,11 @@ class PickfairApp:
         self.dashboard_pnl_frame = self.dashboard_notebook.tab("Storico P&L")
         self.dashboard_telegram_audit_frame = self.dashboard_notebook.tab("Audit Telegram")
         self.dashboard_error_log_frame = self.dashboard_notebook.tab("Log Errori")
+        self.dashboard_system_log_frame = self.dashboard_notebook.tab("Log Sistema")
         self.dashboard_performance_frame = self.dashboard_notebook.tab("Performance")
+        
+        # Setup System Log tab
+        self._setup_system_log_tab()
         
         # Initialize Market Watch
         self._setup_market_watch_tab()
@@ -6014,6 +6019,124 @@ class PickfairApp:
         ctk.CTkButton(btn_frame, text="Esporta CSV", command=export_errors,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
                       corner_radius=6).pack(side=tk.RIGHT, padx=5)
+    
+    def _setup_system_log_tab(self):
+        """Setup System Log tab with real-time log display."""
+        frame = self.dashboard_system_log_frame
+        
+        # Header
+        header_frame = ctk.CTkFrame(frame, fg_color='transparent')
+        header_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        ctk.CTkLabel(header_frame, text="Log Sistema (Real-time)", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        # Controls
+        btn_frame = ctk.CTkFrame(header_frame, fg_color='transparent')
+        btn_frame.pack(side=tk.RIGHT)
+        
+        def clear_log():
+            self.system_log_text.configure(state='normal')
+            self.system_log_text.delete('1.0', tk.END)
+            self.system_log_text.configure(state='disabled')
+        
+        def export_log():
+            try:
+                from tkinter import filedialog
+                filename = filedialog.asksaveasfilename(
+                    defaultextension='.txt',
+                    filetypes=[('Text files', '*.txt'), ('Log files', '*.log')],
+                    title='Esporta Log Sistema'
+                )
+                if filename:
+                    content = self.system_log_text.get('1.0', tk.END)
+                    with open(filename, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    messagebox.showinfo("Esportazione", f"Log esportati in {filename}")
+            except Exception as e:
+                messagebox.showerror("Errore", f"Esportazione fallita: {e}")
+        
+        ctk.CTkButton(btn_frame, text="Pulisci", command=clear_log,
+                      fg_color=COLORS['warning'], hover_color='#e65100',
+                      corner_radius=6, width=80).pack(side=tk.LEFT, padx=5)
+        
+        ctk.CTkButton(btn_frame, text="Esporta", command=export_log,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=80).pack(side=tk.LEFT, padx=5)
+        
+        # Log text area with scrollbar
+        log_frame = ctk.CTkFrame(frame, fg_color=COLORS['bg_card'], corner_radius=8)
+        log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        self.system_log_text = tk.Text(log_frame, bg='#1e1e1e', fg='#d4d4d4', 
+                                        font=('Consolas', 9), wrap=tk.WORD,
+                                        state='disabled', relief='flat', bd=0)
+        self.system_log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        scrollbar = ttk.Scrollbar(log_frame, orient=tk.VERTICAL, command=self.system_log_text.yview)
+        self.system_log_text.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=5)
+        
+        # Configure text tags for log levels
+        self.system_log_text.tag_configure('INFO', foreground='#4fc3f7')
+        self.system_log_text.tag_configure('DEBUG', foreground='#81c784')
+        self.system_log_text.tag_configure('WARNING', foreground='#ffb74d')
+        self.system_log_text.tag_configure('ERROR', foreground='#ef5350')
+        self.system_log_text.tag_configure('CRITICAL', foreground='#ff1744')
+        self.system_log_text.tag_configure('TG', foreground='#64b5f6')
+        self.system_log_text.tag_configure('PARSER', foreground='#ce93d8')
+        
+        # Setup logging handler to write to this widget
+        self._setup_ui_log_handler()
+    
+    def _setup_ui_log_handler(self):
+        """Setup logging handler that writes to the UI log widget."""
+        class UILogHandler(logging.Handler):
+            def __init__(self, app):
+                super().__init__()
+                self.app = app
+                self.max_lines = 1000  # Keep last 1000 lines
+            
+            def emit(self, record):
+                try:
+                    msg = self.format(record)
+                    # Schedule UI update in main thread
+                    self.app.root.after(0, lambda: self._append_log(msg, record.levelname))
+                except Exception:
+                    pass
+            
+            def _append_log(self, msg, level):
+                try:
+                    text_widget = self.app.system_log_text
+                    text_widget.configure(state='normal')
+                    
+                    # Determine tag based on content and level
+                    tag = level
+                    if '[TG]' in msg:
+                        tag = 'TG'
+                    elif '[PARSER]' in msg:
+                        tag = 'PARSER'
+                    
+                    text_widget.insert(tk.END, msg + '\n', tag)
+                    
+                    # Limit lines
+                    line_count = int(text_widget.index('end-1c').split('.')[0])
+                    if line_count > self.max_lines:
+                        text_widget.delete('1.0', f'{line_count - self.max_lines}.0')
+                    
+                    text_widget.see(tk.END)
+                    text_widget.configure(state='disabled')
+                except Exception:
+                    pass
+        
+        # Add handler to root logger
+        handler = UILogHandler(self)
+        handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s', datefmt='%H:%M:%S'))
+        handler.setLevel(logging.DEBUG)
+        logging.getLogger().addHandler(handler)
+        
+        # Also ensure root logger level is DEBUG
+        logging.getLogger().setLevel(logging.DEBUG)
     
     def _create_performance_view(self, parent):
         """Create performance metrics view."""
