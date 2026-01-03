@@ -9,13 +9,62 @@ import tempfile
 import threading
 import queue
 import time
+import ssl
 import betfairlightweight
 from betfairlightweight import filters
 from betfairlightweight.streaming import StreamListener
 from datetime import datetime, timedelta
 import logging
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.ssl_ import create_urllib3_context
 
 logger = logging.getLogger(__name__)
+
+# ==============================================================================
+# TLS 1.2 ADAPTER FOR WINDOWS 7 COMPATIBILITY
+# ==============================================================================
+
+class TLS12Adapter(HTTPAdapter):
+    """
+    Force TLS 1.2 and add timeout to all requests.
+    Required for Windows 7 which doesn't support TLS 1.3.
+    """
+    
+    def __init__(self, timeout=30, *args, **kwargs):
+        self.timeout = timeout
+        super().__init__(*args, **kwargs)
+    
+    def init_poolmanager(self, *args, **kwargs):
+        # Force TLS 1.2 for Windows 7 compatibility
+        ctx = create_urllib3_context(ssl_version=ssl.PROTOCOL_TLSv1_2)
+        ctx.set_ciphers('DEFAULT@SECLEVEL=1')
+        kwargs['ssl_context'] = ctx
+        return super().init_poolmanager(*args, **kwargs)
+    
+    def send(self, request, **kwargs):
+        # Force timeout on every request
+        kwargs.setdefault('timeout', self.timeout)
+        return super().send(request, **kwargs)
+
+def create_tls12_session(timeout=30):
+    """Create a requests session with TLS 1.2 forced and timeout set."""
+    session = requests.Session()
+    adapter = TLS12Adapter(timeout=timeout)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
+
+# Monkey-patch betfairlightweight to use our TLS 1.2 session
+_original_api_client_init = betfairlightweight.APIClient.__init__
+
+def _patched_api_client_init(self, *args, **kwargs):
+    _original_api_client_init(self, *args, **kwargs)
+    # Replace session with TLS 1.2 + timeout session
+    self.session = create_tls12_session(timeout=30)
+    logger.info("[TLS] Forced TLS 1.2 session for Windows 7 compatibility")
+
+betfairlightweight.APIClient.__init__ = _patched_api_client_init
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -322,24 +371,8 @@ class BetfairClient:
                 locale="italy"
             )
             
-            # Set request timeout to prevent hanging using HTTPAdapter
-            import requests
-            from requests.adapters import HTTPAdapter
-            
-            class TimeoutAdapter(HTTPAdapter):
-                def __init__(self, timeout=30, *args, **kwargs):
-                    self.timeout = timeout
-                    super().__init__(*args, **kwargs)
-                
-                def send(self, request, **kwargs):
-                    kwargs.setdefault('timeout', self.timeout)
-                    return super().send(request, **kwargs)
-            
-            session = requests.Session()
-            adapter = TimeoutAdapter(timeout=timeout)
-            session.mount('http://', adapter)
-            session.mount('https://', adapter)
-            self.client.session = session
+            # TLS 1.2 session is automatically applied by monkey-patch
+            # No need to manually set session here
             
             self.client.login()
             
