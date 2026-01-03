@@ -4441,11 +4441,9 @@ class PickfairApp:
                 market_id=self.current_market['marketId'],
                 market_name=self.current_market.get('marketName', ''),
                 side=bet_type,
-                selection_id=str(runner['selectionId']),
-                selection_name=runner['runnerName'],
-                price=price,
-                stake=stake,
-                status='MATCHED'
+                selections=[{'name': runner['runnerName'], 'price': price, 'stake': stake}],
+                total_stake=stake,
+                potential_profit=profit
             )
             
             # Log to persistent storage for unified history
@@ -10726,11 +10724,10 @@ Evento: {event_name}"""
                                 event_name=matched_event['name'],
                                 market_id=target_market['marketId'],
                                 market_name=target_market.get('marketName', ''),
-                                bet_type=f'DUTCHING_{bet_side}',
-                                selections=', '.join([r['runnerName'] for r in matched_runners]),
+                                side=f'DUTCHING_{bet_side}',
+                                selections=[{'name': r['runnerName'], 'price': r['price'], 'stake': r['stake']} for r in dutching_result],
                                 total_stake=stake,
-                                potential_profit=total_profit,
-                                status='MATCHED'
+                                potential_profit=total_profit
                             )
                             update_status('PLACED')
                             messagebox.showinfo("Auto-Bet Dutching (Simulazione)", f"Dutching simulato piazzato!\n\n{bet_info}")
@@ -10924,11 +10921,10 @@ Evento: {event_name}"""
                     event_name=matched_event['name'],
                     market_id=target_market['marketId'],
                     market_name=target_market.get('marketName', ''),
-                    bet_type=bet_side,
-                    selections=target_runner['runnerName'],
+                    side=bet_side,
+                    selections=[{'name': target_runner['runnerName'], 'price': target_runner['price'], 'stake': stake}],
                     total_stake=stake,
-                    potential_profit=net_profit,
-                    status='MATCHED'
+                    potential_profit=net_profit
                 )
                 update_status('PLACED')
                 messagebox.showinfo("Auto-Bet (Simulazione)", f"Scommessa simulata piazzata!\n\n{bet_info}")
