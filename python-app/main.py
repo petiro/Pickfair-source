@@ -2492,18 +2492,22 @@ class PickfairApp:
         
         def keepalive():
             if self.client:
-                try:
-                    # Use betfairlightweight's native keep_alive method
-                    self.client.keep_alive()
-                    self._keepalive_fail_count = 0
-                    logging.debug("Session keepalive: OK")
-                except Exception as e:
-                    self._keepalive_fail_count += 1
-                    logging.warning(f"Keepalive failed ({self._keepalive_fail_count}): {e}")
-                    
-                    if self._keepalive_fail_count >= 2:
-                        # Try to re-login silently if session expired
-                        self._try_silent_relogin()
+                def do_keepalive():
+                    try:
+                        # Use betfairlightweight's native keep_alive method
+                        self.client.keep_alive()
+                        self._keepalive_fail_count = 0
+                        logging.debug("Session keepalive: OK")
+                    except Exception as e:
+                        self._keepalive_fail_count += 1
+                        logging.warning(f"Keepalive failed ({self._keepalive_fail_count}): {e}")
+                        
+                        if self._keepalive_fail_count >= 2:
+                            # Try to re-login silently if session expired
+                            self.root.after(0, self._try_silent_relogin)
+                
+                # Run keepalive in background thread to prevent UI freeze
+                threading.Thread(target=do_keepalive, daemon=True).start()
             
             # Schedule next keepalive (every 5 minutes - more frequent)
             if self.client:

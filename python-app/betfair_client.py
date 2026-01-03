@@ -31,7 +31,7 @@ class TLS12Adapter(HTTPAdapter):
     Required for Windows 7 which doesn't support TLS 1.3.
     """
     
-    def __init__(self, timeout=30, *args, **kwargs):
+    def __init__(self, timeout=5, *args, **kwargs):
         self.timeout = timeout
         super().__init__(*args, **kwargs)
     
@@ -47,7 +47,7 @@ class TLS12Adapter(HTTPAdapter):
         kwargs.setdefault('timeout', self.timeout)
         return super().send(request, **kwargs)
 
-def create_tls12_session(timeout=30):
+def create_tls12_session(timeout=5):
     """Create a requests session with TLS 1.2 forced and timeout set."""
     session = requests.Session()
     adapter = TLS12Adapter(timeout=timeout)
