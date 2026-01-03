@@ -322,10 +322,24 @@ class BetfairClient:
                 locale="italy"
             )
             
-            # Set request timeout to prevent hanging
+            # Set request timeout to prevent hanging using HTTPAdapter
             import requests
-            self.client.session = requests.Session()
-            self.client.session.timeout = timeout
+            from requests.adapters import HTTPAdapter
+            
+            class TimeoutAdapter(HTTPAdapter):
+                def __init__(self, timeout=30, *args, **kwargs):
+                    self.timeout = timeout
+                    super().__init__(*args, **kwargs)
+                
+                def send(self, request, **kwargs):
+                    kwargs.setdefault('timeout', self.timeout)
+                    return super().send(request, **kwargs)
+            
+            session = requests.Session()
+            adapter = TimeoutAdapter(timeout=timeout)
+            session.mount('http://', adapter)
+            session.mount('https://', adapter)
+            self.client.session = session
             
             self.client.login()
             
