@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.6"  # FIX FREEZE: Order stream + connection logging
+APP_VERSION = "3.70.7"  # FIX FREEZE: SSL + removed horizontal scroll
 
 # Setup file logging
 def setup_logging():
@@ -702,18 +702,13 @@ class PickfairApp:
         self.events_tree.column('name', width=180, minwidth=180, stretch=False)
         self.events_tree.column('date', width=75, minwidth=70)
         
-        # Vertical scrollbar
+        # Vertical scrollbar only
         v_scrollbar = ttk.Scrollbar(tree_container, orient=tk.VERTICAL, command=self.events_tree.yview)
         self.events_tree.configure(yscrollcommand=v_scrollbar.set)
         
-        # Horizontal scrollbar for long match names
-        h_scrollbar = ttk.Scrollbar(tree_container, orient=tk.HORIZONTAL, command=self.events_tree.xview)
-        self.events_tree.configure(xscrollcommand=h_scrollbar.set)
-        
-        # Pack: tree and scrollbars
+        # Pack: tree and scrollbar
         self.events_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
         
         # Use ButtonRelease-1 for reliable single-click handling
         # (TreeviewSelect fires before selection is updated - causes double-click bug)
