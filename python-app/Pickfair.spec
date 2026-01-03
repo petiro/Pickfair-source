@@ -1,40 +1,72 @@
 # -*- mode: python ; coding: utf-8 -*-
 import sys
 import os
+import glob
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 # Find SSL DLLs automatically
 def find_ssl_dlls():
     """Find OpenSSL DLLs in Python installation or system paths."""
     ssl_dlls = []
-    dll_names = ['libssl-3.dll', 'libcrypto-3.dll', 'libssl-3-x64.dll', 'libcrypto-3-x64.dll']
-    
-    search_paths = [
-        os.path.dirname(sys.executable),  # Python root
-        os.path.join(os.path.dirname(sys.executable), 'DLLs'),  # Python DLLs folder
-        os.path.join(os.path.dirname(sys.executable), 'Library', 'bin'),  # Conda/Anaconda
-        'C:/OpenSSL-Win64/bin',
-        'C:/OpenSSL-Win32/bin',
-        'C:/Program Files/OpenSSL-Win64/bin',
-        'C:/Program Files/OpenSSL/bin',
-        os.environ.get('OPENSSL_DIR', ''),
+    dll_patterns = [
+        'libssl*.dll', 
+        'libcrypto*.dll',
+        'ssleay*.dll',
+        'libeay*.dll',
     ]
     
-    found_dlls = set()
+    search_paths = [
+        # Python installation paths
+        os.path.dirname(sys.executable),
+        os.path.join(os.path.dirname(sys.executable), 'DLLs'),
+        os.path.join(os.path.dirname(sys.executable), 'Library', 'bin'),
+        os.path.join(os.path.dirname(sys.executable), 'Scripts'),
+        # OpenSSL common paths
+        'C:/OpenSSL-Win64/bin',
+        'C:/OpenSSL-Win32/bin', 
+        'C:/Program Files/OpenSSL-Win64/bin',
+        'C:/Program Files/OpenSSL/bin',
+        'C:/Program Files (x86)/OpenSSL/bin',
+        # Chocolatey OpenSSL
+        'C:/ProgramData/chocolatey/lib/openssl/tools/openssl/bin',
+        'C:/tools/openssl/bin',
+        # MinGW/MSYS2
+        'C:/msys64/mingw64/bin',
+        'C:/mingw64/bin',
+        # System paths
+        'C:/Windows/System32',
+        'C:/Windows/SysWOW64',
+        # Environment variable
+        os.environ.get('OPENSSL_DIR', ''),
+        os.path.join(os.environ.get('OPENSSL_DIR', ''), 'bin'),
+    ]
+    
+    # Also search PATH
+    path_dirs = os.environ.get('PATH', '').split(os.pathsep)
+    search_paths.extend(path_dirs)
+    
+    found_files = set()
     for path in search_paths:
         if path and os.path.exists(path):
-            for dll_name in dll_names:
-                dll_path = os.path.join(path, dll_name)
-                if os.path.exists(dll_path):
-                    base_name = dll_name.replace('-x64', '').replace('-3', '-3')
-                    if base_name not in found_dlls:
-                        ssl_dlls.append((dll_path, '.'))
-                        found_dlls.add(base_name)
-                        print(f"[SSL] Found: {dll_path}")
+            for pattern in dll_patterns:
+                matches = glob.glob(os.path.join(path, pattern))
+                for dll_path in matches:
+                    dll_name = os.path.basename(dll_path).lower()
+                    if dll_name not in found_files:
+                        # Only include libssl and libcrypto (OpenSSL 3.x)
+                        if 'libssl' in dll_name or 'libcrypto' in dll_name:
+                            ssl_dlls.append((dll_path, '.'))
+                            found_files.add(dll_name)
+                            print(f"[SSL] Found: {dll_path}")
     
     if not ssl_dlls:
         print("[SSL] WARNING: No SSL DLLs found! App may use slow Python encryption.")
-        print("[SSL] Install OpenSSL or ensure Python has SSL support.")
+        print("[SSL] Searched paths:")
+        for p in search_paths[:10]:
+            if p:
+                print(f"  - {p}")
+    else:
+        print(f"[SSL] Total DLLs found: {len(ssl_dlls)}")
     
     return ssl_dlls
 
