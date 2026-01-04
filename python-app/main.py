@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.9"  # Fix freeze: delayed My Bets auto-refresh
+APP_VERSION = "3.70.15"  # OpenSSL 1.1.1w bundled + Safe Mode + Entity Cache TTL
 
 # Setup file logging
 def setup_logging():
