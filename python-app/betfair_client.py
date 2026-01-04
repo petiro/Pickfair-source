@@ -4,123 +4,81 @@ Handles SSL certificate authentication for Betfair Italy.
 Includes Streaming API for real-time price updates.
 """
 
-import os
-import tempfile
-import threading
-import queue
-import time
+# ==============================================================================
+# CRITICAL: SSL PATCH MUST BE APPLIED BEFORE IMPORTING betfairlightweight
+# ==============================================================================
 import ssl
-import betfairlightweight
-from betfairlightweight import filters
-from betfairlightweight.streaming import StreamListener
-from datetime import datetime, timedelta
+import os
+import platform
 import logging
+import urllib3
 import requests
 from requests.adapters import HTTPAdapter
-from urllib3.util.ssl_ import create_urllib3_context
-import urllib3
 
-# ==============================================================================
-# WINDOWS 7 COMPATIBILITY: DISABLE SSL ONLY ON OLD SYSTEMS
-# ==============================================================================
-import platform
-
+# Detect Windows 7
 def is_windows_7():
     """Check if running on Windows 7 or older."""
     if platform.system() != 'Windows':
         return False
     try:
         version = platform.version()
-        # Windows 7 is version 6.1.x
         major, minor = map(int, version.split('.')[:2])
         return major < 10 or (major == 6 and minor <= 1)
     except:
         return False
 
-# Only disable SSL verification on Windows 7
-DISABLE_SSL_VERIFY = is_windows_7()
+IS_WINDOWS_7 = is_windows_7()
 
-# Use TLS 1.2 only on Windows 7, TLS 1.3 on newer systems
-USE_TLS_1_2 = is_windows_7()
-
-if DISABLE_SSL_VERIFY:
+# ==============================================================================
+# GLOBAL SSL PATCH (BEFORE betfairlightweight import!)
+# ==============================================================================
+if IS_WINDOWS_7:
+    # Disable SSL verification globally for Windows 7
+    ssl._create_default_https_context = ssl._create_unverified_context
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     os.environ['CURL_CA_BUNDLE'] = ''
     os.environ['REQUESTS_CA_BUNDLE'] = ''
-    logger_init = logging.getLogger(__name__)
-    logger_init.warning("[SSL] Windows 7 detected - SSL verification disabled for compatibility")
 
-# Patch requests.Session to disable SSL verify ONLY on Windows 7
-_original_session_init = requests.Session.__init__
-def _patched_session_init(self, *args, **kwargs):
-    _original_session_init(self, *args, **kwargs)
-    if DISABLE_SSL_VERIFY:
-        self.verify = False
-requests.Session.__init__ = _patched_session_init
-
-logger = logging.getLogger(__name__)
-
-# ==============================================================================
-# TLS 1.2 ADAPTER FOR WINDOWS 7 COMPATIBILITY
-# ==============================================================================
-
-class TLSAdapter(HTTPAdapter):
-    """
-    Adaptive TLS adapter:
-    - Windows 7: TLS 1.2 + disabled SSL verification
-    - Windows 10+/Linux/Mac: TLS 1.3 (or best available) + normal SSL
-    """
-    
-    def __init__(self, timeout=5, *args, **kwargs):
-        self.timeout = timeout
-        super().__init__(*args, **kwargs)
-    
+# Create unsafe session adapter
+class UnsafeAdapter(HTTPAdapter):
+    """Adapter that disables SSL certificate verification."""
     def init_poolmanager(self, *args, **kwargs):
-        if USE_TLS_1_2:
-            # Windows 7: Force TLS 1.2
-            ctx = create_urllib3_context(ssl_version=ssl.PROTOCOL_TLSv1_2)
-            ctx.set_ciphers('DEFAULT@SECLEVEL=1')
-            if DISABLE_SSL_VERIFY:
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
-        else:
-            # Windows 10+/Linux/Mac: Use TLS 1.3 or best available
-            ctx = create_urllib3_context()
-            # TLS 1.3 is default on modern systems, no need to force
-        kwargs['ssl_context'] = ctx
+        if IS_WINDOWS_7:
+            kwargs["cert_reqs"] = ssl.CERT_NONE
+            kwargs["assert_hostname"] = False
         return super().init_poolmanager(*args, **kwargs)
     
     def send(self, request, **kwargs):
-        # Force timeout on every request
-        kwargs.setdefault('timeout', self.timeout)
-        # Disable SSL verification ONLY on Windows 7
-        if DISABLE_SSL_VERIFY:
+        kwargs.setdefault('timeout', 10)
+        if IS_WINDOWS_7:
             kwargs.setdefault('verify', False)
         return super().send(request, **kwargs)
 
-def create_tls_session(timeout=5):
-    """Create a requests session with adaptive TLS (1.2 for Win7, 1.3 for modern)."""
-    session = requests.Session()
-    adapter = TLSAdapter(timeout=timeout)
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
-    return session
+# Create the shared unsafe session
+unsafe_session = requests.Session()
+if IS_WINDOWS_7:
+    unsafe_session.verify = False
+unsafe_session.mount("https://", UnsafeAdapter())
+unsafe_session.mount("http://", UnsafeAdapter())
 
-# Monkey-patch betfairlightweight ONLY on Windows 7
-# On modern systems, use betfairlightweight vanilla (no modifications)
-if USE_TLS_1_2:
-    _original_api_client_init = betfairlightweight.APIClient.__init__
+# ==============================================================================
+# NOW IMPORT betfairlightweight (AFTER SSL patch)
+# ==============================================================================
+import betfairlightweight
+from betfairlightweight import filters
+from betfairlightweight.streaming import StreamListener
 
-    def _patched_api_client_init(self, *args, **kwargs):
-        _original_api_client_init(self, *args, **kwargs)
-        # Replace session with TLS 1.2 + 5 second timeout (Windows 7 only)
-        self.session = create_tls_session(timeout=5)
-        logger.info("[TLS] Windows 7: TLS 1.2 + 5s timeout + SSL verify disabled")
+# Other imports
+import tempfile
+import threading
+import queue
+import time
+from datetime import datetime, timedelta
 
-    betfairlightweight.APIClient.__init__ = _patched_api_client_init
-else:
-    # Modern system - no modifications needed, betfairlightweight works out of the box
-    pass
+logger = logging.getLogger(__name__)
+
+if IS_WINDOWS_7:
+    logger.warning("[SSL] Windows 7 detected - SSL verification disabled globally")
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -424,11 +382,9 @@ class BetfairClient:
                 password=password,
                 app_key=self.app_key,
                 certs=certs_dir,
-                locale="italy"
+                locale="italy",
+                session=unsafe_session  # Use patched session for SSL compatibility
             )
-            
-            # TLS 1.2 session is automatically applied by monkey-patch
-            # No need to manually set session here
             
             self.client.login()
             
@@ -1295,9 +1251,9 @@ class BetfairClient:
         opposite_side = 'LAY' if side == 'BACK' else 'BACK'
         return self.place_bet(market_id, selection_id, opposite_side, price, size)
     
-    def calculate_cashout(self, original_stake, original_odds, current_odds, side='BACK'):
+    def calculate_cashout_simple(self, original_stake, original_odds, current_odds, side='BACK'):
         """
-        Calculate cashout stake and profit/loss.
+        Calculate cashout stake and profit/loss (simple version - no API call).
         
         Returns dict with:
             - cashout_stake: amount to bet for full cashout
