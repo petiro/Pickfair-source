@@ -72,7 +72,10 @@ class TelegramListener:
         self._consecutive_successes = 0  # Track successes for delay reduction
         
         # Entity cache to avoid repeated get_entity() calls (performance optimization)
-        self._entity_cache: Dict[str, any] = {}
+        # Thread-safe with TTL to prevent memory leaks
+        self._entity_cache: Dict[str, tuple] = {}  # chat_id -> (entity, timestamp)
+        self._entity_lock = threading.RLock()
+        self._entity_ttl = 3600  # 1 hour TTL
         
         self.monitored_chats: List[int] = []
         self.signal_callback: Optional[Callable] = None
@@ -250,6 +253,43 @@ class TelegramListener:
         self._broadcast_worker_running = False
         self._broadcast_queue = None
     
+    async def _get_entity_cached(self, client, chat_id) -> any:
+        """Get entity with thread-safe caching and TTL.
+        
+        Thread-safe entity cache to avoid repeated get_entity() calls.
+        Reduces API calls, FloodWait risk, and improves performance.
+        
+        Args:
+            client: TelegramClient to use
+            chat_id: Chat ID (int, str, or username - Telethon handles all)
+            
+        Returns:
+            Resolved entity
+        """
+        import time as time_module
+        
+        cache_key = str(chat_id)
+        
+        # Check cache with lock
+        with self._entity_lock:
+            entry = self._entity_cache.get(cache_key)
+            if entry:
+                entity, ts = entry
+                if time_module.time() - ts < self._entity_ttl:
+                    return entity
+        
+        # Fetch entity (not under lock to avoid blocking)
+        # Let Telethon handle chat_id format (int, str, username, etc.)
+        entity = await asyncio.wait_for(client.get_entity(chat_id), timeout=5)
+        
+        # Store in cache with timestamp AFTER fetch (not before)
+        # This ensures TTL starts from fetch completion, not request start
+        fetched_at = time_module.time()
+        with self._entity_lock:
+            self._entity_cache[cache_key] = (entity, fetched_at)
+        
+        return entity
+    
     async def _safe_send(self, client, chat_id: str, message: str, retries: int = 3, audit_id: int = None) -> bool:
         """Send message with retry logic, rate limiting, and audit tracking.
         
@@ -284,14 +324,8 @@ class TelegramListener:
                     logging.info(f"_safe_send: reconnecting (attempt {attempt + 1})")
                     await asyncio.wait_for(client.connect(), timeout=5)
                 
-                # FIX: Use entity cache to avoid repeated get_entity() calls
-                # This reduces API calls and FloodWait risk significantly
-                cache_key = str(chat_id)
-                if cache_key not in self._entity_cache:
-                    entity = await asyncio.wait_for(client.get_entity(int(chat_id)), timeout=5)
-                    self._entity_cache[cache_key] = entity
-                else:
-                    entity = self._entity_cache[cache_key]
+                # Use thread-safe entity cache with TTL
+                entity = await self._get_entity_cached(client, chat_id)
                 
                 result = await asyncio.wait_for(client.send_message(entity, message), timeout=5)
                 
@@ -1479,13 +1513,8 @@ class TelegramListener:
                         logging.info("Sender: Client not connected, reconnecting...")
                         await self.client.connect()
                     
-                    # FIX: Use entity cache to avoid repeated get_entity() calls
-                    cache_key = str(chat_id)
-                    if cache_key not in self._entity_cache:
-                        entity = await self.client.get_entity(int(chat_id))
-                        self._entity_cache[cache_key] = entity
-                    else:
-                        entity = self._entity_cache[cache_key]
+                    # Use thread-safe entity cache with TTL
+                    entity = await self._get_entity_cached(self.client, chat_id)
                     
                     await self.client.send_message(entity, message)
                     logging.info(f"Sender: Message delivered to {chat_id}")
