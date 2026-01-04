@@ -40,6 +40,9 @@ def is_windows_7():
 # Only disable SSL verification on Windows 7
 DISABLE_SSL_VERIFY = is_windows_7()
 
+# Use TLS 1.2 only on Windows 7, TLS 1.3 on newer systems
+USE_TLS_1_2 = is_windows_7()
+
 if DISABLE_SSL_VERIFY:
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     os.environ['CURL_CA_BUNDLE'] = ''
@@ -61,11 +64,11 @@ logger = logging.getLogger(__name__)
 # TLS 1.2 ADAPTER FOR WINDOWS 7 COMPATIBILITY
 # ==============================================================================
 
-class TLS12Adapter(HTTPAdapter):
+class TLSAdapter(HTTPAdapter):
     """
-    Force TLS 1.2 and add timeout to all requests.
-    Required for Windows 7 which doesn't support TLS 1.3.
-    Also disables certificate verification for self-signed certs.
+    Adaptive TLS adapter:
+    - Windows 7: TLS 1.2 + disabled SSL verification
+    - Windows 10+/Linux/Mac: TLS 1.3 (or best available) + normal SSL
     """
     
     def __init__(self, timeout=5, *args, **kwargs):
@@ -73,13 +76,17 @@ class TLS12Adapter(HTTPAdapter):
         super().__init__(*args, **kwargs)
     
     def init_poolmanager(self, *args, **kwargs):
-        # Force TLS 1.2 for Windows 7 compatibility
-        ctx = create_urllib3_context(ssl_version=ssl.PROTOCOL_TLSv1_2)
-        ctx.set_ciphers('DEFAULT@SECLEVEL=1')
-        # Disable certificate verification ONLY on Windows 7
-        if DISABLE_SSL_VERIFY:
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
+        if USE_TLS_1_2:
+            # Windows 7: Force TLS 1.2
+            ctx = create_urllib3_context(ssl_version=ssl.PROTOCOL_TLSv1_2)
+            ctx.set_ciphers('DEFAULT@SECLEVEL=1')
+            if DISABLE_SSL_VERIFY:
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+        else:
+            # Windows 10+/Linux/Mac: Use TLS 1.3 or best available
+            ctx = create_urllib3_context()
+            # TLS 1.3 is default on modern systems, no need to force
         kwargs['ssl_context'] = ctx
         return super().init_poolmanager(*args, **kwargs)
     
@@ -91,22 +98,25 @@ class TLS12Adapter(HTTPAdapter):
             kwargs.setdefault('verify', False)
         return super().send(request, **kwargs)
 
-def create_tls12_session(timeout=5):
-    """Create a requests session with TLS 1.2 forced and timeout set."""
+def create_tls_session(timeout=5):
+    """Create a requests session with adaptive TLS (1.2 for Win7, 1.3 for modern)."""
     session = requests.Session()
-    adapter = TLS12Adapter(timeout=timeout)
+    adapter = TLSAdapter(timeout=timeout)
     session.mount('http://', adapter)
     session.mount('https://', adapter)
     return session
 
-# Monkey-patch betfairlightweight to use our TLS 1.2 session
+# Monkey-patch betfairlightweight to use our adaptive TLS session
 _original_api_client_init = betfairlightweight.APIClient.__init__
 
 def _patched_api_client_init(self, *args, **kwargs):
     _original_api_client_init(self, *args, **kwargs)
-    # Replace session with TLS 1.2 + 5 second timeout session (Windows 7 compatibility)
-    self.session = create_tls12_session(timeout=5)
-    logger.info("[TLS] Forced TLS 1.2 + 5s timeout for Windows 7 compatibility")
+    # Replace session with adaptive TLS + 5 second timeout
+    self.session = create_tls_session(timeout=5)
+    if USE_TLS_1_2:
+        logger.info("[TLS] Windows 7: TLS 1.2 + 5s timeout + SSL verify disabled")
+    else:
+        logger.info("[TLS] Modern system: TLS 1.3 + 5s timeout + SSL verify enabled")
 
 betfairlightweight.APIClient.__init__ = _patched_api_client_init
 
