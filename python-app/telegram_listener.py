@@ -71,6 +71,9 @@ class TelegramListener:
         self._last_flood_wait = 0  # Last flood wait duration
         self._consecutive_successes = 0  # Track successes for delay reduction
         
+        # Entity cache to avoid repeated get_entity() calls (performance optimization)
+        self._entity_cache: Dict[str, any] = {}
+        
         self.monitored_chats: List[int] = []
         self.signal_callback: Optional[Callable] = None
         self.message_callback: Optional[Callable] = None
@@ -281,8 +284,15 @@ class TelegramListener:
                     logging.info(f"_safe_send: reconnecting (attempt {attempt + 1})")
                     await asyncio.wait_for(client.connect(), timeout=5)
                 
-                # Resolve entity and send
-                entity = await asyncio.wait_for(client.get_entity(int(chat_id)), timeout=5)
+                # FIX: Use entity cache to avoid repeated get_entity() calls
+                # This reduces API calls and FloodWait risk significantly
+                cache_key = str(chat_id)
+                if cache_key not in self._entity_cache:
+                    entity = await asyncio.wait_for(client.get_entity(int(chat_id)), timeout=5)
+                    self._entity_cache[cache_key] = entity
+                else:
+                    entity = self._entity_cache[cache_key]
+                
                 result = await asyncio.wait_for(client.send_message(entity, message), timeout=5)
                 
                 self._last_send_time = time_module.time()
@@ -1192,11 +1202,18 @@ class TelegramListener:
             signal['side'] = signal['side'] or 'BACK'
             return signal
         
+        # FIX: Gate troppo aggressivo - richiedeva solo evento + score
+        # Ora richiede anche odds O probability O conferma esplicita (✅)
+        # Questo evita falsi positivi su messaggi con solo punteggio
         if signal['event'] and signal['score_home'] is not None and not signal['market_type']:
-            signal['selection'] = f"Over {signal['over_line']}"
-            signal['side'] = 'BACK'
-            signal['market_type'] = 'OVER_UNDER'
-            return signal
+            # Solo se ha odds, probability, o conferma esplicita
+            if signal['odds'] or signal.get('probability') or signal.get('confirmed'):
+                signal['selection'] = f"Over {signal['over_line']}"
+                signal['side'] = 'BACK'
+                signal['market_type'] = 'OVER_UNDER'
+                return signal
+            else:
+                logging.debug(f"[PARSER] Skipping auto-over signal: no odds/probability/confirmation")
         
         if signal['side'] and signal['selection']:
             logging.info(f"[PARSER] Match found: event={signal.get('event')}, market={signal.get('market_type')}, selection={signal.get('selection')}")
@@ -1246,7 +1263,7 @@ class TelegramListener:
             return False
     
     async def _start_listening(self):
-        """Start listening for messages."""
+        """Start listening for messages with controlled loop (not run_until_disconnected)."""
         import logging
         
         if not self.client:
@@ -1255,8 +1272,14 @@ class TelegramListener:
         
         logging.info(f"_start_listening: Setting up handler for {len(self.monitored_chats)} chats: {self.monitored_chats}")
         
-        @self.client.on(events.NewMessage(chats=self.monitored_chats if self.monitored_chats else None))
+        # FIX: Use dynamic filter inside handler instead of static chats= parameter
+        # This allows monitored_chats to be updated without restarting
+        @self.client.on(events.NewMessage)
         async def handler(event):
+            # Dynamic chat filter - allows real-time updates to monitored_chats
+            if self.monitored_chats and event.chat_id not in self.monitored_chats:
+                return
+            
             logging.info(f"[TG] NewMessage from chat {event.chat_id}")
             message = event.message
             text = message.text or ''
@@ -1361,12 +1384,35 @@ class TelegramListener:
                 if _bet_logger:
                     _bet_logger.log_telegram_signal_processed(chat_id=chat_id, signal_type=signal.get('market_type', 'SIGNAL'), processing_time_ms=int((time.time() - _start_time) * 1000))
         
-        self.running = True
+        # FIX: self.running is already set in start() - don't set here
+        # self.running = True  # REMOVED - was causing state inconsistency
         logging.info(f"Telegram listener STARTED - monitoring {len(self.monitored_chats)} chats")
         if self.status_callback:
             self.status_callback('LISTENING', f'In ascolto su {len(self.monitored_chats)} chat')
         
-        await self.client.run_until_disconnected()
+        # FIX: Use controlled while loop instead of run_until_disconnected()
+        # This allows clean stop, recovery, and doesn't block the entire event loop
+        while self.running:
+            try:
+                await asyncio.sleep(1)
+                # Periodic connection check
+                if self.client and not self.client.is_connected():
+                    logging.warning("Client disconnected, attempting reconnect...")
+                    try:
+                        await asyncio.wait_for(self.client.connect(), timeout=10)
+                        logging.info("Reconnected successfully")
+                    except Exception as e:
+                        logging.error(f"Reconnect failed: {e}")
+                        if self.status_callback:
+                            self.status_callback('ERROR', f'Disconnected: {e}')
+                        break
+            except asyncio.CancelledError:
+                logging.info("Listener loop cancelled")
+                break
+            except Exception as e:
+                logging.error(f"Listener loop error: {e}")
+        
+        logging.info("Listener loop exited")
     
     def _run_loop(self):
         """Run the asyncio event loop in a thread with run_forever pattern."""
@@ -1433,8 +1479,14 @@ class TelegramListener:
                         logging.info("Sender: Client not connected, reconnecting...")
                         await self.client.connect()
                     
-                    # Resolve entity and send
-                    entity = await self.client.get_entity(int(chat_id))
+                    # FIX: Use entity cache to avoid repeated get_entity() calls
+                    cache_key = str(chat_id)
+                    if cache_key not in self._entity_cache:
+                        entity = await self.client.get_entity(int(chat_id))
+                        self._entity_cache[cache_key] = entity
+                    else:
+                        entity = self._entity_cache[cache_key]
+                    
                     await self.client.send_message(entity, message)
                     logging.info(f"Sender: Message delivered to {chat_id}")
                     
