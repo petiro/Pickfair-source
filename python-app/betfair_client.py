@@ -18,6 +18,23 @@ import logging
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.ssl_ import create_urllib3_context
+import urllib3
+
+# ==============================================================================
+# DISABLE SSL VERIFICATION GLOBALLY FOR WINDOWS 7 COMPATIBILITY
+# ==============================================================================
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Disable SSL CA bundle verification - Windows 7 has outdated root certificates
+os.environ['CURL_CA_BUNDLE'] = ''
+os.environ['REQUESTS_CA_BUNDLE'] = ''
+
+# Patch requests.Session to always disable SSL verify
+_original_session_init = requests.Session.__init__
+def _patched_session_init(self, *args, **kwargs):
+    _original_session_init(self, *args, **kwargs)
+    self.verify = False
+requests.Session.__init__ = _patched_session_init
 
 logger = logging.getLogger(__name__)
 
