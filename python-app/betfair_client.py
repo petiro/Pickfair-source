@@ -21,19 +21,38 @@ from urllib3.util.ssl_ import create_urllib3_context
 import urllib3
 
 # ==============================================================================
-# DISABLE SSL VERIFICATION GLOBALLY FOR WINDOWS 7 COMPATIBILITY
+# WINDOWS 7 COMPATIBILITY: DISABLE SSL ONLY ON OLD SYSTEMS
 # ==============================================================================
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+import platform
 
-# Disable SSL CA bundle verification - Windows 7 has outdated root certificates
-os.environ['CURL_CA_BUNDLE'] = ''
-os.environ['REQUESTS_CA_BUNDLE'] = ''
+def is_windows_7():
+    """Check if running on Windows 7 or older."""
+    if platform.system() != 'Windows':
+        return False
+    try:
+        version = platform.version()
+        # Windows 7 is version 6.1.x
+        major, minor = map(int, version.split('.')[:2])
+        return major < 10 or (major == 6 and minor <= 1)
+    except:
+        return False
 
-# Patch requests.Session to always disable SSL verify
+# Only disable SSL verification on Windows 7
+DISABLE_SSL_VERIFY = is_windows_7()
+
+if DISABLE_SSL_VERIFY:
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    os.environ['CURL_CA_BUNDLE'] = ''
+    os.environ['REQUESTS_CA_BUNDLE'] = ''
+    logger_init = logging.getLogger(__name__)
+    logger_init.warning("[SSL] Windows 7 detected - SSL verification disabled for compatibility")
+
+# Patch requests.Session to disable SSL verify ONLY on Windows 7
 _original_session_init = requests.Session.__init__
 def _patched_session_init(self, *args, **kwargs):
     _original_session_init(self, *args, **kwargs)
-    self.verify = False
+    if DISABLE_SSL_VERIFY:
+        self.verify = False
 requests.Session.__init__ = _patched_session_init
 
 logger = logging.getLogger(__name__)
@@ -57,17 +76,19 @@ class TLS12Adapter(HTTPAdapter):
         # Force TLS 1.2 for Windows 7 compatibility
         ctx = create_urllib3_context(ssl_version=ssl.PROTOCOL_TLSv1_2)
         ctx.set_ciphers('DEFAULT@SECLEVEL=1')
-        # Disable certificate verification for self-signed certs (Windows 7 issue)
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
+        # Disable certificate verification ONLY on Windows 7
+        if DISABLE_SSL_VERIFY:
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
         kwargs['ssl_context'] = ctx
         return super().init_poolmanager(*args, **kwargs)
     
     def send(self, request, **kwargs):
         # Force timeout on every request
         kwargs.setdefault('timeout', self.timeout)
-        # Disable SSL verification
-        kwargs.setdefault('verify', False)
+        # Disable SSL verification ONLY on Windows 7
+        if DISABLE_SSL_VERIFY:
+            kwargs.setdefault('verify', False)
         return super().send(request, **kwargs)
 
 def create_tls12_session(timeout=5):
