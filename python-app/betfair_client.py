@@ -106,19 +106,21 @@ def create_tls_session(timeout=5):
     session.mount('https://', adapter)
     return session
 
-# Monkey-patch betfairlightweight to use our adaptive TLS session
-_original_api_client_init = betfairlightweight.APIClient.__init__
+# Monkey-patch betfairlightweight ONLY on Windows 7
+# On modern systems, use betfairlightweight vanilla (no modifications)
+if USE_TLS_1_2:
+    _original_api_client_init = betfairlightweight.APIClient.__init__
 
-def _patched_api_client_init(self, *args, **kwargs):
-    _original_api_client_init(self, *args, **kwargs)
-    # Replace session with adaptive TLS + 5 second timeout
-    self.session = create_tls_session(timeout=5)
-    if USE_TLS_1_2:
+    def _patched_api_client_init(self, *args, **kwargs):
+        _original_api_client_init(self, *args, **kwargs)
+        # Replace session with TLS 1.2 + 5 second timeout (Windows 7 only)
+        self.session = create_tls_session(timeout=5)
         logger.info("[TLS] Windows 7: TLS 1.2 + 5s timeout + SSL verify disabled")
-    else:
-        logger.info("[TLS] Modern system: TLS 1.3 + 5s timeout + SSL verify enabled")
 
-betfairlightweight.APIClient.__init__ = _patched_api_client_init
+    betfairlightweight.APIClient.__init__ = _patched_api_client_init
+else:
+    # Modern system - no modifications needed, betfairlightweight works out of the box
+    pass
 
 # Retry configuration
 MAX_RETRIES = 3
