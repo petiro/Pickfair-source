@@ -22,23 +22,41 @@ jobs:
       with:
         python-version: '3.11'
     
-    - name: Install OpenSSL
+    - name: Download OpenSSL 1.1.1w (Windows 7 compatible)
       run: |
-        choco install openssl -y
-        echo "C:\Program Files\OpenSSL-Win64\bin" >> $env:GITHUB_PATH
+        # Create directory for bundled DLLs
+        New-Item -ItemType Directory -Force -Path "third_party\openssl"
+        
+        # Download OpenSSL 1.1.1w installer (light version)
+        $url = "https://slproweb.com/download/Win64OpenSSL_Light-1_1_1w.exe"
+        $installer = "$env:TEMP\openssl_installer.exe"
+        Invoke-WebRequest -Uri $url -OutFile $installer -UseBasicParsing
+        
+        # Install silently
+        Start-Process -FilePath $installer -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=C:\OpenSSL-1_1_1" -Wait
+        
+        # Copy DLLs to third_party for bundling
+        Copy-Item "C:\OpenSSL-1_1_1\libssl-1_1-x64.dll" "third_party\openssl\"
+        Copy-Item "C:\OpenSSL-1_1_1\libcrypto-1_1-x64.dll" "third_party\openssl\"
+        
+        # Add to PATH
+        echo "C:\OpenSSL-1_1_1" >> $env:GITHUB_PATH
+        
+        # Verify
+        echo "OpenSSL 1.1.1w DLLs:"
+        Get-ChildItem "third_party\openssl" | Select-Object Name, Length
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller customtkinter numpy betfairlightweight telethon requests cryptography cffi
     
-    - name: Show SSL DLL locations
+    - name: Verify SSL DLLs for bundling
       run: |
-        echo "Python location:"
-        python -c "import sys; print(sys.executable)"
-        echo "Looking for SSL DLLs..."
-        Get-ChildItem -Path "C:\Program Files\OpenSSL-Win64\bin" -Filter "*.dll" | Select-Object Name
-        Get-ChildItem -Path (Split-Path (python -c "import sys; print(sys.executable)")) -Filter "libssl*" -ErrorAction SilentlyContinue
+        echo "=== OpenSSL 1.1.1w DLLs (Windows 7 compatible) ==="
+        Get-ChildItem "third_party\openssl" | Select-Object Name, Length
+        echo ""
+        echo "These will be bundled into Pickfair.exe by PyInstaller"
     
     - name: Build with PyInstaller
       run: |
