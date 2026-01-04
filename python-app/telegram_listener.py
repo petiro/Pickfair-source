@@ -20,6 +20,13 @@ try:
 except ImportError:
     _bet_logger = None
 
+# Safe mode controller for automatic error protection
+try:
+    from safe_mode import get_safe_mode_controller
+    _safe_mode = get_safe_mode_controller()
+except ImportError:
+    _safe_mode = None
+
 # Try to import cryptg for faster encryption (optional)
 try:
     import cryptg
@@ -1310,6 +1317,10 @@ class TelegramListener:
         # This allows monitored_chats to be updated without restarting
         @self.client.on(events.NewMessage)
         async def handler(event):
+            # Guard: skip if stopping (prevents race during shutdown)
+            if not self.running:
+                return
+            
             # Dynamic chat filter - allows real-time updates to monitored_chats
             if self.monitored_chats and event.chat_id not in self.monitored_chats:
                 return
@@ -1346,6 +1357,13 @@ class TelegramListener:
             _start_time = time.time()
             copy_bet = self.parse_copy_bet(text)
             if copy_bet and self.signal_callback:
+                # Safe mode gate - block auto-bet if too many errors
+                if _safe_mode and not _safe_mode.can_auto_bet():
+                    logging.warning(f"[SAFE-MODE] COPY_BET blocked (safe mode active)")
+                    if _bet_logger:
+                        _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='BLOCKED_SAFE_MODE')
+                    return
+                
                 copy_bet['chat_id'] = chat_id
                 copy_bet['sender_id'] = sender_id
                 copy_bet['raw_text'] = text
@@ -1367,6 +1385,13 @@ class TelegramListener:
             
             copy_cashout = self.parse_copy_cashout(text)
             if copy_cashout and self.signal_callback:
+                # Safe mode gate - block auto-bet if too many errors
+                if _safe_mode and not _safe_mode.can_auto_bet():
+                    logging.warning(f"[SAFE-MODE] COPY_CASHOUT blocked (safe mode active)")
+                    if _bet_logger:
+                        _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='BLOCKED_SAFE_MODE')
+                    return
+                
                 copy_cashout['chat_id'] = chat_id
                 copy_cashout['sender_id'] = sender_id
                 copy_cashout['raw_text'] = text
@@ -1381,6 +1406,13 @@ class TelegramListener:
             # Check for COPY DUTCHING (unified dutching message from Master)
             copy_dutching = self.parse_copy_dutching(text)
             if copy_dutching and self.signal_callback:
+                # Safe mode gate - block auto-bet if too many errors
+                if _safe_mode and not _safe_mode.can_auto_bet():
+                    logging.warning(f"[SAFE-MODE] COPY_DUTCHING blocked (safe mode active)")
+                    if _bet_logger:
+                        _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='BLOCKED_SAFE_MODE')
+                    return
+                
                 copy_dutching['chat_id'] = chat_id
                 copy_dutching['sender_id'] = sender_id
                 copy_dutching['raw_text'] = text
@@ -1395,6 +1427,13 @@ class TelegramListener:
             # Check for booking signals (e.g., "Roma - Milan book over 2.5 @ 3")
             booking = self.parse_booking_signal(text)
             if booking and self.signal_callback:
+                # Safe mode gate - block auto-bet if too many errors
+                if _safe_mode and not _safe_mode.can_auto_bet():
+                    logging.warning(f"[SAFE-MODE] BOOKING blocked (safe mode active)")
+                    if _bet_logger:
+                        _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='BLOCKED_SAFE_MODE')
+                    return
+                
                 booking['chat_id'] = chat_id
                 booking['sender_id'] = sender_id
                 booking['raw_text'] = text
@@ -1411,6 +1450,14 @@ class TelegramListener:
             if signal and self.signal_callback:
                 signal['chat_id'] = chat_id
                 signal['sender_id'] = sender_id
+                
+                # Safe mode gate - block auto-bet if too many errors
+                if _safe_mode and not _safe_mode.can_auto_bet():
+                    logging.warning(f"[SAFE-MODE] Signal blocked (safe mode active): {signal.get('event')} @ {signal.get('odds')}")
+                    if _bet_logger:
+                        _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='BLOCKED_SAFE_MODE')
+                    return
+                
                 if _bet_logger:
                     _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type=signal.get('market_type', 'UNKNOWN'))
                 logging.info(f"[LISTENER] Signal parsed from chat {chat_id}: {signal.get('event')} -> {signal.get('market_type')} @ {signal.get('odds')}")
@@ -1426,6 +1473,8 @@ class TelegramListener:
         
         # FIX: Use controlled while loop instead of run_until_disconnected()
         # This allows clean stop, recovery, and doesn't block the entire event loop
+        # Backoff esponenziale soft per reconnect
+        reconnect_delay = 5
         while self.running:
             try:
                 await asyncio.sleep(1)
@@ -1435,16 +1484,23 @@ class TelegramListener:
                     try:
                         await asyncio.wait_for(self.client.connect(), timeout=10)
                         logging.info("Reconnected successfully")
+                        reconnect_delay = 5  # Reset on success
                     except Exception as e:
                         logging.error(f"Reconnect failed: {e}")
+                        if _safe_mode:
+                            _safe_mode.record_error("telegram", str(e))
                         if self.status_callback:
                             self.status_callback('ERROR', f'Disconnected: {e}')
-                        break
+                        # Exponential backoff (max 60s)
+                        await asyncio.sleep(reconnect_delay)
+                        reconnect_delay = min(reconnect_delay * 1.5, 60)
             except asyncio.CancelledError:
                 logging.info("Listener loop cancelled")
                 break
             except Exception as e:
                 logging.error(f"Listener loop error: {e}")
+                if _safe_mode:
+                    _safe_mode.record_error("telegram", str(e))
         
         logging.info("Listener loop exited")
     

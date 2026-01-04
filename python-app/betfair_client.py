@@ -15,6 +15,13 @@ import urllib3
 import requests
 from requests.adapters import HTTPAdapter
 
+# Safe mode controller for automatic error protection
+try:
+    from safe_mode import get_safe_mode_controller
+    _safe_mode = get_safe_mode_controller()
+except ImportError:
+    _safe_mode = None
+
 # Detect Windows 7
 def is_windows_7():
     """Check if running on Windows 7 or older."""
@@ -971,6 +978,11 @@ class BetfairClient:
         if not self.client:
             raise Exception("Non connesso a Betfair")
         
+        # Safe mode gate - block bet placement if too many errors
+        if _safe_mode and not _safe_mode.can_auto_bet():
+            logging.warning("[SAFE-MODE] Bet placement BLOCKED - safe mode active")
+            raise Exception("Safe mode attivo - puntate bloccate")
+        
         # Note: In dutching, individual selection stakes can be below €1
         # Betfair Italy allows stakes as low as €0.10 per selection in multi-bet scenarios
         
@@ -995,10 +1007,21 @@ class BetfairClient:
                 )
             )
         
-        result = self.client.betting.place_orders(
-            market_id=market_id,
-            instructions=place_instructions
-        )
+        try:
+            result = self.client.betting.place_orders(
+                market_id=market_id,
+                instructions=place_instructions
+            )
+            
+            # Record success for safe mode recovery
+            if _safe_mode:
+                _safe_mode.record_success()
+            
+        except Exception as e:
+            # Record error for safe mode protection
+            if _safe_mode:
+                _safe_mode.record_error("betfair", str(e))
+            raise
         
         # Handle different response structures from betfairlightweight
         instruction_reports = getattr(result, 'instruction_reports', None) or getattr(result, 'instructionReports', None) or []
