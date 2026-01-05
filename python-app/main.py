@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.23"  # Use ThreadPoolExecutor + after() polling to avoid GIL blocking
+APP_VERSION = "3.70.24"  # socket.setdefaulttimeout(15) forces timeout on ALL connections
 
 # Setup file logging
 def setup_logging():

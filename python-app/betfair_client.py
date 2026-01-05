@@ -39,6 +39,11 @@ IS_WINDOWS_7 = is_windows_7()
 # ==============================================================================
 # GLOBAL SSL PATCH (BEFORE betfairlightweight import!)
 # ==============================================================================
+import socket
+
+# Force socket timeout on ALL connections (15 seconds)
+socket.setdefaulttimeout(15)
+
 if IS_WINDOWS_7:
     # Disable SSL verification globally for Windows 7
     ssl._create_default_https_context = ssl._create_unverified_context
