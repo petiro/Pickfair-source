@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.27"  # Added _defer() helper, explicit mainloop yield logging
+APP_VERSION = "3.70.28"  # Staggered init - each API call scheduled separately
 
 # Setup file logging
 def setup_logging():
@@ -2466,6 +2466,7 @@ class PickfairApp:
         
         IMPORTANT: Never do I/O (even indirect) in this callback.
         Only: 1) Update UI  2) Schedule after()
+        Each API call is scheduled separately to let mainloop breathe.
         """
         logging.info("[CONNECT] _on_connected: Starting...")
         
@@ -2477,52 +2478,63 @@ class PickfairApp:
         except Exception as e:
             logging.error(f"[CONNECT] UI update error: {e}")
         
-        # Schedule all API calls with delay to keep UI responsive
-        def delayed_init():
-            logging.debug("[CONNECT] delayed_init starting after mainloop yield...")
+        # CRITICAL: Schedule each API call SEPARATELY with staggered delays
+        # This lets the mainloop process events between each call
+        logging.debug("[UI] Yielding to mainloop - scheduling staggered API calls")
+        
+        def step1_balance():
+            logging.debug("[CONNECT] Step 1: _update_balance")
             try:
                 self._update_balance()
-                logging.debug("[CONNECT] _update_balance queued")
             except Exception as e:
                 logging.error(f"[CONNECT] _update_balance error: {e}")
-            
+        
+        def step2_events():
+            logging.debug("[CONNECT] Step 2: _load_events")
             try:
                 self._load_events()
-                logging.debug("[CONNECT] _load_events queued")
             except Exception as e:
                 logging.error(f"[CONNECT] _load_events error: {e}")
-            
+        
+        def step3_autorefresh():
+            logging.debug("[CONNECT] Step 3: auto-refresh")
             try:
                 self.auto_refresh_var.set(True)
                 self._start_auto_refresh()
-                logging.debug("[CONNECT] Auto-refresh started")
             except Exception as e:
                 logging.error(f"[CONNECT] Auto-refresh error: {e}")
-            
+        
+        def step4_keepalive():
+            logging.debug("[CONNECT] Step 4: keepalive")
             try:
                 self._start_session_keepalive()
-                logging.debug("[CONNECT] Keepalive started")
             except Exception as e:
                 logging.error(f"[CONNECT] Keepalive error: {e}")
-            
+        
+        def step5_orderstream():
+            logging.debug("[CONNECT] Step 5: order stream")
             try:
                 self._start_order_stream()
-                logging.debug("[CONNECT] Order stream queued")
             except Exception as e:
                 logging.error(f"[CONNECT] Order stream error: {e}")
-            
+        
+        def step6_dashboard():
+            logging.debug("[CONNECT] Step 6: dashboard refresh")
             try:
                 self._refresh_dashboard_tab()
-                logging.debug("[CONNECT] Dashboard refresh queued")
             except Exception as e:
                 logging.error(f"[CONNECT] Dashboard refresh error: {e}")
-            
-            logging.info("[CONNECT] delayed_init complete")
+            logging.info("[CONNECT] All initialization steps scheduled")
         
-        # CRITICAL: Yield to mainloop before any API startup
-        logging.debug("[UI] Yielding to mainloop before API startup")
-        self._defer(delayed_init, delay=100)
-        logging.info("[CONNECT] _on_connected: Complete - UI responsive, API scheduled")
+        # Stagger each call by 100ms to let UI breathe
+        self._defer(step1_balance, delay=100)
+        self._defer(step2_events, delay=200)
+        self._defer(step3_autorefresh, delay=300)
+        self._defer(step4_keepalive, delay=400)
+        self._defer(step5_orderstream, delay=500)
+        self._defer(step6_dashboard, delay=600)
+        
+        logging.info("[CONNECT] _on_connected: Complete - 6 steps scheduled")
     
     def _start_session_keepalive(self):
         """Start periodic session keep-alive to prevent timeout."""
