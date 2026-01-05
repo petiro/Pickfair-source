@@ -1,0 +1,65 @@
+It looks like the app (Pickfair / Betfair client) is running with SSL support disabled or missing SSL libraries. The quick fix is to re-enable proper SSL support and make sure the OpenSSL libs and the Python SSL module are available, then re-enable certificate verification.
+
+What to do (high level)
+
+Upgrade the OS if you’re on Windows 7 or an unsupported system. SSL verification is disabled in that log for security reasons.
+Make sure Python has SSL support (the ssl module). If not, reinstall Python with SSL support.
+Install OpenSSL (libssl) so the cryptg extension can load, or rely on the Python SSL module if you’re not using cryptg.
+Re-enable SSL certificate verification in the app/config.
+If you can’t upgrade the OS, consider running the app in a newer environment (e.g., a newer PC, VM, or Docker container) with full SSL support.
+Step-by-step plan (Windows-oriented; adjust for Linux/macOS if needed)
+
+Check OS and OS security
+If you’re on Windows 7: upgrade to Windows 10/11 if possible.
+If you must stay on an older system for now, isolate this machine from sensitive networks and treat SSL as disabled only temporarily (not recommended for production).
+Verify Python SSL support
+Open a Command Prompt and run:
+python --version
+python -c "import ssl; print(ssl.OPENSSL_VERSION)"
+
+If the second command raises an error, reinstall Python from python.org (use a standard, official distribution) and make sure:
+You install to PATH (tick “Add Python to PATH” in the installer).
+You choose a full installation (not a minimal one).
+
+Ensure OpenSSL libs are available (for cryptg or system SSL)
+Windows options:
+Option A (recommended): Reinstall Python from python.org (the official builds bundle the OpenSSL libs for the ssl module).
+Option B (manual OpenSSL): Install OpenSSL for Windows and add its bin directory to PATH.
+Example (Chocolatey, if you have it): choco install openssl.light -y
+Or download from a reputable source (e.g., SLProWeb) and install.
+
+After installing, verify the DLLs are in PATH, e.g.:
+C:\OpenSSL-Win64\bin\libssl-1_1.dll
+C:\OpenSSL-Win64\bin\libcrypto-1_1.dll
+
+Re-run: python -c "import ssl; print(ssl.OPENSSL_VERSION)" to confirm.
+
+Install or enable cryptg (optional, for performance)
+If your app uses cryptg and you want it enabled, install it:
+pip install cryptg
+
+If you don’t want cryptg, you can continue with the pure-Python crypto (slower but functional). The log says it’s falling back to Python encryption because libssl isn’t found; installing the above should enable cryptg.
+Re-enable SSL verification in the app
+The log notes SSL verification is disabled globally. Look for a configuration option in Pickfair/Betfair client:
+In config files, search for flags like ssl_verify, verify_ssl, ssl_cert_verify, or similar and set it to true/enabled.
+If you’re not sure where this is, check the app docs or ik with a search across config files.
+
+If there is no explicit config, updating to a newer version of the app often re-enables proper SSL handling.
+Quick sanity checks
+After making changes, restart the app and re-check the logs for:
+No more “SSL verification disabled” warnings.
+Successful OpenSSL version reported by Python.
+Successful TLS handshake to api.betfair.com (look for HTTP 200s in the log and no crypto-related errors).
+
+Optional diagnostic commands to run
+Windows/Command Prompt:
+python -c "import ssl; print(ssl.OPENSSL_VERSION)"
+where python
+echo %PATH% | findstr /i "openssl"
+
+Linux/macOS terminal:
+python3 -c "import ssl; print(ssl.OPENSSL_VERSION)"
+openssl version
+which python3
+python3 -m pip install --upgrade cryptography
+python3 -m pip install cryptg
