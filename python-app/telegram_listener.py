@@ -5,12 +5,68 @@ Monitors specified channels/groups/chats and parses betting signals.
 
 import re
 import os
+import sys
 import asyncio
 import threading
 import logging
 import time
 from datetime import datetime
 from typing import Optional, Callable, Dict, List
+
+# === CRITICAL: Load bundled OpenSSL DLLs BEFORE importing Telethon ===
+# This fixes "Failed to load SSL library" on Windows 7-11
+def _preload_ssl_dlls():
+    """Pre-load bundled OpenSSL DLLs for Telethon compatibility."""
+    if sys.platform != 'win32':
+        return
+    
+    import ctypes
+    
+    # Find DLL locations (PyInstaller bundles to exe folder or _MEIPASS temp)
+    search_paths = []
+    
+    # PyInstaller temp folder (frozen exe)
+    if getattr(sys, 'frozen', False):
+        # Frozen exe - check _MEIPASS (extracted temp) and exe folder
+        base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+        search_paths.append(base_path)
+        search_paths.append(os.path.dirname(sys.executable))
+    else:
+        # Development - check third_party/openssl
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        search_paths.append(os.path.join(base_path, 'third_party', 'openssl'))
+        search_paths.append(base_path)
+    
+    # DLL names to load (order matters - crypto first, then ssl)
+    dll_names = [
+        'libcrypto-1_1-x64.dll',  # OpenSSL 1.1.1 crypto
+        'libssl-1_1-x64.dll',     # OpenSSL 1.1.1 ssl
+        'libcrypto-1_1.dll',      # 32-bit variant
+        'libssl-1_1.dll',
+    ]
+    
+    loaded = []
+    for search_path in search_paths:
+        if not os.path.exists(search_path):
+            continue
+        for dll_name in dll_names:
+            dll_path = os.path.join(search_path, dll_name)
+            if os.path.exists(dll_path) and dll_name not in loaded:
+                try:
+                    ctypes.CDLL(dll_path)
+                    loaded.append(dll_name)
+                    logging.debug(f"[SSL] Preloaded: {dll_path}")
+                except Exception as e:
+                    logging.debug(f"[SSL] Failed to load {dll_path}: {e}")
+    
+    if loaded:
+        logging.info(f"[SSL] Preloaded {len(loaded)} OpenSSL DLLs for Telethon")
+    else:
+        logging.debug("[SSL] No bundled OpenSSL DLLs found (will use Python fallback)")
+
+# Execute BEFORE Telethon import
+_preload_ssl_dlls()
+
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 

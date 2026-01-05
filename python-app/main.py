@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.16"  # Fix OpenSSL DLL bundling path (bin subfolder)
+APP_VERSION = "3.70.17"  # Preload SSL DLLs before Telethon import
 
 # Setup file logging
 def setup_logging():
