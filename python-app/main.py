@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.22"  # Detailed thread logging for _update_balance/_load_events
+APP_VERSION = "3.70.23"  # Use ThreadPoolExecutor + after() polling to avoid GIL blocking
 
 # Setup file logging
 def setup_logging():
@@ -3053,40 +3053,78 @@ class PickfairApp:
         self._clear_selections()
     
     def _update_balance(self):
-        """Update account balance display."""
-        logging.debug("[BALANCE] _update_balance called, starting thread...")
+        """Update account balance display using executor to avoid blocking."""
+        logging.debug("[BALANCE] _update_balance called...")
+        
+        from concurrent.futures import ThreadPoolExecutor
+        
         def fetch():
-            logging.debug("[BALANCE] Thread started, calling get_account_funds...")
+            logging.debug("[BALANCE] Executor task started...")
             try:
                 funds = self.client.get_account_funds()
                 logging.info(f"[BALANCE] Got funds: {funds}")
-                self.root.after(0, lambda: self.balance_label.configure(
-                    text=f"Saldo: {format_currency(funds['available'])}"
-                ))
+                return funds
             except Exception as e:
                 logging.error(f"[BALANCE] Error fetching balance: {e}")
+                return None
         
-        t = threading.Thread(target=fetch, daemon=True)
-        t.start()
-        logging.debug(f"[BALANCE] Thread started: {t.name}")
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(fetch)
+        executor.shutdown(wait=False)
+        
+        def check_result():
+            if future.done():
+                try:
+                    funds = future.result(timeout=0)
+                    if funds:
+                        self.balance_label.configure(
+                            text=f"Saldo: {format_currency(funds['available'])}"
+                        )
+                except Exception as e:
+                    logging.error(f"[BALANCE] Result error: {e}")
+            else:
+                # Check again in 100ms
+                self.root.after(100, check_result)
+        
+        self.root.after(100, check_result)
+        logging.debug("[BALANCE] Scheduled result check")
     
     def _load_events(self):
-        """Load football events."""
-        logging.debug("[EVENTS] _load_events called, starting thread...")
+        """Load football events using executor to avoid blocking."""
+        logging.debug("[EVENTS] _load_events called...")
+        
+        from concurrent.futures import ThreadPoolExecutor
+        
         def fetch():
-            logging.debug("[EVENTS] Thread started, calling get_football_events...")
+            logging.debug("[EVENTS] Executor task started...")
             try:
                 events = self.client.get_football_events()
                 logging.info(f"[EVENTS] Got {len(events) if events else 0} events")
-                self.root.after(0, lambda: self._display_events(events))
+                return ('success', events)
             except Exception as e:
                 logging.error(f"[EVENTS] Error loading events: {e}")
-                err_msg = str(e)
-                self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", f"Errore caricamento partite: {msg}"))
+                return ('error', str(e))
         
-        t = threading.Thread(target=fetch, daemon=True)
-        t.start()
-        logging.debug(f"[EVENTS] Thread started: {t.name}")
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(fetch)
+        executor.shutdown(wait=False)
+        
+        def check_result():
+            if future.done():
+                try:
+                    result = future.result(timeout=0)
+                    if result[0] == 'success':
+                        self._display_events(result[1])
+                    else:
+                        messagebox.showerror("Errore", f"Errore caricamento partite: {result[1]}")
+                except Exception as e:
+                    logging.error(f"[EVENTS] Result error: {e}")
+            else:
+                # Check again in 100ms
+                self.root.after(100, check_result)
+        
+        self.root.after(100, check_result)
+        logging.debug("[EVENTS] Scheduled result check")
     
     def _display_events(self, events):
         """Display events in treeview grouped by country."""
