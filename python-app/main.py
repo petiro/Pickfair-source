@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.18"  # Robust login timeout (15s) prevents app freeze
+APP_VERSION = "3.70.19"  # Debug logging for connection freeze
 
 # Setup file logging
 def setup_logging():
@@ -2382,18 +2382,22 @@ class PickfairApp:
     
     def _connect(self):
         """Connect to Betfair."""
+        logging.info("[CONNECT] _connect() called - getting settings...")
         settings = self.db.get_settings()
+        logging.info("[CONNECT] Settings retrieved")
         
         if not all([settings.get('username'), settings.get('app_key'),
                    settings.get('certificate'), settings.get('private_key')]):
             messagebox.showerror("Errore", "Configura prima le credenziali dal menu File")
             return
         
+        logging.info("[CONNECT] Creating password dialog...")
         pwd_dialog = tk.Toplevel(self.root)
         pwd_dialog.title("Password Betfair")
         pwd_dialog.geometry("350x180")
         pwd_dialog.transient(self.root)
         pwd_dialog.grab_set()
+        logging.info("[CONNECT] Password dialog created")
         
         # Center dialog on screen
         pwd_dialog.update_idletasks()
