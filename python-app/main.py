@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.25"  # Socket timeout only on Windows 7
+APP_VERSION = "3.70.26"  # Delayed init - schedule API calls after UI updates
 
 # Setup file logging
 def setup_logging():
@@ -2469,47 +2469,51 @@ class PickfairApp:
         except Exception as e:
             logging.error(f"[CONNECT] UI update error: {e}")
         
-        try:
-            self._update_balance()
-            logging.debug("[CONNECT] _update_balance queued")
-        except Exception as e:
-            logging.error(f"[CONNECT] _update_balance error: {e}")
+        # Schedule all API calls with delay to keep UI responsive
+        def delayed_init():
+            logging.debug("[CONNECT] delayed_init starting...")
+            try:
+                self._update_balance()
+                logging.debug("[CONNECT] _update_balance queued")
+            except Exception as e:
+                logging.error(f"[CONNECT] _update_balance error: {e}")
+            
+            try:
+                self._load_events()
+                logging.debug("[CONNECT] _load_events queued")
+            except Exception as e:
+                logging.error(f"[CONNECT] _load_events error: {e}")
+            
+            try:
+                self.auto_refresh_var.set(True)
+                self._start_auto_refresh()
+                logging.debug("[CONNECT] Auto-refresh started")
+            except Exception as e:
+                logging.error(f"[CONNECT] Auto-refresh error: {e}")
+            
+            try:
+                self._start_session_keepalive()
+                logging.debug("[CONNECT] Keepalive started")
+            except Exception as e:
+                logging.error(f"[CONNECT] Keepalive error: {e}")
+            
+            try:
+                self._start_order_stream()
+                logging.debug("[CONNECT] Order stream queued")
+            except Exception as e:
+                logging.error(f"[CONNECT] Order stream error: {e}")
+            
+            try:
+                self._refresh_dashboard_tab()
+                logging.debug("[CONNECT] Dashboard refresh queued")
+            except Exception as e:
+                logging.error(f"[CONNECT] Dashboard refresh error: {e}")
+            
+            logging.info("[CONNECT] delayed_init complete")
         
-        try:
-            self._load_events()
-            logging.debug("[CONNECT] _load_events queued")
-        except Exception as e:
-            logging.error(f"[CONNECT] _load_events error: {e}")
-        
-        try:
-            # Auto-enable refresh on connect
-            self.auto_refresh_var.set(True)
-            self._start_auto_refresh()
-            logging.debug("[CONNECT] Auto-refresh started")
-        except Exception as e:
-            logging.error(f"[CONNECT] Auto-refresh error: {e}")
-        
-        try:
-            # Start session keep-alive to prevent disconnection
-            self._start_session_keepalive()
-            logging.debug("[CONNECT] Keepalive started")
-        except Exception as e:
-            logging.error(f"[CONNECT] Keepalive error: {e}")
-        
-        try:
-            # Start Order Stream for real-time order updates
-            self._start_order_stream()
-            logging.debug("[CONNECT] Order stream queued")
-        except Exception as e:
-            logging.error(f"[CONNECT] Order stream error: {e}")
-        
-        try:
-            # Refresh dashboard tab with connected data
-            self._refresh_dashboard_tab()
-        except Exception as e:
-            logging.error(f"[CONNECT] Dashboard refresh error: {e}")
-        
-        logging.info("[CONNECT] _on_connected: Complete - UI should be responsive")
+        # Use root.after to schedule initialization AFTER UI updates are processed
+        self.root.after(100, delayed_init)
+        logging.info("[CONNECT] _on_connected: Complete - delayed_init scheduled")
     
     def _start_session_keepalive(self):
         """Start periodic session keep-alive to prevent timeout."""

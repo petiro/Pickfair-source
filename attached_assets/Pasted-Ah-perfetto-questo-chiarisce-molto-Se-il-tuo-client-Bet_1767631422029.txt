@@ -1,0 +1,45 @@
+Ah, perfetto — questo chiarisce molto. 😅
+Se il tuo client Betfair “si blocca” dopo aver cliccato login e Windows (o il sistema) dice “l’app non risponde”, il problema non è Betfair, ma il thread principale dell’interfaccia utente che viene bloccato da una chiamata sincrona lunga.
+Ecco perché succede:
+Cosa sta succedendo
+Nel tuo BetfairClient.login(password) c’è tutta la logica di:
+Creare i certificati temporanei
+Chiamare l’API di login via betfairlightweight
+Attendere risposta
+Questa chiamata può impiegare diversi secondi (login + rete + SSL).
+Se la chiami direttamente dal thread principale dell’interfaccia grafica (Tkinter, PyQt, ecc.), l’interfaccia si blocca.
+Windows interpreta che “l’app non risponde”, perché il loop dell’UI è fermo.
+Come risolvere
+1️⃣ Usa un thread separato per il login
+Esempio con Python e Tkinter:
+Copia codice
+Python
+import threading
+
+def login_thread():
+    try:
+        result = client.login(password_entry.get())
+        print("Login riuscito:", result)
+    except Exception as e:
+        print("Errore login:", e)
+
+# Quando clicchi login:
+threading.Thread(target=login_thread, daemon=True).start()
+Così il thread principale dell’UI rimane reattivo.
+Puoi anche aggiornare un label “Login in corso…” mentre aspetti la risposta.
+2️⃣ (Opzionale) Timeout o async
+Se vuoi essere più moderno:
+Puoi usare asyncio con betfairlightweight per fare login non bloccante.
+Oppure impostare un timeout nelle chiamate di rete.
+3️⃣ Debug se si blocca lo stesso
+Controlla se la rete è lenta o Betfair sta rispondendo con ritardo.
+Aggiungi log prima/dopo il login:
+Copia codice
+Python
+print("Inizio login")
+client.login(password)
+print("Login completato")
+Se stampa solo “Inizio login” e mai “Login completato”, allora è la chiamata API che blocca (non l’interfaccia).
+💡 In sintesi: non è un errore del client Betfair, ma stai chiamando login in modo sincrono nell’UI. Devi spostarlo in un thread separato.
+Se vuoi, posso scriverti subito una versione del tuo bottone login pronta per Tkinter che non blocca più nulla e gestisce anche gli errori di login SSL.
+Vuoi che lo faccia?
