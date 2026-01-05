@@ -372,54 +372,89 @@ class BetfairClient:
         except:
             pass
     
-    def login(self, password, timeout=5):
+    def login(self, password, timeout=15):
         """
         Login to Betfair Italy using SSL certificate authentication.
         Uses locale="italy" for Italian Exchange endpoints.
         
         Args:
             password: Betfair account password
-            timeout: Login timeout in seconds (default 30)
+            timeout: Login timeout in seconds (default 15)
         """
+        import concurrent.futures
+        
         certs_dir = self._create_temp_cert_files()
         
+        # Store result or exception from login thread
+        login_result = {'success': False, 'data': None, 'error': None}
+        
+        def do_login():
+            """Execute login in thread with proper exception capture."""
+            try:
+                client = betfairlightweight.APIClient(
+                    username=self.username,
+                    password=password,
+                    app_key=self.app_key,
+                    certs=certs_dir,
+                    locale="italy",
+                    session=unsafe_session  # Use patched session for SSL compatibility
+                )
+                
+                client.login()
+                
+                if not client.session_token:
+                    login_result['error'] = "Nessun token ricevuto - verifica credenziali"
+                    return
+                
+                login_result['success'] = True
+                login_result['data'] = {
+                    'client': client,
+                    'session_token': client.session_token,
+                    'expiry': (datetime.now() + timedelta(hours=8)).isoformat()
+                }
+            except betfairlightweight.exceptions.LoginError as e:
+                login_result['error'] = f"Credenziali errate o account bloccato: {str(e)}"
+            except betfairlightweight.exceptions.CertsError as e:
+                login_result['error'] = f"Errore certificato SSL - verifica che .crt e .key siano corretti: {str(e)}"
+            except betfairlightweight.exceptions.APIError as e:
+                login_result['error'] = f"Errore API Betfair: {str(e)}"
+            except Exception as e:
+                error_msg = str(e)
+                if "SSL" in error_msg.upper() or "CERTIFICATE" in error_msg.upper():
+                    login_result['error'] = f"Errore SSL - il certificato potrebbe non essere valido: {error_msg}"
+                else:
+                    login_result['error'] = f"Login fallito: {error_msg}"
+        
+        # Execute login with timeout
         try:
-            self.client = betfairlightweight.APIClient(
-                username=self.username,
-                password=password,
-                app_key=self.app_key,
-                certs=certs_dir,
-                locale="italy",
-                session=unsafe_session  # Use patched session for SSL compatibility
-            )
-            
-            self.client.login()
-            
-            if not self.client.session_token:
-                raise Exception("Nessun token ricevuto - verifica credenziali")
-            
-            return {
-                'session_token': self.client.session_token,
-                'expiry': (datetime.now() + timedelta(hours=8)).isoformat()
-            }
-        except betfairlightweight.exceptions.LoginError as e:
-            self._cleanup_temp_files()
-            raise Exception(f"Credenziali errate o account bloccato: {str(e)}")
-        except betfairlightweight.exceptions.CertsError as e:
-            self._cleanup_temp_files()
-            raise Exception(f"Errore certificato SSL - verifica che .crt e .key siano corretti: {str(e)}")
-        except betfairlightweight.exceptions.APIError as e:
-            self._cleanup_temp_files()
-            raise Exception(f"Errore API Betfair: {str(e)}")
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(do_login)
+                try:
+                    future.result(timeout=timeout)
+                except concurrent.futures.TimeoutError:
+                    self._cleanup_temp_files()
+                    raise Exception(f"Timeout connessione ({timeout}s) - verifica la connessione internet e riprova")
         except Exception as e:
+            if "Timeout" in str(e):
+                raise
             self._cleanup_temp_files()
-            error_msg = str(e)
-            if "SSL" in error_msg.upper() or "CERTIFICATE" in error_msg.upper():
-                raise Exception(f"Errore SSL - il certificato potrebbe non essere valido: {error_msg}")
-            elif "timeout" in error_msg.lower():
-                raise Exception("Timeout connessione - riprova")
-            else:
-                raise Exception(f"Login fallito: {error_msg}")
+            raise
+        
+        # Check result
+        if login_result['error']:
+            self._cleanup_temp_files()
+            raise Exception(login_result['error'])
+        
+        if not login_result['success']:
+            self._cleanup_temp_files()
+            raise Exception("Login fallito - errore sconosciuto")
+        
+        # Success - store client and return
+        self.client = login_result['data']['client']
+        return {
+            'session_token': login_result['data']['session_token'],
+            'expiry': login_result['data']['expiry']
+        }
     
     def logout(self):
         """Logout from Betfair and stop streaming."""

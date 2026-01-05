@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.17"  # Preload SSL DLLs before Telethon import
+APP_VERSION = "3.70.18"  # Robust login timeout (15s) prevents app freeze
 
 # Setup file logging
 def setup_logging():
