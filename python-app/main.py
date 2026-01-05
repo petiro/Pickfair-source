@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.26"  # Delayed init - schedule API calls after UI updates
+APP_VERSION = "3.70.27"  # Added _defer() helper, explicit mainloop yield logging
 
 # Setup file logging
 def setup_logging():
@@ -2457,21 +2457,29 @@ class PickfairApp:
         pwd_entry.bind('<Return>', lambda e: do_login())
         ttk.Button(frame, text="Connetti", command=do_login).pack(pady=10)
     
+    def _defer(self, fn, delay=100):
+        """Schedule a function to run after delay, yielding to mainloop first."""
+        self.root.after(delay, fn)
+    
     def _on_connected(self):
-        """Handle successful connection."""
+        """Handle successful connection.
+        
+        IMPORTANT: Never do I/O (even indirect) in this callback.
+        Only: 1) Update UI  2) Schedule after()
+        """
         logging.info("[CONNECT] _on_connected: Starting...")
         
         try:
             self.status_label.configure(text="Connesso a Betfair Italia", text_color=COLORS['success'])
             self.connect_btn.configure(text="Disconnetti", state=tk.NORMAL)
             self.refresh_btn.configure(state=tk.NORMAL)
-            logging.debug("[CONNECT] UI updated")
+            logging.debug("[CONNECT] UI updated - no I/O done yet")
         except Exception as e:
             logging.error(f"[CONNECT] UI update error: {e}")
         
         # Schedule all API calls with delay to keep UI responsive
         def delayed_init():
-            logging.debug("[CONNECT] delayed_init starting...")
+            logging.debug("[CONNECT] delayed_init starting after mainloop yield...")
             try:
                 self._update_balance()
                 logging.debug("[CONNECT] _update_balance queued")
@@ -2511,9 +2519,10 @@ class PickfairApp:
             
             logging.info("[CONNECT] delayed_init complete")
         
-        # Use root.after to schedule initialization AFTER UI updates are processed
-        self.root.after(100, delayed_init)
-        logging.info("[CONNECT] _on_connected: Complete - delayed_init scheduled")
+        # CRITICAL: Yield to mainloop before any API startup
+        logging.debug("[UI] Yielding to mainloop before API startup")
+        self._defer(delayed_init, delay=100)
+        logging.info("[CONNECT] _on_connected: Complete - UI responsive, API scheduled")
     
     def _start_session_keepalive(self):
         """Start periodic session keep-alive to prevent timeout."""
