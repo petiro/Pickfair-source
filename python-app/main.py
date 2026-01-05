@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.21"  # More logging + try/catch in _on_connected
+APP_VERSION = "3.70.22"  # Detailed thread logging for _update_balance/_load_events
 
 # Setup file logging
 def setup_logging():
@@ -3054,28 +3054,39 @@ class PickfairApp:
     
     def _update_balance(self):
         """Update account balance display."""
+        logging.debug("[BALANCE] _update_balance called, starting thread...")
         def fetch():
+            logging.debug("[BALANCE] Thread started, calling get_account_funds...")
             try:
                 funds = self.client.get_account_funds()
+                logging.info(f"[BALANCE] Got funds: {funds}")
                 self.root.after(0, lambda: self.balance_label.configure(
                     text=f"Saldo: {format_currency(funds['available'])}"
                 ))
             except Exception as e:
-                print(f"Error fetching balance: {e}")
+                logging.error(f"[BALANCE] Error fetching balance: {e}")
         
-        threading.Thread(target=fetch, daemon=True).start()
+        t = threading.Thread(target=fetch, daemon=True)
+        t.start()
+        logging.debug(f"[BALANCE] Thread started: {t.name}")
     
     def _load_events(self):
         """Load football events."""
+        logging.debug("[EVENTS] _load_events called, starting thread...")
         def fetch():
+            logging.debug("[EVENTS] Thread started, calling get_football_events...")
             try:
                 events = self.client.get_football_events()
+                logging.info(f"[EVENTS] Got {len(events) if events else 0} events")
                 self.root.after(0, lambda: self._display_events(events))
             except Exception as e:
+                logging.error(f"[EVENTS] Error loading events: {e}")
                 err_msg = str(e)
                 self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", f"Errore caricamento partite: {msg}"))
         
-        threading.Thread(target=fetch, daemon=True).start()
+        t = threading.Thread(target=fetch, daemon=True)
+        t.start()
+        logging.debug(f"[EVENTS] Thread started: {t.name}")
     
     def _display_events(self, events):
         """Display events in treeview grouped by country."""
