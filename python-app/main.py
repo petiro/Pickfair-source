@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.28"  # Staggered init - each API call scheduled separately
+APP_VERSION = "3.70.29"  # Use threading.Thread instead of ThreadPoolExecutor
 
 # Setup file logging
 def setup_logging():
@@ -3078,29 +3078,32 @@ class PickfairApp:
         self._clear_selections()
     
     def _update_balance(self):
-        """Update account balance display using executor to avoid blocking."""
+        """Update account balance display using thread to avoid blocking."""
         logging.debug("[BALANCE] _update_balance called...")
         
-        from concurrent.futures import ThreadPoolExecutor
+        # Use simple list to share result between threads
+        result_holder = [None, False]  # [result, is_done]
         
         def fetch():
-            logging.debug("[BALANCE] Executor task started...")
+            logging.debug("[BALANCE] Thread started...")
             try:
                 funds = self.client.get_account_funds()
                 logging.info(f"[BALANCE] Got funds: {funds}")
-                return funds
+                result_holder[0] = funds
             except Exception as e:
                 logging.error(f"[BALANCE] Error fetching balance: {e}")
-                return None
+            result_holder[1] = True
+            logging.debug("[BALANCE] Thread complete")
         
-        executor = ThreadPoolExecutor(max_workers=1)
-        future = executor.submit(fetch)
-        executor.shutdown(wait=False)
+        thread = threading.Thread(target=fetch, daemon=True)
+        thread.start()
+        logging.debug("[BALANCE] Thread started, scheduling poll...")
         
         def check_result():
-            if future.done():
+            if result_holder[1]:  # is_done
+                logging.debug("[BALANCE] Poll: result ready")
                 try:
-                    funds = future.result(timeout=0)
+                    funds = result_holder[0]
                     if funds:
                         self.balance_label.configure(
                             text=f"Saldo: {format_currency(funds['available'])}"
@@ -3109,35 +3112,40 @@ class PickfairApp:
                     logging.error(f"[BALANCE] Result error: {e}")
             else:
                 # Check again in 100ms
+                logging.debug("[BALANCE] Poll: not ready, rescheduling...")
                 self.root.after(100, check_result)
         
         self.root.after(100, check_result)
-        logging.debug("[BALANCE] Scheduled result check")
+        logging.debug("[BALANCE] Poll scheduled")
     
     def _load_events(self):
-        """Load football events using executor to avoid blocking."""
+        """Load football events using thread to avoid blocking."""
         logging.debug("[EVENTS] _load_events called...")
         
-        from concurrent.futures import ThreadPoolExecutor
+        # Use simple list to share result between threads
+        result_holder = [None, False]  # [result, is_done]
         
         def fetch():
-            logging.debug("[EVENTS] Executor task started...")
+            logging.debug("[EVENTS] Thread started...")
             try:
                 events = self.client.get_football_events()
                 logging.info(f"[EVENTS] Got {len(events) if events else 0} events")
-                return ('success', events)
+                result_holder[0] = ('success', events)
             except Exception as e:
                 logging.error(f"[EVENTS] Error loading events: {e}")
-                return ('error', str(e))
+                result_holder[0] = ('error', str(e))
+            result_holder[1] = True
+            logging.debug("[EVENTS] Thread complete")
         
-        executor = ThreadPoolExecutor(max_workers=1)
-        future = executor.submit(fetch)
-        executor.shutdown(wait=False)
+        thread = threading.Thread(target=fetch, daemon=True)
+        thread.start()
+        logging.debug("[EVENTS] Thread started, scheduling poll...")
         
         def check_result():
-            if future.done():
+            if result_holder[1]:  # is_done
+                logging.debug("[EVENTS] Poll: result ready")
                 try:
-                    result = future.result(timeout=0)
+                    result = result_holder[0]
                     if result[0] == 'success':
                         self._display_events(result[1])
                     else:
