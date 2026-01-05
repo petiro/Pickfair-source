@@ -61,8 +61,18 @@ class UnsafeAdapter(HTTPAdapter):
             kwargs.setdefault('verify', False)
         return super().send(request, **kwargs)
 
-# Create the shared unsafe session
-unsafe_session = requests.Session()
+# Create the shared unsafe session with aggressive timeouts
+class TimeoutSession(requests.Session):
+    """Session with default timeout for all requests."""
+    def __init__(self, timeout=15):
+        super().__init__()
+        self.timeout = timeout
+    
+    def request(self, method, url, **kwargs):
+        kwargs.setdefault('timeout', self.timeout)
+        return super().request(method, url, **kwargs)
+
+unsafe_session = TimeoutSession(timeout=15)
 if IS_WINDOWS_7:
     unsafe_session.verify = False
 unsafe_session.mount("https://", UnsafeAdapter())

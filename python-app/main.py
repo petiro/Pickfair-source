@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.19"  # Debug logging for connection freeze
+APP_VERSION = "3.70.20"  # TimeoutSession forces 15s timeout on all API calls
 
 # Setup file logging
 def setup_logging():
