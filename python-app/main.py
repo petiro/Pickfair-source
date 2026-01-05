@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.24"  # socket.setdefaulttimeout(15) forces timeout on ALL connections
+APP_VERSION = "3.70.25"  # Socket timeout only on Windows 7
 
 # Setup file logging
 def setup_logging():
