@@ -35,16 +35,29 @@ jobs:
         # Install silently
         Start-Process -FilePath $installer -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /DIR=C:\OpenSSL-1_1_1" -Wait
         
-        # Copy DLLs to third_party for bundling
-        Copy-Item "C:\OpenSSL-1_1_1\libssl-1_1-x64.dll" "third_party\openssl\"
-        Copy-Item "C:\OpenSSL-1_1_1\libcrypto-1_1-x64.dll" "third_party\openssl\"
+        # DEBUG: Show installed files
+        echo "=== OpenSSL Installation Contents ==="
+        Get-ChildItem "C:\OpenSSL-1_1_1" -Recurse -Filter "*.dll" | Select-Object FullName
+        
+        # Copy DLLs to third_party for bundling (DLLs are in bin subfolder)
+        Copy-Item "C:\OpenSSL-1_1_1\bin\libssl-1_1-x64.dll" "third_party\openssl\" -ErrorAction SilentlyContinue
+        Copy-Item "C:\OpenSSL-1_1_1\bin\libcrypto-1_1-x64.dll" "third_party\openssl\" -ErrorAction SilentlyContinue
+        # Fallback: try root folder
+        Copy-Item "C:\OpenSSL-1_1_1\libssl-1_1-x64.dll" "third_party\openssl\" -ErrorAction SilentlyContinue
+        Copy-Item "C:\OpenSSL-1_1_1\libcrypto-1_1-x64.dll" "third_party\openssl\" -ErrorAction SilentlyContinue
         
         # Add to PATH
-        echo "C:\OpenSSL-1_1_1" >> $env:GITHUB_PATH
+        echo "C:\OpenSSL-1_1_1\bin" >> $env:GITHUB_PATH
         
         # Verify
-        echo "OpenSSL 1.1.1w DLLs:"
+        echo "=== OpenSSL 1.1.1w DLLs for bundling ==="
         Get-ChildItem "third_party\openssl" | Select-Object Name, Length
+        
+        # Fail if DLLs not found
+        if (-not (Test-Path "third_party\openssl\libssl-1_1-x64.dll")) {
+          echo "ERROR: libssl-1_1-x64.dll not found!"
+          exit 1
+        }
     
     - name: Install dependencies
       run: |

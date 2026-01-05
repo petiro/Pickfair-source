@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.15"  # OpenSSL 1.1.1w bundled + Safe Mode + Entity Cache TTL
+APP_VERSION = "3.70.16"  # Fix OpenSSL DLL bundling path (bin subfolder)
 
 # Setup file logging
 def setup_logging():
