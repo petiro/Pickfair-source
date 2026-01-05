@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.20"  # TimeoutSession forces 15s timeout on all API calls
+APP_VERSION = "3.70.21"  # More logging + try/catch in _on_connected
 
 # Setup file logging
 def setup_logging():
@@ -2461,32 +2461,54 @@ class PickfairApp:
         """Handle successful connection."""
         logging.info("[CONNECT] _on_connected: Starting...")
         
-        self.status_label.configure(text="Connesso a Betfair Italia", text_color=COLORS['success'])
-        self.connect_btn.configure(text="Disconnetti", state=tk.NORMAL)
-        self.refresh_btn.configure(state=tk.NORMAL)
-        logging.debug("[CONNECT] UI updated")
+        try:
+            self.status_label.configure(text="Connesso a Betfair Italia", text_color=COLORS['success'])
+            self.connect_btn.configure(text="Disconnetti", state=tk.NORMAL)
+            self.refresh_btn.configure(state=tk.NORMAL)
+            logging.debug("[CONNECT] UI updated")
+        except Exception as e:
+            logging.error(f"[CONNECT] UI update error: {e}")
         
-        self._update_balance()
-        logging.debug("[CONNECT] _update_balance queued")
+        try:
+            self._update_balance()
+            logging.debug("[CONNECT] _update_balance queued")
+        except Exception as e:
+            logging.error(f"[CONNECT] _update_balance error: {e}")
         
-        self._load_events()
-        logging.debug("[CONNECT] _load_events queued")
+        try:
+            self._load_events()
+            logging.debug("[CONNECT] _load_events queued")
+        except Exception as e:
+            logging.error(f"[CONNECT] _load_events error: {e}")
         
-        # Auto-enable refresh on connect
-        self.auto_refresh_var.set(True)
-        self._start_auto_refresh()
-        logging.debug("[CONNECT] Auto-refresh started")
+        try:
+            # Auto-enable refresh on connect
+            self.auto_refresh_var.set(True)
+            self._start_auto_refresh()
+            logging.debug("[CONNECT] Auto-refresh started")
+        except Exception as e:
+            logging.error(f"[CONNECT] Auto-refresh error: {e}")
         
-        # Start session keep-alive to prevent disconnection
-        self._start_session_keepalive()
-        logging.debug("[CONNECT] Keepalive started")
+        try:
+            # Start session keep-alive to prevent disconnection
+            self._start_session_keepalive()
+            logging.debug("[CONNECT] Keepalive started")
+        except Exception as e:
+            logging.error(f"[CONNECT] Keepalive error: {e}")
         
-        # Start Order Stream for real-time order updates
-        self._start_order_stream()
-        logging.debug("[CONNECT] Order stream queued")
+        try:
+            # Start Order Stream for real-time order updates
+            self._start_order_stream()
+            logging.debug("[CONNECT] Order stream queued")
+        except Exception as e:
+            logging.error(f"[CONNECT] Order stream error: {e}")
         
-        # Refresh dashboard tab with connected data
-        self._refresh_dashboard_tab()
+        try:
+            # Refresh dashboard tab with connected data
+            self._refresh_dashboard_tab()
+        except Exception as e:
+            logging.error(f"[CONNECT] Dashboard refresh error: {e}")
+        
         logging.info("[CONNECT] _on_connected: Complete - UI should be responsive")
     
     def _start_session_keepalive(self):
