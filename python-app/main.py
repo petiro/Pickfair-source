@@ -3085,7 +3085,7 @@ class PickfairApp:
         result_holder = [None, False]  # [result, is_done]
         
         def fetch():
-            logging.debug("[BALANCE] Thread started...")
+            logging.debug("[BALANCE] Fetch thread running...")
             try:
                 funds = self.client.get_account_funds()
                 logging.info(f"[BALANCE] Got funds: {funds}")
@@ -3093,11 +3093,7 @@ class PickfairApp:
             except Exception as e:
                 logging.error(f"[BALANCE] Error fetching balance: {e}")
             result_holder[1] = True
-            logging.debug("[BALANCE] Thread complete")
-        
-        thread = threading.Thread(target=fetch, daemon=True)
-        thread.start()
-        logging.debug("[BALANCE] Thread started, scheduling poll...")
+            logging.debug("[BALANCE] Fetch thread complete")
         
         def check_result():
             if result_holder[1]:  # is_done
@@ -3112,11 +3108,17 @@ class PickfairApp:
                     logging.error(f"[BALANCE] Result error: {e}")
             else:
                 # Check again in 100ms
-                logging.debug("[BALANCE] Poll: not ready, rescheduling...")
                 self.root.after(100, check_result)
         
+        # CRITICAL: Schedule poll FIRST, then start thread
+        # This ensures mainloop gets the after() before any blocking
+        logging.debug("[BALANCE] Scheduling poll...")
         self.root.after(100, check_result)
-        logging.debug("[BALANCE] Poll scheduled")
+        logging.debug("[BALANCE] Poll scheduled, starting thread...")
+        
+        thread = threading.Thread(target=fetch, daemon=True)
+        thread.start()
+        logging.debug("[BALANCE] Thread started")
     
     def _load_events(self):
         """Load football events using thread to avoid blocking."""
