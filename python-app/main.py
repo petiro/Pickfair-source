@@ -736,9 +736,9 @@ class PickfairApp:
         self.events_tree.heading('#0', text='Nazione')
         self.events_tree.heading('name', text='Partita')
         self.events_tree.heading('date', text='Data')
-        self.events_tree.column('#0', width=50, minwidth=40)
-        self.events_tree.column('name', width=180, minwidth=180, stretch=False)
-        self.events_tree.column('date', width=75, minwidth=70)
+        self.events_tree.column('#0', width=60, minwidth=50)
+        self.events_tree.column('name', width=220, minwidth=200, stretch=False)
+        self.events_tree.column('date', width=85, minwidth=75)
         
         # Horizontal scrollbar - pack FIRST at bottom
         h_scrollbar = ttk.Scrollbar(tree_container, orient=tk.HORIZONTAL, command=self.events_tree.xview)
