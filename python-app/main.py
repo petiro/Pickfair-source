@@ -763,8 +763,9 @@ class PickfairApp:
     
     def _create_market_panel(self, parent):
         """Create market/runners panel with market type selector."""
-        market_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8)
+        market_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8, width=520)
         market_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
+        market_frame.pack_propagate(False)  # Maintain minimum width
         
         # Title
         ctk.CTkLabel(market_frame, text="Mercato", font=FONTS['heading'],
@@ -933,8 +934,9 @@ class PickfairApp:
     
     def _create_dutching_panel(self, parent):
         """Create dutching calculator panel with scrollable content."""
-        dutch_outer = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8)
+        dutch_outer = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8, width=380)
         dutch_outer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
+        dutch_outer.pack_propagate(False)  # Maintain width
         
         # Title
         ctk.CTkLabel(dutch_outer, text="Calcolo Dutching", font=FONTS['heading'],
