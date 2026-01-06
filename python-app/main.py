@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.33"  # BetfairExecutor for serialized order operations
+APP_VERSION = "3.70.34"  # All order operations through BetfairExecutor
 
 # Setup file logging
 def setup_logging():
@@ -1727,7 +1727,10 @@ class PickfairApp:
         return True
     
     def _cancel_single_order(self, market_id, bet_id):
-        """Cancel a single unmatched order with debounce."""
+        """Cancel a single unmatched order with debounce.
+        
+        Uses BetfairExecutor for serialized execution.
+        """
         if not self.client:
             return
         
@@ -1745,7 +1748,8 @@ class PickfairApp:
                 logging.error(f"Error cancelling order {bet_id}: {e}")
                 self.root.after(0, lambda: self._on_order_cancelled(bet_id, False))
         
-        threading.Thread(target=cancel, daemon=True).start()
+        # Use BetfairExecutor for serialization
+        self.betfair_executor.submit(cancel)
     
     def _on_order_cancelled(self, bet_id, success):
         """Handle order cancellation result."""
@@ -1756,7 +1760,10 @@ class PickfairApp:
             self._add_log(f"Errore annullamento ordine {bet_id}", 'error')
     
     def _replace_order_tick(self, market_id, bet_id, tick_direction):
-        """Replace order by moving price ±1 tick with debounce."""
+        """Replace order by moving price ±1 tick with debounce.
+        
+        Uses BetfairExecutor for serialized execution.
+        """
         if not self.client:
             return
         
@@ -1788,7 +1795,8 @@ class PickfairApp:
             except Exception as e:
                 logging.error(f"Error replacing order {bet_id}: {e}")
         
-        threading.Thread(target=replace, daemon=True).start()
+        # Use BetfairExecutor for serialization
+        self.betfair_executor.submit(replace)
     
     def _on_order_replaced(self, bet_id, new_price):
         """Handle order replacement result."""
@@ -1956,7 +1964,8 @@ class PickfairApp:
                 logging.error(f"Error cancelling all orders: {e}")
                 self.root.after(0, lambda: self._on_all_orders_cancelled(0))
         
-        threading.Thread(target=cancel_all, daemon=True).start()
+        # Use BetfairExecutor for serialization
+        self.betfair_executor.submit(cancel_all)
     
     def _on_all_orders_cancelled(self, count):
         """Handle all orders cancellation result."""
@@ -4937,17 +4946,10 @@ class PickfairApp:
             logging.info(f"[BET] place_thread STARTED")
             try:
                 if use_market_price:
-                    # Use market order for immediate match
-                    # For BACK: we want to get matched at best available back price
-                    # For LAY: we want to get matched at best available lay price
-                    # We use a very generous price to ensure match
                     if bet_type == 'BACK':
-                        # For BACK, use a high price (1000) to accept any available price
                         match_price = 1000.0
                     else:
-                        # For LAY, use a low price (1.01) to accept any available price
                         match_price = 1.01
-                    
                     logging.info(f"Quick bet using market price: requested={price}, match_price={match_price}")
                 else:
                     match_price = price
@@ -4968,7 +4970,8 @@ class PickfairApp:
                 logging.error(f"Quick bet error: {err_msg}")
                 self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", msg))
         
-        threading.Thread(target=place_thread, daemon=True).start()
+        # Use BetfairExecutor for serialized order operations
+        self.betfair_executor.submit(place_thread)
     
     def _on_quick_bet_result(self, result, runner, bet_type, price, stake):
         """Handle quick bet result."""
@@ -8552,14 +8555,17 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             def cancel_selected():
                 selected = tree.selection()
                 if selected and self.client:
-                    for bet_id in selected:
-                        market_id = bet_to_market.get(bet_id)
-                        if market_id:
-                            try:
-                                self.client.cancel_orders(market_id, [bet_id])
-                            except:
-                                pass
-                    messagebox.showinfo("Info", "Ordini cancellati")
+                    def do_cancel():
+                        for bet_id in selected:
+                            market_id = bet_to_market.get(bet_id)
+                            if market_id:
+                                try:
+                                    self.client.cancel_orders(market_id, [bet_id])
+                                except:
+                                    pass
+                        self.root.after(0, lambda: messagebox.showinfo("Info", "Ordini cancellati"))
+                    # Use BetfairExecutor for serialization
+                    self.betfair_executor.submit(do_cancel)
             
             ttk.Button(parent, text="Cancella Selezionati", command=cancel_selected).pack(pady=5)
     
@@ -8771,41 +8777,46 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 )
                 
                 if confirm:
-                    try:
-                        result = self.client.execute_cashout(
-                            pos['market_id'],
-                            pos['selection_id'],
-                            info['cashout_side'],
-                            info['cashout_stake'],
-                            info['current_price']
+                    pos_copy = dict(pos)
+                    info_copy = dict(info)
+                    item_id_copy = item_id
+                    
+                    def do_cashout_op():
+                        return self.client.execute_cashout(
+                            pos_copy['market_id'],
+                            pos_copy['selection_id'],
+                            info_copy['cashout_side'],
+                            info_copy['cashout_stake'],
+                            info_copy['current_price']
                         )
-                        
+                    
+                    def on_cashout_success(result):
                         if result.get('status') == 'SUCCESS':
-                            # Record cashout transaction with profit/loss
                             self.db.save_cashout_transaction(
-                                market_id=pos['market_id'],
-                                selection_id=pos['selection_id'],
-                                original_bet_id=item_id,
+                                market_id=pos_copy['market_id'],
+                                selection_id=pos_copy['selection_id'],
+                                original_bet_id=item_id_copy,
                                 cashout_bet_id=result.get('betId'),
-                                original_side=pos['side'],
-                                original_stake=pos['stake'],
-                                original_price=pos['price'],
-                                cashout_side=info['cashout_side'],
-                                cashout_stake=info['cashout_stake'],
-                                cashout_price=result.get('averagePriceMatched') or info['current_price'],
-                                profit_loss=info['green_up']
+                                original_side=pos_copy['side'],
+                                original_stake=pos_copy['stake'],
+                                original_price=pos_copy['price'],
+                                cashout_side=info_copy['cashout_side'],
+                                cashout_stake=info_copy['cashout_stake'],
+                                cashout_price=result.get('averagePriceMatched') or info_copy['current_price'],
+                                profit_loss=info_copy['green_up']
                             )
-                            messagebox.showinfo("Successo", f"Cashout eseguito!\nProfitto bloccato: {info['green_up']:+.2f}")
+                            messagebox.showinfo("Successo", f"Cashout eseguito!\nProfitto bloccato: {info_copy['green_up']:+.2f}")
                             load_positions()
-                            # Update dashboard stats
                             self._update_balance()
                         elif result.get('status') == 'ERROR':
                             messagebox.showerror("Errore", f"Cashout fallito: {result.get('error', 'Errore sconosciuto')}")
                         else:
                             messagebox.showerror("Errore", f"Cashout fallito: {result.get('status')}")
-                    except Exception as e:
-                        err_msg = str(e)
-                        messagebox.showerror("Errore", f"Errore cashout: {err_msg}")
+                    
+                    def on_cashout_error(msg):
+                        messagebox.showerror("Errore", f"Errore cashout: {msg}")
+                    
+                    self._execute_order_operation("cashout_view", do_cashout_op, on_cashout_success, on_cashout_error)
         
         # Buttons frame
         btn_frame = ttk.Frame(parent)
@@ -8954,18 +8965,26 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                                 should_trigger = True
                             
                             if should_trigger:
-                                result = self.client.place_bets(market_id, [{
-                                    'selectionId': booking['selection_id'],
-                                    'side': booking['side'],
-                                    'price': current_price,
-                                    'size': booking['stake']
-                                }])
+                                booking_copy = dict(booking)
+                                market_id_copy = market_id
+                                current_price_copy = current_price
                                 
-                                if result.get('status') == 'SUCCESS':
-                                    bet_id = result['instructionReports'][0].get('betId') if result.get('instructionReports') else None
-                                    self.db.update_booking_status(booking['id'], 'TRIGGERED', bet_id)
-                                else:
-                                    self.db.update_booking_status(booking['id'], 'FAILED')
+                                def do_booking_bet():
+                                    return self.client.place_bets(market_id_copy, [{
+                                        'selectionId': booking_copy['selection_id'],
+                                        'side': booking_copy['side'],
+                                        'price': current_price_copy,
+                                        'size': booking_copy['stake']
+                                    }])
+                                
+                                def on_booking_result(result):
+                                    if result and result.get('status') == 'SUCCESS':
+                                        bet_id = result['instructionReports'][0].get('betId') if result.get('instructionReports') else None
+                                        self.db.update_booking_status(booking_copy['id'], 'TRIGGERED', bet_id)
+                                    else:
+                                        self.db.update_booking_status(booking_copy['id'], 'FAILED')
+                                
+                                self._execute_order_operation("booking_trigger", do_booking_bet, on_booking_result)
                             break
             except Exception:
                 pass
@@ -9197,21 +9216,27 @@ Evento: {event_name}"""
                                     trigger_reason = f"Limite perdita raggiunto: {current_pl:+.2f}"
                                 
                                 if should_trigger:
-                                    # Execute cashout
-                                    result = self.client.execute_cashout(
-                                        market_id,
-                                        selection_id,
-                                        cashout_info['cashout_side'],
-                                        cashout_info['cashout_stake'],
-                                        cashout_info['current_price']
-                                    )
+                                    rule_id_copy = rule['id']
+                                    market_id_copy = market_id
+                                    selection_id_copy = selection_id
+                                    cashout_info_copy = dict(cashout_info)
+                                    trigger_reason_copy = trigger_reason
                                     
-                                    if result.get('status') == 'SUCCESS':
-                                        self.db.deactivate_auto_cashout_rule(rule['id'])
-                                        # Use root.after to safely show message from main thread
-                                        def show_cashout_message(reason):
-                                            messagebox.showinfo("Auto-Cashout", f"Cashout automatico eseguito!\n{reason}")
-                                        self.root.after(0, lambda: show_cashout_message(trigger_reason))
+                                    def do_auto_cashout():
+                                        return self.client.execute_cashout(
+                                            market_id_copy,
+                                            selection_id_copy,
+                                            cashout_info_copy['cashout_side'],
+                                            cashout_info_copy['cashout_stake'],
+                                            cashout_info_copy['current_price']
+                                        )
+                                    
+                                    def on_auto_cashout_result(result):
+                                        if result and result.get('status') == 'SUCCESS':
+                                            self.db.deactivate_auto_cashout_rule(rule_id_copy)
+                                            messagebox.showinfo("Auto-Cashout", f"Cashout automatico eseguito!\n{trigger_reason_copy}")
+                                    
+                                    self._execute_order_operation("auto_cashout", do_auto_cashout, on_auto_cashout_result)
                             except Exception:
                                 pass
                         break
@@ -9827,74 +9852,96 @@ Evento: {event_name}"""
                     dialog.destroy()
                     return
                 
-                result = self.client.place_bets(market_id, instructions)
-                logging.info(f"[DUTCHING] Place bets result: {result}")
+                # Capture variables for closure
+                instructions_copy = list(instructions)
+                market_id_copy = market_id
+                market_name_copy = market_name
+                event_name_copy = event_name
+                calculated_results_copy = list(dialog.calculated_results)
                 
-                if result.get('status') == 'SUCCESS':
-                    instr_reports = result.get('instructionReports', [])
-                    for i, instr in enumerate(instructions):
-                        rep = instr_reports[i] if i < len(instr_reports) else {}
-                        bet_id = rep.get('betId')
-                        runner_name = dialog.calculated_results[i].get('runnerName', '') if i < len(dialog.calculated_results) else ''
-                        
-                        self.bet_logger.log_order_placed(
-                            market_id=market_id,
-                            selection_id=str(instr['selectionId']),
-                            side=instr['side'],
-                            stake=instr['size'],
-                            price=instr['price'],
-                            bet_id=bet_id,
-                            market_name=market_name,
-                            event_name=event_name,
-                            runner_name=runner_name,
-                            source='DUTCHING'
-                        )
-                        
-                        if bet_id:
-                            self.bet_logger.save_position(
-                                bet_id=bet_id,
-                                market_id=market_id,
+                def do_place_dialog_bets():
+                    return self.client.place_bets(market_id_copy, instructions_copy)
+                
+                def on_dialog_bets_success(result):
+                    logging.info(f"[DUTCHING] Place bets result: {result}")
+                    
+                    if result.get('status') == 'SUCCESS':
+                        instr_reports = result.get('instructionReports', [])
+                        for i, instr in enumerate(instructions_copy):
+                            rep = instr_reports[i] if i < len(instr_reports) else {}
+                            bet_id = rep.get('betId')
+                            runner_name = calculated_results_copy[i].get('runnerName', '') if i < len(calculated_results_copy) else ''
+                            
+                            self.bet_logger.log_order_placed(
+                                market_id=market_id_copy,
                                 selection_id=str(instr['selectionId']),
                                 side=instr['side'],
                                 stake=instr['size'],
                                 price=instr['price'],
-                                status='PLACED'
-                            )
-                    
-                    self._mark_dashboard_dirty()
-                    messagebox.showinfo("Successo", f"{len(instructions)} scommesse piazzate!")
-                    dialog.destroy()
-                else:
-                    error_code = result.get('errorCode', '')
-                    error_msg = f"Stato: {result.get('status', 'UNKNOWN')}"
-                    if error_code:
-                        error_msg += f"\nErrore: {error_code}"
-                    
-                    instr_reports = result.get('instructionReports', [])
-                    for i, rep in enumerate(instr_reports):
-                        instr = instructions[i] if i < len(instructions) else {}
-                        runner_name = dialog.calculated_results[i].get('runnerName', '') if i < len(dialog.calculated_results) else ''
-                        
-                        if rep.get('status') != 'SUCCESS':
-                            rep_error = rep.get('errorCode', '')
-                            if rep_error:
-                                error_msg += f"\n- Selezione {i+1}: {rep_error}"
-                            
-                            self.bet_logger.log_order_failed(
-                                market_id=market_id,
-                                selection_id=str(instr.get('selectionId', '')),
-                                side=instr.get('side', ''),
-                                stake=instr.get('size', 0),
-                                price=instr.get('price', 0),
-                                error_code=rep_error or error_code,
-                                error_message=rep.get('errorMessage', ''),
+                                bet_id=bet_id,
+                                market_name=market_name_copy,
+                                event_name=event_name_copy,
                                 runner_name=runner_name,
                                 source='DUTCHING'
                             )
-                    
+                            
+                            if bet_id:
+                                self.bet_logger.save_position(
+                                    bet_id=bet_id,
+                                    market_id=market_id_copy,
+                                    selection_id=str(instr['selectionId']),
+                                    side=instr['side'],
+                                    stake=instr['size'],
+                                    price=instr['price'],
+                                    status='PLACED'
+                                )
+                        
+                        self._mark_dashboard_dirty()
+                        messagebox.showinfo("Successo", f"{len(instructions_copy)} scommesse piazzate!")
+                        dialog.destroy()
+                    else:
+                        error_code = result.get('errorCode', '')
+                        error_msg = f"Stato: {result.get('status', 'UNKNOWN')}"
+                        if error_code:
+                            error_msg += f"\nErrore: {error_code}"
+                        
+                        instr_reports = result.get('instructionReports', [])
+                        for i, rep in enumerate(instr_reports):
+                            instr = instructions_copy[i] if i < len(instructions_copy) else {}
+                            runner_name = calculated_results_copy[i].get('runnerName', '') if i < len(calculated_results_copy) else ''
+                            
+                            if rep.get('status') != 'SUCCESS':
+                                rep_error = rep.get('errorCode', '')
+                                if rep_error:
+                                    error_msg += f"\n- Selezione {i+1}: {rep_error}"
+                                
+                                self.bet_logger.log_order_failed(
+                                    market_id=market_id_copy,
+                                    selection_id=str(instr.get('selectionId', '')),
+                                    side=instr.get('side', ''),
+                                    stake=instr.get('size', 0),
+                                    price=instr.get('price', 0),
+                                    error_code=rep_error or error_code,
+                                    error_message=rep.get('errorMessage', ''),
+                                    runner_name=runner_name,
+                                    source='DUTCHING'
+                                )
+                        
+                        self._mark_dashboard_dirty()
+                        logging.warning(f"[DUTCHING] Bet placement failed: {error_msg}")
+                        messagebox.showwarning("Attenzione", error_msg)
+                
+                def on_dialog_bets_error(msg):
+                    self.bet_logger.log_error(
+                        source='DUTCHING',
+                        message=f"Exception placing bets: {msg}",
+                        exception=None,
+                        market_id=market_id_copy
+                    )
                     self._mark_dashboard_dirty()
-                    logging.warning(f"[DUTCHING] Bet placement failed: {error_msg}")
-                    messagebox.showwarning("Attenzione", error_msg)
+                    messagebox.showerror("Errore", msg)
+                
+                self._execute_order_operation("dutching_dialog", do_place_dialog_bets, on_dialog_bets_success, on_dialog_bets_error)
             except Exception as e:
                 self.bet_logger.log_error(
                     source='DUTCHING',
@@ -10795,7 +10842,7 @@ Evento: {event_name}"""
                 
                 logging.info(f"[COPY DUTCHING] Simulation bet placed: {len(results)} selections, stake={total_stake:.2f}€")
             else:
-                # Real bets
+                # Real bets - use BetfairExecutor for serialization
                 instructions = []
                 for r in results:
                     bet_side = r.get('effectiveType', side)
@@ -10812,12 +10859,19 @@ Evento: {event_name}"""
                     }
                     instructions.append(instruction)
                 
-                result = self.client.place_orders(market_id, instructions)
+                instructions_copy = list(instructions)
+                market_id_copy = market_id
                 
-                if result.get('status') == 'SUCCESS':
-                    logging.info(f"[COPY DUTCHING] Bets placed successfully: {len(instructions)} orders")
-                else:
-                    logging.error(f"[COPY DUTCHING] Bet placement failed: {result}")
+                def do_copy_place():
+                    return self.client.place_orders(market_id_copy, instructions_copy)
+                
+                def on_copy_result(result):
+                    if result and result.get('status') == 'SUCCESS':
+                        logging.info(f"[COPY DUTCHING] Bets placed successfully: {len(instructions_copy)} orders")
+                    else:
+                        logging.error(f"[COPY DUTCHING] Bet placement failed: {result}")
+                
+                self._execute_order_operation("copy_dutching", do_copy_place, on_copy_result)
         
         except Exception as e:
             logging.error(f"[COPY DUTCHING] Error: {e}")
