@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.72.1"  # Live Match Timeline PRO: TeamNameResolver + robust API client + goal confirm
+APP_VERSION = "3.72.2"  # Stress Testing: UIWatchdog + StressTestController + 38 automated tests
 
 # Setup file logging
 def setup_logging():

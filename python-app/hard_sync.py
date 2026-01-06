@@ -62,6 +62,8 @@ class HardSyncController:
         self._goal_pending: bool = False
         self._goal_pending_ts: float = 0
         
+        self.force_desync: bool = False
+        
         self._lock = threading.RLock()
         
     def on_betfair_update(self, market_id: str, market_status: str, in_play: bool):

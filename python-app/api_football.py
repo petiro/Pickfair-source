@@ -72,6 +72,9 @@ class APIFootballClient:
         self._status: str = "INIT"
         self._last_error: Optional[str] = None
         
+        self.force_timeout: bool = False
+        self.forced_delay: int = 0
+        
     @property
     def status(self) -> str:
         """Stato corrente: INIT | OK | STALE | UNAVAILABLE"""
@@ -94,6 +97,16 @@ class APIFootballClient:
             if cache_key in self._cache:
                 if now - self._cache_time.get(cache_key, 0) < self.cache_ttl:
                     return self._cache[cache_key]
+        
+        if self.force_timeout:
+            log.warning("[STRESS] Simulated API timeout")
+            time.sleep(12)
+            self._status = "UNAVAILABLE"
+            return self._get_cached(cache_key)
+            
+        if self.forced_delay > 0:
+            log.warning(f"[STRESS] Simulated delay {self.forced_delay}s")
+            time.sleep(self.forced_delay)
         
         attempt = 0
         while attempt <= self.max_retry:

@@ -133,6 +133,15 @@ class BetfairStream:
         if self.on_status_change:
             self.on_status_change("DISCONNECTED")
     
+    def pause(self, seconds: int):
+        """
+        Simula lag stream (per stress testing).
+        NON disconnette, simula solo ritardo processing.
+        """
+        logging.warning(f"[STRESS] Stream PAUSED for {seconds}s")
+        time.sleep(seconds)
+        logging.warning("[STRESS] Stream RESUMED")
+    
     def _send_message(self, message: Dict) -> bool:
         """Send JSON message to stream."""
         if not self.ssl_socket or not self.connected:
