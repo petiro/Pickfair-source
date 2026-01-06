@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.35"  # Complete BetfairExecutor migration for order operations
+APP_VERSION = "3.71.0"  # Full antifreeze: BetfairExecutor + UIWatchdog + poll_future + guarded
 
 # Setup file logging
 def setup_logging():
@@ -292,8 +292,8 @@ class PickfairApp:
         # BetfairExecutor: Single-threaded executor for ALL order operations
         # CRITICAL: place, cancel, replace, cashout MUST use this executor
         # This prevents race conditions and ensures atomic operations
-        from concurrent.futures import ThreadPoolExecutor
-        self.betfair_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="BetfairOps")
+        from betfair_executor import get_betfair_executor
+        self.betfair_executor = get_betfair_executor()
         
         # Dashboard auto-refresh
         self._dashboard_dirty = False
@@ -2487,11 +2487,11 @@ class PickfairApp:
         """Schedule a function to run after delay, yielding to mainloop first."""
         self.root.after(delay, fn)
     
-    def _execute_order_operation(self, operation_name: str, fn, on_success=None, on_error=None):
-        """Execute an order operation (place/cancel/cashout) through the BetfairExecutor.
+    def _execute_betfair_call(self, operation_name: str, fn, on_success=None, on_error=None):
+        """Execute a Betfair API call (read operations) through the BetfairExecutor.
         
-        This ensures all order operations are serialized and atomic.
-        Never call Betfair order APIs directly - always use this method.
+        Use this for read operations like get_account_funds, get_market_book, etc.
+        For order operations (place/cancel/replace/cashout), use _execute_order_operation.
         
         Args:
             operation_name: Name for logging
@@ -2499,21 +2499,69 @@ class PickfairApp:
             on_success: Callback with result (called via root.after)
             on_error: Callback with error message (called via root.after)
         """
-        def execute():
-            try:
-                logging.debug(f"[EXECUTOR] Starting: {operation_name}")
-                result = fn()
-                logging.debug(f"[EXECUTOR] Completed: {operation_name}")
-                if on_success:
-                    self.root.after(0, lambda r=result: on_success(r))
-                return result
-            except Exception as e:
-                logging.error(f"[EXECUTOR] Error in {operation_name}: {e}")
-                if on_error:
-                    self.root.after(0, lambda msg=str(e): on_error(msg))
-                return None
+        from ui_helpers import poll_future
         
-        self.betfair_executor.submit(execute)
+        def execute():
+            logging.debug(f"[EXECUTOR] Starting read: {operation_name}")
+            result = fn()
+            logging.debug(f"[EXECUTOR] Completed read: {operation_name}")
+            return result
+        
+        # Submit to executor
+        future = self.betfair_executor.submit(execute)
+        
+        # Non-blocking poll for result
+        def on_ok(result):
+            if on_success:
+                on_success(result)
+        
+        def on_err(exc):
+            logging.error(f"[EXECUTOR] Error in {operation_name}: {exc}")
+            if on_error:
+                on_error(str(exc))
+        
+        poll_future(self.root, future, on_ok, on_err)
+    
+    def _execute_order_operation(self, operation_name: str, fn, on_success=None, on_error=None, check_safe_mode=True):
+        """Execute an order operation (place/cancel/cashout) through the BetfairExecutor.
+        
+        This ensures all order operations are serialized and atomic.
+        Never call Betfair order APIs directly - always use this method.
+        Uses poll_future for non-blocking result handling.
+        
+        Args:
+            operation_name: Name for logging
+            fn: Function that performs the API call (must return result)
+            on_success: Callback with result (called via root.after)
+            on_error: Callback with error message (called via root.after)
+            check_safe_mode: If True, block operation when safe mode is active
+        """
+        from ui_helpers import poll_future
+        from safe_mode import guarded
+        
+        # Wrap fn with guarded to check safe mode (if enabled)
+        wrapped_fn = guarded(fn) if check_safe_mode else fn
+        
+        def execute():
+            logging.debug(f"[EXECUTOR] Starting: {operation_name}")
+            result = wrapped_fn()
+            logging.debug(f"[EXECUTOR] Completed: {operation_name}")
+            return result
+        
+        # Submit to executor
+        future = self.betfair_executor.submit(execute)
+        
+        # Non-blocking poll for result
+        def on_ok(result):
+            if on_success:
+                on_success(result)
+        
+        def on_err(exc):
+            logging.error(f"[EXECUTOR] Error in {operation_name}: {exc}")
+            if on_error:
+                on_error(str(exc))
+        
+        poll_future(self.root, future, on_ok, on_err)
     
     def _run_step_with_retry(self, step_name: str, fn, retries: int = 1):
         """Execute a post-login step with controlled retry.
@@ -2537,35 +2585,21 @@ class PickfairApp:
     def _start_ui_watchdog(self):
         """Start UI watchdog to detect freezes.
         
-        Monitors mainloop heartbeat - if no heartbeat for 15s, dumps all thread stacks.
+        Uses the UIWatchdog module for professional-grade freeze detection.
+        Dumps all thread stacks if no heartbeat for 15s.
         """
-        self._watchdog_last_beat = time.time()
+        from ui_watchdog import UIWatchdog
+        
+        self.watchdog = UIWatchdog(timeout=15)
+        self.watchdog.start()
         
         def heartbeat():
             """Update heartbeat timestamp - called every second by mainloop."""
-            self._watchdog_last_beat = time.time()
+            self.watchdog.tick()
             self.root.after(1000, heartbeat)
-        
-        def watchdog_thread():
-            """Background thread that monitors for UI freeze."""
-            while True:
-                time.sleep(5)
-                idle = time.time() - self._watchdog_last_beat
-                if idle > 15:
-                    logging.error(f"[WATCHDOG] UI freeze detected ({idle:.1f}s idle) - dumping threads")
-                    import sys
-                    import traceback
-                    for thread_id, frame in sys._current_frames().items():
-                        logging.error(f"\n--- Thread {thread_id} ---")
-                        logging.error("".join(traceback.format_stack(frame)))
-                    self._watchdog_last_beat = time.time()  # Avoid spam
         
         # Start heartbeat in mainloop
         self.root.after(1000, heartbeat)
-        
-        # Start watchdog thread
-        threading.Thread(target=watchdog_thread, daemon=True, name="UIWatchdog").start()
-        logging.info("[WATCHDOG] UI watchdog started (15s timeout)")
     
     def _on_connected(self):
         """Handle successful connection.
@@ -3179,90 +3213,44 @@ class PickfairApp:
         self._clear_selections()
     
     def _update_balance(self):
-        """Update account balance display using thread to avoid blocking."""
+        """Update account balance display using BetfairExecutor."""
         logging.debug("[BALANCE] _update_balance called...")
         
-        # Use simple list to share result between threads
-        result_holder = [None, False]  # [result, is_done]
+        def on_success(funds):
+            logging.info(f"[BALANCE] Got funds: {funds}")
+            if funds:
+                self.balance_label.configure(
+                    text=f"Saldo: {format_currency(funds['available'])}"
+                )
         
-        def fetch():
-            logging.debug("[BALANCE] Fetch thread running...")
-            try:
-                funds = self.client.get_account_funds()
-                logging.info(f"[BALANCE] Got funds: {funds}")
-                result_holder[0] = funds
-            except Exception as e:
-                logging.error(f"[BALANCE] Error fetching balance: {e}")
-            result_holder[1] = True
-            logging.debug("[BALANCE] Fetch thread complete")
+        def on_error(err):
+            logging.error(f"[BALANCE] Error fetching balance: {err}")
         
-        def check_result():
-            if result_holder[1]:  # is_done
-                logging.debug("[BALANCE] Poll: result ready")
-                try:
-                    funds = result_holder[0]
-                    if funds:
-                        self.balance_label.configure(
-                            text=f"Saldo: {format_currency(funds['available'])}"
-                        )
-                except Exception as e:
-                    logging.error(f"[BALANCE] Result error: {e}")
-            else:
-                # Check again in 100ms
-                self.root.after(100, check_result)
-        
-        # CRITICAL: Schedule poll FIRST, then start thread
-        # This ensures mainloop gets the after() before any blocking
-        logging.debug("[BALANCE] Scheduling poll...")
-        self.root.after(100, check_result)
-        logging.debug("[BALANCE] Poll scheduled, starting thread...")
-        
-        thread = threading.Thread(target=fetch, daemon=True)
-        thread.start()
-        logging.debug("[BALANCE] Thread started")
+        self._execute_betfair_call(
+            "get_account_funds",
+            lambda: self.client.get_account_funds(),
+            on_success,
+            on_error
+        )
     
     def _load_events(self):
-        """Load football events using thread to avoid blocking."""
+        """Load football events using BetfairExecutor."""
         logging.debug("[EVENTS] _load_events called...")
         
-        # Use simple list to share result between threads
-        result_holder = [None, False]  # [result, is_done]
+        def on_success(events):
+            logging.info(f"[EVENTS] Got {len(events) if events else 0} events")
+            self._display_events(events)
         
-        def fetch():
-            logging.debug("[EVENTS] Fetch thread running...")
-            try:
-                events = self.client.get_football_events()
-                logging.info(f"[EVENTS] Got {len(events) if events else 0} events")
-                result_holder[0] = ('success', events)
-            except Exception as e:
-                logging.error(f"[EVENTS] Error loading events: {e}")
-                result_holder[0] = ('error', str(e))
-            result_holder[1] = True
-            logging.debug("[EVENTS] Fetch thread complete")
+        def on_error(err):
+            logging.error(f"[EVENTS] Error loading events: {err}")
+            messagebox.showerror("Errore", f"Errore caricamento partite: {err}")
         
-        def check_result():
-            if result_holder[1]:  # is_done
-                logging.debug("[EVENTS] Poll: result ready")
-                try:
-                    result = result_holder[0]
-                    if result[0] == 'success':
-                        self._display_events(result[1])
-                    else:
-                        messagebox.showerror("Errore", f"Errore caricamento partite: {result[1]}")
-                except Exception as e:
-                    logging.error(f"[EVENTS] Result error: {e}")
-            else:
-                # Check again in 100ms
-                self.root.after(100, check_result)
-        
-        # CRITICAL: Schedule poll FIRST, then start thread
-        logging.debug("[EVENTS] Scheduling poll...")
-        self.root.after(100, check_result)
-        logging.debug("[EVENTS] Poll scheduled, starting thread...")
-        
-        thread = threading.Thread(target=fetch, daemon=True)
-        thread.start()
-        logging.debug("[EVENTS] Thread started")
+        self._execute_betfair_call(
+            "get_football_events",
+            lambda: self.client.get_football_events(),
+            on_success,
+            on_error
+        )
     
     def _display_events(self, events):
         """Display events in treeview grouped by country."""

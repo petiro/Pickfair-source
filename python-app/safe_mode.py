@@ -186,3 +186,25 @@ def set_safe_mode_controller(controller: SafeModeController) -> None:
     """Set the global safe mode controller (for dependency injection)."""
     global _safe_mode_controller
     _safe_mode_controller = controller
+
+
+def guarded(fn):
+    """
+    Decorator that blocks execution if safe mode is active.
+    Use on ALL order operations: place, cancel, replace, cashout.
+    
+    Example:
+        @guarded
+        def place_bet(self, ...):
+            ...
+        
+        # Or wrap inline:
+        future = executor.submit(guarded(self.client.place_bet), ...)
+    """
+    def wrapper(*args, **kwargs):
+        controller = get_safe_mode_controller()
+        if controller.safe_mode:
+            raise RuntimeError(f"SAFE MODE ACTIVE: Operation blocked - {fn.__name__}")
+        return fn(*args, **kwargs)
+    wrapper.__name__ = fn.__name__
+    return wrapper
