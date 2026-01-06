@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.30"  # Schedule poll BEFORE thread.start() to prevent blocking
+APP_VERSION = "3.70.31"  # Global socket timeout + serialized API calls
 
 # Setup file logging
 def setup_logging():
@@ -2526,13 +2526,14 @@ class PickfairApp:
                 logging.error(f"[CONNECT] Dashboard refresh error: {e}")
             logging.info("[CONNECT] All initialization steps scheduled")
         
-        # Stagger each call by 100ms to let UI breathe
-        self._defer(step1_balance, delay=100)
-        self._defer(step2_events, delay=200)
-        self._defer(step3_autorefresh, delay=300)
-        self._defer(step4_keepalive, delay=400)
-        self._defer(step5_orderstream, delay=500)
-        self._defer(step6_dashboard, delay=600)
+        # SERIALIZED: Only one API call active at a time
+        # Large gaps prevent socket contention on TLS bottleneck
+        self._defer(step1_balance, delay=500)      # T+0.5s: balance first
+        self._defer(step2_events, delay=3000)      # T+3s: events (heavy call)
+        self._defer(step3_autorefresh, delay=6000) # T+6s: auto-refresh
+        self._defer(step4_keepalive, delay=7000)   # T+7s: keepalive setup
+        self._defer(step5_orderstream, delay=8000) # T+8s: stream (slow)
+        self._defer(step6_dashboard, delay=10000)  # T+10s: final dashboard
         
         logging.info("[CONNECT] _on_connected: Complete - 6 steps scheduled")
     

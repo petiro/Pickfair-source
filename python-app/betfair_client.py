@@ -37,13 +37,17 @@ def is_windows_7():
 IS_WINDOWS_7 = is_windows_7()
 
 # ==============================================================================
-# GLOBAL SSL PATCH (BEFORE betfairlightweight import!)
+# GLOBAL SOCKET TIMEOUT - CRITICAL FOR ALL WINDOWS VERSIONS
+# Prevents socket-level blocking that freezes Tkinter mainloop
 # ==============================================================================
 import socket
 
+# ALWAYS set socket timeout - prevents hung connections on ALL Windows versions
+# This is essential: without it, a socket can block indefinitely and freeze the GUI
+socket.setdefaulttimeout(12)
+logging.debug(f"[SOCKET] Global timeout set to 12 seconds")
+
 if IS_WINDOWS_7:
-    # Force socket timeout on ALL connections (15 seconds) - Windows 7 only
-    socket.setdefaulttimeout(15)
     # Disable SSL verification globally for Windows 7
     ssl._create_default_https_context = ssl._create_unverified_context
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
