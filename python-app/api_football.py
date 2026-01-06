@@ -3,10 +3,20 @@ API-Football Integration
 ========================
 Worker thread per fetch dati live da API-Football.
 
-IMPORTANTE:
+REGOLE CRITICHE:
 - Questo modulo NON prende decisioni di trading
-- Betfair e' sempre MASTER
-- API-Football fornisce solo contesto visivo
+- Betfair = MASTER (sempre)
+- API-Football = SENSOR (solo contesto visivo)
+- ZERO blocchi UI
+- ZERO blocchi Betfair
+
+Caratteristiche:
+- Thread-safe
+- Timeout corto (4s)
+- Retry conservativo (max 1)
+- Cache locale (30s TTL)
+- Safe-mode automatico su errori
+- Polling 15-20s
 
 API Docs: https://www.api-football.com/documentation-v3
 """
@@ -16,301 +26,394 @@ import time
 import threading
 import logging
 import requests
-import unicodedata
-import re
-from difflib import SequenceMatcher
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, List, Callable
 
 log = logging.getLogger("APIFootball")
 
 
-def normalize_team_name(name: str) -> str:
-    """Normalizza nomi squadra per matching cross-API."""
-    if not name:
-        return ""
-        
-    name = name.lower().strip()
-    name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
-    name = re.sub(r"[^\w\s]", "", name)
-    
-    blacklist = [
-        "fc", "cf", "calcio", "football", "afc", "sc", "ac",
-        "u19", "u20", "u21", "u23",
-        "women", "w", "ladies", "femminile"
-    ]
-    
-    parts = [p for p in name.split() if p not in blacklist]
-    return " ".join(parts)
-
-
-def similarity(a: str, b: str) -> float:
-    """Similarita' tra due stringhe (0-1)."""
-    return SequenceMatcher(None, a, b).ratio()
-
-
 class APIFootballClient:
     """
-    Client per API-Football v3.
+    Client robusto per API-Football v3.
     
     Rate limits:
     - Free: 100 requests/day
     - Basic: 7500 requests/day
+    
+    Features:
+    - Timeout corto (4s default)
+    - Retry minimo (1)
+    - Cache locale (30s TTL)
+    - Thread-safe
     """
     
     BASE_URL = "https://v3.football.api-sports.io"
     DEFAULT_KEY = "9d726ff17ef61ad94aa372ebcaf99cd9"
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(
+        self, 
+        api_key: Optional[str] = None,
+        timeout: float = 4.0,
+        max_retry: int = 1,
+        cache_ttl: int = 30
+    ):
         self.api_key = api_key or os.environ.get("API_FOOTBALL_KEY", "") or self.DEFAULT_KEY
+        self.timeout = timeout
+        self.max_retry = max_retry
+        self.cache_ttl = cache_ttl
+        
         self.session = requests.Session()
         self.session.headers.update({
             "x-apisports-key": self.api_key
         })
+        
+        self._lock = threading.RLock()
         self._cache: Dict[str, Any] = {}
         self._cache_time: Dict[str, float] = {}
-        self._cache_ttl = 30
+        self._status: str = "INIT"
+        self._last_error: Optional[str] = None
+        
+    @property
+    def status(self) -> str:
+        """Stato corrente: INIT | OK | STALE | UNAVAILABLE"""
+        return self._status
         
     def _request(self, endpoint: str, params: dict = None) -> Optional[dict]:
-        """Esegue richiesta API con caching."""
+        """
+        Esegue richiesta API con caching e retry.
+        NON blocca per piu' di timeout * (max_retry + 1) secondi.
+        """
         if not self.api_key:
             log.warning("API_FOOTBALL_KEY non configurata")
+            self._status = "UNAVAILABLE"
             return None
             
         cache_key = f"{endpoint}:{str(params)}"
         now = time.time()
         
-        if cache_key in self._cache:
-            if now - self._cache_time.get(cache_key, 0) < self._cache_ttl:
-                return self._cache[cache_key]
+        with self._lock:
+            if cache_key in self._cache:
+                if now - self._cache_time.get(cache_key, 0) < self.cache_ttl:
+                    return self._cache[cache_key]
+        
+        attempt = 0
+        while attempt <= self.max_retry:
+            try:
+                url = f"{self.BASE_URL}/{endpoint}"
+                resp = self.session.get(url, params=params, timeout=self.timeout)
+                resp.raise_for_status()
                 
-        try:
-            url = f"{self.BASE_URL}/{endpoint}"
-            resp = self.session.get(url, params=params, timeout=10)
-            resp.raise_for_status()
-            
-            data = resp.json()
-            
-            if data.get("errors"):
-                log.error(f"API-Football error: {data['errors']}")
-                return None
+                data = resp.json()
                 
-            self._cache[cache_key] = data
-            self._cache_time[cache_key] = now
+                if data.get("errors"):
+                    log.error(f"API-Football error: {data['errors']}")
+                    self._status = "UNAVAILABLE"
+                    self._last_error = str(data['errors'])
+                    return self._get_cached(cache_key)
+                    
+                with self._lock:
+                    self._cache[cache_key] = data
+                    self._cache_time[cache_key] = now
+                    
+                self._status = "OK"
+                self._last_error = None
+                return data
+                
+            except requests.Timeout:
+                log.warning(f"[API-Football] Timeout (attempt {attempt + 1})")
+                attempt += 1
+                if attempt <= self.max_retry:
+                    time.sleep(1)
+                    
+            except requests.RequestException as e:
+                log.error(f"API-Football request failed: {e}")
+                self._status = "UNAVAILABLE"
+                self._last_error = str(e)
+                return self._get_cached(cache_key)
+                
+        self._status = "STALE"
+        return self._get_cached(cache_key)
+        
+    def _get_cached(self, cache_key: str) -> Optional[dict]:
+        """Ritorna dato da cache se disponibile."""
+        with self._lock:
+            return self._cache.get(cache_key)
             
-            return data
-            
-        except requests.RequestException as e:
-            log.error(f"API-Football request failed: {e}")
-            return None
-            
-    def get_live_fixtures(self) -> list:
-        """Ottiene partite live."""
+    def get_live_fixtures(self) -> List[dict]:
+        """Ottiene tutte le partite live."""
         data = self._request("fixtures", {"live": "all"})
         if not data:
             return []
         return data.get("response", [])
         
+    def get_fixture_by_id(self, fixture_id: int) -> Optional[dict]:
+        """Ottiene singola partita per ID."""
+        data = self._request("fixtures", {"id": fixture_id})
+        if not data:
+            return None
+        response = data.get("response", [])
+        return response[0] if response else None
+        
     def find_fixture_by_teams(self, home: str, away: str) -> Optional[dict]:
         """
         Trova fixture per nomi squadre (matching fuzzy).
-        Ritorna la migliore corrispondenza.
+        Usa TeamNameResolver per matching robusto.
         """
+        try:
+            from team_name_resolver import get_resolver
+            resolver = get_resolver()
+        except ImportError:
+            resolver = None
+            
         fixtures = self.get_live_fixtures()
         if not fixtures:
             return None
             
-        norm_home = normalize_team_name(home)
-        norm_away = normalize_team_name(away)
-        
         best_match = None
         best_score = 0.0
         
         for fix in fixtures:
             teams = fix.get("teams", {})
-            fix_home = normalize_team_name(teams.get("home", {}).get("name", ""))
-            fix_away = normalize_team_name(teams.get("away", {}).get("name", ""))
+            api_home = teams.get("home", {}).get("name", "")
+            api_away = teams.get("away", {}).get("name", "")
             
-            score_direct = (similarity(norm_home, fix_home) + similarity(norm_away, fix_away)) / 2
-            score_cross = (similarity(norm_home, fix_away) + similarity(norm_away, fix_home)) / 2
+            betfair_event = f"{home} v {away}"
             
-            score = max(score_direct, score_cross)
-            
-            if score > best_score:
-                best_score = score
-                best_match = fix
+            if resolver:
+                matched, reason = resolver.match_event(api_home, api_away, betfair_event)
+                if matched:
+                    score = 1.0 if reason == "FULL_MATCH" else 0.8
+                    if score > best_score:
+                        best_score = score
+                        best_match = fix
+            else:
+                from difflib import SequenceMatcher
                 
-        if best_score >= 0.6:
-            log.info(f"Match found: {home} vs {away} (confidence={best_score:.2f})")
-            return best_match
+                def norm(s):
+                    return s.lower().replace("fc", "").replace("cf", "").strip()
+                    
+                h_sim = SequenceMatcher(None, norm(home), norm(api_home)).ratio()
+                a_sim = SequenceMatcher(None, norm(away), norm(api_away)).ratio()
+                score = (h_sim + a_sim) / 2
+                
+                if score > best_score and score >= 0.6:
+                    best_score = score
+                    best_match = fix
+                    
+        if best_match:
+            log.info(f"[API-Football] Match found: score={best_score:.2f}")
             
-        log.warning(f"No match for: {home} vs {away}")
-        return None
+        return best_match
         
-    def parse_fixture_data(self, fixture: dict) -> dict:
+    def parse_fixture(self, fixture: dict) -> Dict[str, Any]:
         """
-        Estrae dati rilevanti dalla fixture.
+        Estrae dati utili da fixture.
         
         Returns:
-            dict con minute, injury_time, goals, events, etc.
+            {
+                "fixture_id": int,
+                "status": str,  # 1H, 2H, HT, FT, etc
+                "minute": int,
+                "extra_time": int,
+                "home_goals": int,
+                "away_goals": int,
+                "home_team": str,
+                "away_team": str,
+                "events": [...],
+                "updated_at": float
+            }
         """
-        if not fixture:
-            return {}
-            
         fixture_data = fixture.get("fixture", {})
         status = fixture_data.get("status", {})
-        teams = fixture.get("teams", {})
         goals = fixture.get("goals", {})
-        events = fixture.get("events", [])
+        teams = fixture.get("teams", {})
         
-        minute = status.get("elapsed")
-        injury_time = None
-        
-        extra = status.get("extra")
-        if extra:
-            injury_time = extra
-            
-        period_code = status.get("short", "")
-        period_map = {
-            "1H": "1T",
-            "HT": "HT",
-            "2H": "2T",
-            "ET": "ET",
-            "P": "PEN",
-            "FT": "FT",
-            "AET": "FT",
-            "PEN": "PEN",
-            "SUSP": "SUSPENDED",
-            "INT": "INTERRUPTED",
-            "PST": "POSTPONED",
-            "CANC": "CANCELLED",
-            "ABD": "ABANDONED",
-            "NS": "NOT_STARTED",
-            "LIVE": "LIVE"
-        }
-        period = period_map.get(period_code, "UNKNOWN")
-        
-        goal_minutes = []
-        goal_events = {}
-        
-        for evt in events:
-            if evt.get("type") == "Goal":
-                evt_min = evt.get("time", {}).get("elapsed", 0)
-                player = evt.get("player", {}).get("name", "")
-                team = evt.get("team", {}).get("name", "")
-                
-                goal_minutes.append(evt_min)
-                goal_events[evt_min] = f"{player} ({team}) {evt_min}'"
-                
         return {
-            "minute": minute,
-            "injury_time": injury_time,
-            "goals_home": goals.get("home", 0) or 0,
-            "goals_away": goals.get("away", 0) or 0,
-            "goal_minutes": goal_minutes,
-            "goal_events": goal_events,
-            "period": period,
+            "fixture_id": fixture_data.get("id"),
+            "status": status.get("short", ""),
+            "minute": status.get("elapsed", 0),
+            "extra_time": status.get("extra") or 0,
+            "home_goals": goals.get("home", 0) or 0,
+            "away_goals": goals.get("away", 0) or 0,
             "home_team": teams.get("home", {}).get("name", ""),
             "away_team": teams.get("away", {}).get("name", ""),
-            "fixture_id": fixture_data.get("id")
+            "events": self._extract_events(fixture.get("events", [])),
+            "updated_at": time.time()
         }
+        
+    def _extract_events(self, events_raw: list) -> List[dict]:
+        """Estrae goal, cartellini rossi, VAR."""
+        events = []
+        for ev in events_raw:
+            ev_type = ev.get("type", "")
+            ev_detail = ev.get("detail", "")
+            
+            if ev_type in ("Goal", "Card", "Var"):
+                if ev_type == "Card" and ev_detail != "Red Card":
+                    continue
+                    
+                events.append({
+                    "minute": ev.get("time", {}).get("elapsed", 0),
+                    "extra": ev.get("time", {}).get("extra"),
+                    "team": ev.get("team", {}).get("name", ""),
+                    "type": ev_type,
+                    "detail": ev_detail,
+                    "player": ev.get("player", {}).get("name", "")
+                })
+        return events
 
 
 class APIFootballWorker:
     """
     Worker thread per polling API-Football.
     
-    - Esegue in background
-    - Aggiorna LiveContextStore
-    - Non blocca mai la UI
+    Features:
+    - Thread daemon (auto-termina)
+    - Polling configurabile (15s default)
+    - Callbacks thread-safe
+    - Stop graceful
+    - Zero blocchi UI
     """
     
-    def __init__(self, context_store, interval: float = 10.0):
-        self.client = APIFootballClient()
-        self.context_store = context_store
-        self.interval = interval
+    GOAL_CONFIRM_WINDOW = 30
+    
+    def __init__(
+        self, 
+        client: Optional[APIFootballClient] = None,
+        poll_interval: int = 15
+    ):
+        self.client = client or APIFootballClient()
+        self.poll_interval = poll_interval
         
         self._running = False
         self._thread: Optional[threading.Thread] = None
-        self._current_home = ""
-        self._current_away = ""
         self._current_fixture_id: Optional[int] = None
+        self._current_teams: Optional[tuple] = None
         
+        self._callbacks: List[Callable[[dict], None]] = []
+        self._lock = threading.RLock()
+        
+        self._last_goals: Optional[tuple] = None
+        self._goal_pending = False
+        self._goal_pending_ts: float = 0
+        
+    def register_callback(self, cb: Callable[[dict], None]):
+        """Registra callback per dati live."""
+        with self._lock:
+            self._callbacks.append(cb)
+            
     def set_match(self, home: str, away: str):
-        """Imposta match da monitorare."""
-        self._current_home = home
-        self._current_away = away
-        self._current_fixture_id = None
-        log.info(f"Monitoring: {home} vs {away}")
-        
-    def clear_match(self):
-        """Rimuove match corrente."""
-        self._current_home = ""
-        self._current_away = ""
-        self._current_fixture_id = None
-        self.context_store.clear()
-        
+        """Imposta match da monitorare per nomi squadre."""
+        with self._lock:
+            self._current_teams = (home, away)
+            self._current_fixture_id = None
+            self._last_goals = None
+            
+    def set_fixture_id(self, fixture_id: int):
+        """Imposta fixture ID diretto."""
+        with self._lock:
+            self._current_fixture_id = fixture_id
+            self._current_teams = None
+            self._last_goals = None
+            
     def start(self):
         """Avvia worker thread."""
         if self._running:
             return
             
         self._running = True
-        self._thread = threading.Thread(target=self._worker_loop, daemon=True)
+        self._thread = threading.Thread(
+            target=self._worker_loop,
+            daemon=True,
+            name="APIFootball-Worker"
+        )
         self._thread.start()
-        log.info("API-Football worker started")
+        log.info("[API-Football] Worker started")
         
     def stop(self):
         """Ferma worker thread."""
         self._running = False
-        if self._thread:
-            self._thread.join(timeout=2)
-        log.info("API-Football worker stopped")
+        log.info("[API-Football] Worker stopped")
         
     def _worker_loop(self):
-        """Loop principale worker."""
+        """Loop principale polling."""
         while self._running:
             try:
                 self._poll()
             except Exception as e:
-                log.error(f"API-Football poll error: {e}")
+                log.error(f"[API-Football] Worker error: {e}")
                 
-            time.sleep(self.interval)
+            time.sleep(self.poll_interval)
             
     def _poll(self):
-        """Singolo ciclo di polling."""
-        if not self._current_home or not self._current_away:
+        """Singola iterazione polling."""
+        with self._lock:
+            teams = self._current_teams
+            fixture_id = self._current_fixture_id
+            
+        if not teams and not fixture_id:
             return
             
-        fixture = self.client.find_fixture_by_teams(
-            self._current_home,
-            self._current_away
-        )
+        fixture = None
         
+        if fixture_id:
+            fixture = self.client.get_fixture_by_id(fixture_id)
+        elif teams:
+            fixture = self.client.find_fixture_by_teams(teams[0], teams[1])
+            if fixture:
+                with self._lock:
+                    self._current_fixture_id = fixture.get("fixture", {}).get("id")
+                    
         if not fixture:
-            self.context_store.update(minute=None, period="UNKNOWN")
+            self._notify_callbacks({
+                "status": "UNAVAILABLE",
+                "minute": None,
+                "extra_time": 0,
+                "home_goals": 0,
+                "away_goals": 0,
+                "events": [],
+                "goal_detected": False,
+                "updated_at": time.time()
+            })
             return
             
-        data = self.client.parse_fixture_data(fixture)
+        data = self.client.parse_fixture(fixture)
         
-        if not data:
-            return
+        goal_detected = self._check_goal(data)
+        data["goal_detected"] = goal_detected
+        data["client_status"] = self.client.status
+        
+        self._notify_callbacks(data)
+        
+    def _check_goal(self, data: dict) -> bool:
+        """Rileva nuovo goal (anti-spam)."""
+        current = (data.get("home_goals", 0), data.get("away_goals", 0))
+        
+        with self._lock:
+            last = self._last_goals
+            self._last_goals = current
             
-        danger = False
-        minute = data.get("minute")
-        if minute and minute >= 80:
-            danger = True
-        if data.get("injury_time"):
-            danger = True
+            if last is None:
+                return False
+                
+            if current != last:
+                log.info(f"[API-Football] GOAL detected: {last} -> {current}")
+                self._goal_pending = True
+                self._goal_pending_ts = time.time()
+                return True
+                
+            if self._goal_pending:
+                if time.time() - self._goal_pending_ts > self.GOAL_CONFIRM_WINDOW:
+                    self._goal_pending = False
+                    
+        return False
+        
+    def _notify_callbacks(self, data: dict):
+        """Notifica tutti i callback."""
+        with self._lock:
+            callbacks = list(self._callbacks)
             
-        self.context_store.update(
-            minute=data.get("minute"),
-            injury_time=data.get("injury_time"),
-            goals_home=data.get("goals_home", 0),
-            goals_away=data.get("goals_away", 0),
-            goal_minutes=data.get("goal_minutes", []),
-            goal_events=data.get("goal_events", {}),
-            period=data.get("period", "UNKNOWN"),
-            home_team=data.get("home_team", ""),
-            away_team=data.get("away_team", ""),
-            danger=danger
-        )
+        for cb in callbacks:
+            try:
+                cb(data)
+            except Exception as e:
+                log.error(f"[API-Football] Callback error: {e}")

@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.72.0"  # Live Match Timeline: API-Football integration + HardSync + goal alerts
+APP_VERSION = "3.72.1"  # Live Match Timeline PRO: TeamNameResolver + robust API client + goal confirm
 
 # Setup file logging
 def setup_logging():
@@ -90,6 +90,8 @@ try:
     from api_football import APIFootballWorker
     logging.debug("Importing hard_sync...")
     from hard_sync import HardSyncController
+    logging.debug("Importing team_name_resolver...")
+    from team_name_resolver import get_resolver as get_team_resolver
     logging.info("All modules imported successfully")
 except Exception as e:
     logging.error(f"Failed to import modules: {e}")
