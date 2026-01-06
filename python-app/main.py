@@ -3984,13 +3984,29 @@ class PickfairApp:
         widgets['select_var'] = select_var
         widgets['select_cb'] = select_cb
         
-        # Runner name
+        # Calculate WoM% (Weight of Money)
+        back_liquidity = sum(size for _, size in back_levels if size)
+        lay_liquidity = sum(size for _, size in lay_levels if size)
+        total_liquidity = back_liquidity + lay_liquidity
+        wom_pct = (back_liquidity / total_liquidity * 100) if total_liquidity > 0 else 50
+        
+        # Runner name with WoM badge
         name_frame = ctk.CTkFrame(self.runners_scroll, fg_color=row_bg, corner_radius=0)
         name_frame.grid(row=row_idx, column=1, padx=1, pady=1, sticky='nsew')
         
-        name_lbl = ctk.CTkLabel(name_frame, text=runner_name[:18], font=('Segoe UI', 10, 'bold'),
+        # Name on top row
+        name_lbl = ctk.CTkLabel(name_frame, text=runner_name[:16], font=('Segoe UI', 10, 'bold'),
                                 text_color=COLORS['text_primary'], anchor='w')
-        name_lbl.pack(fill=tk.BOTH, expand=True, padx=5, pady=2)
+        name_lbl.pack(side=tk.TOP, fill=tk.X, padx=5, pady=(2, 0))
+        
+        # WoM badge below name
+        wom_color = COLORS['back'] if wom_pct >= 50 else COLORS['lay']
+        wom_text = f"WoM {wom_pct:.0f}%"
+        wom_lbl = ctk.CTkLabel(name_frame, text=wom_text, font=('Segoe UI', 8),
+                               text_color=wom_color, anchor='w')
+        wom_lbl.pack(side=tk.TOP, fill=tk.X, padx=5, pady=(0, 2))
+        widgets['wom_lbl'] = wom_lbl
+        
         name_frame.bind('<Button-1>', lambda e, sid=selection_id: self._on_ladder_row_click(sid))
         name_frame.bind('<Button-3>', lambda e, sid=selection_id: self._show_ladder_context_menu(e, sid))
         widgets['name_frame'] = name_frame
@@ -4190,6 +4206,15 @@ class PickfairApp:
             if 'vol_lbl' in widgets:
                 vol_text = f"{total_matched/1000:.0f}K" if total_matched >= 1000 else f"{total_matched:.0f}"
                 widgets['vol_lbl'].configure(text=vol_text)
+            
+            # Update WoM% (Weight of Money)
+            if 'wom_lbl' in widgets:
+                back_liquidity = sum(size for _, size in back_prices if size)
+                lay_liquidity = sum(size for _, size in lay_prices if size)
+                total_liquidity = back_liquidity + lay_liquidity
+                wom_pct = (back_liquidity / total_liquidity * 100) if total_liquidity > 0 else 50
+                wom_color = COLORS['back'] if wom_pct >= 50 else COLORS['lay']
+                widgets['wom_lbl'].configure(text=f"WoM {wom_pct:.0f}%", text_color=wom_color)
     
     def _on_ladder_row_click(self, selection_id):
         """Handle click on runner name in ladder."""
