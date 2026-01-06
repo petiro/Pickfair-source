@@ -47,6 +47,12 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - Absolute minimum check: €50 required (prevents dead market orders)
     - Warning-only mode available for experienced traders
     - Test suite: 121 tests passed (72 core + 37 WoM/Guardrail + 12 Liquidity Guard).
+-   **v3.71 Antifreeze Architecture**:
+    - **BetfairExecutor**: Singleton `ThreadPoolExecutor(max_workers=1)` for ALL Betfair API calls, ensuring serialized execution.
+    - **UIWatchdog**: Monitors main thread responsiveness with 15s timeout; dumps all thread stacks on freeze detection.
+    - **poll_future()**: Non-blocking Future handling via Tkinter mainloop - UI never blocks on API calls.
+    - **guarded() decorator**: Blocks order operations when safe mode is active, applied before executor submission.
+    - **ZERO main-thread API calls**: All Betfair calls go through `_execute_order_operation()` or `_execute_betfair_call()`.
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:
