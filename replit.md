@@ -61,6 +61,14 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - **Goal Alerts**: Visual flash + optional sound on goal detection (anti-spam, single trigger per goal).
     - **Dynamic Colors**: Green (normal), Orange (danger/late game), Red (suspended), Gray (N/A).
     - **Fuzzy Team Matching**: Handles U21/Women/friendly naming differences automatically.
+-   **v3.73 Follower PRO**:
+    - **Fixed Stake Mode**: Follower can use fixed stake instead of percentage, configurable in Telegram settings.
+    - **CycleManager**: Thread-safe P&L tracking with target (+5% default) and stop (-3% default) thresholds.
+    - **Cycle Gate**: Blocks COPY_BET/COPY_CASHOUT/COPY_DUTCHING signals when cycle threshold reached (TARGET_HIT or STOPPED).
+    - **Persistence**: Cycle state persisted to `follower_cycle_state` table, survives app restart.
+    - **UI Controls**: Stake type selector, cycle enable toggle, target/stop inputs, live status display, reset button.
+    - **Callback System**: Notifies user with dialog when cycle ends (target hit or stopped).
+    - **Test Suite**: 48 tests (38 core + 10 CycleManager).
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:
