@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.71.0"  # Full antifreeze: BetfairExecutor + UIWatchdog + poll_future + guarded
+APP_VERSION = "3.71.0"  # Full antifreeze: BetfairExecutor + UIWatchdog + poll_future + guarded + migrated all order ops
 
 # Setup file logging
 def setup_logging():
@@ -1729,7 +1729,7 @@ class PickfairApp:
     def _cancel_single_order(self, market_id, bet_id):
         """Cancel a single unmatched order with debounce.
         
-        Uses BetfairExecutor for serialized execution.
+        Uses BetfairExecutor with poll_future for serialized, non-blocking execution.
         """
         if not self.client:
             return
@@ -1737,19 +1737,17 @@ class PickfairApp:
         if not self._check_debounce(f"cancel_{bet_id}", 1.0):
             return
         
-        def cancel():
-            try:
-                result = self.client.cancel_orders(market_id, [bet_id])
-                if result:
-                    self.root.after(0, lambda: self._on_order_cancelled(bet_id, True))
-                else:
-                    self.root.after(0, lambda: self._on_order_cancelled(bet_id, False))
-            except Exception as e:
-                logging.error(f"Error cancelling order {bet_id}: {e}")
-                self.root.after(0, lambda: self._on_order_cancelled(bet_id, False))
+        def do_cancel():
+            return self.client.cancel_orders(market_id, [bet_id])
         
-        # Use BetfairExecutor for serialization
-        self.betfair_executor.submit(cancel)
+        def on_success(result):
+            self._on_order_cancelled(bet_id, bool(result))
+        
+        def on_error(err):
+            logging.error(f"Error cancelling order {bet_id}: {err}")
+            self._on_order_cancelled(bet_id, False)
+        
+        self._execute_order_operation(f"cancel_{bet_id}", do_cancel, on_success, on_error)
     
     def _on_order_cancelled(self, bet_id, success):
         """Handle order cancellation result."""
@@ -1762,7 +1760,7 @@ class PickfairApp:
     def _replace_order_tick(self, market_id, bet_id, tick_direction):
         """Replace order by moving price ±1 tick with debounce.
         
-        Uses BetfairExecutor for serialized execution.
+        Uses BetfairExecutor with poll_future for serialized, non-blocking execution.
         """
         if not self.client:
             return
@@ -1770,33 +1768,42 @@ class PickfairApp:
         if not self._check_debounce(f"replace_{bet_id}", 0.5):
             return
         
-        def replace():
-            try:
-                orders = self.client.get_current_orders([market_id])
-                target_order = None
-                for o in orders.get('unmatched', []):
-                    if o.get('betId') == bet_id:
-                        target_order = o
-                        break
-                
-                if not target_order:
-                    return
-                
-                current_price = target_order.get('price', 0)
-                new_price = self._adjust_price_by_ticks(current_price, tick_direction)
-                
-                if new_price and new_price != current_price:
-                    result = self.client.replace_orders(market_id, [{
-                        'betId': bet_id,
-                        'newPrice': new_price
-                    }])
-                    if result:
-                        self.root.after(0, lambda: self._on_order_replaced(bet_id, new_price))
-            except Exception as e:
-                logging.error(f"Error replacing order {bet_id}: {e}")
+        # Capture tick_direction in closure
+        captured_tick = tick_direction
+        captured_market = market_id
+        captured_bet = bet_id
         
-        # Use BetfairExecutor for serialization
-        self.betfair_executor.submit(replace)
+        def do_replace():
+            orders = self.client.get_current_orders([captured_market])
+            target_order = None
+            for o in orders.get('unmatched', []):
+                if o.get('betId') == captured_bet:
+                    target_order = o
+                    break
+            
+            if not target_order:
+                return None
+            
+            current_price = target_order.get('price', 0)
+            new_price = self._adjust_price_by_ticks(current_price, captured_tick)
+            
+            if new_price and new_price != current_price:
+                result = self.client.replace_orders(captured_market, [{
+                    'betId': captured_bet,
+                    'newPrice': new_price
+                }])
+                if result:
+                    return new_price
+            return None
+        
+        def on_success(new_price):
+            if new_price:
+                self._on_order_replaced(bet_id, new_price)
+        
+        def on_error(err):
+            logging.error(f"Error replacing order {bet_id}: {err}")
+        
+        self._execute_order_operation(f"replace_{bet_id}", do_replace, on_success, on_error)
     
     def _on_order_replaced(self, bet_id, new_price):
         """Handle order replacement result."""
@@ -1847,64 +1854,80 @@ class PickfairApp:
         return price
     
     def _green_up_selection(self, market_id, selection_id, order):
-        """Execute green-up (cashout) for a single selection with debounce."""
+        """Execute green-up (cashout) for a single selection with debounce.
+        
+        Uses _execute_order_operation for serialized, non-blocking execution.
+        """
         if not self.client:
             return
         
         if not self._check_debounce(f"green_{selection_id}", 2.0):
             return
         
-        def execute_green():
-            try:
-                best_lay = None
-                
-                if self.current_market:
-                    runners = self.current_market.get('runners', [])
-                    for r in runners:
-                        if r.get('selectionId') == selection_id:
-                            ex = r.get('ex', {})
-                            lays = ex.get('availableToLay', [])
-                            if lays:
-                                best_lay = lays[0].get('price')
-                            break
-                
-                if (not best_lay or best_lay <= 1) and hasattr(self, 'tick_storage') and self.tick_storage:
-                    last_tick = self.tick_storage.get_last_tick(selection_id)
-                    if last_tick and last_tick.get('lay', 0) > 1.01:
-                        best_lay = last_tick['lay']
-                
-                if not best_lay or best_lay <= 1:
-                    self.root.after(0, lambda: self._add_log("Nessuna quota LAY disponibile", 'error'))
-                    return
-                
-                from dutching import dynamic_cashout_single
-                stake = order.get('sizeMatched', order.get('stake', 0))
-                price = order.get('averagePriceMatched', order.get('price', 0))
-                
-                result = dynamic_cashout_single(stake, price, best_lay, 4.5)
-                lay_stake = result.get('lay_stake', 0)
-                
-                if lay_stake > 0:
-                    bet_result = self.client.place_bet(
-                        market_id=market_id,
-                        selection_id=selection_id,
-                        side='LAY',
-                        price=best_lay,
-                        size=lay_stake,
-                        persistence_type='LAPSE'
-                    )
-                    
-                    if bet_result:
-                        net_profit = result.get('net_profit', 0)
-                        self.root.after(0, lambda: self._on_green_success(selection_id, net_profit))
-                    else:
-                        self.root.after(0, lambda: self._add_log("Errore piazzamento LAY green", 'error'))
-            except Exception as e:
-                logging.error(f"Error green-up selection {selection_id}: {e}")
-                self.root.after(0, lambda: self._add_log(f"Errore green-up: {e}", 'error'))
+        # Capture values for closure
+        captured_market = market_id
+        captured_selection = selection_id
+        captured_order = order
         
-        # Use BetfairExecutor for serialized order operations
-        self.betfair_executor.submit(execute_green)
+        def do_green():
+            from dutching import dynamic_cashout_single
+            
+            # Get best LAY price
+            best_lay = None
+            
+            if self.current_market:
+                runners = self.current_market.get('runners', [])
+                for r in runners:
+                    if r.get('selectionId') == captured_selection:
+                        ex = r.get('ex', {})
+                        lays = ex.get('availableToLay', [])
+                        if lays:
+                            best_lay = lays[0].get('price')
+                        break
+            
+            if (not best_lay or best_lay <= 1) and hasattr(self, 'tick_storage') and self.tick_storage:
+                last_tick = self.tick_storage.get_last_tick(captured_selection)
+                if last_tick and last_tick.get('lay', 0) > 1.01:
+                    best_lay = last_tick['lay']
+            
+            if not best_lay or best_lay <= 1:
+                return {'error': 'no_lay_price'}
+            
+            stake = captured_order.get('sizeMatched', captured_order.get('stake', 0))
+            price = captured_order.get('averagePriceMatched', captured_order.get('price', 0))
+            
+            result = dynamic_cashout_single(stake, price, best_lay, 4.5)
+            lay_stake = result.get('lay_stake', 0)
+            
+            if lay_stake > 0:
+                bet_result = self.client.place_bet(
+                    market_id=captured_market,
+                    selection_id=captured_selection,
+                    side='LAY',
+                    price=best_lay,
+                    size=lay_stake,
+                    persistence_type='LAPSE'
+                )
+                
+                if bet_result:
+                    return {'success': True, 'net_profit': result.get('net_profit', 0)}
+                else:
+                    return {'error': 'place_failed'}
+            return {'error': 'lay_stake_zero'}
+        
+        def on_success(result):
+            if result.get('success'):
+                self._on_green_success(selection_id, result.get('net_profit', 0))
+            elif result.get('error') == 'no_lay_price':
+                self._add_log("Nessuna quota LAY disponibile", 'error')
+            else:
+                self._add_log("Errore piazzamento LAY green", 'error')
+        
+        def on_error(err):
+            logging.error(f"Error green-up selection {selection_id}: {err}")
+            self._add_log(f"Errore green-up: {err}", 'error')
+        
+        self._execute_order_operation(f"green_{selection_id}", do_green, on_success, on_error)
     
     def _on_green_success(self, selection_id, net_profit):
         """Handle successful green-up."""
@@ -1942,31 +1965,32 @@ class PickfairApp:
         if not messagebox.askyesno("Conferma", "Annullare tutti gli ordini non abbinati?"):
             return
         
-        def cancel_all():
-            try:
-                # Group by market
-                orders_by_market = {}
-                for order in self.my_bets_data['unmatched']:
-                    mid = order.get('marketId')
-                    bid = order.get('betId')
-                    if mid and bid:
-                        if mid not in orders_by_market:
-                            orders_by_market[mid] = []
-                        orders_by_market[mid].append(bid)
-                
-                count = 0
-                for market_id, bet_ids in orders_by_market.items():
-                    result = self.client.cancel_orders(market_id, bet_ids)
-                    if result:
-                        count += len(bet_ids)
-                
-                self.root.after(0, lambda: self._on_all_orders_cancelled(count))
-            except Exception as e:
-                logging.error(f"Error cancelling all orders: {e}")
-                self.root.after(0, lambda: self._on_all_orders_cancelled(0))
+        def do_cancel_all():
+            # Group by market
+            orders_by_market = {}
+            for order in self.my_bets_data['unmatched']:
+                mid = order.get('marketId')
+                bid = order.get('betId')
+                if mid and bid:
+                    if mid not in orders_by_market:
+                        orders_by_market[mid] = []
+                    orders_by_market[mid].append(bid)
+            
+            count = 0
+            for market_id, bet_ids in orders_by_market.items():
+                result = self.client.cancel_orders(market_id, bet_ids)
+                if result:
+                    count += len(bet_ids)
+            return count
         
-        # Use BetfairExecutor for serialization
-        self.betfair_executor.submit(cancel_all)
+        def on_success(count):
+            self._on_all_orders_cancelled(count)
+        
+        def on_error(err):
+            logging.error(f"Error cancelling all orders: {err}")
+            self._on_all_orders_cancelled(0)
+        
+        self._execute_order_operation("cancel_all", do_cancel_all, on_success, on_error)
     
     def _on_all_orders_cancelled(self, count):
         """Handle all orders cancellation result."""
@@ -4931,36 +4955,43 @@ class PickfairApp:
         """
         logging.info(f"[BET] _place_quick_real_bet CALLED: runner={runner['runnerName']}, type={bet_type}, price={price}, stake={stake}, persist={persistence_type}")
         
-        def place_thread():
-            logging.info(f"[BET] place_thread STARTED")
-            try:
-                if use_market_price:
-                    if bet_type == 'BACK':
-                        match_price = 1000.0
-                    else:
-                        match_price = 1.01
-                    logging.info(f"Quick bet using market price: requested={price}, match_price={match_price}")
-                else:
-                    match_price = price
-                
-                result = self.client.place_bet(
-                    market_id=self.current_market['marketId'],
-                    selection_id=runner['selectionId'],
-                    side=bet_type,
-                    price=match_price,
-                    size=stake,
-                    persistence_type=persistence_type
-                )
-                
-                bet_result = result
-                self.root.after(0, lambda r=bet_result, rn=runner, bt=bet_type, p=price, s=stake: self._on_quick_bet_result(r, rn, bt, p, s))
-            except Exception as e:
-                err_msg = str(e)
-                logging.error(f"Quick bet error: {err_msg}")
-                self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", msg))
+        # Capture values for closure
+        captured_market = self.current_market
+        captured_runner = runner
+        captured_bet_type = bet_type
+        captured_price = price
+        captured_stake = stake
+        captured_persist = persistence_type
+        captured_use_market = use_market_price
         
-        # Use BetfairExecutor for serialized order operations
-        self.betfair_executor.submit(place_thread)
+        def do_place():
+            logging.info(f"[BET] do_place STARTED")
+            if captured_use_market:
+                if captured_bet_type == 'BACK':
+                    match_price = 1000.0
+                else:
+                    match_price = 1.01
+                logging.info(f"Quick bet using market price: requested={captured_price}, match_price={match_price}")
+            else:
+                match_price = captured_price
+            
+            return self.client.place_bet(
+                market_id=captured_market['marketId'],
+                selection_id=captured_runner['selectionId'],
+                side=captured_bet_type,
+                price=match_price,
+                size=captured_stake,
+                persistence_type=captured_persist
+            )
+        
+        def on_success(result):
+            self._on_quick_bet_result(result, runner, bet_type, price, stake)
+        
+        def on_error(err):
+            logging.error(f"Quick bet error: {err}")
+            messagebox.showerror("Errore", str(err))
+        
+        self._execute_order_operation("quick_bet", do_place, on_success, on_error)
     
     def _on_quick_bet_result(self, result, runner, bet_type, price, stake):
         """Handle quick bet result."""
@@ -5220,113 +5251,120 @@ class PickfairApp:
             self._placing_in_progress = False
             return
         
-        def place():
-            try:
-                # Build instructions with current or best prices
-                instructions = []
-                
-                if use_best_price:
-                    # Fetch fresh prices before placing
-                    book = self.client.get_market_book(market_id)
-                    current_prices = {}
-                    if book and book.get('runners'):
-                        for runner in book['runners']:
-                            sel_id = runner.get('selectionId')
-                            ex = runner.get('ex', {})
-                            if bet_type == 'BACK':
-                                backs = ex.get('availableToBack', [])
-                                if backs:
-                                    current_prices[sel_id] = backs[0].get('price', 1.01)
-                            else:  # LAY
-                                lays = ex.get('availableToLay', [])
-                                if lays:
-                                    current_prices[sel_id] = lays[0].get('price', 1000)
-                    
-                    for r in self.calculated_results:
-                        sel_id = r['selectionId']
-                        # Use current best price if available, otherwise use calculated price
-                        price = current_prices.get(sel_id, r['price'])
-                        instructions.append({
-                            'selectionId': sel_id,
-                            'side': bet_type,
-                            'price': price,
-                            'size': r['stake']
-                        })
-                else:
-                    # Use original calculated prices
-                    for r in self.calculated_results:
-                        instructions.append({
-                            'selectionId': r['selectionId'],
-                            'side': bet_type,
-                            'price': r['price'],
-                            'size': r['stake']
-                        })
-                
-                logging.info(f"[DUTCHING] Calling place_bets with {len(instructions)} instructions")
-                for inst in instructions:
-                    logging.info(f"[DUTCHING]   Instruction: selId={inst['selectionId']}, side={inst['side']}, price={inst['price']}, size={inst['size']}")
-                
-                result = self.client.place_bets(market_id, instructions)
-                logging.info(f"[DUTCHING] place_bets response: status={result.get('status')}")
-                
-                # Process each instruction report individually
-                reports = result.get('instructionReports', [])
-                logging.info(f"[DUTCHING] instructionReports count: {len(reports)}")
-                for i, rep in enumerate(reports):
-                    logging.info(f"[DUTCHING]   Report[{i}]: status={rep.get('status')}, sizeMatched={rep.get('sizeMatched', 0)}, betId={rep.get('betId')}")
-                
-                # Determine overall bet status from instruction statuses
-                all_matched = all(r.get('status') == 'SUCCESS' and r.get('sizeMatched', 0) > 0 for r in reports)
-                any_matched = any(r.get('sizeMatched', 0) > 0 for r in reports)
-                
-                if result['status'] == 'SUCCESS':
-                    if all_matched:
-                        bet_status = 'MATCHED'
-                    elif any_matched:
-                        bet_status = 'PARTIALLY_MATCHED'
-                    else:
-                        bet_status = 'PENDING'
-                elif result['status'] == 'FAILURE':
-                    bet_status = 'FAILED'
-                else:
-                    bet_status = result['status']
-                
-                # Add runner names and matched amounts to selections for storage
-                selections_with_names = []
-                for i, r in enumerate(self.calculated_results):
-                    report = reports[i] if i < len(reports) else {}
-                    selections_with_names.append({
-                        'runnerName': r.get('runnerName', 'Unknown'),
-                        'selectionId': r['selectionId'],
-                        'price': r['price'],
-                        'stake': r['stake'],
-                        'sizeMatched': report.get('sizeMatched', 0),
-                        'betId': report.get('betId'),
-                        'instructionStatus': report.get('status', 'UNKNOWN')
-                    })
-                
-                # Calculate actual matched amount
-                total_matched = sum(r.get('sizeMatched', 0) for r in reports)
-                
-                self.db.save_bet(
-                    self.current_event['name'],
-                    self.current_market['marketId'],
-                    self.current_market['marketName'],
-                    bet_type,
-                    selections_with_names,
-                    total_stake,
-                    self.calculated_results[0]['profitIfWins'],
-                    bet_status
-                )
-                
-                bet_result = result
-                self.root.after(0, lambda r=bet_result: self._on_bets_placed(r))
-            except Exception as e:
-                err_msg = str(e)
-                self.root.after(0, lambda msg=err_msg: self._on_bets_error(msg))
+        # Capture values for closure
+        captured_market_id = market_id
+        captured_bet_type = bet_type
+        captured_use_best = use_best_price
+        captured_results = self.calculated_results.copy()
+        captured_event = self.current_event.copy() if self.current_event else {}
+        captured_market = self.current_market.copy() if self.current_market else {}
+        captured_total_stake = total_stake
         
-        # Use BetfairExecutor to ensure serialization with cashout/cancel operations
-        self.betfair_executor.submit(place)
+        def do_place():
+            # Build instructions with current or best prices
+            instructions = []
+            
+            if captured_use_best:
+                # Fetch fresh prices before placing
+                book = self.client.get_market_book(captured_market_id)
+                current_prices = {}
+                if book and book.get('runners'):
+                    for runner in book['runners']:
+                        sel_id = runner.get('selectionId')
+                        ex = runner.get('ex', {})
+                        if captured_bet_type == 'BACK':
+                            backs = ex.get('availableToBack', [])
+                            if backs:
+                                current_prices[sel_id] = backs[0].get('price', 1.01)
+                        else:  # LAY
+                            lays = ex.get('availableToLay', [])
+                            if lays:
+                                current_prices[sel_id] = lays[0].get('price', 1000)
+                
+                for r in captured_results:
+                    sel_id = r['selectionId']
+                    # Use current best price if available, otherwise use calculated price
+                    price = current_prices.get(sel_id, r['price'])
+                    instructions.append({
+                        'selectionId': sel_id,
+                        'side': captured_bet_type,
+                        'price': price,
+                        'size': r['stake']
+                    })
+            else:
+                # Use original calculated prices
+                for r in captured_results:
+                    instructions.append({
+                        'selectionId': r['selectionId'],
+                        'side': captured_bet_type,
+                        'price': r['price'],
+                        'size': r['stake']
+                    })
+            
+            logging.info(f"[DUTCHING] Calling place_bets with {len(instructions)} instructions")
+            for inst in instructions:
+                logging.info(f"[DUTCHING]   Instruction: selId={inst['selectionId']}, side={inst['side']}, price={inst['price']}, size={inst['size']}")
+            
+            result = self.client.place_bets(captured_market_id, instructions)
+            logging.info(f"[DUTCHING] place_bets response: status={result.get('status')}")
+            
+            # Process each instruction report individually
+            reports = result.get('instructionReports', [])
+            logging.info(f"[DUTCHING] instructionReports count: {len(reports)}")
+            for i, rep in enumerate(reports):
+                logging.info(f"[DUTCHING]   Report[{i}]: status={rep.get('status')}, sizeMatched={rep.get('sizeMatched', 0)}, betId={rep.get('betId')}")
+            
+            # Determine overall bet status from instruction statuses
+            all_matched = all(r.get('status') == 'SUCCESS' and r.get('sizeMatched', 0) > 0 for r in reports)
+            any_matched = any(r.get('sizeMatched', 0) > 0 for r in reports)
+            
+            if result['status'] == 'SUCCESS':
+                if all_matched:
+                    bet_status = 'MATCHED'
+                elif any_matched:
+                    bet_status = 'PARTIALLY_MATCHED'
+                else:
+                    bet_status = 'PENDING'
+            elif result['status'] == 'FAILURE':
+                bet_status = 'FAILED'
+            else:
+                bet_status = result['status']
+            
+            # Add runner names and matched amounts to selections for storage
+            selections_with_names = []
+            for i, r in enumerate(captured_results):
+                report = reports[i] if i < len(reports) else {}
+                selections_with_names.append({
+                    'runnerName': r.get('runnerName', 'Unknown'),
+                    'selectionId': r['selectionId'],
+                    'price': r['price'],
+                    'stake': r['stake'],
+                    'sizeMatched': report.get('sizeMatched', 0),
+                    'betId': report.get('betId'),
+                    'instructionStatus': report.get('status', 'UNKNOWN')
+                })
+            
+            # Save bet to DB (this is safe in background thread)
+            self.db.save_bet(
+                captured_event.get('name', ''),
+                captured_market.get('marketId', ''),
+                captured_market.get('marketName', ''),
+                captured_bet_type,
+                selections_with_names,
+                captured_total_stake,
+                captured_results[0].get('profitIfWins', 0),
+                bet_status
+            )
+            
+            return result
+        
+        def on_success(result):
+            self._on_bets_placed(result)
+        
+        def on_error(err):
+            self._on_bets_error(str(err))
+        
+        self._execute_order_operation("place_dutching_bets", do_place, on_success, on_error)
     
     def _place_simulation_bets(self, total_stake, potential_profit, bet_type):
         """Place simulated bets without calling Betfair API."""
@@ -8544,17 +8582,27 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             def cancel_selected():
                 selected = tree.selection()
                 if selected and self.client:
+                    # Capture values
+                    captured_selected = list(selected)
+                    captured_mapping = bet_to_market.copy()
+                    
                     def do_cancel():
-                        for bet_id in selected:
-                            market_id = bet_to_market.get(bet_id)
+                        for bet_id in captured_selected:
+                            market_id = captured_mapping.get(bet_id)
                             if market_id:
                                 try:
                                     self.client.cancel_orders(market_id, [bet_id])
                                 except:
                                     pass
-                        self.root.after(0, lambda: messagebox.showinfo("Info", "Ordini cancellati"))
-                    # Use BetfairExecutor for serialization
-                    self.betfair_executor.submit(do_cancel)
+                        return True
+                    
+                    def on_success(result):
+                        messagebox.showinfo("Info", "Ordini cancellati")
+                    
+                    def on_error(err):
+                        logging.error(f"Error cancelling selected orders: {err}")
+                    
+                    self._execute_order_operation("cancel_selected", do_cancel, on_success, on_error)
             
             ttk.Button(parent, text="Cancella Selezionati", command=cancel_selected).pack(pady=5)
     
