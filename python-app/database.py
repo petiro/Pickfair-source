@@ -325,6 +325,40 @@ class Database:
             cursor.execute('ALTER TABLE telegram_settings ADD COLUMN reply_100_master INTEGER DEFAULT 0')
         except sqlite3.OperationalError:
             pass
+        # v3.73: Fixed stake and Cycle Target
+        try:
+            cursor.execute('ALTER TABLE telegram_settings ADD COLUMN stake_fixed REAL DEFAULT 10.0')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            cursor.execute('ALTER TABLE telegram_settings ADD COLUMN cycle_enabled INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            cursor.execute('ALTER TABLE telegram_settings ADD COLUMN cycle_target_pct REAL DEFAULT 5.0')
+        except sqlite3.OperationalError:
+            pass
+        try:
+            cursor.execute('ALTER TABLE telegram_settings ADD COLUMN cycle_stop_pct REAL DEFAULT 3.0')
+        except sqlite3.OperationalError:
+            pass
+        
+        # Cycle state table for P&L tracking
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS follower_cycle_state (
+                id INTEGER PRIMARY KEY,
+                status TEXT DEFAULT 'ACTIVE',
+                start_bankroll REAL DEFAULT 0,
+                current_pnl REAL DEFAULT 0,
+                target_pct REAL DEFAULT 5.0,
+                stop_pct REAL DEFAULT 3.0,
+                bets_count INTEGER DEFAULT 0,
+                wins_count INTEGER DEFAULT 0,
+                started_at TEXT,
+                ended_at TEXT,
+                end_reason TEXT
+            )
+        ''')
         
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS telegram_chats (
@@ -854,7 +888,8 @@ class Database:
                                 auto_start_listener=False, auto_stop_listener=True,
                                 copy_mode='OFF', copy_chat_id=None,
                                 stake_type='fixed', stake_percent=1.0, dutching_enabled=False,
-                                reply_100_master=False):
+                                reply_100_master=False, stake_fixed=10.0,
+                                cycle_enabled=False, cycle_target_pct=5.0, cycle_stop_pct=3.0):
         """Save Telegram settings."""
         def do_save():
             conn = self._get_connection()
@@ -866,14 +901,16 @@ class Database:
                     auto_start_listener = ?, auto_stop_listener = ?,
                     copy_mode = ?, copy_chat_id = ?,
                     stake_type = ?, stake_percent = ?, dutching_enabled = ?,
-                    reply_100_master = ?
+                    reply_100_master = ?, stake_fixed = ?,
+                    cycle_enabled = ?, cycle_target_pct = ?, cycle_stop_pct = ?
                 WHERE id = 1
             ''', (api_id, api_hash, session_string, phone_number,
                   1 if enabled else 0, 1 if auto_bet else 0, 1 if require_confirmation else 0, auto_stake,
                   1 if auto_start_listener else 0, 1 if auto_stop_listener else 0,
                   copy_mode, copy_chat_id,
                   stake_type, stake_percent, 1 if dutching_enabled else 0,
-                  1 if reply_100_master else 0))
+                  1 if reply_100_master else 0, stake_fixed,
+                  1 if cycle_enabled else 0, cycle_target_pct, cycle_stop_pct))
             conn.commit()
         self._execute_with_retry(do_save)
     
@@ -1315,3 +1352,50 @@ class Database:
             LIMIT ?
         ''', (limit,))
         return [dict(row) for row in cursor.fetchall()]
+    
+    # ==================== CYCLE MANAGEMENT ====================
+    
+    def get_cycle_state(self) -> dict:
+        """Get current follower cycle state."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM follower_cycle_state WHERE id = 1')
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    def save_cycle_state(self, status: str, start_bankroll: float, current_pnl: float,
+                         target_pct: float, stop_pct: float, bets_count: int, 
+                         wins_count: int, started_at: str, ended_at: str = None,
+                         end_reason: str = None):
+        """Save or update follower cycle state."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT id FROM follower_cycle_state WHERE id = 1')
+        exists = cursor.fetchone() is not None
+        
+        if exists:
+            cursor.execute('''
+                UPDATE follower_cycle_state SET 
+                    status = ?, start_bankroll = ?, current_pnl = ?,
+                    target_pct = ?, stop_pct = ?, bets_count = ?,
+                    wins_count = ?, started_at = ?, ended_at = ?, end_reason = ?
+                WHERE id = 1
+            ''', (status, start_bankroll, current_pnl, target_pct, stop_pct,
+                  bets_count, wins_count, started_at, ended_at, end_reason))
+        else:
+            cursor.execute('''
+                INSERT INTO follower_cycle_state 
+                (id, status, start_bankroll, current_pnl, target_pct, stop_pct,
+                 bets_count, wins_count, started_at, ended_at, end_reason)
+                VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (status, start_bankroll, current_pnl, target_pct, stop_pct,
+                  bets_count, wins_count, started_at, ended_at, end_reason))
+        conn.commit()
+    
+    def reset_cycle_state(self):
+        """Reset cycle state to inactive."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM follower_cycle_state WHERE id = 1')
+        conn.commit()

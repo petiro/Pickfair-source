@@ -83,6 +83,20 @@ try:
 except ImportError:
     _safe_mode = None
 
+# Cycle manager for follower copy trading with target/stop
+_cycle_manager = None
+
+def set_cycle_manager(manager):
+    """Set the cycle manager instance for follower mode."""
+    global _cycle_manager
+    _cycle_manager = manager
+
+def _check_cycle_gate() -> tuple:
+    """Check if cycle allows betting. Returns (allowed, reason)."""
+    if _cycle_manager is None:
+        return (True, "NO_CYCLE_MANAGER")
+    return _cycle_manager.can_place_bet()
+
 # Try to import cryptg for faster encryption (optional)
 try:
     import cryptg
@@ -1420,6 +1434,14 @@ class TelegramListener:
                         _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='BLOCKED_SAFE_MODE')
                     return
                 
+                # Cycle gate - block if target/stop reached
+                cycle_allowed, cycle_reason = _check_cycle_gate()
+                if not cycle_allowed:
+                    logging.warning(f"[CYCLE] COPY_BET blocked ({cycle_reason})")
+                    if _bet_logger:
+                        _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type=f'BLOCKED_CYCLE_{cycle_reason}')
+                    return
+                
                 copy_bet['chat_id'] = chat_id
                 copy_bet['sender_id'] = sender_id
                 copy_bet['raw_text'] = text
@@ -1448,6 +1470,14 @@ class TelegramListener:
                         _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='BLOCKED_SAFE_MODE')
                     return
                 
+                # Cycle gate - block if target/stop reached
+                cycle_allowed, cycle_reason = _check_cycle_gate()
+                if not cycle_allowed:
+                    logging.warning(f"[CYCLE] COPY_CASHOUT blocked ({cycle_reason})")
+                    if _bet_logger:
+                        _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type=f'BLOCKED_CYCLE_{cycle_reason}')
+                    return
+                
                 copy_cashout['chat_id'] = chat_id
                 copy_cashout['sender_id'] = sender_id
                 copy_cashout['raw_text'] = text
@@ -1467,6 +1497,14 @@ class TelegramListener:
                     logging.warning(f"[SAFE-MODE] COPY_DUTCHING blocked (safe mode active)")
                     if _bet_logger:
                         _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='BLOCKED_SAFE_MODE')
+                    return
+                
+                # Cycle gate - block if target/stop reached
+                cycle_allowed, cycle_reason = _check_cycle_gate()
+                if not cycle_allowed:
+                    logging.warning(f"[CYCLE] COPY_DUTCHING blocked ({cycle_reason})")
+                    if _bet_logger:
+                        _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type=f'BLOCKED_CYCLE_{cycle_reason}')
                     return
                 
                 copy_dutching['chat_id'] = chat_id

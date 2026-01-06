@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.72.2"  # Stress Testing: UIWatchdog + StressTestController + 38 automated tests
+APP_VERSION = "3.73.0"  # Follower PRO: Fixed Stake + Cycle Target/Stop + CycleManager
 
 # Setup file logging
 def setup_logging():
@@ -92,6 +92,9 @@ try:
     from hard_sync import HardSyncController
     logging.debug("Importing team_name_resolver...")
     from team_name_resolver import get_resolver as get_team_resolver
+    logging.debug("Importing cycle_manager...")
+    from cycle_manager import CycleManager
+    from telegram_listener import set_cycle_manager
     logging.info("All modules imported successfully")
 except Exception as e:
     logging.error(f"Failed to import modules: {e}")
@@ -297,6 +300,19 @@ class PickfairApp:
         self.telegram_status = 'STOPPED'
         self.market_status = 'OPEN'
         self.simulation_mode = False  # Simulation mode flag
+        
+        # Cycle Manager for follower copy trading with target/stop
+        self.cycle_manager = CycleManager(db=self.db, on_cycle_end=self._on_cycle_end)
+        set_cycle_manager(self.cycle_manager)
+        
+        # Initialize cycle from settings
+        tg_settings = self.db.get_telegram_settings() or {}
+        if tg_settings.get('cycle_enabled'):
+            cycle_state = self.db.get_cycle_state()
+            if cycle_state and cycle_state.get('status') == 'ACTIVE':
+                logging.info("[CYCLE] Resuming active cycle from database")
+            else:
+                logging.info("[CYCLE] Cycle enabled but not active, will start on first bet")
         self.recovered_positions = []  # Positions recovered from DB
         
         # BetfairExecutor: Single-threaded executor for ALL order operations
@@ -6917,15 +6933,86 @@ class PickfairApp:
                            fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                            text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=5)
         
-        # Follower option: Reply 100% Master
+        # Follower Options Section
+        ctk.CTkLabel(config_frame, text="Opzioni Follower", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 2))
+        
+        # Row 1: Stake type selection
+        stake_row_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
+        stake_row_frame.pack(fill=tk.X, padx=10, pady=(5, 2))
+        
+        ctk.CTkLabel(stake_row_frame, text="Tipo Stake:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        self.tg_stake_type_var = tk.StringVar(value=settings.get('stake_type', 'fixed'))
+        ctk.CTkRadioButton(stake_row_frame, text="Fisso", variable=self.tg_stake_type_var, value='fixed',
+                           fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                           text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=5)
+        ctk.CTkRadioButton(stake_row_frame, text="% Bankroll", variable=self.tg_stake_type_var, value='percentage',
+                           fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                           text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=5)
+        
+        # Row 2: Fixed stake value
+        fixed_stake_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
+        fixed_stake_frame.pack(fill=tk.X, padx=10, pady=(2, 2))
+        ctk.CTkLabel(fixed_stake_frame, text="Stake Fisso:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        self.tg_stake_fixed_var = tk.StringVar(value=str(settings.get('stake_fixed', 10.0)))
+        ctk.CTkEntry(fixed_stake_frame, textvariable=self.tg_stake_fixed_var, width=60,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(fixed_stake_frame, text="% Bankroll:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=(15, 0))
+        self.tg_stake_percent_var = tk.StringVar(value=str(settings.get('stake_percent', 1.0)))
+        ctk.CTkEntry(fixed_stake_frame, textvariable=self.tg_stake_percent_var, width=50,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(fixed_stake_frame, text="%", text_color=COLORS['text_tertiary']).pack(side=tk.LEFT)
+        
+        # Row 3: Reply 100% Master
         follower_options_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
-        follower_options_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        follower_options_frame.pack(fill=tk.X, padx=10, pady=(2, 5))
         self.tg_reply_master_var = tk.BooleanVar(value=settings.get('reply_100_master', False))
         self.reply_master_checkbox = ctk.CTkCheckBox(follower_options_frame, text="Reply 100% Master (usa stake % del Master)", 
                                                       variable=self.tg_reply_master_var,
                                                       fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                                                       text_color=COLORS['text_primary'])
         self.reply_master_checkbox.pack(side=tk.LEFT, padx=5)
+        
+        # Cycle Target Section
+        ctk.CTkLabel(config_frame, text="Ciclo Target/Stop", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 2))
+        ctk.CTkLabel(config_frame, text="Ferma automaticamente la replica quando raggiungi target o stop loss", 
+                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(anchor=tk.W, padx=10)
+        
+        # Cycle enable checkbox
+        cycle_enable_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
+        cycle_enable_frame.pack(fill=tk.X, padx=10, pady=(5, 2))
+        self.tg_cycle_enabled_var = tk.BooleanVar(value=settings.get('cycle_enabled', False))
+        ctk.CTkCheckBox(cycle_enable_frame, text="Abilita Ciclo Target", variable=self.tg_cycle_enabled_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=5)
+        
+        # Cycle target/stop values
+        cycle_values_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
+        cycle_values_frame.pack(fill=tk.X, padx=10, pady=(2, 2))
+        ctk.CTkLabel(cycle_values_frame, text="Target:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        self.tg_cycle_target_var = tk.StringVar(value=str(settings.get('cycle_target_pct', 5.0)))
+        ctk.CTkEntry(cycle_values_frame, textvariable=self.tg_cycle_target_var, width=50,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(cycle_values_frame, text="% (+profit)", text_color=COLORS['profit'], 
+                     font=('Segoe UI', 9)).pack(side=tk.LEFT)
+        
+        ctk.CTkLabel(cycle_values_frame, text="Stop:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT, padx=(15, 0))
+        self.tg_cycle_stop_var = tk.StringVar(value=str(settings.get('cycle_stop_pct', 3.0)))
+        ctk.CTkEntry(cycle_values_frame, textvariable=self.tg_cycle_stop_var, width=50,
+                     fg_color=COLORS['bg_card'], border_color=COLORS['border']).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(cycle_values_frame, text="% (-loss)", text_color=COLORS['loss'],
+                     font=('Segoe UI', 9)).pack(side=tk.LEFT)
+        
+        # Cycle status display
+        cycle_status_frame = ctk.CTkFrame(config_frame, fg_color=COLORS['bg_card'], corner_radius=6)
+        cycle_status_frame.pack(fill=tk.X, padx=10, pady=(5, 5))
+        self.cycle_status_label = ctk.CTkLabel(cycle_status_frame, text="Ciclo: INATTIVO | P&L: 0.00 (0.00%)",
+                                               text_color=COLORS['text_secondary'], font=('Segoe UI', 10))
+        self.cycle_status_label.pack(side=tk.LEFT, padx=10, pady=5)
+        ctk.CTkButton(cycle_status_frame, text="Reset Ciclo", command=self._reset_follower_cycle,
+                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
+                      corner_radius=4, width=80, height=24).pack(side=tk.RIGHT, padx=5, pady=5)
         
         copy_chat_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
         copy_chat_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
@@ -7140,6 +7227,24 @@ class PickfairApp:
     def _save_copy_trading_settings(self):
         """Save Copy Trading settings from Telegram tab."""
         settings = self.db.get_telegram_settings() or {}
+        
+        try:
+            stake_fixed = float(self.tg_stake_fixed_var.get().replace(',', '.'))
+        except:
+            stake_fixed = 10.0
+        try:
+            stake_percent = float(self.tg_stake_percent_var.get().replace(',', '.'))
+        except:
+            stake_percent = 1.0
+        try:
+            cycle_target = float(self.tg_cycle_target_var.get().replace(',', '.'))
+        except:
+            cycle_target = 5.0
+        try:
+            cycle_stop = float(self.tg_cycle_stop_var.get().replace(',', '.'))
+        except:
+            cycle_stop = 3.0
+        
         self.db.save_telegram_settings(
             api_id=settings.get('api_id', ''),
             api_hash=settings.get('api_hash', ''),
@@ -7153,12 +7258,93 @@ class PickfairApp:
             auto_stop_listener=settings.get('auto_stop_listener', True),
             copy_mode=self.tg_copy_mode_var.get(),
             copy_chat_id=self.tg_copy_chat_id_var.get(),
-            stake_type=settings.get('stake_type', 'fixed'),
-            stake_percent=settings.get('stake_percent', 1.0),
+            stake_type=self.tg_stake_type_var.get(),
+            stake_percent=stake_percent,
             dutching_enabled=settings.get('dutching_enabled', False),
-            reply_100_master=self.tg_reply_master_var.get()
+            reply_100_master=self.tg_reply_master_var.get(),
+            stake_fixed=stake_fixed,
+            cycle_enabled=self.tg_cycle_enabled_var.get(),
+            cycle_target_pct=cycle_target,
+            cycle_stop_pct=cycle_stop
         )
+        
+        # Update cycle manager if exists
+        if hasattr(self, 'cycle_manager') and self.cycle_manager:
+            if self.tg_cycle_enabled_var.get():
+                available = self.betfair_client.get_available_balance() if self.betfair_client else 1000
+                self.cycle_manager.enable(available, cycle_target, cycle_stop)
+            else:
+                self.cycle_manager.disable()
+        
         messagebox.showinfo("Salvato", "Impostazioni Copy Trading salvate")
+    
+    def _reset_follower_cycle(self):
+        """Reset the follower cycle to start fresh."""
+        if not hasattr(self, 'cycle_manager') or not self.cycle_manager:
+            messagebox.showinfo("Info", "Cycle Manager non attivo")
+            return
+        
+        if not messagebox.askyesno("Conferma Reset", "Vuoi resettare il ciclo e ricominciare da zero?"):
+            return
+        
+        available = self.betfair_client.get_available_balance() if self.betfair_client else 1000
+        try:
+            cycle_target = float(self.tg_cycle_target_var.get().replace(',', '.'))
+        except:
+            cycle_target = 5.0
+        try:
+            cycle_stop = float(self.tg_cycle_stop_var.get().replace(',', '.'))
+        except:
+            cycle_stop = 3.0
+        
+        self.cycle_manager.reset(available)
+        self._update_cycle_status_display()
+        messagebox.showinfo("Reset", f"Ciclo resettato. Bankroll: {available:.2f}")
+    
+    def _update_cycle_status_display(self):
+        """Update cycle status label in UI."""
+        if not hasattr(self, 'cycle_status_label'):
+            return
+        
+        if hasattr(self, 'cycle_manager') and self.cycle_manager:
+            stats = self.cycle_manager.stats
+            status = stats['status']
+            pnl = stats['current_pnl']
+            pnl_pct = stats['pnl_pct']
+            bets = stats['bets_count']
+            
+            color = COLORS['text_secondary']
+            if status == 'ACTIVE':
+                color = COLORS['profit'] if pnl >= 0 else COLORS['loss']
+            elif status == 'TARGET_HIT':
+                color = COLORS['profit']
+            elif status == 'STOPPED':
+                color = COLORS['loss']
+            
+            text = f"Ciclo: {status} | P&L: {pnl:.2f} ({pnl_pct:+.2f}%) | Bet: {bets}"
+            self.cycle_status_label.configure(text=text, text_color=color)
+        else:
+            self.cycle_status_label.configure(text="Ciclo: INATTIVO | P&L: 0.00 (0.00%)",
+                                               text_color=COLORS['text_secondary'])
+    
+    def _on_cycle_end(self, reason: str, final_pnl: float):
+        """Callback when follower cycle ends (target hit or stopped)."""
+        logging.info(f"[CYCLE] Ended: {reason}, P&L: {final_pnl:.2f}")
+        
+        # Update UI
+        self.root.after(0, self._update_cycle_status_display)
+        
+        # Show notification
+        if 'TARGET' in reason.upper():
+            self.root.after(0, lambda: messagebox.showinfo(
+                "Ciclo Completato", 
+                f"Target raggiunto! P&L finale: +{final_pnl:.2f}\nLa replica e' stata fermata."
+            ))
+        else:
+            self.root.after(0, lambda: messagebox.showwarning(
+                "Ciclo Fermato", 
+                f"Stop Loss raggiunto. P&L finale: {final_pnl:.2f}\nLa replica e' stata fermata."
+            ))
     
     def _load_available_chats(self):
         """Load available chats from Telegram account into the tree."""
