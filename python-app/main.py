@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.34"  # All order operations through BetfairExecutor
+APP_VERSION = "3.70.35"  # Complete BetfairExecutor migration for order operations
 
 # Setup file logging
 def setup_logging():
@@ -1903,7 +1903,8 @@ class PickfairApp:
                 logging.error(f"Error green-up selection {selection_id}: {e}")
                 self.root.after(0, lambda: self._add_log(f"Errore green-up: {e}", 'error'))
         
-        threading.Thread(target=execute_green, daemon=True).start()
+        # Use BetfairExecutor for serialized order operations
+        self.betfair_executor.submit(execute_green)
     
     def _on_green_success(self, selection_id, net_profit):
         """Handle successful green-up."""
