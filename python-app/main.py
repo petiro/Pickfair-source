@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.32"  # API timeout + UI watchdog + controlled retry
+APP_VERSION = "3.70.33"  # BetfairExecutor for serialized order operations
 
 # Setup file logging
 def setup_logging():
@@ -288,6 +288,12 @@ class PickfairApp:
         self.market_status = 'OPEN'
         self.simulation_mode = False  # Simulation mode flag
         self.recovered_positions = []  # Positions recovered from DB
+        
+        # BetfairExecutor: Single-threaded executor for ALL order operations
+        # CRITICAL: place, cancel, replace, cashout MUST use this executor
+        # This prevents race conditions and ensures atomic operations
+        from concurrent.futures import ThreadPoolExecutor
+        self.betfair_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="BetfairOps")
         
         # Dashboard auto-refresh
         self._dashboard_dirty = False
@@ -2199,7 +2205,10 @@ class PickfairApp:
             self._do_market_cashout()
     
     def _do_market_cashout(self):
-        """Execute cashout for selected position in market view."""
+        """Execute cashout for selected position in market view.
+        
+        Uses BetfairExecutor to ensure cashout is serialized with other order operations.
+        """
         selected = self.market_cashout_tree.selection()
         if not selected:
             messagebox.showwarning("Attenzione", "Seleziona una posizione")
@@ -2212,7 +2221,6 @@ class PickfairApp:
             
             info = pos['cashout_info']
             
-            # Check if auto-confirm is enabled
             if self.auto_cashout_var.get():
                 confirm = True
             else:
@@ -2226,59 +2234,66 @@ class PickfairApp:
                 )
             
             if confirm:
-                try:
-                    market_id = pos.get('market_id')
-                    if not market_id:
-                        messagebox.showerror("Errore", "Market ID non trovato")
-                        continue
-                    
-                    result = self.client.execute_cashout(
+                market_id = pos.get('market_id')
+                if not market_id:
+                    messagebox.showerror("Errore", "Market ID non trovato")
+                    continue
+                
+                pos_copy = dict(pos)
+                info_copy = dict(info)
+                bet_id_copy = bet_id
+                
+                def do_cashout():
+                    return self.client.execute_cashout(
                         market_id,
-                        pos['selection_id'],
-                        info['cashout_side'],
-                        info['cashout_stake'],
-                        info['current_price']
+                        pos_copy['selection_id'],
+                        info_copy['cashout_side'],
+                        info_copy['cashout_stake'],
+                        info_copy['current_price']
                     )
-                    
+                
+                def on_success(result):
                     if result.get('status') == 'SUCCESS':
                         self.db.save_cashout_transaction(
                             market_id=market_id,
-                            selection_id=pos['selection_id'],
-                            original_bet_id=bet_id,
+                            selection_id=pos_copy['selection_id'],
+                            original_bet_id=bet_id_copy,
                             cashout_bet_id=result.get('betId'),
-                            original_side=pos['side'],
-                            original_stake=pos['stake'],
-                            original_price=pos['price'],
-                            cashout_side=info['cashout_side'],
-                            cashout_stake=info['cashout_stake'],
-                            cashout_price=result.get('averagePriceMatched') or info['current_price'],
-                            profit_loss=info['green_up']
+                            original_side=pos_copy['side'],
+                            original_stake=pos_copy['stake'],
+                            original_price=pos_copy['price'],
+                            cashout_side=info_copy['cashout_side'],
+                            cashout_stake=info_copy['cashout_stake'],
+                            cashout_price=result.get('averagePriceMatched') or info_copy['current_price'],
+                            profit_loss=info_copy['green_up']
                         )
                         self.bet_logger.log_cashout_completed(
-                            bet_id=bet_id,
+                            bet_id=bet_id_copy,
                             market_id=market_id,
-                            selection_id=str(pos['selection_id']),
-                            profit=info['green_up'],
-                            original_stake=pos['stake'],
-                            cashout_stake=info['cashout_stake']
+                            selection_id=str(pos_copy['selection_id']),
+                            profit=info_copy['green_up'],
+                            original_stake=pos_copy['stake'],
+                            cashout_stake=info_copy['cashout_stake']
                         )
                         self._mark_dashboard_dirty()
-                        # Broadcast cashout to Copy Trading followers
                         event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', '')
                         self._broadcast_copy_cashout(event_name)
-                        messagebox.showinfo("Successo", f"Cashout eseguito!\nProfitto: {info['green_up']:+.2f}")
+                        messagebox.showinfo("Successo", f"Cashout eseguito!\nProfitto: {info_copy['green_up']:+.2f}")
                         self._update_market_cashout_positions()
                         self._update_balance()
                     else:
                         self.bet_logger.log_cashout_failed(
-                            bet_id=bet_id,
+                            bet_id=bet_id_copy,
                             market_id=market_id,
                             reason=result.get('error', 'Errore sconosciuto')
                         )
                         self._mark_dashboard_dirty()
                         messagebox.showerror("Errore", f"Cashout fallito: {result.get('error', 'Errore')}")
-                except Exception as e:
-                    messagebox.showerror("Errore", f"Errore cashout: {e}")
+                
+                def on_error(msg):
+                    messagebox.showerror("Errore", f"Errore cashout: {msg}")
+                
+                self._execute_order_operation("cashout", do_cashout, on_success, on_error)
     
     def _load_settings(self):
         """Load saved settings."""
@@ -2461,6 +2476,34 @@ class PickfairApp:
     def _defer(self, fn, delay=100):
         """Schedule a function to run after delay, yielding to mainloop first."""
         self.root.after(delay, fn)
+    
+    def _execute_order_operation(self, operation_name: str, fn, on_success=None, on_error=None):
+        """Execute an order operation (place/cancel/cashout) through the BetfairExecutor.
+        
+        This ensures all order operations are serialized and atomic.
+        Never call Betfair order APIs directly - always use this method.
+        
+        Args:
+            operation_name: Name for logging
+            fn: Function that performs the API call (must return result)
+            on_success: Callback with result (called via root.after)
+            on_error: Callback with error message (called via root.after)
+        """
+        def execute():
+            try:
+                logging.debug(f"[EXECUTOR] Starting: {operation_name}")
+                result = fn()
+                logging.debug(f"[EXECUTOR] Completed: {operation_name}")
+                if on_success:
+                    self.root.after(0, lambda r=result: on_success(r))
+                return result
+            except Exception as e:
+                logging.error(f"[EXECUTOR] Error in {operation_name}: {e}")
+                if on_error:
+                    self.root.after(0, lambda msg=str(e): on_error(msg))
+                return None
+        
+        self.betfair_executor.submit(execute)
     
     def _run_step_with_retry(self, step_name: str, fn, retries: int = 1):
         """Execute a post-login step with controlled retry.
@@ -5290,7 +5333,8 @@ class PickfairApp:
                 err_msg = str(e)
                 self.root.after(0, lambda msg=err_msg: self._on_bets_error(msg))
         
-        threading.Thread(target=place, daemon=True).start()
+        # Use BetfairExecutor to ensure serialization with cashout/cancel operations
+        self.betfair_executor.submit(place)
     
     def _place_simulation_bets(self, total_stake, potential_profit, bet_type):
         """Place simulated bets without calling Betfair API."""
