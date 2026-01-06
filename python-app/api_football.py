@@ -58,9 +58,10 @@ class APIFootballClient:
     """
     
     BASE_URL = "https://v3.football.api-sports.io"
+    DEFAULT_KEY = "9d726ff17ef61ad94aa372ebcaf99cd9"
     
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.environ.get("API_FOOTBALL_KEY", "")
+        self.api_key = api_key or os.environ.get("API_FOOTBALL_KEY", "") or self.DEFAULT_KEY
         self.session = requests.Session()
         self.session.headers.update({
             "x-apisports-key": self.api_key
