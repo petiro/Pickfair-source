@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.29"  # Use threading.Thread instead of ThreadPoolExecutor
+APP_VERSION = "3.70.30"  # Schedule poll BEFORE thread.start() to prevent blocking
 
 # Setup file logging
 def setup_logging():
@@ -3128,7 +3128,7 @@ class PickfairApp:
         result_holder = [None, False]  # [result, is_done]
         
         def fetch():
-            logging.debug("[EVENTS] Thread started...")
+            logging.debug("[EVENTS] Fetch thread running...")
             try:
                 events = self.client.get_football_events()
                 logging.info(f"[EVENTS] Got {len(events) if events else 0} events")
@@ -3137,11 +3137,7 @@ class PickfairApp:
                 logging.error(f"[EVENTS] Error loading events: {e}")
                 result_holder[0] = ('error', str(e))
             result_holder[1] = True
-            logging.debug("[EVENTS] Thread complete")
-        
-        thread = threading.Thread(target=fetch, daemon=True)
-        thread.start()
-        logging.debug("[EVENTS] Thread started, scheduling poll...")
+            logging.debug("[EVENTS] Fetch thread complete")
         
         def check_result():
             if result_holder[1]:  # is_done
@@ -3158,8 +3154,14 @@ class PickfairApp:
                 # Check again in 100ms
                 self.root.after(100, check_result)
         
+        # CRITICAL: Schedule poll FIRST, then start thread
+        logging.debug("[EVENTS] Scheduling poll...")
         self.root.after(100, check_result)
-        logging.debug("[EVENTS] Scheduled result check")
+        logging.debug("[EVENTS] Poll scheduled, starting thread...")
+        
+        thread = threading.Thread(target=fetch, daemon=True)
+        thread.start()
+        logging.debug("[EVENTS] Thread started")
     
     def _display_events(self, events):
         """Display events in treeview grouped by country."""
