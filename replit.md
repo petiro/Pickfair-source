@@ -53,6 +53,14 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - **poll_future()**: Non-blocking Future handling via Tkinter mainloop - UI never blocks on API calls.
     - **guarded() decorator**: Blocks order operations when safe mode is active, applied before executor submission.
     - **ZERO main-thread API calls**: All Betfair calls go through `_execute_order_operation()` or `_execute_betfair_call()`.
+-   **v3.72 Live Match Timeline**:
+    - **MatchTimeline Widget**: Trading-style progress bar showing minute, injury time, and goal markers with tooltips.
+    - **API-Football Integration**: Background worker polls live match data every 15s (uses `API_FOOTBALL_KEY` secret).
+    - **HardSyncController**: Betfair = MASTER, API-Football = sensor. Trading decisions never based on API-Football.
+    - **LiveContext**: Thread-safe cache for match data between API thread and UI.
+    - **Goal Alerts**: Visual flash + optional sound on goal detection (anti-spam, single trigger per goal).
+    - **Dynamic Colors**: Green (normal), Orange (danger/late game), Red (suspended), Gray (N/A).
+    - **Fuzzy Team Matching**: Handles U21/Women/friendly naming differences automatically.
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:

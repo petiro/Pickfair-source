@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.71.0"  # Full antifreeze: BetfairExecutor + UIWatchdog + poll_future + guarded + migrated all order ops
+APP_VERSION = "3.72.0"  # Live Match Timeline: API-Football integration + HardSync + goal alerts
 
 # Setup file logging
 def setup_logging():
@@ -82,6 +82,14 @@ try:
     from automation_engine import AutomationEngine, PositionState, TrailingStopEngine, SLTPEngine, PartialGreen
     logging.debug("Importing tick_storage...")
     from tick_storage import TickStorage
+    logging.debug("Importing live_context...")
+    from live_context import LiveContext, live_context_store
+    logging.debug("Importing match_timeline...")
+    from match_timeline import MatchTimeline
+    logging.debug("Importing api_football...")
+    from api_football import APIFootballWorker
+    logging.debug("Importing hard_sync...")
+    from hard_sync import HardSyncController
     logging.info("All modules imported successfully")
 except Exception as e:
     logging.error(f"Failed to import modules: {e}")
@@ -294,6 +302,12 @@ class PickfairApp:
         # This prevents race conditions and ensures atomic operations
         from betfair_executor import get_betfair_executor
         self.betfair_executor = get_betfair_executor()
+        
+        # API-Football integration for live match data
+        # IMPORTANT: Betfair = MASTER, API-Football = sensor only
+        self.hard_sync = HardSyncController(safe_mode_manager=None)
+        self.api_football_worker = APIFootballWorker(live_context_store, interval=15.0)
+        self.api_football_worker.start()
         
         # Dashboard auto-refresh
         self._dashboard_dirty = False
@@ -794,6 +808,29 @@ class PickfairApp:
             font=('Segoe UI', 9, 'bold')
         )
         self.market_status_label.pack(side=tk.RIGHT, padx=10)
+        
+        # ========== MATCH TIMELINE BAR (tempo + goal live) ==========
+        timeline_frame = ctk.CTkFrame(market_frame, fg_color=COLORS['bg_card'], corner_radius=6)
+        timeline_frame.pack(fill=tk.X, padx=10, pady=(5, 5))
+        
+        self.match_timeline = MatchTimeline(timeline_frame, width=550, height=20)
+        self.match_timeline.pack(fill=tk.X, padx=8, pady=6)
+        
+        # Goal sound toggle
+        timeline_opts = ctk.CTkFrame(timeline_frame, fg_color='transparent')
+        timeline_opts.pack(fill=tk.X, padx=8, pady=(0, 4))
+        
+        self.goal_sound_var = tk.BooleanVar(value=True)
+        self.goal_sound_check = ctk.CTkCheckBox(
+            timeline_opts,
+            text="Suono Goal",
+            variable=self.goal_sound_var,
+            command=self._toggle_goal_sound,
+            fg_color=COLORS['accent'], hover_color=COLORS['bg_hover'],
+            text_color=COLORS['text_secondary'],
+            width=100, height=20
+        )
+        self.goal_sound_check.pack(side=tk.LEFT)
         
         # ========== PROFESSIONAL LADDER-STYLE QUOTE DISPLAY ==========
         runners_container = ctk.CTkFrame(market_frame, fg_color='transparent')
@@ -3473,6 +3510,7 @@ class PickfairApp:
             if evt['id'] == event_id:
                 self.current_event = evt
                 self.event_name_label.configure(text=evt['name'])
+                self._update_api_football_match()
                 break
         else:
             return  # Event not found
@@ -4143,6 +4181,58 @@ class PickfairApp:
             self._start_streaming()
         else:
             self._stop_streaming()
+    
+    def _toggle_goal_sound(self):
+        """Toggle goal sound on/off."""
+        enabled = self.goal_sound_var.get()
+        self.match_timeline.set_goal_sound(enabled)
+        logging.info(f"Goal sound: {'enabled' if enabled else 'disabled'}")
+    
+    def _refresh_match_timeline(self):
+        """Refresh match timeline from LiveContext (called every 1s)."""
+        try:
+            ctx = live_context_store.get()
+            ctx.market_status = self.market_status
+            self.match_timeline.update_context(ctx)
+            
+            self.hard_sync.update_betfair(
+                event=self.current_event,
+                market_status=self.market_status
+            )
+            
+            if ctx.minute is not None:
+                self.hard_sync.update_api_football(
+                    minute=ctx.minute,
+                    injury_time=ctx.injury_time or 0,
+                    goals=(ctx.goals_home, ctx.goals_away),
+                    period=ctx.period
+                )
+        except Exception as e:
+            logging.debug(f"Timeline refresh error: {e}")
+        
+        self.root.after(1000, self._refresh_match_timeline)
+    
+    def _update_api_football_match(self):
+        """Update API-Football worker with current event teams."""
+        if not self.current_event:
+            self.api_football_worker.clear_match()
+            return
+        
+        event_name = self.current_event.get('name', '')
+        
+        parts = event_name.split(' v ')
+        if len(parts) != 2:
+            parts = event_name.split(' vs ')
+        if len(parts) != 2:
+            parts = event_name.split(' - ')
+        
+        if len(parts) == 2:
+            home = parts[0].strip()
+            away = parts[1].strip()
+            self.api_football_worker.set_match(home, away)
+            logging.info(f"API-Football monitoring: {home} vs {away}")
+        else:
+            self.api_football_worker.clear_match()
     
     def _start_streaming(self):
         """Start streaming prices for current market (with polling fallback)."""
@@ -11990,11 +12080,19 @@ Evento: {event_name}"""
     def run(self):
         """Start the application."""
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+        self.root.after(1000, self._refresh_match_timeline)
         self.root.mainloop()
     
     def _on_closing(self):
         """Handle application closing - cleanup resources."""
         try:
+            # Stop API-Football worker
+            if hasattr(self, 'api_football_worker'):
+                try:
+                    self.api_football_worker.stop()
+                except:
+                    pass
+            
             # Stop Telegram listener if running
             if self.telegram_listener:
                 try:
