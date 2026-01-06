@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.70.31"  # Global socket timeout + serialized API calls
+APP_VERSION = "3.70.32"  # API timeout + UI watchdog + controlled retry
 
 # Setup file logging
 def setup_logging():
@@ -323,6 +323,7 @@ class PickfairApp:
         self._start_settlement_monitor()
         self._start_dashboard_auto_refresh()
         self._start_performance_logging()
+        self._start_ui_watchdog()  # Freeze detection
         self._check_for_updates_on_startup()
         
         # Recovery: restore open positions from database
@@ -2461,6 +2462,58 @@ class PickfairApp:
         """Schedule a function to run after delay, yielding to mainloop first."""
         self.root.after(delay, fn)
     
+    def _run_step_with_retry(self, step_name: str, fn, retries: int = 1):
+        """Execute a post-login step with controlled retry.
+        
+        Args:
+            step_name: Name for logging
+            fn: Function to execute
+            retries: Max retry attempts (default 1)
+        """
+        for attempt in range(retries + 1):
+            try:
+                fn()
+                return True
+            except Exception as e:
+                logging.error(f"[POST-LOGIN] {step_name} failed (attempt {attempt+1}/{retries+1}): {e}")
+                if attempt >= retries:
+                    logging.warning(f"[POST-LOGIN] {step_name} gave up after {retries+1} attempts")
+                    return False
+        return False
+    
+    def _start_ui_watchdog(self):
+        """Start UI watchdog to detect freezes.
+        
+        Monitors mainloop heartbeat - if no heartbeat for 15s, dumps all thread stacks.
+        """
+        self._watchdog_last_beat = time.time()
+        
+        def heartbeat():
+            """Update heartbeat timestamp - called every second by mainloop."""
+            self._watchdog_last_beat = time.time()
+            self.root.after(1000, heartbeat)
+        
+        def watchdog_thread():
+            """Background thread that monitors for UI freeze."""
+            while True:
+                time.sleep(5)
+                idle = time.time() - self._watchdog_last_beat
+                if idle > 15:
+                    logging.error(f"[WATCHDOG] UI freeze detected ({idle:.1f}s idle) - dumping threads")
+                    import sys
+                    import traceback
+                    for thread_id, frame in sys._current_frames().items():
+                        logging.error(f"\n--- Thread {thread_id} ---")
+                        logging.error("".join(traceback.format_stack(frame)))
+                    self._watchdog_last_beat = time.time()  # Avoid spam
+        
+        # Start heartbeat in mainloop
+        self.root.after(1000, heartbeat)
+        
+        # Start watchdog thread
+        threading.Thread(target=watchdog_thread, daemon=True, name="UIWatchdog").start()
+        logging.info("[WATCHDOG] UI watchdog started (15s timeout)")
+    
     def _on_connected(self):
         """Handle successful connection.
         
@@ -2484,17 +2537,11 @@ class PickfairApp:
         
         def step1_balance():
             logging.debug("[CONNECT] Step 1: _update_balance")
-            try:
-                self._update_balance()
-            except Exception as e:
-                logging.error(f"[CONNECT] _update_balance error: {e}")
+            self._run_step_with_retry("update_balance", self._update_balance, retries=1)
         
         def step2_events():
             logging.debug("[CONNECT] Step 2: _load_events")
-            try:
-                self._load_events()
-            except Exception as e:
-                logging.error(f"[CONNECT] _load_events error: {e}")
+            self._run_step_with_retry("load_events", self._load_events, retries=1)
         
         def step3_autorefresh():
             logging.debug("[CONNECT] Step 3: auto-refresh")

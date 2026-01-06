@@ -42,10 +42,16 @@ IS_WINDOWS_7 = is_windows_7()
 # ==============================================================================
 import socket
 
+# ==============================================================================
+# TIMEOUT CONFIGURATION - CRITICAL FOR UI RESPONSIVENESS
+# ==============================================================================
+API_TIMEOUT = 12  # Seconds - used for APIClient and socket operations
+SOCKET_TIMEOUT = 12  # Seconds - global socket default
+
 # ALWAYS set socket timeout - prevents hung connections on ALL Windows versions
 # This is essential: without it, a socket can block indefinitely and freeze the GUI
-socket.setdefaulttimeout(12)
-logging.debug(f"[SOCKET] Global timeout set to 12 seconds")
+socket.setdefaulttimeout(SOCKET_TIMEOUT)
+logging.debug(f"[SOCKET] Global timeout set to {SOCKET_TIMEOUT} seconds")
 
 if IS_WINDOWS_7:
     # Disable SSL verification globally for Windows 7
@@ -72,7 +78,7 @@ class UnsafeAdapter(HTTPAdapter):
 # Create the shared unsafe session with aggressive timeouts
 class TimeoutSession(requests.Session):
     """Session with default timeout for all requests."""
-    def __init__(self, timeout=15):
+    def __init__(self, timeout=API_TIMEOUT):
         super().__init__()
         self.timeout = timeout
     
@@ -80,7 +86,7 @@ class TimeoutSession(requests.Session):
         kwargs.setdefault('timeout', self.timeout)
         return super().request(method, url, **kwargs)
 
-unsafe_session = TimeoutSession(timeout=15)
+unsafe_session = TimeoutSession(timeout=API_TIMEOUT)
 if IS_WINDOWS_7:
     unsafe_session.verify = False
 unsafe_session.mount("https://", UnsafeAdapter())
@@ -415,7 +421,7 @@ class BetfairClient:
                     app_key=self.app_key,
                     certs=certs_dir,
                     locale="italy",
-                    session=unsafe_session  # Use patched session for SSL compatibility
+                    session=unsafe_session  # Uses TimeoutSession with API_TIMEOUT
                 )
                 
                 client.login()
