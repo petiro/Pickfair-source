@@ -1867,29 +1867,35 @@ class PickfairApp:
         self.unmatched_count_label.configure(text=f"({len(unmatched)})")
         self.matched_count_label.configure(text=f"({len(matched)})")
         
-        # Populate Pending
+        # Populate Pending with UI yield
         if pending:
-            for order in pending[:10]:  # Limit to 10 for performance
+            for i, order in enumerate(pending[:10]):  # Limit to 10 for performance
                 self._create_bet_row(self.pending_bets_list, order, 'pending', '#5c2020', '#ffcdd2')
+                if (i + 1) % 5 == 0:
+                    self.root.update_idletasks()
         else:
             ctk.CTkLabel(self.pending_bets_list, text="Nessun ordine pending",
                          font=('Segoe UI', 9), text_color='#ef9a9a').pack(pady=5)
         
-        # Populate Unmatched
+        # Populate Unmatched with UI yield
         if unmatched:
-            for order in unmatched[:10]:
+            for i, order in enumerate(unmatched[:10]):
                 self._create_bet_row(self.unmatched_bets_list, order, 'unmatched', '#4a4a4a', '#e0e0e0')
+                if (i + 1) % 5 == 0:
+                    self.root.update_idletasks()
         else:
             ctk.CTkLabel(self.unmatched_bets_list, text="Nessun ordine unmatched",
                          font=('Segoe UI', 9), text_color='#bdbdbd').pack(pady=5)
         
-        # Populate Matched
+        # Populate Matched with UI yield
         if matched:
             display_matched = matched
             if self.consolidated_view_var.get():
                 display_matched = self._consolidate_matched_bets(matched)
-            for order in display_matched[:15]:
+            for i, order in enumerate(display_matched[:15]):
                 self._create_bet_row(self.matched_bets_list, order, 'matched', '#205020', '#c8e6c9')
+                if (i + 1) % 5 == 0:
+                    self.root.update_idletasks()
         else:
             ctk.CTkLabel(self.matched_bets_list, text="Nessun ordine matched",
                          font=('Segoe UI', 9), text_color='#a5d6a7').pack(pady=5)
@@ -4164,11 +4170,15 @@ class PickfairApp:
         if not item_id:
             return
         
+        # Log for watchdog debugging
+        logging.debug(f"[UI] Tree clicked: {item_id}")
+        
         # Update visual selection to match
         self.events_tree.selection_set(item_id)
         
         # Ignore country parent nodes (they start with "country_")
         if item_id.startswith('country_'):
+            logging.debug(f"[UI] Country toggle: {item_id}")
             # Toggle expansion on country click
             if self.events_tree.item(item_id, 'open'):
                 self.events_tree.item(item_id, open=False)
@@ -4276,8 +4286,8 @@ class PickfairApp:
         
         all_markets.sort(key=sort_key)
         
-        # Add to tree
-        for m in all_markets:
+        # Add to tree with UI yield every 10 items to prevent freeze
+        for i, m in enumerate(all_markets):
             market_iid = f"market_{event_id}_{m['marketId']}"
             display = m['displayName']
             if m['inPlay']:
@@ -4287,6 +4297,10 @@ class PickfairApp:
                 self.events_tree.insert(event_id, tk.END, iid=market_iid, text='', values=(display, ''))
             except tk.TclError:
                 pass  # Market already exists
+            
+            # Yield to UI every 10 items
+            if (i + 1) % 10 == 0:
+                self.root.update_idletasks()
         
         # Expand the event node
         self.events_tree.item(event_id, open=True)
