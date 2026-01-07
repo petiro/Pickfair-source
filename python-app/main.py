@@ -3562,24 +3562,38 @@ class PickfairApp:
         """Handle order stream status change."""
         logging.info(f"Order Stream status: {status}")
         
-        def update_status():
-            if status == "CONNECTED":
-                # Try to subscribe to pending market when stream connects
-                if hasattr(self, '_pending_market_subscription') and self._pending_market_subscription:
-                    market_id = self._pending_market_subscription
-                    if self._subscribe_to_market_stream(market_id):
-                        self.streaming_active = True
-                        self._stop_polling_fallback()
-                        self.stream_label.configure(text="STREAM LIVE", text_color=COLORS['success'])
-                        logging.info(f"Market Stream: Subscribed on connect to {market_id}")
-                    else:
-                        self.stream_label.configure(text="Stream: ON", text_color=COLORS['success'])
+        def update_ui_only(stream_status, subscribed=False):
+            """UI-only update - no API calls allowed here."""
+            if stream_status == "CONNECTED":
+                if subscribed:
+                    self.streaming_active = True
+                    self._stop_polling_fallback()
+                    self.stream_label.configure(text="STREAM LIVE", text_color=COLORS['success'])
                 else:
                     self.stream_label.configure(text="Stream: ON", text_color=COLORS['success'])
             else:
                 self.stream_label.configure(text="Stream: OFF", text_color=COLORS['text_secondary'])
         
-        self.root.after(0, update_status)
+        if status == "CONNECTED":
+            # Check if we need to subscribe to a pending market
+            if hasattr(self, '_pending_market_subscription') and self._pending_market_subscription:
+                market_id = self._pending_market_subscription
+                
+                def subscribe_in_background():
+                    """Run subscription in background to avoid blocking UI."""
+                    try:
+                        success = self._subscribe_to_market_stream(market_id)
+                        logging.info(f"Market Stream: Background subscription result: {success}")
+                        self.root.after(0, lambda: update_ui_only("CONNECTED", subscribed=success))
+                    except Exception as e:
+                        logging.error(f"Market Stream: Subscription error: {e}")
+                        self.root.after(0, lambda: update_ui_only("CONNECTED", subscribed=False))
+                
+                threading.Thread(target=subscribe_in_background, daemon=True).start()
+            else:
+                self.root.after(0, lambda: update_ui_only("CONNECTED", subscribed=False))
+        else:
+            self.root.after(0, lambda: update_ui_only(status))
     
     def _on_order_stream_error(self, error: str):
         """Handle order stream error."""
