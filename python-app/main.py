@@ -2565,152 +2565,331 @@ class PickfairApp:
         self.total_pnl_frame.configure(fg_color=bg_color)
     
     def _show_advanced_cashout_dialog(self):
-        """Show advanced cashout dialog with slider options like Fairbot."""
+        """Show advanced cashout dialog with slider options like Fairbot.
+        
+        Real-time P&L calculation with slider, shows exact bet to place.
+        Non-blocking UI updates via after() scheduling.
+        """
         if not hasattr(self, 'market_cashout_positions') or not self.market_cashout_positions:
             messagebox.showinfo("Info", "Nessuna posizione aperta per il cashout")
             return
         
-        # Calculate total P&L and positions
-        total_back_profit = 0.0
-        total_lay_profit = 0.0
+        # Gather position data
         positions = []
+        total_profit_if_wins = 0.0  # Total if selection wins (no cashout)
+        total_profit_if_loses = 0.0  # Total if selection loses (no cashout)
         
         for bet_id, pos in self.market_cashout_positions.items():
             info = pos.get('cashout_info', {})
             if info:
+                stake = pos.get('stake', 0)
+                price = pos.get('price', 0)
+                side = pos.get('side', 'BACK')
+                current_price = info.get('current_price', 0)
+                cashout_stake = info.get('cashout_stake', 0)
+                
+                # Calculate raw profit/loss scenarios
+                if side == 'BACK':
+                    profit_if_wins = stake * (price - 1)  # Win scenario
+                    profit_if_loses = -stake  # Lose scenario (lost stake)
+                else:  # LAY
+                    profit_if_wins = -stake * (price - 1)  # Liability if wins
+                    profit_if_loses = stake  # Keep stake if loses
+                
                 positions.append({
                     'bet_id': bet_id,
+                    'selection_id': pos.get('selection_id'),
                     'runner_name': pos.get('runner_name', 'Unknown'),
-                    'side': pos.get('side'),
-                    'stake': pos.get('stake', 0),
-                    'price': pos.get('price', 0),
-                    'green_up': info.get('green_up', 0),
-                    'if_wins': info.get('profit_if_wins', 0),
-                    'if_loses': info.get('profit_if_loses', 0),
-                    'cashout_stake': info.get('cashout_stake', 0),
-                    'current_price': info.get('current_price', 0),
-                    'cashout_side': info.get('cashout_side', '')
+                    'side': side,
+                    'stake': stake,
+                    'price': price,
+                    'current_price': current_price,
+                    'cashout_stake': cashout_stake,
+                    'cashout_side': info.get('cashout_side', 'LAY' if side == 'BACK' else 'BACK'),
+                    'profit_if_wins': profit_if_wins,
+                    'profit_if_loses': profit_if_loses,
+                    'green_up': info.get('green_up', 0)
                 })
-                total_back_profit += info.get('profit_if_wins', 0)
-                total_lay_profit += info.get('profit_if_loses', 0)
+                total_profit_if_wins += profit_if_wins
+                total_profit_if_loses += profit_if_loses
         
         if not positions:
             messagebox.showinfo("Info", "Nessuna posizione con dati cashout disponibili")
             return
         
+        # Calculate cashout distribution for a given percentage
+        def calc_distribution(win_pct):
+            """Calculate Se Vince/Se Perde and required bet for given win percentage."""
+            total_stake_needed = 0.0
+            total_price = 0.0
+            
+            for p in positions:
+                if p['current_price'] <= 1:
+                    continue
+                    
+                stake = p['stake']
+                orig_price = p['price']
+                curr_price = p['current_price']
+                side = p['side']
+                
+                if side == 'BACK':
+                    # Original BACK: profit if wins = stake * (price - 1)
+                    # To green-up, place LAY at current price
+                    # LAY stake for full green = back_stake * back_price / lay_price
+                    full_lay_stake = stake * orig_price / curr_price
+                    # Partial based on win_pct
+                    lay_stake = full_lay_stake * win_pct
+                    total_stake_needed += lay_stake
+                    total_price = curr_price  # Use last price for display
+                else:
+                    # Original LAY: place BACK to green-up
+                    full_back_stake = stake * orig_price / curr_price
+                    back_stake = full_back_stake * win_pct
+                    total_stake_needed += back_stake
+                    total_price = curr_price
+            
+            # Calculate resulting P&L after partial cashout
+            # The percentages represent: how much of the "green up" profit goes to each scenario
+            # 0% - 100% = All profit stays on "lose" side
+            # 100% - 0% = All profit moved to "win" side
+            # 50% - 50% = Balanced green
+            
+            # Green-up calculation
+            if total_profit_if_wins >= total_profit_if_loses:
+                # Profitable if wins, need to balance
+                profit_range = total_profit_if_wins - total_profit_if_loses
+                if_wins = total_profit_if_loses + (profit_range * (1 - win_pct))
+                if_loses = total_profit_if_loses + (profit_range * win_pct)
+            else:
+                # Profitable if loses, need to balance
+                profit_range = total_profit_if_loses - total_profit_if_wins
+                if_wins = total_profit_if_wins + (profit_range * win_pct)
+                if_loses = total_profit_if_wins + (profit_range * (1 - win_pct))
+            
+            return if_wins, if_loses, total_stake_needed, total_price
+        
         # Create dialog
         dialog = ctk.CTkToplevel(self.root)
         dialog.title("Cash Out Avanzato")
-        dialog.geometry("450x500")
+        dialog.geometry("480x580")
         dialog.transient(self.root)
         dialog.grab_set()
         dialog.configure(fg_color=COLORS['bg_surface'])
         
         # Center on parent
         dialog.update_idletasks()
-        x = self.root.winfo_x() + (self.root.winfo_width() - 450) // 2
-        y = self.root.winfo_y() + (self.root.winfo_height() - 500) // 2
+        x = self.root.winfo_x() + (self.root.winfo_width() - 480) // 2
+        y = self.root.winfo_y() + (self.root.winfo_height() - 580) // 2
         dialog.geometry(f"+{x}+{y}")
         
-        # Title
-        ctk.CTkLabel(dialog, text="Cash Out Avanzato", font=('Segoe UI', 14, 'bold'),
-                     text_color=COLORS['text_primary']).pack(pady=(15, 10))
+        # Title with current P&L
+        title_frame = ctk.CTkFrame(dialog, fg_color='transparent')
+        title_frame.pack(fill=tk.X, padx=15, pady=(15, 5))
         
-        # Positions summary
+        ctk.CTkLabel(title_frame, text="Cash Out Avanzato", font=('Segoe UI', 16, 'bold'),
+                     text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        # Current green-up value (prominent)
+        current_green = sum(p['green_up'] for p in positions)
+        green_color = COLORS['success'] if current_green >= 0 else COLORS['loss']
+        current_pnl_label = ctk.CTkLabel(title_frame, text=f"€{current_green:+.2f}", 
+                                          font=('Segoe UI', 18, 'bold'), text_color=green_color)
+        current_pnl_label.pack(side=tk.RIGHT)
+        
+        # Positions summary (compact)
         summary_frame = ctk.CTkFrame(dialog, fg_color=COLORS['bg_panel'], corner_radius=8)
         summary_frame.pack(fill=tk.X, padx=15, pady=5)
         
-        for p in positions[:3]:  # Show max 3 positions
+        for p in positions[:2]:  # Show max 2 positions
             pos_row = ctk.CTkFrame(summary_frame, fg_color='transparent')
-            pos_row.pack(fill=tk.X, padx=10, pady=3)
-            ctk.CTkLabel(pos_row, text=p['runner_name'][:15], font=('Segoe UI', 10),
-                         text_color=COLORS['text_primary'], width=100, anchor='w').pack(side=tk.LEFT)
+            pos_row.pack(fill=tk.X, padx=10, pady=2)
+            ctk.CTkLabel(pos_row, text=p['runner_name'][:18], font=('Segoe UI', 10),
+                         text_color=COLORS['text_primary'], width=120, anchor='w').pack(side=tk.LEFT)
             side_color = COLORS['back'] if p['side'] == 'BACK' else COLORS['lay']
-            ctk.CTkLabel(pos_row, text=p['side'], font=('Segoe UI', 9, 'bold'),
-                         text_color=side_color, width=40).pack(side=tk.LEFT)
-            pnl_color = COLORS['success'] if p['green_up'] >= 0 else COLORS['loss']
-            ctk.CTkLabel(pos_row, text=f"€{p['green_up']:+.2f}", font=('Segoe UI', 10, 'bold'),
-                         text_color=pnl_color, width=60).pack(side=tk.RIGHT)
+            ctk.CTkLabel(pos_row, text=f"{p['side']} €{p['stake']:.2f} @ {p['price']:.2f}", 
+                         font=('Segoe UI', 9), text_color=side_color).pack(side=tk.LEFT, padx=5)
+            ctk.CTkLabel(pos_row, text=f"Ora: {p['current_price']:.2f}", 
+                         font=('Segoe UI', 9), text_color=COLORS['text_secondary']).pack(side=tk.RIGHT)
         
-        # Cashout options table
+        # Cashout options table with grid for alignment
         options_frame = ctk.CTkFrame(dialog, fg_color=COLORS['bg_panel'], corner_radius=8)
         options_frame.pack(fill=tk.X, padx=15, pady=10)
         
-        # Header
-        header_row = ctk.CTkFrame(options_frame, fg_color=COLORS['bg_card'])
-        header_row.pack(fill=tk.X)
-        ctk.CTkLabel(header_row, text="Rapporto", font=('Segoe UI', 9, 'bold'),
-                     text_color=COLORS['text_secondary'], width=100).pack(side=tk.LEFT, padx=10, pady=5)
-        ctk.CTkLabel(header_row, text="Se Vince", font=('Segoe UI', 9, 'bold'),
-                     text_color=COLORS['success'], width=80).pack(side=tk.LEFT, padx=5)
-        ctk.CTkLabel(header_row, text="Se Perde", font=('Segoe UI', 9, 'bold'),
-                     text_color=COLORS['loss'], width=80).pack(side=tk.LEFT, padx=5)
+        # Header row
+        header_row = ctk.CTkFrame(options_frame, fg_color=COLORS['bg_card'], corner_radius=4)
+        header_row.pack(fill=tk.X, padx=5, pady=5)
         
-        # Cashout percentages
+        header_inner = ctk.CTkFrame(header_row, fg_color='transparent')
+        header_inner.pack(fill=tk.X, padx=5, pady=5)
+        header_inner.grid_columnconfigure(0, weight=1, minsize=120)
+        header_inner.grid_columnconfigure(1, weight=0, minsize=90)
+        header_inner.grid_columnconfigure(2, weight=0, minsize=90)
+        header_inner.grid_columnconfigure(3, weight=0, minsize=30)
+        
+        ctk.CTkLabel(header_inner, text="Rapporto", font=('Segoe UI', 10, 'bold'),
+                     text_color=COLORS['text_secondary']).grid(row=0, column=0, sticky='w')
+        ctk.CTkLabel(header_inner, text="Se Vince", font=('Segoe UI', 10, 'bold'),
+                     text_color=COLORS['back']).grid(row=0, column=1)
+        ctk.CTkLabel(header_inner, text="Se Perde", font=('Segoe UI', 10, 'bold'),
+                     text_color=COLORS['lay']).grid(row=0, column=2)
+        
+        # Preset percentages
         percentages = [
-            ("0% - 100%", 0.0, 1.0),
-            ("25% - 75%", 0.25, 0.75),
-            ("50% - 50%", 0.5, 0.5),
-            ("75% - 25%", 0.75, 0.25),
-            ("100% - 0%", 1.0, 0.0),
+            ("0% - 100%", 0.0),
+            ("25% - 75%", 0.25),
+            ("50% - 50%", 0.5),
+            ("75% - 25%", 0.75),
+            ("100% - 0%", 1.0),
         ]
         
         selected_option = tk.IntVar(value=2)  # Default 50-50
+        option_rows = []
+        win_labels = []
+        lose_labels = []
+        check_labels = []
         
-        for idx, (label, win_pct, lose_pct) in enumerate(percentages):
-            # Calculate values for this percentage
-            if_wins = total_back_profit * win_pct + total_lay_profit * (1 - win_pct)
-            if_loses = total_lay_profit * lose_pct + total_back_profit * (1 - lose_pct)
+        for idx, (label, win_pct) in enumerate(percentages):
+            if_wins, if_loses, _, _ = calc_distribution(win_pct)
             
             row = ctk.CTkFrame(options_frame, fg_color='transparent')
-            row.pack(fill=tk.X, padx=5, pady=2)
+            row.pack(fill=tk.X, padx=5, pady=1)
+            
+            row_inner = ctk.CTkFrame(row, fg_color='transparent')
+            row_inner.pack(fill=tk.X)
+            row_inner.grid_columnconfigure(0, weight=1, minsize=120)
+            row_inner.grid_columnconfigure(1, weight=0, minsize=90)
+            row_inner.grid_columnconfigure(2, weight=0, minsize=90)
+            row_inner.grid_columnconfigure(3, weight=0, minsize=30)
             
             # Radio button
-            rb = ctk.CTkRadioButton(row, text=label, variable=selected_option, value=idx,
+            rb = ctk.CTkRadioButton(row_inner, text=label, variable=selected_option, value=idx,
                                     fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
-                                    text_color=COLORS['text_primary'], width=100)
-            rb.pack(side=tk.LEFT, padx=5)
+                                    text_color=COLORS['text_primary'], width=110,
+                                    command=lambda i=idx: on_option_select(i))
+            rb.grid(row=0, column=0, sticky='w', padx=2)
             
             # If wins value
             win_color = COLORS['success'] if if_wins >= 0 else COLORS['loss']
-            ctk.CTkLabel(row, text=f"€{if_wins:.2f}", font=('Segoe UI', 10),
-                         text_color=win_color, width=80).pack(side=tk.LEFT, padx=5)
+            win_lbl = ctk.CTkLabel(row_inner, text=f"€{if_wins:.2f}", font=('Segoe UI', 11, 'bold'),
+                                   text_color=win_color, width=80)
+            win_lbl.grid(row=0, column=1, padx=2)
+            win_labels.append(win_lbl)
             
             # If loses value
             lose_color = COLORS['success'] if if_loses >= 0 else COLORS['loss']
-            ctk.CTkLabel(row, text=f"€{if_loses:.2f}", font=('Segoe UI', 10),
-                         text_color=lose_color, width=80).pack(side=tk.LEFT, padx=5)
+            lose_lbl = ctk.CTkLabel(row_inner, text=f"€{if_loses:.2f}", font=('Segoe UI', 11, 'bold'),
+                                    text_color=lose_color, width=80)
+            lose_lbl.grid(row=0, column=2, padx=2)
+            lose_labels.append(lose_lbl)
+            
+            # Checkmark for selected (50-50 default)
+            check_lbl = ctk.CTkLabel(row_inner, text="", font=('Segoe UI', 10),
+                                     text_color=COLORS['success'], width=25)
+            check_lbl.grid(row=0, column=3, padx=2)
+            check_labels.append(check_lbl)
+            
+            option_rows.append(row_inner)
         
-        # Slider for custom percentage
-        slider_frame = ctk.CTkFrame(dialog, fg_color=COLORS['bg_panel'], corner_radius=8)
+        # Set initial checkmark
+        check_labels[2].configure(text="V")
+        
+        # Slider frame with large P&L display
+        slider_frame = ctk.CTkFrame(dialog, fg_color=COLORS['bg_card'], corner_radius=8)
         slider_frame.pack(fill=tk.X, padx=15, pady=10)
         
-        ctk.CTkLabel(slider_frame, text="Percentuale Personalizzata:", font=('Segoe UI', 10),
-                     text_color=COLORS['text_secondary']).pack(anchor='w', padx=10, pady=(10, 5))
+        # Real-time P&L display (prominent)
+        pnl_display_frame = ctk.CTkFrame(slider_frame, fg_color=COLORS['bg_panel'], corner_radius=6)
+        pnl_display_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        pnl_row = ctk.CTkFrame(pnl_display_frame, fg_color='transparent')
+        pnl_row.pack(fill=tk.X, padx=15, pady=8)
+        
+        ctk.CTkLabel(pnl_row, text="Se Vince:", font=('Segoe UI', 12),
+                     text_color=COLORS['back']).pack(side=tk.LEFT)
+        live_win_label = ctk.CTkLabel(pnl_row, text="€0.00", font=('Segoe UI', 16, 'bold'),
+                                       text_color=COLORS['success'])
+        live_win_label.pack(side=tk.LEFT, padx=10)
+        
+        ctk.CTkLabel(pnl_row, text="Se Perde:", font=('Segoe UI', 12),
+                     text_color=COLORS['lay']).pack(side=tk.LEFT, padx=(20, 0))
+        live_lose_label = ctk.CTkLabel(pnl_row, text="€0.00", font=('Segoe UI', 16, 'bold'),
+                                        text_color=COLORS['success'])
+        live_lose_label.pack(side=tk.LEFT, padx=10)
+        
+        # Slider
+        slider_row = ctk.CTkFrame(slider_frame, fg_color='transparent')
+        slider_row.pack(fill=tk.X, padx=10, pady=5)
+        
+        ctk.CTkLabel(slider_row, text="0%", font=('Segoe UI', 9),
+                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
         
         slider_val = tk.DoubleVar(value=50.0)
-        slider = ctk.CTkSlider(slider_frame, from_=0, to=100, variable=slider_val,
-                               fg_color=COLORS['bg_card'], progress_color=COLORS['back'],
-                               button_color=COLORS['back'], button_hover_color=COLORS['back_hover'])
-        slider.pack(fill=tk.X, padx=10, pady=5)
+        slider = ctk.CTkSlider(slider_row, from_=0, to=100, variable=slider_val,
+                               fg_color=COLORS['bg_panel'], progress_color=COLORS['back'],
+                               button_color=COLORS['back'], button_hover_color=COLORS['back_hover'],
+                               width=300)
+        slider.pack(side=tk.LEFT, padx=10, expand=True, fill=tk.X)
         
-        slider_label = ctk.CTkLabel(slider_frame, text="50%", font=('Segoe UI', 10, 'bold'),
-                                    text_color=COLORS['text_primary'])
-        slider_label.pack(pady=(0, 10))
+        ctk.CTkLabel(slider_row, text="100%", font=('Segoe UI', 9),
+                     text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        
+        slider_pct_label = ctk.CTkLabel(slider_frame, text="50%", font=('Segoe UI', 14, 'bold'),
+                                         text_color=COLORS['text_primary'])
+        slider_pct_label.pack(pady=(0, 5))
+        
+        # New bet preview (prominent)
+        bet_frame = ctk.CTkFrame(dialog, fg_color=COLORS['accent'], corner_radius=8)
+        bet_frame.pack(fill=tk.X, padx=15, pady=10)
+        
+        bet_label = ctk.CTkLabel(bet_frame, text="Nuova Giocata: Calcolando...",
+                                  font=('Segoe UI', 13, 'bold'), text_color=COLORS['text_primary'])
+        bet_label.pack(pady=12)
+        
+        # Update function for real-time P&L
+        def update_pnl_display(pct):
+            if_wins, if_loses, stake_needed, price = calc_distribution(pct / 100.0)
+            
+            # Update live labels
+            win_color = COLORS['success'] if if_wins >= 0 else COLORS['loss']
+            lose_color = COLORS['success'] if if_loses >= 0 else COLORS['loss']
+            
+            live_win_label.configure(text=f"€{if_wins:.2f}", text_color=win_color)
+            live_lose_label.configure(text=f"€{if_loses:.2f}", text_color=lose_color)
+            
+            # Update bet preview
+            if stake_needed >= 1.0 and price > 1:
+                side_text = "LAY" if positions[0]['side'] == 'BACK' else "BACK"
+                bet_label.configure(text=f"Nuova Giocata: €{stake_needed:.2f} @ {price:.2f} ({side_text})")
+            elif pct == 0:
+                bet_label.configure(text="Nessuna giocata (mantieni posizione)")
+            else:
+                bet_label.configure(text="Stake troppo basso per piazzare")
+            
+            slider_pct_label.configure(text=f"{int(pct)}%")
+        
+        def on_option_select(idx):
+            # Update checkmarks
+            for i, lbl in enumerate(check_labels):
+                lbl.configure(text="V" if i == idx else "")
+            
+            # Update slider to match
+            pct = percentages[idx][1] * 100
+            slider_val.set(pct)
+            update_pnl_display(pct)
         
         def on_slider_change(val):
-            slider_label.configure(text=f"{int(val)}%")
-            selected_option.set(-1)  # Deselect preset options
+            # Clear option checkmarks when using slider
+            for lbl in check_labels:
+                lbl.configure(text="")
+            selected_option.set(-1)
+            
+            # Schedule update to avoid blocking
+            dialog.after_idle(lambda: update_pnl_display(val))
         
         slider.configure(command=on_slider_change)
         
-        # Result preview
-        preview_frame = ctk.CTkFrame(dialog, fg_color=COLORS['bg_card'], corner_radius=8)
-        preview_frame.pack(fill=tk.X, padx=15, pady=10)
-        
-        preview_label = ctk.CTkLabel(preview_frame, text="Nuova Giocata: Calcolando...",
-                                     font=('Segoe UI', 11), text_color=COLORS['text_primary'])
-        preview_label.pack(pady=10)
+        # Initial display for 50%
+        update_pnl_display(50.0)
         
         # Buttons
         btn_frame = ctk.CTkFrame(dialog, fg_color='transparent')
@@ -2720,28 +2899,46 @@ class PickfairApp:
             # Get selected percentage
             opt = selected_option.get()
             if opt >= 0 and opt < len(percentages):
-                pct = percentages[opt][1]  # win percentage
+                pct = percentages[opt][1]
             else:
                 pct = slider_val.get() / 100.0
+            
+            if pct <= 0:
+                dialog.destroy()
+                return
             
             dialog.destroy()
             
             # Execute partial cashout for each position
+            executed = 0
             for pos in positions:
-                if pct > 0:
-                    partial_stake = pos['cashout_stake'] * pct
-                    if partial_stake >= 1.0:  # Minimum stake
-                        self._execute_partial_cashout(pos, partial_stake)
+                if pos['current_price'] > 1:
+                    stake = pos['stake']
+                    orig_price = pos['price']
+                    curr_price = pos['current_price']
+                    
+                    if pos['side'] == 'BACK':
+                        full_lay_stake = stake * orig_price / curr_price
+                        partial_stake = full_lay_stake * pct
+                    else:
+                        full_back_stake = stake * orig_price / curr_price
+                        partial_stake = full_back_stake * pct
+                    
+                    if partial_stake >= 1.0:
+                        self._execute_partial_cashout(pos, round(partial_stake, 2))
+                        executed += 1
             
-            messagebox.showinfo("Cashout", f"Cashout eseguito al {int(pct*100)}%")
+            if executed > 0:
+                messagebox.showinfo("Cashout", f"Cashout eseguito al {int(pct*100)}%\n{executed} ordini piazzati")
             self._update_market_cashout_positions()
         
         ctk.CTkButton(btn_frame, text="Esegui Cashout", fg_color=COLORS['success'],
-                      hover_color='#4caf50', corner_radius=6, width=150,
+                      hover_color='#4caf50', corner_radius=6, width=180, height=40,
+                      font=('Segoe UI', 12, 'bold'),
                       command=execute_cashout).pack(side=tk.LEFT, padx=5)
         
         ctk.CTkButton(btn_frame, text="Annulla", fg_color=COLORS['button_secondary'],
-                      hover_color=COLORS['bg_hover'], corner_radius=6, width=100,
+                      hover_color=COLORS['bg_hover'], corner_radius=6, width=100, height=40,
                       command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
     
     def _execute_partial_cashout(self, pos, stake):
