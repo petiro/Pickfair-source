@@ -11,9 +11,16 @@ import logging
 import time
 from typing import Callable, Optional, Dict, Any
 
+from thread_guard import GuardedAPIMeta
 
-class BetfairStream:
-    """Client for Betfair Exchange Stream API (Order and Market Stream)."""
+
+class BetfairStream(metaclass=GuardedAPIMeta):
+    """
+    Client for Betfair Exchange Stream API (Order and Market Stream).
+    
+    All public methods are automatically protected by @assert_not_ui_thread
+    via the GuardedAPIMeta metaclass. This prevents UI freezes.
+    """
     
     STREAM_HOST = "stream-api.betfair.com"
     STREAM_HOST_IT = "stream-api.betfair.it"

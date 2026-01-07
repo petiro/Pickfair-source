@@ -28,10 +28,12 @@ import logging
 import requests
 from typing import Optional, Dict, Any, List, Callable
 
+from thread_guard import GuardedAPIMeta
+
 log = logging.getLogger("APIFootball")
 
 
-class APIFootballClient:
+class APIFootballClient(metaclass=GuardedAPIMeta):
     """
     Client robusto per API-Football v3.
     
@@ -44,6 +46,9 @@ class APIFootballClient:
     - Retry minimo (1)
     - Cache locale (30s TTL)
     - Thread-safe
+    
+    All public methods are automatically protected by @assert_not_ui_thread
+    via the GuardedAPIMeta metaclass. This prevents UI freezes.
     """
     
     BASE_URL = "https://v3.football.api-sports.io"

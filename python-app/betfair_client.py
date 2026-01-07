@@ -342,7 +342,18 @@ class PriceStreamListener(StreamListener):
             print(f"Stream data error: {e}")
 
 
-class BetfairClient:
+from thread_guard import GuardedAPIMeta
+
+
+class BetfairClient(metaclass=GuardedAPIMeta):
+    """
+    Betfair Exchange API client.
+    
+    All public methods are automatically protected by @assert_not_ui_thread
+    via the GuardedAPIMeta metaclass. This prevents UI freezes by ensuring
+    API calls never run on the main thread.
+    """
+    
     def __init__(self, username, app_key, cert_pem, key_pem):
         # Aggressive cleaning of all string values to remove newlines/whitespace
         self.username = self._clean_string(username)
