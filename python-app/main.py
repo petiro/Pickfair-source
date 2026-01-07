@@ -835,22 +835,34 @@ class PickfairApp:
         )
         self.market_status_label.pack(side=tk.RIGHT, padx=10)
         
-        # Total P&L indicator (clickable for advanced cashout)
+        # Total P&L indicator (clickable for advanced cashout) - Fairbot style with dropdown arrow
         self.total_pnl_frame = ctk.CTkFrame(stream_frame, fg_color=COLORS['bg_card'], corner_radius=6)
         self.total_pnl_frame.pack(side=tk.RIGHT, padx=5)
         
+        # Inner frame for P&L value + arrow
+        pnl_inner = ctk.CTkFrame(self.total_pnl_frame, fg_color='transparent')
+        pnl_inner.pack(padx=6, pady=4)
+        
         self.total_pnl_label = ctk.CTkLabel(
-            self.total_pnl_frame, 
+            pnl_inner, 
             text="€0.00",
             font=('Segoe UI', 12, 'bold'),
-            text_color=COLORS['text_secondary'],
-            width=80
+            text_color=COLORS['text_secondary']
         )
-        self.total_pnl_label.pack(padx=8, pady=4)
+        self.total_pnl_label.pack(side=tk.LEFT, padx=(4, 2))
+        
+        # Dropdown arrow (small triangle like Fairbot)
+        self.pnl_arrow = ctk.CTkLabel(
+            pnl_inner,
+            text="\u25BC",  # Unicode down triangle
+            font=('Segoe UI', 8),
+            text_color=COLORS['text_secondary']
+        )
+        self.pnl_arrow.pack(side=tk.LEFT, padx=(0, 4))
         
         # Make it clickable for advanced cashout
-        self.total_pnl_frame.bind('<Button-1>', lambda e: self._show_advanced_cashout_dialog())
-        self.total_pnl_label.bind('<Button-1>', lambda e: self._show_advanced_cashout_dialog())
+        for widget in [self.total_pnl_frame, pnl_inner, self.total_pnl_label, self.pnl_arrow]:
+            widget.bind('<Button-1>', lambda e: self._show_advanced_cashout_dialog())
         
         # Tooltip-style cursor change
         self.total_pnl_frame.bind('<Enter>', lambda e: self.total_pnl_frame.configure(fg_color=COLORS['bg_hover']))
