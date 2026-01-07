@@ -860,9 +860,14 @@ class PickfairApp:
         )
         self.pnl_arrow.pack(side=tk.LEFT, padx=(0, 4))
         
-        # Make it clickable for advanced cashout
-        for widget in [self.total_pnl_frame, pnl_inner, self.total_pnl_label, self.pnl_arrow]:
-            widget.bind('<Button-1>', lambda e: self._show_advanced_cashout_dialog())
+        # Click behavior like Fairbot:
+        # - Click on value (P&L label) = immediate cashout (100% green-up)
+        # - Click on arrow = open advanced cashout dialog
+        self.total_pnl_label.bind('<Button-1>', lambda e: self._execute_immediate_cashout())
+        self.pnl_arrow.bind('<Button-1>', lambda e: self._show_advanced_cashout_dialog())
+        # Frame click defaults to advanced
+        self.total_pnl_frame.bind('<Button-1>', lambda e: self._show_advanced_cashout_dialog())
+        pnl_inner.bind('<Button-1>', lambda e: None)  # Prevent propagation
         
         # Tooltip-style cursor change
         self.total_pnl_frame.bind('<Enter>', lambda e: self.total_pnl_frame.configure(fg_color=COLORS['bg_hover']))
@@ -2983,6 +2988,68 @@ class PickfairApp:
             logging.error(f"Partial cashout failed: {msg}")
         
         self._execute_order_operation("partial_cashout", do_partial, on_success, on_error)
+    
+    def _execute_immediate_cashout(self):
+        """Execute immediate 100% cashout (green-up) when clicking on P&L value."""
+        if not hasattr(self, 'market_cashout_positions') or not self.market_cashout_positions:
+            messagebox.showinfo("Info", "Nessuna posizione aperta per il cashout")
+            return
+        
+        # Gather positions with cashout info
+        positions = []
+        total_green = 0.0
+        
+        for bet_id, pos in self.market_cashout_positions.items():
+            info = pos.get('cashout_info', {})
+            if info and info.get('current_price', 0) > 1:
+                stake = pos.get('stake', 0)
+                price = pos.get('price', 0)
+                side = pos.get('side', 'BACK')
+                current_price = info.get('current_price', 0)
+                
+                positions.append({
+                    'bet_id': bet_id,
+                    'selection_id': pos.get('selection_id'),
+                    'runner_name': pos.get('runner_name', 'Unknown'),
+                    'side': side,
+                    'stake': stake,
+                    'price': price,
+                    'current_price': current_price,
+                    'cashout_side': 'LAY' if side == 'BACK' else 'BACK',
+                    'green_up': info.get('green_up', 0)
+                })
+                total_green += info.get('green_up', 0)
+        
+        if not positions:
+            messagebox.showinfo("Info", "Nessuna posizione con dati cashout disponibili")
+            return
+        
+        # Confirm immediate cashout
+        green_text = f"+€{total_green:.2f}" if total_green >= 0 else f"-€{abs(total_green):.2f}"
+        if not messagebox.askyesno("Cashout Immediato", 
+                                    f"Eseguire cashout completo?\n\nProfitto stimato: {green_text}"):
+            return
+        
+        # Execute 100% cashout for each position
+        executed = 0
+        for pos in positions:
+            stake = pos['stake']
+            orig_price = pos['price']
+            curr_price = pos['current_price']
+            
+            if pos['side'] == 'BACK':
+                full_stake = stake * orig_price / curr_price
+            else:
+                full_stake = stake * orig_price / curr_price
+            
+            if full_stake >= 1.0:
+                self._execute_partial_cashout(pos, round(full_stake, 2))
+                executed += 1
+        
+        if executed > 0:
+            messagebox.showinfo("Cashout", f"Cashout completo eseguito!\n{executed} ordini piazzati")
+        
+        self._update_market_cashout_positions()
     
     def _load_settings(self):
         """Load saved settings."""
