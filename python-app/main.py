@@ -6880,7 +6880,7 @@ class PickfairApp:
             
             for widget in self.dashboard_orders_frame.winfo_children():
                 widget.destroy()
-            self._create_current_orders_view(self.dashboard_orders_frame)
+            self._create_current_orders_view(self.dashboard_orders_frame, orders)
             
             for widget in self.dashboard_bookings_frame.winfo_children():
                 widget.destroy()
@@ -9455,8 +9455,13 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 status
             ), tags=(tag,) if tag else ())
     
-    def _create_current_orders_view(self, parent):
-        """Create view for current orders from Betfair."""
+    def _create_current_orders_view(self, parent, orders=None):
+        """Create view for current orders from Betfair.
+        
+        Args:
+            parent: Parent widget
+            orders: Pre-fetched orders dict (optional). If None, uses empty data to avoid blocking.
+        """
         if not self.client:
             ttk.Label(parent, text="Non connesso").pack()
             return
@@ -9465,9 +9470,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         sub_notebook = ttk.Notebook(parent)
         sub_notebook.pack(fill=tk.BOTH, expand=True)
         
-        try:
-            orders = self.client.get_current_orders()
-        except:
+        # Use pre-fetched orders if available, otherwise empty (don't block main thread)
+        if orders is None:
             orders = {'matched': [], 'unmatched': [], 'partiallyMatched': []}
         
         # Matched
