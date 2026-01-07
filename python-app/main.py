@@ -3928,22 +3928,28 @@ class PickfairApp:
             self.order_stream.unsubscribe_markets()
     
     def _try_silent_relogin(self):
-        """Try to re-login silently if session expired."""
-        settings = self.db.get_settings()
-        password = settings.get('password')
+        """Try to re-login silently if session expired.
         
-        if password and self.client:
-            try:
-                result = self.client.login(password)
-                self.db.save_session(result['session_token'], result['expiry'])
-                print("Session renewed successfully")
-            except Exception as e:
-                print(f"Silent relogin failed: {e}")
-                # Show notification to user
-                self.root.after(0, lambda: messagebox.showwarning(
-                    "Sessione Scaduta", 
-                    "La sessione è scaduta. Riconnettiti manualmente."
-                ))
+        Runs entirely in background thread to prevent UI freeze.
+        """
+        def do_relogin():
+            settings = self.db.get_settings()
+            password = settings.get('password')
+            
+            if password and self.client:
+                try:
+                    result = self.client.login(password)
+                    self.db.save_session(result['session_token'], result['expiry'])
+                    logging.info("Session renewed successfully")
+                except Exception as e:
+                    logging.warning(f"Silent relogin failed: {e}")
+                    # Show notification to user (scheduled to main thread)
+                    self.root.after(0, lambda: messagebox.showwarning(
+                        "Sessione Scaduta", 
+                        "La sessione è scaduta. Riconnettiti manualmente."
+                    ))
+        
+        threading.Thread(target=do_relogin, daemon=True, name="SilentRelogin").start()
     
     def _on_connection_error(self, error):
         """Handle connection error."""
