@@ -3548,8 +3548,7 @@ class PickfairApp:
         if should_refresh:
             def update_ui():
                 self._update_balance()
-                if hasattr(self, 'bets_tree'):
-                    self._refresh_current_bets()
+                self._refresh_my_bets_panel()
             
             self.root.after(0, update_ui)
     
