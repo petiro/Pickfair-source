@@ -324,7 +324,7 @@ class PickfairApp:
         # API-Football integration for live match data
         # IMPORTANT: Betfair = MASTER, API-Football = sensor only
         self.hard_sync = HardSyncController(safe_mode_manager=None)
-        self.api_football_worker = APIFootballWorker(live_context_store, interval=15.0)
+        self.api_football_worker = APIFootballWorker(client=None, poll_interval=15)
         self.api_football_worker.start()
         
         # Dashboard auto-refresh
