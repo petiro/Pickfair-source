@@ -69,6 +69,11 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - **UI Controls**: Stake type selector, cycle enable toggle, target/stop inputs, live status display, reset button.
     - **Callback System**: Notifies user with dialog when cycle ends (target hit or stopped).
     - **Test Suite**: 48 tests (38 core + 10 CycleManager).
+-   **v3.73.1 Telegram Threading Fix**:
+    - **Background Thread Execution**: `_process_telegram_auto_bet`, `_process_telegram_booking`, and `_process_telegram_copy_dutching` now run in dedicated background threads instead of main thread via `root.after()`.
+    - **UI Freeze Prevention**: All ~15 blocking Betfair API calls per function now execute in worker threads, eliminating UI freezes during Telegram signal processing.
+    - **Thread-Safe MessageBox**: All `messagebox` calls wrapped with `root.after(0, ...)` for safe cross-thread UI updates.
+    - **Pattern**: `threading.Thread(target=lambda s=signal: self._process_telegram_auto_bet(s, settings), daemon=True, name="TelegramAutoBet").start()`
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:

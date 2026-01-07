@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.73.0"  # Follower PRO: Fixed Stake + Cycle Target/Stop + CycleManager
+APP_VERSION = "3.73.1"  # Fix: Telegram auto-bet/booking/copy-dutching now run in background threads
 
 # Setup file logging
 def setup_logging():
@@ -9239,7 +9239,11 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             var.set(filename)
     
     def _show_dashboard(self):
-        """Show dashboard with account info and bets."""
+        """Show dashboard with account info and bets.
+        
+        NOTE: This is a legacy popup. The main Dashboard is now in tabs.
+        All API calls are done in background thread to prevent UI freeze.
+        """
         if not self.client:
             messagebox.showwarning("Attenzione", "Devi prima connetterti")
             return
@@ -9260,6 +9264,10 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         stats_frame = ttk.Frame(main_frame)
         stats_frame.pack(fill=tk.X, pady=10)
         
+        # Loading indicator
+        loading_label = ttk.Label(stats_frame, text="Caricamento dati...")
+        loading_label.pack(pady=20)
+        
         # Create stat cards
         def create_stat_card(parent, title, value, subtitle, col):
             card = ttk.LabelFrame(parent, text=title, padding=10)
@@ -9268,37 +9276,48 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             ttk.Label(card, text=subtitle, font=('Segoe UI', 8)).pack()
             return card
         
-        # Fetch account data
-        try:
-            funds = self.client.get_account_funds()
-            self.account_data = funds
-        except:
-            funds = self.account_data
+        # Fetch account data in background thread
+        def fetch_initial_data():
+            try:
+                funds = self.client.get_account_funds()
+                self.account_data = funds
+            except:
+                funds = self.account_data or {'available': 0, 'exposure': 0}
+            
+            daily_pl = self.db.get_today_profit_loss()
+            try:
+                orders = self.client.get_current_orders()
+                active_count = len([o for o in orders.get('matched', []) if o.get('sizeMatched', 0) > 0])
+            except:
+                active_count = self.db.get_active_bets_count()
+            
+            self.root.after(0, lambda: populate_ui(funds, daily_pl, active_count))
         
-        daily_pl = self.db.get_today_profit_loss()
-        # Get active bets count from Betfair (matched orders)
-        try:
-            orders = self.client.get_current_orders()
-            active_count = len([o for o in orders.get('matched', []) if o.get('sizeMatched', 0) > 0])
-        except:
-            active_count = self.db.get_active_bets_count()
+        def populate_ui(funds, daily_pl, active_count):
+            if not dialog.winfo_exists():
+                return
+            
+            for widget in stats_frame.winfo_children():
+                widget.destroy()
+            
+            create_stat_card(stats_frame, "Saldo Disponibile", 
+                            f"{funds.get('available', 0):.2f} EUR", 
+                            "Fondi disponibili per scommettere", 0)
+            create_stat_card(stats_frame, "Esposizione", 
+                            f"{abs(funds.get('exposure', 0)):.2f} EUR", 
+                            "Responsabilita corrente", 1)
+            pl_text = f"+{daily_pl:.2f}" if daily_pl >= 0 else f"{daily_pl:.2f}"
+            create_stat_card(stats_frame, "P/L Oggi", 
+                            f"{pl_text} EUR", 
+                            "Profitto/Perdita giornaliero", 2)
+            create_stat_card(stats_frame, "Scommesse Attive", 
+                            str(active_count), 
+                            "In attesa di risultato", 3)
+            
+            for i in range(4):
+                stats_frame.columnconfigure(i, weight=1)
         
-        create_stat_card(stats_frame, "Saldo Disponibile", 
-                        f"{funds.get('available', 0):.2f} EUR", 
-                        "Fondi disponibili per scommettere", 0)
-        create_stat_card(stats_frame, "Esposizione", 
-                        f"{abs(funds.get('exposure', 0)):.2f} EUR", 
-                        "Responsabilita corrente", 1)
-        pl_text = f"+{daily_pl:.2f}" if daily_pl >= 0 else f"{daily_pl:.2f}"
-        create_stat_card(stats_frame, "P/L Oggi", 
-                        f"{pl_text} EUR", 
-                        "Profitto/Perdita giornaliero", 2)
-        create_stat_card(stats_frame, "Scommesse Attive", 
-                        str(active_count), 
-                        "In attesa di risultato", 3)
-        
-        for i in range(4):
-            stats_frame.columnconfigure(i, weight=1)
+        threading.Thread(target=fetch_initial_data, daemon=True, name="DashboardPopup").start()
         
         # Refresh button - fetch data in background, update UI on main thread
         def refresh_dashboard():
@@ -11202,12 +11221,15 @@ Evento: {event_name}"""
                 
                 # Handle COPY DUTCHING signals (unified dutching from Master)
                 if signal.get('is_copy_dutching') and signal.get('event') and signal.get('selections'):
-                    self.root.after(100, lambda: self._process_telegram_copy_dutching(signal, settings))
+                    threading.Thread(target=lambda s=signal, st=settings: self._process_telegram_copy_dutching(s, st), 
+                                   daemon=True, name="TelegramCopyDutching").start()
                 # Handle booking signals
                 elif signal.get('is_booking') and signal.get('event'):
-                    self.root.after(100, lambda: self._process_telegram_booking(signal, settings))
+                    threading.Thread(target=lambda s=signal, st=settings: self._process_telegram_booking(s, st),
+                                   daemon=True, name="TelegramBooking").start()
                 elif settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
-                    self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
+                    threading.Thread(target=lambda s=signal, st=settings: self._process_telegram_auto_bet(s, st),
+                                   daemon=True, name="TelegramAutoBet").start()
             
             def on_status(status, message):
                 self.telegram_status = status
@@ -11322,14 +11344,17 @@ Evento: {event_name}"""
                 # Handle COPY DUTCHING signals (unified dutching from Master)
                 if signal.get('is_copy_dutching') and signal.get('event') and signal.get('selections'):
                     logging.info(f"[COPY DUTCHING] Processing dutching for: {signal.get('event')} - {len(signal.get('selections', []))} selections")
-                    self.root.after(100, lambda: self._process_telegram_copy_dutching(signal, settings))
+                    threading.Thread(target=lambda s=signal, st=settings: self._process_telegram_copy_dutching(s, st),
+                                   daemon=True, name="TelegramCopyDutching").start()
                 # Handle booking signals
                 elif signal.get('is_booking') and signal.get('event'):
                     logging.debug(f"[BOOKING DEBUG] Processing booking for: {signal.get('event')} @ {signal.get('target_odds')}")
-                    self.root.after(100, lambda: self._process_telegram_booking(signal, settings))
+                    threading.Thread(target=lambda s=signal, st=settings: self._process_telegram_booking(s, st),
+                                   daemon=True, name="TelegramBooking").start()
                 elif settings.get('auto_bet') and signal.get('event') and signal.get('market_type'):
                     logging.debug(f"[AUTO-BET DEBUG] Processing auto-bet for: {signal.get('event')} - {signal.get('market_type')}")
-                    self.root.after(100, lambda: self._process_telegram_auto_bet(signal, settings))
+                    threading.Thread(target=lambda s=signal, st=settings: self._process_telegram_auto_bet(s, st),
+                                   daemon=True, name="TelegramAutoBet").start()
                 else:
                     logging.debug(f"[AUTO-BET DEBUG] Skipped - auto_bet={settings.get('auto_bet')}, event={signal.get('event')}, market_type={signal.get('market_type')}")
                 
@@ -11531,9 +11556,13 @@ Evento: {event_name}"""
             messagebox.showinfo("Segnale Telegram", msg)
     
     def _process_telegram_booking(self, signal, settings):
-        """Process a booking signal from Telegram to create a bet reservation."""
+        """Process a booking signal from Telegram to create a bet reservation.
+        
+        IMPORTANT: This function contains blocking API calls.
+        It MUST be called from a background thread, NOT from the main UI thread.
+        """
         if not self.client:
-            messagebox.showwarning("Prenotazione", "Non connesso a Betfair")
+            self.root.after(0, lambda: messagebox.showwarning("Prenotazione", "Non connesso a Betfair"))
             return
         
         event_name = signal.get('event', '')
@@ -11582,7 +11611,7 @@ Evento: {event_name}"""
                     break
             
             if not matched_event:
-                messagebox.showwarning("Prenotazione", f"Evento non trovato: {event_name}")
+                self.root.after(0, lambda e=event_name: messagebox.showwarning("Prenotazione", f"Evento non trovato: {e}"))
                 return
             
             # Get market for this event
@@ -11632,7 +11661,7 @@ Evento: {event_name}"""
             )
             
             if not markets:
-                messagebox.showwarning("Prenotazione", f"Mercato {market_type} non trovato per {matched_event['name']}")
+                self.root.after(0, lambda mt=market_type, en=matched_event['name']: messagebox.showwarning("Prenotazione", f"Mercato {mt} non trovato per {en}"))
                 return
             
             target_market = markets[0]
@@ -11713,7 +11742,7 @@ Evento: {event_name}"""
                         break
             
             if not target_runner:
-                messagebox.showwarning("Prenotazione", f"Selezione '{selection}' non trovata nel mercato")
+                self.root.after(0, lambda s=selection: messagebox.showwarning("Prenotazione", f"Selezione '{s}' non trovata nel mercato"))
                 return
             
             # Get current price
@@ -11733,20 +11762,23 @@ Evento: {event_name}"""
                 current_price=current_price
             )
             
-            messagebox.showinfo("Prenotazione", 
-                f"Prenotazione creata!\n\n"
-                f"Evento: {matched_event['name']}\n"
-                f"Selezione: {target_runner['runnerName']}\n"
-                f"Tipo: {side}\n"
-                f"Quota target: {target_odds}\n"
-                f"Quota attuale: {current_price:.2f}\n"
-                f"Stake: {stake:.2f}€")
+            msg = (f"Prenotazione creata!\n\n"
+                   f"Evento: {matched_event['name']}\n"
+                   f"Selezione: {target_runner['runnerName']}\n"
+                   f"Tipo: {side}\n"
+                   f"Quota target: {target_odds}\n"
+                   f"Quota attuale: {current_price:.2f}\n"
+                   f"Stake: {stake:.2f}€")
+            self.root.after(0, lambda m=msg: messagebox.showinfo("Prenotazione", m))
         
         except Exception as e:
-            messagebox.showerror("Errore Prenotazione", f"Errore: {str(e)}")
+            self.root.after(0, lambda err=str(e): messagebox.showerror("Errore Prenotazione", f"Errore: {err}"))
     
     def _process_telegram_copy_dutching(self, signal, settings):
         """Process COPY DUTCHING signal from Master - place dutching bets with profit target.
+        
+        IMPORTANT: This function contains blocking API calls.
+        It MUST be called from a background thread, NOT from the main UI thread.
         
         Format received:
         {
@@ -11947,9 +11979,14 @@ Evento: {event_name}"""
             logging.error(traceback.format_exc())
     
     def _process_telegram_auto_bet(self, signal, settings):
-        """Process automatic bet from Telegram signal."""
+        """Process automatic bet from Telegram signal.
+        
+        IMPORTANT: This function contains many blocking API calls.
+        It MUST be called from a background thread, NOT from the main UI thread.
+        Use threading.Thread(target=lambda: self._process_telegram_auto_bet(...)).start()
+        """
         if not self.client:
-            messagebox.showwarning("Auto-Bet", "Non connesso a Betfair")
+            self.root.after(0, lambda: messagebox.showwarning("Auto-Bet", "Non connesso a Betfair"))
             return
         
         event_name = signal.get('event', '')
@@ -12083,7 +12120,7 @@ Evento: {event_name}"""
                     reason += f" ({league})"
                 log_failed_bet(reason)
                 update_status('FAILED')
-                messagebox.showwarning("Auto-Bet", reason)
+                self.root.after(0, lambda r=reason: messagebox.showwarning("Auto-Bet", r))
                 return
             
             markets = self.client.get_markets(matched_event['id'])
@@ -12268,7 +12305,7 @@ Evento: {event_name}"""
                         reason = f"Dutching incompleto - risultati non trovati: {', '.join(missing_selections)}"
                         log_failed_bet(reason)
                         update_status('FAILED')
-                        messagebox.showwarning("Auto-Bet Dutching", reason)
+                        self.root.after(0, lambda r=reason: messagebox.showwarning("Auto-Bet Dutching", r))
                         return
                     
                     if matched_runners and len(matched_runners) == len(dutching_selections):
@@ -12301,7 +12338,7 @@ Evento: {event_name}"""
                                 potential_profit=total_profit
                             )
                             update_status('PLACED')
-                            messagebox.showinfo("Auto-Bet Dutching (Simulazione)", f"Dutching simulato piazzato!\n\n{bet_info}")
+                            self.root.after(0, lambda bi=bet_info: messagebox.showinfo("Auto-Bet Dutching (Simulazione)", f"Dutching simulato piazzato!\n\n{bi}"))
                         else:
                             # Place real dutching bets with retry (3 attempts, 10s delay)
                             import time
@@ -12327,7 +12364,7 @@ Evento: {event_name}"""
                                 
                                 if success_count == len(dutching_result):
                                     update_status('PLACED')
-                                    messagebox.showinfo("Auto-Bet Dutching", f"Dutching piazzato con successo!\n\n{bet_info}")
+                                    self.root.after(0, lambda bi=bet_info: messagebox.showinfo("Auto-Bet Dutching", f"Dutching piazzato con successo!\n\n{bi}"))
                                     break
                                 elif attempt < max_retries - 1:
                                     # Retry failed bets after delay
@@ -12337,17 +12374,18 @@ Evento: {event_name}"""
                                     # Last attempt failed
                                     if success_count > 0:
                                         update_status('PARTIAL')
-                                        messagebox.showwarning("Auto-Bet Dutching", f"Dutching parziale dopo {max_retries} tentativi: {success_count}/{len(matched_runners)} scommesse piazzate")
+                                        sc, mr = success_count, len(matched_runners)
+                                        self.root.after(0, lambda s=sc, m=mr: messagebox.showwarning("Auto-Bet Dutching", f"Dutching parziale dopo {max_retries} tentativi: {s}/{m} scommesse piazzate"))
                                     else:
                                         update_status('FAILED')
                                         log_failed_bet(f"Tutte le scommesse dutching fallite dopo {max_retries} tentativi")
-                                        messagebox.showerror("Auto-Bet Dutching Errore", f"Errore piazzamento dopo {max_retries} tentativi")
+                                        self.root.after(0, lambda: messagebox.showerror("Auto-Bet Dutching Errore", f"Errore piazzamento dopo {max_retries} tentativi"))
                         return
                     else:
                         reason = f"Nessun risultato trovato per dutching: {', '.join(dutching_selections)}"
                         log_failed_bet(reason)
                         update_status('FAILED')
-                        messagebox.showwarning("Auto-Bet", reason)
+                        self.root.after(0, lambda r=reason: messagebox.showwarning("Auto-Bet", r))
                         return
                 
                 elif target_market:
@@ -12446,14 +12484,14 @@ Evento: {event_name}"""
                 reason = f"Mercato {market_type} non trovato per {matched_event['name']}"
                 log_failed_bet(reason)
                 update_status('FAILED')
-                messagebox.showwarning("Auto-Bet", reason)
+                self.root.after(0, lambda r=reason: messagebox.showwarning("Auto-Bet", r))
                 return
             
             if not target_runner:
                 reason = f"Selezione '{selection}' non disponibile per {matched_event['name']}"
                 log_failed_bet(reason)
                 update_status('FAILED')
-                messagebox.showwarning("Auto-Bet", reason)
+                self.root.after(0, lambda r=reason: messagebox.showwarning("Auto-Bet", r))
                 return
             
             if bet_side == 'LAY':
@@ -12498,7 +12536,7 @@ Evento: {event_name}"""
                     potential_profit=net_profit
                 )
                 update_status('PLACED')
-                messagebox.showinfo("Auto-Bet (Simulazione)", f"Scommessa simulata piazzata!\n\n{bet_info}")
+                self.root.after(0, lambda bi=bet_info: messagebox.showinfo("Auto-Bet (Simulazione)", f"Scommessa simulata piazzata!\n\n{bi}"))
             else:
                 # Place bet with retry (3 attempts, 10s delay)
                 import time
@@ -12533,7 +12571,7 @@ Evento: {event_name}"""
                             logging.info(f"[COPY] Auto-bet broadcast call completed")
                         except Exception as e:
                             logging.error(f"[COPY] Auto-bet broadcast FAILED: {e}")
-                        messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bet_info}")
+                        self.root.after(0, lambda bi=bet_info: messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bi}"))
                         break
                     elif attempt < max_retries - 1:
                         # Retry after delay
@@ -12544,12 +12582,12 @@ Evento: {event_name}"""
                         reason = f"Errore Betfair dopo {max_retries} tentativi: {error}"
                         update_status('FAILED')
                         log_failed_bet(reason)
-                        messagebox.showerror("Auto-Bet Errore", f"Errore piazzamento dopo {max_retries} tentativi: {error}")
+                        self.root.after(0, lambda e=error: messagebox.showerror("Auto-Bet Errore", f"Errore piazzamento dopo {max_retries} tentativi: {e}"))
         
         except Exception as e:
             log_failed_bet(f"Eccezione: {str(e)}")
             update_status('FAILED')
-            messagebox.showerror("Auto-Bet Errore", f"Errore: {str(e)}")
+            self.root.after(0, lambda err=str(e): messagebox.showerror("Auto-Bet Errore", f"Errore: {err}"))
     
     def _show_multi_market_monitor(self):
         """Show multi-market monitor window."""
