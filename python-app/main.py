@@ -9687,86 +9687,110 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         no_positions_label = [None]  # Use list to allow modification in nested function
         
         def load_positions():
-            """Load matched orders and calculate P/L with event/market names."""
-            # Clear previous no-positions label if exists
-            if no_positions_label[0]:
-                no_positions_label[0].destroy()
-                no_positions_label[0] = None
+            """Load matched orders and calculate P/L with event/market names (non-blocking)."""
+            # Run API calls in background thread to avoid UI freeze
+            def fetch_positions():
+                try:
+                    orders = self.client.get_current_orders()
+                    matched = orders.get('matched', [])
+                    
+                    # Prepare data in background
+                    positions_list = []
+                    market_cache = {}
+                    
+                    for order in matched:
+                        market_id = order.get('marketId')
+                        selection_id = order.get('selectionId')
+                        side = order.get('side')
+                        price = order.get('price', 0)
+                        stake = order.get('sizeMatched', 0)
+                        
+                        if stake > 0:
+                            event_name = ''
+                            market_name = ''
+                            runner_name = str(selection_id)
+                            
+                            if market_id and market_id not in market_cache:
+                                try:
+                                    catalogue = self.client.get_market_catalogue([market_id])
+                                    if catalogue:
+                                        market_cache[market_id] = catalogue[0]
+                                except:
+                                    pass
+                            
+                            if market_id in market_cache:
+                                cat = market_cache[market_id]
+                                event_name = cat.get('event', {}).get('name', '')[:25]
+                                market_name = cat.get('marketName', '')[:20]
+                                for runner in cat.get('runners', []):
+                                    if runner.get('selectionId') == selection_id:
+                                        runner_name = runner.get('runnerName', str(selection_id))[:20]
+                                        break
+                            
+                            try:
+                                cashout_info = self.client.calculate_cashout(
+                                    market_id, selection_id, side, stake, price
+                                )
+                                green_up = cashout_info.get('green_up', 0)
+                            except:
+                                cashout_info = None
+                                green_up = None
+                            
+                            positions_list.append({
+                                'bet_id': order.get('betId'),
+                                'event_name': event_name,
+                                'market_name': market_name,
+                                'runner_name': runner_name,
+                                'side': side,
+                                'price': price,
+                                'stake': stake,
+                                'green_up': green_up,
+                                'cashout_info': cashout_info,
+                                'market_id': market_id,
+                                'selection_id': selection_id
+                            })
+                    
+                    # Schedule UI update on main thread
+                    self.root.after(0, lambda: update_positions_ui(positions_list))
+                except Exception as e:
+                    err_msg = str(e)
+                    self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", f"Impossibile caricare posizioni: {msg}"))
             
-            try:
-                orders = self.client.get_current_orders()
-                matched = orders.get('matched', [])
+            def update_positions_ui(positions_list):
+                # Clear previous no-positions label if exists
+                if no_positions_label[0]:
+                    no_positions_label[0].destroy()
+                    no_positions_label[0] = None
                 
                 for item in tree.get_children():
                     tree.delete(item)
                 positions_data.clear()
                 
-                # Cache market catalogues for event/market names
-                market_cache = {}
-                
-                for order in matched:
-                    market_id = order.get('marketId')
-                    selection_id = order.get('selectionId')
-                    side = order.get('side')
-                    price = order.get('price', 0)
-                    stake = order.get('sizeMatched', 0)
+                for pos in positions_list:
+                    pl_display = f"{pos['green_up']:+.2f}" if pos['green_up'] is not None else "N/D"
+                    pl_tag = 'profit' if pos['green_up'] and pos['green_up'] > 0 else ('loss' if pos['green_up'] and pos['green_up'] < 0 else None)
                     
-                    if stake > 0:
-                        # Get event/market names
-                        event_name = ''
-                        market_name = ''
-                        runner_name = str(selection_id)
-                        
-                        if market_id and market_id not in market_cache:
-                            try:
-                                catalogue = self.client.get_market_catalogue([market_id])
-                                if catalogue:
-                                    market_cache[market_id] = catalogue[0]
-                            except:
-                                pass
-                        
-                        if market_id in market_cache:
-                            cat = market_cache[market_id]
-                            event_name = cat.get('event', {}).get('name', '')[:25]
-                            market_name = cat.get('marketName', '')[:20]
-                            for runner in cat.get('runners', []):
-                                if runner.get('selectionId') == selection_id:
-                                    runner_name = runner.get('runnerName', str(selection_id))[:20]
-                                    break
-                        
-                        try:
-                            cashout_info = self.client.calculate_cashout(
-                                market_id, selection_id, side, stake, price
-                            )
-                            green_up = cashout_info.get('green_up', 0)
-                            pl_display = f"{green_up:+.2f}"
-                            pl_tag = 'profit' if green_up > 0 else 'loss'
-                        except:
-                            cashout_info = None
-                            pl_display = "N/D"
-                            pl_tag = None
-                        
-                        item_id = f"{order.get('betId')}"
-                        tags = (pl_tag,) if pl_tag else ()
-                        tree.insert('', tk.END, iid=item_id, values=(
-                            event_name,
-                            market_name,
-                            runner_name,
-                            side,
-                            f"{price:.2f}",
-                            f"{stake:.2f}",
-                            pl_display
-                        ), tags=tags)
-                        
-                        positions_data[item_id] = {
-                            'market_id': market_id,
-                            'selection_id': selection_id,
-                            'side': side,
-                            'price': price,
-                            'stake': stake,
-                            'cashout_info': cashout_info,
-                            'event_name': event_name
-                        }
+                    item_id = str(pos['bet_id'])
+                    tags = (pl_tag,) if pl_tag else ()
+                    tree.insert('', tk.END, iid=item_id, values=(
+                        pos['event_name'],
+                        pos['market_name'],
+                        pos['runner_name'],
+                        pos['side'],
+                        f"{pos['price']:.2f}",
+                        f"{pos['stake']:.2f}",
+                        pl_display
+                    ), tags=tags)
+                    
+                    positions_data[item_id] = {
+                        'market_id': pos['market_id'],
+                        'selection_id': pos['selection_id'],
+                        'side': pos['side'],
+                        'price': pos['price'],
+                        'stake': pos['stake'],
+                        'cashout_info': pos['cashout_info'],
+                        'event_name': pos['event_name']
+                    }
                 
                 if not positions_data:
                     no_positions_label[0] = ttk.Label(parent, text="Nessuna posizione aperta al momento", 
@@ -9775,9 +9799,9 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     cashout_btn.config(state='disabled')
                 else:
                     cashout_btn.config(state='normal')
-            except Exception as e:
-                err_msg = str(e)
-                self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", f"Impossibile caricare posizioni: {msg}"))
+            
+            # Start background fetch
+            threading.Thread(target=fetch_positions, daemon=True).start()
         
         def do_cashout():
             """Execute cashout for selected position."""
