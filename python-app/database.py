@@ -10,6 +10,8 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
+from thread_guard import warn_if_ui_thread
+
 # Thread lock for database access
 _db_lock = threading.Lock()
 
@@ -64,6 +66,7 @@ class Database:
             print(f"[ERROR] Database error: {e}")
             self._backup_and_recreate()
     
+    @warn_if_ui_thread
     def _backup_and_recreate(self):
         """Backup corrupted database and create fresh one."""
         import shutil
@@ -673,6 +676,7 @@ class Database:
         conn.commit()
         # conn.close() - using persistent connection
     
+    @warn_if_ui_thread
     def get_unsettled_bets(self, limit=100):
         """Get bets without outcome (not yet settled)."""
         conn = self._get_connection()
@@ -686,6 +690,7 @@ class Database:
         # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
+    @warn_if_ui_thread
     def get_bet_statistics(self):
         """Get betting statistics (total, won, lost, pending, P/L)."""
         import logging
@@ -732,6 +737,7 @@ class Database:
             'win_rate': win_rate
         }
     
+    @warn_if_ui_thread
     def get_today_profit_loss(self):
         """Get today's total profit/loss including cashouts."""
         conn = self._get_connection()

@@ -83,10 +83,15 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
 -   **v3.73.3 Thread Guard System**:
     - **`@assert_not_ui_thread` decorator**: Applied to ALL critical Betfair API methods (`get_account_funds`, `get_available_markets`, `get_market_book`, `place_bet`, `place_bets`, `get_current_orders`, `cancel_orders`, `replace_orders`, `execute_cashout`).
     - **Hard Crash Instead of Freeze**: If any protected method is called from main thread → `RuntimeError` with full stack trace instead of silent freeze.
-    - **`ui_guard()` decorator**: For button callbacks - logs timing and warns if >200ms.
+    - **`ui_guard()` decorator**: For button callbacks - logs timing and warns if >200ms, thread dump if >2s.
     - **`is_ui_thread()` helper**: Thread-safe check for main thread detection.
     - **Test Mode Support**: Guards auto-disabled during pytest via `THREAD_GUARD_DISABLED=1` env var.
     - **Pattern**: Converts silent UI freezes into immediate, debuggable crashes with stack traces.
+-   **v3.73.4 Anti-Freeze Extensions**:
+    - **Database Guards**: `@warn_if_ui_thread` on heavy DB operations (`_backup_and_recreate`, `get_unsettled_bets`, `get_bet_statistics`, `get_today_profit_loss`).
+    - **TimerManager**: Class to prevent `.after()` timer accumulation. Ensures only one timer per name is active. Used for `auto_refresh`, `match_timeline`.
+    - **chunked_tree_insert()**: Helper function for inserting large datasets into Treeview in chunks (default 50 items) to prevent UI freeze.
+    - **Pattern**: Deduplication of timers prevents memory leaks and CPU waste from accumulated callbacks.
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:

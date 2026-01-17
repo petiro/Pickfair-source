@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.73.3"  # Thread Guard: @assert_not_ui_thread on ALL Betfair API + ui_guard() decorators
+APP_VERSION = "3.73.4"  # Anti-freeze: DB guards, TimerManager, chunked_tree_insert
 
 # Setup file logging
 def setup_logging():
@@ -228,6 +228,85 @@ TREE_MARKET_TYPES = {
 ASIAN_HANDICAP_PATTERNS = ['+1', '+2', '-1', '-2', '+0.5', '-0.5', '+1.5', '-1.5']
 
 
+# === ANTI-FREEZE HELPERS ===
+
+class TimerManager:
+    """
+    Manages Tkinter timers to prevent .after() accumulation.
+    Ensures only one timer per name is active at any time.
+    """
+    def __init__(self, root):
+        self._root = root
+        self._timers = {}  # {name: timer_id}
+    
+    def schedule(self, name: str, delay_ms: int, callback):
+        """Schedule a timer, cancelling any existing timer with same name."""
+        if name in self._timers and self._timers[name] is not None:
+            try:
+                self._root.after_cancel(self._timers[name])
+            except:
+                pass
+        self._timers[name] = self._root.after(delay_ms, callback)
+        return self._timers[name]
+    
+    def cancel(self, name: str):
+        """Cancel a timer by name."""
+        if name in self._timers and self._timers[name] is not None:
+            try:
+                self._root.after_cancel(self._timers[name])
+            except:
+                pass
+            self._timers[name] = None
+    
+    def cancel_all(self):
+        """Cancel all managed timers."""
+        for name in list(self._timers.keys()):
+            self.cancel(name)
+
+
+def chunked_tree_insert(root, tree, parent, items, chunk_size=50, callback=None):
+    """
+    Insert items into Treeview in chunks to prevent UI freeze.
+    
+    USE THIS for any insert of 100+ items. Example:
+        items = [{'iid': evt['id'], 'values': (evt['name'], date_str)} for evt in events]
+        chunked_tree_insert(self.root, self.events_tree, '', items)
+    
+    Args:
+        root: Tk root window
+        tree: ttk.Treeview widget
+        parent: Parent item ID ('' for root)
+        items: List of dicts with 'iid', 'values', 'text' (optional), 'tags' (optional)
+        chunk_size: Number of items per chunk (default 50)
+        callback: Optional callback when all items inserted
+    """
+    def insert_chunk(index=0):
+        end = min(index + chunk_size, len(items))
+        for i in range(index, end):
+            item = items[i]
+            try:
+                tree.insert(
+                    parent, 'end',
+                    iid=item.get('iid'),
+                    text=item.get('text', ''),
+                    values=item.get('values', ()),
+                    tags=item.get('tags', ()),
+                    open=item.get('open', False)
+                )
+            except Exception:
+                pass  # Item already exists or invalid
+        
+        if end < len(items):
+            root.after(1, lambda: insert_chunk(end))
+        elif callback:
+            callback()
+    
+    if items:
+        insert_chunk(0)
+    elif callback:
+        callback()
+
+
 class PickfairApp:
     def __init__(self):
         configure_customtkinter()
@@ -332,6 +411,9 @@ class PickfairApp:
         # Dashboard auto-refresh
         self._dashboard_dirty = False
         self._dashboard_refresh_timer_id = None
+        
+        # Timer Manager: prevents .after() accumulation
+        self.timers = TimerManager(self.root)
         
         # License check
         self.is_app_licensed = is_licensed()
@@ -4235,12 +4317,10 @@ class PickfairApp:
             self._stop_auto_refresh()
     
     def _start_auto_refresh(self):
-        """Start auto-refresh timer (in seconds)."""
+        """Start auto-refresh timer (in seconds). Uses TimerManager to prevent accumulation."""
         if not self.client:
             self.auto_refresh_var.set(False)
             return  # Silently disable if not connected
-        
-        self._stop_auto_refresh()  # Stop any existing timer
         
         interval_sec = int(self.auto_refresh_interval_var.get())
         interval_ms = interval_sec * 1000  # Convert seconds to milliseconds
@@ -4251,16 +4331,14 @@ class PickfairApp:
                 self._update_balance()
                 now = datetime.now().strftime('%H:%M:%S')
                 self.auto_refresh_status.configure(text=f"Ultimo: {now}")
-                self.auto_refresh_id = self.root.after(interval_ms, do_refresh)
+                self.timers.schedule("auto_refresh", interval_ms, do_refresh)
         
-        self.auto_refresh_id = self.root.after(interval_ms, do_refresh)
+        self.timers.schedule("auto_refresh", interval_ms, do_refresh)
         self.auto_refresh_status.configure(text="Attivo")
     
     def _stop_auto_refresh(self):
         """Stop auto-refresh timer."""
-        if self.auto_refresh_id:
-            self.root.after_cancel(self.auto_refresh_id)
-            self.auto_refresh_id = None
+        self.timers.cancel("auto_refresh")
         self.auto_refresh_status.configure(text="")
     
     def _on_auto_refresh_interval_change(self, event=None):
@@ -5030,7 +5108,7 @@ class PickfairApp:
         logging.info(f"Goal sound: {'enabled' if enabled else 'disabled'}")
     
     def _refresh_match_timeline(self):
-        """Refresh match timeline from LiveContext (called every 1s)."""
+        """Refresh match timeline from LiveContext (called every 1s). Uses TimerManager."""
         try:
             ctx = live_context_store.get()
             ctx.market_status = self.market_status
@@ -5051,7 +5129,7 @@ class PickfairApp:
         except Exception as e:
             logging.debug(f"Timeline refresh error: {e}")
         
-        self.root.after(1000, self._refresh_match_timeline)
+        self.timers.schedule("match_timeline", 1000, self._refresh_match_timeline)
     
     def _update_api_football_match(self):
         """Update API-Football worker with current event teams."""
