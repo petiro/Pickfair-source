@@ -25,10 +25,12 @@ def is_ui_thread():
     return threading.current_thread() is threading.main_thread()
 
 
-def ui_guard(name: str, warn_ms: int = 200):
+def ui_guard(name: str, warn_ms: int = 200, dump_ms: int = 2000):
     """
     Decoratore per callback UI.
-    Logga durata e avvisa se supera warn_ms.
+    - Logga durata click
+    - Avvisa se supera warn_ms (200ms default)
+    - DUMP THREAD STACK se supera dump_ms (2000ms = freeze detected)
     
     Uso:
         btn.config(command=ui_guard("dashboard")(self._open_dashboard))
@@ -42,12 +44,33 @@ def ui_guard(name: str, warn_ms: int = 200):
                 return fn(*args, **kwargs)
             finally:
                 dt = (time.perf_counter() - t0) * 1000
-                if dt > warn_ms:
+                if dt > dump_ms:
+                    logging.error(f"[UI-GUARD] FREEZE DETECTED {name}: {dt:.0f}ms (>{dump_ms}ms)")
+                    _dump_all_threads(name, dt)
+                elif dt > warn_ms:
                     logging.warning(f"[UI-GUARD] SLOW callback {name}: {dt:.0f}ms (>{warn_ms}ms)")
                 else:
                     logging.info(f"[UI-CLICK] {name} done in {dt:.0f}ms")
         return wrapper
     return deco
+
+
+def _dump_all_threads(name: str, duration_ms: float):
+    """Dump all thread stacks when freeze detected."""
+    try:
+        import faulthandler
+        import sys
+        import io
+        
+        buf = io.StringIO()
+        faulthandler.dump_traceback(file=buf, all_threads=True)
+        stack_dump = buf.getvalue()
+        
+        logging.error(
+            f"[UI-GUARD] Thread dump for freeze in {name} ({duration_ms:.0f}ms):\n{stack_dump}"
+        )
+    except Exception as e:
+        logging.error(f"[UI-GUARD] Failed to dump threads: {e}")
 
 
 def _is_testing():

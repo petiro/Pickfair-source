@@ -54,6 +54,8 @@ LOG_FILE = setup_logging()
 # Import with logging to detect slow/blocking imports
 logging.info("Importing modules...")
 try:
+    logging.debug("Importing thread_guard...")
+    from thread_guard import ui_guard
     logging.debug("Importing database...")
     from database import Database
     logging.debug("Importing betfair_client...")
@@ -3179,6 +3181,7 @@ class PickfairApp:
         
         ttk.Button(frame, text="Salva", command=save).pack(pady=10)
     
+    @ui_guard("toggle_connection")
     def _toggle_connection(self):
         """Connect or disconnect from Betfair."""
         if self.client:
@@ -4265,6 +4268,7 @@ class PickfairApp:
         if self.auto_refresh_var.get():
             self._start_auto_refresh()
     
+    @ui_guard("refresh_data")
     def _refresh_data(self):
         """Refresh all data."""
         self._update_balance()
@@ -5011,6 +5015,7 @@ class PickfairApp:
         
         self._load_market(self.current_market['marketId'])
     
+    @ui_guard("toggle_streaming")
     def _toggle_streaming(self):
         """Toggle streaming on/off."""
         if self.stream_var.get():
