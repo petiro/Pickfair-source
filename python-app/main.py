@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.73.5"  # Non-blocking _stop_streaming + _unsubscribe_from_market_stream_async
+APP_VERSION = "3.73.6"  # Non-blocking Telegram: stop, broadcast_bet, broadcast_dutching, broadcast_cashout
 
 # Setup file logging
 def setup_logging():
@@ -10278,34 +10278,37 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 pass
     
     def _broadcast_copy_bet(self, event_name, market_name, selection, side, price, stake_percent, stake_amount=None):
-        """Broadcast a COPY BET message to followers (Master mode only)."""
-        logging.info(f"=== COPY TRADING BROADCAST ===")
-        logging.info(f"_broadcast_copy_bet called: {event_name}, {selection}, {side}")
+        """Broadcast a COPY BET message to followers (Master mode only).
         
-        settings = self.db.get_telegram_settings()
-        if not settings:
-            logging.warning("Copy Trading: No telegram settings found")
-            return
-        
-        copy_mode = settings.get('copy_mode', 'OFF')
-        copy_chat_id = settings.get('copy_chat_id', '')
-        
-        logging.info(f"Copy Trading settings: mode={copy_mode}, chat_id={copy_chat_id}")
-        
-        if copy_mode != 'MASTER' or not copy_chat_id:
-            logging.info(f"Copy Trading: Not in MASTER mode or no chat_id (mode={copy_mode})")
-            return
-        
-        # Check telegram listener exists
-        if not self.telegram_listener:
-            logging.warning("Copy Trading: Telegram listener object is None")
-            return
-        
-        logging.info(f"Copy Trading: telegram_listener.running = {self.telegram_listener.running}")
-        logging.info(f"Copy Trading: sending_connected = {self.telegram_listener.sending_connected}")
-        # NOTE: Don't check self.running - send_message() auto-connects dedicated send client if needed
-        
-        message = f"""COPY BET
+        Non-blocking: runs in background thread to prevent UI freeze.
+        """
+        def do_broadcast():
+            logging.info(f"=== COPY TRADING BROADCAST ===")
+            logging.info(f"_broadcast_copy_bet called: {event_name}, {selection}, {side}")
+            
+            settings = self.db.get_telegram_settings()
+            if not settings:
+                logging.warning("Copy Trading: No telegram settings found")
+                return
+            
+            copy_mode = settings.get('copy_mode', 'OFF')
+            copy_chat_id = settings.get('copy_chat_id', '')
+            
+            logging.info(f"Copy Trading settings: mode={copy_mode}, chat_id={copy_chat_id}")
+            
+            if copy_mode != 'MASTER' or not copy_chat_id:
+                logging.info(f"Copy Trading: Not in MASTER mode or no chat_id (mode={copy_mode})")
+                return
+            
+            # Check telegram listener exists
+            if not self.telegram_listener:
+                logging.warning("Copy Trading: Telegram listener object is None")
+                return
+            
+            logging.info(f"Copy Trading: telegram_listener.running = {self.telegram_listener.running}")
+            logging.info(f"Copy Trading: sending_connected = {self.telegram_listener.sending_connected}")
+            
+            message = f"""COPY BET
 Evento: {event_name}
 Mercato: {market_name}
 Selezione: {selection}
@@ -10313,95 +10316,102 @@ Tipo: {side}
 Quota: {price:.2f}
 Stake: {stake_percent:.1f}%
 StakeEUR: {stake_amount:.2f}"""
+            
+            try:
+                self.telegram_listener.send_message(copy_chat_id, message)
+                logging.info(f"Copy Trading: Broadcast BET sent to {copy_chat_id}")
+            except Exception as e:
+                logging.error(f"Copy Trading broadcast error: {e}")
         
-        try:
-            self.telegram_listener.send_message(copy_chat_id, message)
-            logging.info(f"Copy Trading: Broadcast BET sent to {copy_chat_id}")
-        except Exception as e:
-            logging.error(f"Copy Trading broadcast error: {e}")
+        threading.Thread(target=do_broadcast, daemon=True, name="BroadcastBet").start()
     
     def _broadcast_copy_dutching(self, event_name, market_name, selections, side, profit_target, total_stake):
         """Broadcast a COPY DUTCHING message to followers (Master mode only).
         
-        Sends a single message with all dutching selections for followers to replicate.
-        
-        Args:
-            event_name: Event name
-            market_name: Market name (e.g., "Correct Score")
-            selections: List of {'runnerName', 'price', 'stake'}
-            side: BACK or LAY (or MIXED for mixed dutching)
-            profit_target: Target profit in EUR
-            total_stake: Total stake in EUR
+        Non-blocking: runs in background thread to prevent UI freeze.
         """
-        logging.info(f"=== COPY TRADING DUTCHING BROADCAST ===")
-        logging.info(f"_broadcast_copy_dutching: {event_name}, {len(selections)} selections, profit_target={profit_target}")
+        # Capture selections list to avoid closure issues
+        selections_copy = list(selections)
+        side_copy = side
         
-        settings = self.db.get_telegram_settings()
-        if not settings:
-            logging.warning("Copy Trading Dutching: No telegram settings found")
-            return
-        
-        copy_mode = settings.get('copy_mode', 'OFF')
-        copy_chat_id = settings.get('copy_chat_id', '')
-        
-        if copy_mode != 'MASTER' or not copy_chat_id:
-            logging.info(f"Copy Trading Dutching: Not in MASTER mode or no chat_id")
-            return
-        
-        if not self.telegram_listener:
-            logging.warning("Copy Trading Dutching: Telegram listener object is None")
-            return
-        
-        # Build selections string: "2-1 @ 9.50, 2-0 @ 11.00, 1-0 @ 8.00"
-        selections_str = ", ".join([f"{s['runnerName']} @ {s['price']:.2f}" for s in selections])
-        
-        # Check if mixed dutching (some BACK, some LAY)
-        has_back = any(s.get('effectiveType', side) == 'BACK' for s in selections)
-        has_lay = any(s.get('effectiveType', side) == 'LAY' for s in selections)
-        if has_back and has_lay:
-            side = 'MIXED'
-        
-        message = f"""COPY DUTCHING
+        def do_broadcast():
+            nonlocal side_copy
+            logging.info(f"=== COPY TRADING DUTCHING BROADCAST ===")
+            logging.info(f"_broadcast_copy_dutching: {event_name}, {len(selections_copy)} selections, profit_target={profit_target}")
+            
+            settings = self.db.get_telegram_settings()
+            if not settings:
+                logging.warning("Copy Trading Dutching: No telegram settings found")
+                return
+            
+            copy_mode = settings.get('copy_mode', 'OFF')
+            copy_chat_id = settings.get('copy_chat_id', '')
+            
+            if copy_mode != 'MASTER' or not copy_chat_id:
+                logging.info(f"Copy Trading Dutching: Not in MASTER mode or no chat_id")
+                return
+            
+            if not self.telegram_listener:
+                logging.warning("Copy Trading Dutching: Telegram listener object is None")
+                return
+            
+            # Build selections string: "2-1 @ 9.50, 2-0 @ 11.00, 1-0 @ 8.00"
+            selections_str = ", ".join([f"{s['runnerName']} @ {s['price']:.2f}" for s in selections_copy])
+            
+            # Check if mixed dutching (some BACK, some LAY)
+            has_back = any(s.get('effectiveType', side_copy) == 'BACK' for s in selections_copy)
+            has_lay = any(s.get('effectiveType', side_copy) == 'LAY' for s in selections_copy)
+            if has_back and has_lay:
+                side_copy = 'MIXED'
+            
+            message = f"""COPY DUTCHING
 Evento: {event_name}
 Mercato: {market_name}
 Selezioni: {selections_str}
-Tipo: {side}
+Tipo: {side_copy}
 ProfitTargetEUR: {profit_target:.2f}
 StakeTotaleEUR: {total_stake:.2f}"""
+            
+            try:
+                self.telegram_listener.send_message(copy_chat_id, message)
+                logging.info(f"Copy Trading Dutching: Broadcast sent to {copy_chat_id}")
+            except Exception as e:
+                logging.error(f"Copy Trading Dutching broadcast error: {e}")
         
-        try:
-            self.telegram_listener.send_message(copy_chat_id, message)
-            logging.info(f"Copy Trading Dutching: Broadcast sent to {copy_chat_id}")
-        except Exception as e:
-            logging.error(f"Copy Trading Dutching broadcast error: {e}")
+        threading.Thread(target=do_broadcast, daemon=True, name="BroadcastDutching").start()
     
     def _broadcast_copy_cashout(self, event_name):
-        """Broadcast a COPY CASHOUT message to followers (Master mode only)."""
-        settings = self.db.get_telegram_settings()
-        if not settings:
-            return
+        """Broadcast a COPY CASHOUT message to followers (Master mode only).
         
-        copy_mode = settings.get('copy_mode', 'OFF')
-        copy_chat_id = settings.get('copy_chat_id', '')
-        
-        if copy_mode != 'MASTER' or not copy_chat_id:
-            return
-        
-        if not self.telegram_listener:
-            logging.warning("Copy Trading Cashout: Telegram listener object is None")
-            return
-        
-        # NOTE: Don't check self.running - send_message() auto-connects dedicated send client if needed
-        logging.info(f"Copy Trading Cashout: broadcasting to {copy_chat_id}")
-        
-        message = f"""COPY CASHOUT
+        Non-blocking: runs in background thread to prevent UI freeze.
+        """
+        def do_broadcast():
+            settings = self.db.get_telegram_settings()
+            if not settings:
+                return
+            
+            copy_mode = settings.get('copy_mode', 'OFF')
+            copy_chat_id = settings.get('copy_chat_id', '')
+            
+            if copy_mode != 'MASTER' or not copy_chat_id:
+                return
+            
+            if not self.telegram_listener:
+                logging.warning("Copy Trading Cashout: Telegram listener object is None")
+                return
+            
+            logging.info(f"Copy Trading Cashout: broadcasting to {copy_chat_id}")
+            
+            message = f"""COPY CASHOUT
 Evento: {event_name}"""
+            
+            try:
+                self.telegram_listener.send_message(copy_chat_id, message)
+                logging.info(f"Copy Trading: Cashout broadcast sent to {copy_chat_id}")
+            except Exception as e:
+                logging.error(f"Copy Trading cashout broadcast error: {e}")
         
-        try:
-            self.telegram_listener.send_message(copy_chat_id, message)
-            print(f"Copy Trading: Cashout broadcast sent to {copy_chat_id}")
-        except Exception as e:
-            print(f"Copy Trading cashout broadcast error: {e}")
+        threading.Thread(target=do_broadcast, daemon=True, name="BroadcastCashout").start()
     
     def _start_settlement_monitor(self):
         """Start monitoring bets for settlement/outcome updates."""
@@ -11449,10 +11459,19 @@ Evento: {event_name}"""
             messagebox.showerror("Errore", f"Errore avvio Telegram: {e}")
     
     def _stop_telegram_listener(self):
-        """Stop the Telegram listener."""
+        """Stop the Telegram listener (non-blocking)."""
         if self.telegram_listener:
-            self.telegram_listener.stop()
+            listener = self.telegram_listener
             self.telegram_listener = None
+            
+            def stop_bg():
+                try:
+                    listener.stop()
+                except Exception as e:
+                    logging.debug(f"Telegram stop error: {e}")
+            
+            threading.Thread(target=stop_bg, daemon=True, name="TelegramStop").start()
+        
         self.telegram_status = 'STOPPED'
         messagebox.showinfo("Telegram", "Listener Telegram fermato")
     

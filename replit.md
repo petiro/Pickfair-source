@@ -96,6 +96,12 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - **`_stop_streaming()` now non-blocking**: `client.stop_streaming()` runs in background thread instead of main thread.
     - **`_unsubscribe_from_market_stream_async()`**: New async version for UI calls - unsubscribes in background thread.
     - **Root Cause Fix**: Click on new market was freezing because `_stop_streaming()` called blocking stream operations on main thread.
+-   **v3.73.6 Non-blocking Telegram**:
+    - **`_stop_telegram_listener()`**: Now runs `listener.stop()` in background thread (was blocking up to 10s).
+    - **`_broadcast_copy_bet()`**: Now non-blocking via background thread.
+    - **`_broadcast_copy_dutching()`**: Now non-blocking via background thread.
+    - **`_broadcast_copy_cashout()`**: Now non-blocking via background thread.
+    - **Root Cause**: `connect_for_sending()` in TelegramListener can block up to 3s waiting for loop readiness.
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:
