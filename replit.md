@@ -88,7 +88,7 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - **Test Mode Support**: Guards auto-disabled during pytest via `THREAD_GUARD_DISABLED=1` env var.
     - **Pattern**: Converts silent UI freezes into immediate, debuggable crashes with stack traces.
 -   **v3.73.4 Anti-Freeze Extensions**:
-    - **Database Guards**: `@warn_if_ui_thread` on heavy DB operations (`_backup_and_recreate`, `get_unsettled_bets`, `get_bet_statistics`, `get_today_profit_loss`).
+    - **Database Guards**: `@assert_not_ui_thread("DB_HEAVY")` ONLY on truly heavy operations (`_backup_and_recreate`). Fast queries (get_statistics, get_today_pl) stay unguarded - they have LIMIT and indices.
     - **TimerManager**: Class to prevent `.after()` timer accumulation. Ensures only one timer per name is active. Used for `auto_refresh`, `match_timeline`.
     - **chunked_tree_insert()**: Helper function for inserting large datasets into Treeview in chunks (default 50 items) to prevent UI freeze.
     - **Pattern**: Deduplication of timers prevents memory leaks and CPU waste from accumulated callbacks.
