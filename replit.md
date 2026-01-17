@@ -74,6 +74,11 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - **UI Freeze Prevention**: All ~15 blocking Betfair API calls per function now execute in worker threads, eliminating UI freezes during Telegram signal processing.
     - **Thread-Safe MessageBox**: All `messagebox` calls wrapped with `root.after(0, ...)` for safe cross-thread UI updates.
     - **Pattern**: `threading.Thread(target=lambda s=signal: self._process_telegram_auto_bet(s, settings), daemon=True, name="TelegramAutoBet").start()`
+-   **v3.73.2 Stream Disconnect Fix**:
+    - **Safe Disconnect with Timeout**: `_safe_disconnect_stream()` wraps stream disconnect in background thread with 3s timeout - prevents infinite hang.
+    - **Non-blocking Logout**: `_disconnect()` now runs `client.logout()` in background thread.
+    - **Root Cause**: `order_stream.disconnect()` was blocking main thread indefinitely when stream was unresponsive.
+    - **Pattern**: Timeout-based disconnect prevents UI freeze even when network is slow/unresponsive.
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:

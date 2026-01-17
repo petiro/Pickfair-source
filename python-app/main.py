@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.73.1"  # Fix: Telegram auto-bet/booking/copy-dutching now run in background threads
+APP_VERSION = "3.73.2"  # Fix: Safe disconnect with timeout + non-blocking logout
 
 # Setup file logging
 def setup_logging():
@@ -3475,13 +3475,8 @@ class PickfairApp:
             """All stream setup runs in background to keep UI responsive."""
             try:
                 logging.debug("_start_order_stream: [BG] Stopping existing stream...")
-                # Stop existing stream (thread-safe)
-                if hasattr(self, 'order_stream') and self.order_stream:
-                    try:
-                        self.order_stream.disconnect()
-                    except Exception as e:
-                        logging.error(f"_start_order_stream: [BG] Error stopping stream: {e}")
-                    self.order_stream = None
+                # Stop existing stream with timeout (non-blocking)
+                self._safe_disconnect_stream(timeout_s=3)
                 logging.debug("_start_order_stream: [BG] Existing stream stopped")
                 
                 logging.debug("_start_order_stream: [BG] Getting settings from DB...")
@@ -3521,11 +3516,38 @@ class PickfairApp:
         threading.Thread(target=background_stream_setup, daemon=True, name="OrderStreamSetup").start()
         logging.info("_start_order_stream: Background thread started")
     
+    def _safe_disconnect_stream(self, timeout_s=3):
+        """Safely disconnect order stream with timeout to prevent blocking.
+        
+        Args:
+            timeout_s: Maximum seconds to wait for disconnect (default 3s)
+        """
+        if not hasattr(self, 'order_stream') or not self.order_stream:
+            return
+        
+        stream = self.order_stream
+        self.order_stream = None  # Clear reference immediately
+        
+        done = threading.Event()
+        
+        def do_disconnect():
+            try:
+                logging.debug("[ORDER_STREAM] Disconnecting...")
+                stream.disconnect()
+                logging.debug("[ORDER_STREAM] Disconnected OK")
+            except Exception as e:
+                logging.error(f"[ORDER_STREAM] Disconnect error: {e}")
+            finally:
+                done.set()
+        
+        threading.Thread(target=do_disconnect, daemon=True, name="StreamDisconnect").start()
+        
+        if not done.wait(timeout_s):
+            logging.error(f"[ORDER_STREAM] Disconnect timeout ({timeout_s}s) - continuing anyway")
+    
     def _stop_order_stream(self):
-        """Stop Order Stream."""
-        if hasattr(self, 'order_stream') and self.order_stream:
-            self.order_stream.disconnect()
-            self.order_stream = None
+        """Stop Order Stream (non-blocking)."""
+        self._safe_disconnect_stream(timeout_s=3)
     
     def _on_order_stream_update(self, order_data: dict):
         """Handle order update from stream."""
@@ -3959,15 +3981,25 @@ class PickfairApp:
         messagebox.showerror("Errore Connessione", error)
     
     def _disconnect(self):
-        """Disconnect from Betfair."""
+        """Disconnect from Betfair (non-blocking)."""
         self._stop_auto_refresh()
         self._stop_session_keepalive()
         self._stop_order_stream()
         self.auto_refresh_var.set(False)
         
+        # Logout in background to prevent UI freeze
         if self.client:
-            self.client.logout()
+            client = self.client
             self.client = None
+            
+            def do_logout():
+                try:
+                    client.logout()
+                    logging.info("[DISCONNECT] Logout completed")
+                except Exception as e:
+                    logging.error(f"[DISCONNECT] Logout error: {e}")
+            
+            threading.Thread(target=do_logout, daemon=True, name="Logout").start()
         
         self.db.clear_session()
         self.status_label.configure(text="Non connesso", text_color=COLORS['error'])
