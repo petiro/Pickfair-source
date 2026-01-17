@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.73.6"  # Non-blocking Telegram: stop, broadcast_bet, broadcast_dutching, broadcast_cashout
+APP_VERSION = "3.73.6"  # Non-blocking Telegram + removed API call in _create_orders_list
 
 # Setup file logging
 def setup_logging():
@@ -9771,34 +9771,16 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             if bet_id and market_id:
                 bet_to_market[bet_id] = market_id
             
-            # Try to get event/market names from cache or API
-            event_name = ''
-            market_name = ''
-            runner_name = str(selection_id)
-            
-            if market_id and market_id not in market_cache:
-                try:
-                    if self.client:
-                        catalogue = self.client.get_market_catalogue([market_id])
-                        if catalogue:
-                            market_cache[market_id] = catalogue[0]
-                except:
-                    pass
-            
-            if market_id in market_cache:
-                cat = market_cache[market_id]
-                event_name = cat.get('event', {}).get('name', '')[:25]
-                market_name = cat.get('marketName', '')[:20]
-                # Find runner name
-                for runner in cat.get('runners', []):
-                    if runner.get('selectionId') == selection_id:
-                        runner_name = runner.get('runnerName', str(selection_id))[:20]
-                        break
+            # Use only data from order object (no API calls to prevent UI freeze)
+            # Market names are available in order if enriched, otherwise show IDs
+            event_name = order.get('eventName', market_id[:15] if market_id else '')
+            market_name = order.get('marketName', '')
+            runner_name = order.get('runnerName', str(selection_id)[:15])
             
             tree.insert('', tk.END, iid=bet_id, values=(
-                event_name,
-                market_name,
-                runner_name,
+                event_name[:25],
+                market_name[:20],
+                runner_name[:20],
                 order.get('side', ''),
                 f"{order.get('price', 0):.2f}",
                 f"{order.get('size', 0):.2f}",
