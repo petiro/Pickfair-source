@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.73.2"  # Fix: Safe disconnect with timeout + non-blocking logout
+APP_VERSION = "3.73.2"  # Fix: Safe disconnect + non-blocking logout + order stream throttling
 
 # Setup file logging
 def setup_logging():
@@ -3550,15 +3550,22 @@ class PickfairApp:
         self._safe_disconnect_stream(timeout_s=3)
     
     def _on_order_stream_update(self, order_data: dict):
-        """Handle order update from stream."""
+        """Handle order update from stream with throttling.
+        
+        IMPORTANT: This callback is called from stream thread.
+        We use throttling (max 4 UI refresh/sec) to prevent flooding.
+        """
         logging.info(f"Order Stream update: {order_data}")
+        
+        # Store latest update in cache
+        self._latest_order_update = order_data
         
         bet_id = order_data.get('bet_id')
         size_matched = order_data.get('size_matched', 0)
         status = order_data.get('status', '')
         order_type = order_data.get('type', 'UNMATCHED')
         
-        # Refresh UI on any order state change (matched, cancelled, lapsed, etc.)
+        # Determine if we need refresh
         should_refresh = False
         
         if order_type == 'MATCHED' or size_matched > 0:
@@ -3570,15 +3577,24 @@ class PickfairApp:
             should_refresh = True
         
         if order_type == 'UNMATCHED':
-            # Unmatched order update (price change, partial match, etc.)
             should_refresh = True
         
         if should_refresh:
-            def update_ui():
-                self._update_balance()
-                self._refresh_my_bets_panel()
+            # Throttle: skip if refresh already pending (max 4/sec = 250ms)
+            if getattr(self, '_order_ui_pending', False):
+                return
             
-            self.root.after(0, update_ui)
+            self._order_ui_pending = True
+            self.root.after(250, self._flush_order_ui_update)
+    
+    def _flush_order_ui_update(self):
+        """Throttled UI update for order stream - runs in main thread."""
+        self._order_ui_pending = False
+        
+        # Only refresh if we have pending update
+        if hasattr(self, '_latest_order_update') and self._latest_order_update:
+            self._update_balance()
+            self._refresh_my_bets_panel()
     
     def _on_order_stream_status(self, status: str):
         """Handle order stream status change."""

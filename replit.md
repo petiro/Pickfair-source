@@ -79,6 +79,7 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - **Non-blocking Logout**: `_disconnect()` now runs `client.logout()` in background thread.
     - **Root Cause**: `order_stream.disconnect()` was blocking main thread indefinitely when stream was unresponsive.
     - **Pattern**: Timeout-based disconnect prevents UI freeze even when network is slow/unresponsive.
+    - **Order Stream Throttling**: `_on_order_stream_update()` now uses throttling (max 4 refresh/sec = 250ms) to prevent UI flooding from rapid stream updates.
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:
