@@ -555,6 +555,20 @@ class PickfairApp:
         
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
     
+    def _log_click(self, name):
+        """Log UI click with timing to detect freezes.
+        
+        If you see [UI-CLICK] X but never see 'done' → main thread is frozen.
+        """
+        logging.info(f"[UI-CLICK] {name}")
+        t0 = time.time()
+        
+        def done():
+            dt = (time.time() - t0) * 1000
+            logging.info(f"[UI-CLICK] {name} done in {dt:.0f}ms")
+        
+        self.root.after(0, done)
+    
     def _on_close(self):
         """Handle window close."""
         self._stop_auto_refresh()
@@ -1961,6 +1975,7 @@ class PickfairApp:
         
         Uses BetfairExecutor with poll_future for serialized, non-blocking execution.
         """
+        self._log_click(f"CANCEL_{bet_id}")
         if not self.client:
             return
         
@@ -2189,6 +2204,7 @@ class PickfairApp:
     
     def _cancel_all_unmatched_orders(self):
         """Cancel all unmatched orders."""
+        self._log_click("CANCEL_ALL")
         if not self.client or not self.my_bets_data.get('unmatched'):
             return
         
@@ -3172,6 +3188,7 @@ class PickfairApp:
     
     def _connect(self):
         """Connect to Betfair."""
+        self._log_click("CONNECT")
         logging.info("[CONNECT] _connect() called - getting settings...")
         settings = self.db.get_settings()
         logging.info("[CONNECT] Settings retrieved")
@@ -4025,6 +4042,7 @@ class PickfairApp:
     
     def _disconnect(self):
         """Disconnect from Betfair (non-blocking)."""
+        self._log_click("DISCONNECT")
         self._stop_auto_refresh()
         self._stop_session_keepalive()
         self._stop_order_stream()
@@ -4265,8 +4283,8 @@ class PickfairApp:
         if not item_id:
             return
         
-        # Log for watchdog debugging
-        logging.debug(f"[UI] Tree clicked: {item_id}")
+        # Log for freeze detection
+        self._log_click(f"TREE_{item_id[:20]}")
         
         # Update visual selection to match
         self.events_tree.selection_set(item_id)
@@ -6088,6 +6106,7 @@ class PickfairApp:
     
     def _place_bets(self):
         """Place the calculated bets (real or simulated)."""
+        self._log_click("PLACE_BETS")
         logging.info("[DUTCHING] _place_bets called")
         
         # Reentrancy guard - prevent double placement
@@ -6910,6 +6929,7 @@ class PickfairApp:
     
     def _refresh_dashboard_tab(self):
         """Refresh dashboard tab data."""
+        self._log_click("DASHBOARD_REFRESH")
         if not self.client:
             self.dashboard_not_connected.configure(text="Connettiti a Betfair per vedere i dati")
             return
