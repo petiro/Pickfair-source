@@ -3558,8 +3558,23 @@ class PickfairApp:
             logging.error(f"[ORDER_STREAM] Disconnect timeout ({timeout_s}s) - continuing anyway")
     
     def _stop_order_stream(self):
-        """Stop Order Stream (non-blocking)."""
-        self._safe_disconnect_stream(timeout_s=3)
+        """Stop Order Stream (non-blocking, fire-and-forget)."""
+        # Non-blocking version: just start disconnect thread, don't wait
+        if not hasattr(self, 'order_stream') or not self.order_stream:
+            return
+        
+        stream = self.order_stream
+        self.order_stream = None  # Clear reference immediately
+        
+        def do_disconnect():
+            try:
+                logging.debug("[ORDER_STREAM] Disconnecting (async)...")
+                stream.disconnect()
+                logging.debug("[ORDER_STREAM] Disconnected OK (async)")
+            except Exception as e:
+                logging.error(f"[ORDER_STREAM] Disconnect error: {e}")
+        
+        threading.Thread(target=do_disconnect, daemon=True, name="StreamDisconnect").start()
     
     def _on_order_stream_update(self, order_data: dict):
         """Handle order update from stream with throttling.
