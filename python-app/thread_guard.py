@@ -16,7 +16,38 @@ import threading
 import functools
 import traceback
 import logging
+import time
 import os
+
+
+def is_ui_thread():
+    """Check if current thread is the main UI thread."""
+    return threading.current_thread() is threading.main_thread()
+
+
+def ui_guard(name: str, warn_ms: int = 200):
+    """
+    Decoratore per callback UI.
+    Logga durata e avvisa se supera warn_ms.
+    
+    Uso:
+        btn.config(command=ui_guard("dashboard")(self._open_dashboard))
+    """
+    def deco(fn):
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            logging.info(f"[UI-CLICK] {name}")
+            t0 = time.perf_counter()
+            try:
+                return fn(*args, **kwargs)
+            finally:
+                dt = (time.perf_counter() - t0) * 1000
+                if dt > warn_ms:
+                    logging.warning(f"[UI-GUARD] SLOW callback {name}: {dt:.0f}ms (>{warn_ms}ms)")
+                else:
+                    logging.info(f"[UI-CLICK] {name} done in {dt:.0f}ms")
+        return wrapper
+    return deco
 
 
 def _is_testing():

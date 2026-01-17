@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.73.2"  # Fix: Safe disconnect + non-blocking logout + order stream throttling
+APP_VERSION = "3.73.3"  # Thread Guard: @assert_not_ui_thread on ALL Betfair API + ui_guard() decorators
 
 # Setup file logging
 def setup_logging():

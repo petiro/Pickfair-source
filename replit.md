@@ -80,6 +80,13 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - **Root Cause**: `order_stream.disconnect()` was blocking main thread indefinitely when stream was unresponsive.
     - **Pattern**: Timeout-based disconnect prevents UI freeze even when network is slow/unresponsive.
     - **Order Stream Throttling**: `_on_order_stream_update()` now uses throttling (max 4 refresh/sec = 250ms) to prevent UI flooding from rapid stream updates.
+-   **v3.73.3 Thread Guard System**:
+    - **`@assert_not_ui_thread` decorator**: Applied to ALL critical Betfair API methods (`get_account_funds`, `get_available_markets`, `get_market_book`, `place_bet`, `place_bets`, `get_current_orders`, `cancel_orders`, `replace_orders`, `execute_cashout`).
+    - **Hard Crash Instead of Freeze**: If any protected method is called from main thread → `RuntimeError` with full stack trace instead of silent freeze.
+    - **`ui_guard()` decorator**: For button callbacks - logs timing and warns if >200ms.
+    - **`is_ui_thread()` helper**: Thread-safe check for main thread detection.
+    - **Test Mode Support**: Guards auto-disabled during pytest via `THREAD_GUARD_DISABLED=1` env var.
+    - **Pattern**: Converts silent UI freezes into immediate, debuggable crashes with stack traces.
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:

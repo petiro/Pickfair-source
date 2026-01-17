@@ -106,6 +106,14 @@ import queue
 import time
 from datetime import datetime, timedelta
 
+# Thread guard - prevents API calls from UI thread
+try:
+    from thread_guard import assert_not_ui_thread
+except ImportError:
+    # Fallback: no protection if not available
+    def assert_not_ui_thread(fn):
+        return fn
+
 logger = logging.getLogger(__name__)
 
 if IS_WINDOWS_7:
@@ -516,6 +524,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
             self.get_account_funds()
             return True
     
+    @assert_not_ui_thread
     @with_retry
     def get_account_funds(self):
         """Get account balance."""
@@ -529,6 +538,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
             'total': account.available_to_bet_balance + abs(account.exposure)
         }
     
+    @assert_not_ui_thread
     @with_retry
     def get_cleared_orders(self, bet_ids=None, from_date=None):
         """Get settled/cleared orders to check bet outcomes.
@@ -723,6 +733,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
         result.sort(key=lambda x: (not x.get('inPlay', False), x['openDate'] or ''))
         return result
     
+    @assert_not_ui_thread
     @with_retry
     def get_available_markets(self, event_id):
         """Get all available markets for an event (no type restriction)."""
@@ -894,6 +905,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
             'inPlay': is_inplay
         }
     
+    @assert_not_ui_thread
     def get_market_book(self, market_id):
         """Get current market prices (for refreshing best prices before placing bets)."""
         if not self.client:
@@ -1020,6 +1032,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
         """Check if streaming is active."""
         return self.streaming_active and self.stream is not None
     
+    @assert_not_ui_thread
     def place_bet(self, market_id, selection_id, side, price, size, persistence_type='LAPSE'):
         """
         Place a single bet on Betfair.
@@ -1034,6 +1047,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
         }]
         return self.place_bets(market_id, instructions)
     
+    @assert_not_ui_thread
     def place_bets(self, market_id, instructions):
         """
         Place bets on Betfair.
@@ -1112,6 +1126,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
             'instructionReports': reports
         }
     
+    @assert_not_ui_thread
     def get_current_orders(self, market_ids=None):
         """Get current unmatched and partially matched orders."""
         if not self.client:
@@ -1153,6 +1168,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
         
         return result
     
+    @assert_not_ui_thread
     def cancel_orders(self, market_id, bet_ids=None):
         """Cancel unmatched orders."""
         if not self.client:
@@ -1197,6 +1213,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
         """Place a LAY bet (bancata)."""
         return self.place_bet(market_id, selection_id, 'LAY', price, size)
     
+    @assert_not_ui_thread
     def replace_orders(self, market_id, bet_id, new_price):
         """
         Replace an existing order with a new price (replaceOrders API).
@@ -1665,6 +1682,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
             adjusted = price + (increment * slippage_ticks)
             return min(1000, round(adjusted, 2))
     
+    @assert_not_ui_thread
     def execute_cashout(self, market_id, selection_id, cashout_side, cashout_stake, cashout_price, 
                         max_retries=3, slippage_ticks=1, use_fresh_price=True):
         """
