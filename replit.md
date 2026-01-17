@@ -92,6 +92,10 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - **TimerManager**: Class to prevent `.after()` timer accumulation. Ensures only one timer per name is active. Used for `auto_refresh`, `match_timeline`.
     - **chunked_tree_insert()**: Helper function for inserting large datasets into Treeview in chunks (default 50 items) to prevent UI freeze.
     - **Pattern**: Deduplication of timers prevents memory leaks and CPU waste from accumulated callbacks.
+-   **v3.73.5 Non-blocking Stream Stop**:
+    - **`_stop_streaming()` now non-blocking**: `client.stop_streaming()` runs in background thread instead of main thread.
+    - **`_unsubscribe_from_market_stream_async()`**: New async version for UI calls - unsubscribes in background thread.
+    - **Root Cause Fix**: Click on new market was freezing because `_stop_streaming()` called blocking stream operations on main thread.
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:

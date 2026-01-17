@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.73.4"  # Anti-freeze: DB guards, TimerManager, chunked_tree_insert
+APP_VERSION = "3.73.5"  # Non-blocking _stop_streaming + _unsubscribe_from_market_stream_async
 
 # Setup file logging
 def setup_logging():
@@ -4090,9 +4090,21 @@ class PickfairApp:
         return self.order_stream.subscribe_markets([market_id])
     
     def _unsubscribe_from_market_stream(self):
-        """Unsubscribe from market data."""
+        """Unsubscribe from market data (blocking - use async version in UI)."""
         if hasattr(self, 'order_stream') and self.order_stream and self.order_stream.is_connected():
             self.order_stream.unsubscribe_markets()
+    
+    def _unsubscribe_from_market_stream_async(self):
+        """Unsubscribe from market data (non-blocking)."""
+        if hasattr(self, 'order_stream') and self.order_stream:
+            stream = self.order_stream
+            def unsub_bg():
+                try:
+                    if stream.is_connected():
+                        stream.unsubscribe_markets()
+                except Exception as e:
+                    logging.debug(f"Unsubscribe error: {e}")
+            threading.Thread(target=unsub_bg, daemon=True, name="UnsubMarkets").start()
     
     def _try_silent_relogin(self):
         """Try to re-login silently if session expired.
@@ -5229,15 +5241,26 @@ class PickfairApp:
             self.polling_fallback_id = None
     
     def _stop_streaming(self):
-        """Stop streaming and polling."""
-        if self.client:
-            self.client.stop_streaming()
+        """Stop streaming and polling (non-blocking)."""
+        # Stop polling (instant)
         self._stop_polling_fallback()
-        self._unsubscribe_from_market_stream()
         self._pending_market_subscription = None
         self.streaming_active = False
         self.stream_var.set(False)
         self.stream_label.configure(text="")
+        
+        # Stop client streaming in background (can block)
+        if self.client:
+            client = self.client
+            def stop_bg():
+                try:
+                    client.stop_streaming()
+                except Exception as e:
+                    logging.debug(f"Stop streaming error: {e}")
+            threading.Thread(target=stop_bg, daemon=True, name="StopStreaming").start()
+        
+        # Unsubscribe from market stream in background
+        self._unsubscribe_from_market_stream_async()
     
     def _on_price_update(self, market_id, runners_data):
         """Handle streaming price update with visual highlights."""
