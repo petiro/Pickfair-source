@@ -582,8 +582,20 @@ class PickfairApp:
             except:
                 pass
         
+        # Logout in background to prevent freeze on close
         if self.client:
-            self.client.logout()
+            client = self.client
+            self.client = None
+            try:
+                # Non-blocking logout with short timeout
+                def do_logout():
+                    try:
+                        client.logout()
+                    except:
+                        pass
+                threading.Thread(target=do_logout, daemon=True).start()
+            except:
+                pass
         self.root.destroy()
     
     def _create_main_layout(self):
