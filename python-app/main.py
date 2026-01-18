@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.73.7"  # Telegram send thread daemon=False for reliable copy trading
+APP_VERSION = "3.74.0"  # Antifreeze System: Circuit Breaker, Rate Limiter, Health Monitor, Graceful Shutdown, UI Queue
 
 # Setup file logging
 def setup_logging():
@@ -414,6 +414,18 @@ class PickfairApp:
         
         # Timer Manager: prevents .after() accumulation
         self.timers = TimerManager(self.root)
+        
+        # Antifreeze Manager: Circuit breakers, rate limiters, UI queue, health monitor
+        from antifreeze import AntifreezeManager
+        self.antifreeze = AntifreezeManager(self.root)
+        self.antifreeze.start()
+        
+        # Register shutdown handlers ONCE at initialization (not in _on_closing)
+        self.antifreeze.shutdown_manager.register("streams", lambda: self._shutdown_streams(), priority=1)
+        self.antifreeze.shutdown_manager.register("api_football", lambda: self._shutdown_api_football(), priority=2)
+        self.antifreeze.shutdown_manager.register("telegram", lambda: self._shutdown_telegram(), priority=3)
+        self.antifreeze.shutdown_manager.register("antifreeze", lambda: self._shutdown_antifreeze(), priority=4)
+        self.antifreeze.shutdown_manager.register("database", lambda: self._shutdown_database(), priority=5)
         
         # License check
         self.is_app_licensed = is_licensed()
@@ -3353,19 +3365,39 @@ class PickfairApp:
         """Schedule a function to run after delay, yielding to mainloop first."""
         self.root.after(delay, fn)
     
-    def _execute_betfair_call(self, operation_name: str, fn, on_success=None, on_error=None):
+    def _execute_betfair_call(self, operation_name: str, fn, on_success=None, on_error=None, timeout_ms=30000):
         """Execute a Betfair API call (read operations) through the BetfairExecutor.
         
         Use this for read operations like get_account_funds, get_market_book, etc.
         For order operations (place/cancel/replace/cashout), use _execute_order_operation.
+        
+        Features:
+        - Circuit breaker protection (blocks after 3 consecutive failures)
+        - Rate limiting (max 5 requests/sec)
+        - Timeout protection (default 30s)
         
         Args:
             operation_name: Name for logging
             fn: Function that performs the API call (must return result)
             on_success: Callback with result (called via root.after)
             on_error: Callback with error message (called via root.after)
+            timeout_ms: Timeout in milliseconds (default 30000)
         """
-        from ui_helpers import poll_future
+        from ui_helpers import poll_future_with_timeout
+        
+        # Check circuit breaker
+        if not self.antifreeze.betfair_breaker.can_execute():
+            logging.warning(f"[EXECUTOR] Circuit OPEN - blocking {operation_name}")
+            if on_error:
+                self.root.after(0, lambda: on_error("Betfair API temporaneamente bloccata (troppi errori)"))
+            return
+        
+        # Check rate limiter
+        if not self.antifreeze.betfair_limiter.acquire():
+            logging.warning(f"[EXECUTOR] Rate limited - delaying {operation_name}")
+            # Retry after 200ms
+            self.root.after(200, lambda: self._execute_betfair_call(operation_name, fn, on_success, on_error, timeout_ms))
+            return
         
         def execute():
             logging.debug(f"[EXECUTOR] Starting read: {operation_name}")
@@ -3376,24 +3408,37 @@ class PickfairApp:
         # Submit to executor
         future = self.betfair_executor.submit(execute)
         
-        # Non-blocking poll for result
+        # Non-blocking poll for result with timeout
         def on_ok(result):
+            self.antifreeze.betfair_breaker.record_success()
             if on_success:
                 on_success(result)
         
         def on_err(exc):
+            self.antifreeze.betfair_breaker.record_failure()
             logging.error(f"[EXECUTOR] Error in {operation_name}: {exc}")
             if on_error:
                 on_error(str(exc))
         
-        poll_future(self.root, future, on_ok, on_err)
+        def on_timeout():
+            self.antifreeze.betfair_breaker.record_failure()
+            logging.error(f"[EXECUTOR] Timeout in {operation_name} after {timeout_ms}ms")
+            if on_error:
+                on_error(f"Timeout: operazione {operation_name} troppo lenta")
+        
+        poll_future_with_timeout(self.root, future, on_ok, on_err, on_timeout, timeout_ms=timeout_ms)
     
-    def _execute_order_operation(self, operation_name: str, fn, on_success=None, on_error=None, check_safe_mode=True):
+    def _execute_order_operation(self, operation_name: str, fn, on_success=None, on_error=None, check_safe_mode=True, timeout_ms=30000):
         """Execute an order operation (place/cancel/cashout) through the BetfairExecutor.
         
         This ensures all order operations are serialized and atomic.
         Never call Betfair order APIs directly - always use this method.
-        Uses poll_future for non-blocking result handling.
+        
+        Features:
+        - Circuit breaker protection
+        - Rate limiting
+        - Safe mode check
+        - Timeout protection
         
         Args:
             operation_name: Name for logging
@@ -3401,9 +3446,23 @@ class PickfairApp:
             on_success: Callback with result (called via root.after)
             on_error: Callback with error message (called via root.after)
             check_safe_mode: If True, block operation when safe mode is active
+            timeout_ms: Timeout in milliseconds (default 30000)
         """
-        from ui_helpers import poll_future
+        from ui_helpers import poll_future_with_timeout
         from safe_mode import guarded
+        
+        # Check circuit breaker
+        if not self.antifreeze.betfair_breaker.can_execute():
+            logging.warning(f"[EXECUTOR] Circuit OPEN - blocking order {operation_name}")
+            if on_error:
+                self.root.after(0, lambda: on_error("Betfair API temporaneamente bloccata (troppi errori)"))
+            return
+        
+        # Check rate limiter
+        if not self.antifreeze.betfair_limiter.acquire():
+            logging.warning(f"[EXECUTOR] Rate limited - delaying order {operation_name}")
+            self.root.after(200, lambda: self._execute_order_operation(operation_name, fn, on_success, on_error, check_safe_mode, timeout_ms))
+            return
         
         # Wrap fn with guarded to check safe mode (if enabled)
         wrapped_fn = guarded(fn) if check_safe_mode else fn
@@ -3417,17 +3476,25 @@ class PickfairApp:
         # Submit to executor
         future = self.betfair_executor.submit(execute)
         
-        # Non-blocking poll for result
+        # Non-blocking poll for result with timeout
         def on_ok(result):
+            self.antifreeze.betfair_breaker.record_success()
             if on_success:
                 on_success(result)
         
         def on_err(exc):
+            self.antifreeze.betfair_breaker.record_failure()
             logging.error(f"[EXECUTOR] Error in {operation_name}: {exc}")
             if on_error:
                 on_error(str(exc))
         
-        poll_future(self.root, future, on_ok, on_err)
+        def on_timeout():
+            self.antifreeze.betfair_breaker.record_failure()
+            logging.error(f"[EXECUTOR] Order timeout in {operation_name} after {timeout_ms}ms")
+            if on_error:
+                on_error(f"Timeout: ordine {operation_name} non completato")
+        
+        poll_future_with_timeout(self.root, future, on_ok, on_err, on_timeout, timeout_ms=timeout_ms)
     
     def _run_step_with_retry(self, step_name: str, fn, retries: int = 1):
         """Execute a post-login step with controlled retry.
@@ -3526,6 +3593,13 @@ class PickfairApp:
                 logging.error(f"[CONNECT] Dashboard refresh error: {e}")
             logging.info("[CONNECT] All initialization steps scheduled")
         
+        def step7_health_checks():
+            logging.debug("[CONNECT] Step 7: register health checks")
+            try:
+                self._register_health_checks()
+            except Exception as e:
+                logging.error(f"[CONNECT] Health check registration error: {e}")
+        
         # SERIALIZED: Only one API call active at a time
         # Large gaps prevent socket contention on TLS bottleneck
         self._defer(step1_balance, delay=500)      # T+0.5s: balance first
@@ -3534,8 +3608,40 @@ class PickfairApp:
         self._defer(step4_keepalive, delay=7000)   # T+7s: keepalive setup
         self._defer(step5_orderstream, delay=8000) # T+8s: stream (slow)
         self._defer(step6_dashboard, delay=10000)  # T+10s: final dashboard
+        self._defer(step7_health_checks, delay=11000)  # T+11s: health monitor
         
-        logging.info("[CONNECT] _on_connected: Complete - 6 steps scheduled")
+        logging.info("[CONNECT] _on_connected: Complete - 7 steps scheduled")
+    
+    def _register_health_checks(self):
+        """Register health checks for monitoring.
+        
+        Checks:
+        - Betfair connection (session valid)
+        - Telegram connection (if listener active)
+        - Database connection (quick query)
+        """
+        def check_betfair():
+            if not self.client or not self.client.session_token:
+                return False
+            return True
+        
+        def check_telegram():
+            if not self.telegram_listener:
+                return True
+            return self.telegram_listener.running
+        
+        def check_database():
+            try:
+                self.db.get_settings()
+                return True
+            except:
+                return False
+        
+        self.antifreeze.health_monitor.register_check("betfair", check_betfair)
+        self.antifreeze.health_monitor.register_check("telegram", check_telegram)
+        self.antifreeze.health_monitor.register_check("database", check_database)
+        
+        logging.info("[HEALTH] Health checks registered")
     
     def _start_session_keepalive(self):
         """Start periodic session keep-alive to prevent timeout."""
@@ -13265,29 +13371,67 @@ Evento: {event_name}"""
         self.root.mainloop()
     
     def _on_closing(self):
-        """Handle application closing - cleanup resources."""
+        """Handle application closing - graceful shutdown of all resources.
+        
+        Uses GracefulShutdown manager to ensure orderly cleanup:
+        1. Stop streaming (Betfair market/order streams)
+        2. Stop API workers (API-Football)
+        3. Stop Telegram listener
+        4. Stop antifreeze components
+        5. Close database connection
+        
+        Note: Handlers are registered ONCE in __init__, not here.
+        """
+        logging.info("[SHUTDOWN] Application closing - starting graceful shutdown")
+        
+        # Execute graceful shutdown (handlers already registered in __init__)
         try:
-            # Stop API-Football worker
-            if hasattr(self, 'api_football_worker'):
-                try:
-                    self.api_football_worker.stop()
-                except:
-                    pass
-            
-            # Stop Telegram listener if running
-            if self.telegram_listener:
-                try:
-                    self.telegram_listener.stop()
-                except:
-                    pass
-            
-            # Close database connection
-            if self.db:
-                self.db.close()
-        except:
-            pass
+            self.antifreeze.shutdown_manager.execute()
+        except Exception as e:
+            logging.error(f"[SHUTDOWN] Error during graceful shutdown: {e}")
         finally:
             self.root.destroy()
+    
+    def _shutdown_streams(self):
+        """Shutdown Betfair streams."""
+        if self.client:
+            try:
+                self.client.stop_streaming()
+            except:
+                pass
+    
+    def _shutdown_api_football(self):
+        """Shutdown API-Football worker."""
+        if hasattr(self, 'api_football_worker'):
+            try:
+                self.api_football_worker.stop()
+            except:
+                pass
+    
+    def _shutdown_telegram(self):
+        """Shutdown Telegram listener."""
+        if self.telegram_listener:
+            try:
+                self.telegram_listener.stop()
+            except:
+                pass
+    
+    def _shutdown_antifreeze(self):
+        """Shutdown antifreeze components."""
+        if hasattr(self, 'antifreeze'):
+            try:
+                self.antifreeze.health_monitor.stop()
+                self.antifreeze.ui_queue.stop()
+            except:
+                pass
+    
+    def _shutdown_database(self):
+        """Shutdown database connection."""
+        if self.db:
+            try:
+                self.db.close()
+            except:
+                pass
 
 
 def main():

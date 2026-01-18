@@ -2,7 +2,7 @@
 
 ## Overview
 
-Pickfair is a Python-based Windows desktop application for automated sports betting on the Betfair Exchange Italy API. It focuses on advanced dutching, live betting, and automated bet placement, integrated with Telegram for signal processing. The application offers a modern, dark-themed trading experience, multi-market monitoring, simulation mode, and compliance with Italian commission handling. Its ambition is to provide a robust, efficient, and user-friendly platform for sophisticated sports trading strategies.
+Pickfair is a Python-based Windows desktop application designed for automated sports betting on the Betfair Exchange Italy API. Its primary purpose is to offer a robust, efficient, and user-friendly platform for sophisticated sports trading strategies, focusing on advanced dutching, live betting, and automated bet placement. The application integrates with Telegram for signal processing and features a modern, dark-themed trading experience, multi-market monitoring, a simulation mode, and compliance with Italian commission handling.
 
 ## User Preferences
 
@@ -14,119 +14,38 @@ Pickfair is a Python-based Windows desktop application for automated sports bett
 ## System Architecture
 
 ### UI/UX Decisions
-The application features a tab-based, dark-themed trading interface built with `CustomTkinter` and `ttk` for modern and complex widgets. A consistent dark theme is enforced via `theme.py`, with specific color assignments for BACK bets (blue), LAY bets (pink), profit (green), and loss (red).
+The application utilizes `CustomTkinter` and `ttk` for a tab-based, dark-themed trading interface, ensuring a modern and consistent aesthetic. Specific color assignments are used for BACK bets (blue), LAY bets (pink), profit (green), and loss (red).
 
 ### Technical Implementations
-The core application is managed by `main.py`, interacting with `betfair_client.py` for API calls, `betfair_stream.py` for real-time market data (MCM) and order updates (OCM), and `telegram_listener.py` for signal processing. `database.py` handles SQLite operations, and `dutching.py` performs complex dutching calculations. Key features include:
+The core application (`main.py`) manages interactions with the Betfair API (`betfair_client.py`), real-time market data and order updates (`betfair_stream.py`), Telegram signal processing (`telegram_listener.py`), and SQLite database operations (`database.py`). Key features include:
 
--   **Advanced Dutching**: Supports mixed BACK/LAY bets with features like best odds highlighting, auto-removal of suspended runners, book percentage warnings, P&L preview, preset stakes, and AI Mixed Auto-Entry for automatic BACK/LAY classification. It includes budget protection, profit verification, and a profit variance guard.
--   **Auto-Green Toggle**: Automatically manages order green-up after a grace period.
--   **Simulation Mode**: Allows strategy testing without real money, indicated by a red banner and blocking real order submission.
+-   **Advanced Dutching**: Supports mixed BACK/LAY bets with features like best odds highlighting, auto-removal of suspended runners, book percentage warnings, P&L preview, preset stakes, and AI Mixed Auto-Entry.
+-   **Simulation Mode**: Allows strategy testing without real money.
 -   **Real-time Live Betting**: Provides live odds and quick bet placement.
--   **Telegram Integration**: Monitors chats for betting signals, supporting various market types and enabling auto-betting and copy trading (Master/Follower modes).
+-   **Telegram Integration**: Monitors chats for betting signals, supporting auto-betting and copy trading (Master/Follower modes), with follower enhancements like fixed stake mode and cycle management.
 -   **Cashout Management**: Manual and automatic cashout options.
 -   **Multi-Market Monitoring**: Tracks multiple events via a Market Watch List.
 -   **Automatic Result Settlement**: Tracks and settles bets, updating statistics.
--   **Custom Parsing Rules**: User-defined regex for Telegram signal processing.
--   **Plugin System**: A secure, sandboxed environment for custom scripts with a defined API.
--   **My Bets Panel**: Real-time order tracking with P&L display and inline actions (Cancel, Replace, Green-up).
--   **Trading Automation PRO**: Includes a P&L Engine, Stop Loss/Take Profit, Trailing Stop, Partial Green, Tick Storage, and a Simulation Broker with exchange-realistic behavior. Features a Book Optimizer for stake redistribution and a Tick Replay Engine for backtesting.
--   **Safety Package**: Comprehensive validation including `MarketValidator` for dutching compatibility, `Profit Uniformity Validation` (with a €0.50 tolerance), `Auto-Green Security` with grace periods, and `Safety Logger` for auditing.
--   **Safe Mode Manager**: Automatically disables trading functions after consecutive errors, with a manual reset option.
--   **Performance Optimizations**: Features a `Tick Dispatcher` for coalescing UI updates, `P&L Cache` and `Dutching Cache` for calculation speedup, `Automation Optimizer` for early exit checks, `UI Optimizer` for diff-based updates, and `Simulation Speed Controller` for multi-speed simulations.
--   **PRO UI Components**: `DutchingController` as a unified orchestrator, `AIPatternEngine` for Weight of Money (WoM) analysis, `MiniLadder` for inline odds display, and `DraggableRunner` for reordering runners.
--   **Preflight Check + Dry Run**: A pre-order validation system checking stake, liquidity, spread, price, and book percentage, with a `dry_run` parameter for previewing orders.
--   **Enterprise WoM + One-Click**: `WoM Engine` for historical tick analysis with time-window aggregation, `Enhanced AI Analysis` combining instant and historical WoM, and `OneClickLadder` for single-click order placement with preflight validation.
--   **Toolbar + Live UI (v3.66)**: Advanced `Toolbar` with Simulation/Auto-Green/AI Mixed toggles, market status indicator, and preset stake buttons. `LiveMiniLadder` with 500ms auto-refresh, [BACK]/[LAY] badges from WoM, P&L preview inline, and best price highlight. Controller supports `auto_green_enabled`, `ai_enabled`, `preset_stake_pct` flags. PnL Engine adds `calculate_preview()` for pre-order estimation.
--   **v3.67 Advanced Features**:
-    - **WoM Time-Window Engine**: Multi-timeframe WoM analysis (5s/15s/30s/60s), delta pressure, momentum, volatility. Thread-safe snapshot-based calculations.
-    - **AI Guardrail**: Protection system with market readiness check, WoM data validation, auto-green grace period (3s), order rate limiting (10/min), consecutive error circuit breaker.
-    - **One-Click MiniLadder**: Click → preflight → submit with auto-green support.
--   **v3.68 Liquidity Guard**:
-    - Configurable liquidity protection: blocks orders when available liquidity < stake × multiplier (default 3x)
-    - Absolute minimum check: €50 required (prevents dead market orders)
-    - Warning-only mode available for experienced traders
-    - Test suite: 121 tests passed (72 core + 37 WoM/Guardrail + 12 Liquidity Guard).
--   **v3.71 Antifreeze Architecture**:
-    - **BetfairExecutor**: Singleton `ThreadPoolExecutor(max_workers=1)` for ALL Betfair API calls, ensuring serialized execution.
-    - **UIWatchdog**: Monitors main thread responsiveness with 15s timeout; dumps all thread stacks on freeze detection.
-    - **poll_future()**: Non-blocking Future handling via Tkinter mainloop - UI never blocks on API calls.
-    - **guarded() decorator**: Blocks order operations when safe mode is active, applied before executor submission.
-    - **ZERO main-thread API calls**: All Betfair calls go through `_execute_order_operation()` or `_execute_betfair_call()`.
--   **v3.72 Live Match Timeline**:
-    - **MatchTimeline Widget**: Trading-style progress bar showing minute, injury time, and goal markers with tooltips.
-    - **API-Football Integration**: Background worker polls live match data every 15s (uses `API_FOOTBALL_KEY` secret).
-    - **HardSyncController**: Betfair = MASTER, API-Football = sensor. Trading decisions never based on API-Football.
-    - **LiveContext**: Thread-safe cache for match data between API thread and UI.
-    - **Goal Alerts**: Visual flash + optional sound on goal detection (anti-spam, single trigger per goal).
-    - **Dynamic Colors**: Green (normal), Orange (danger/late game), Red (suspended), Gray (N/A).
-    - **Fuzzy Team Matching**: Handles U21/Women/friendly naming differences automatically.
--   **v3.73 Follower PRO**:
-    - **Fixed Stake Mode**: Follower can use fixed stake instead of percentage, configurable in Telegram settings.
-    - **CycleManager**: Thread-safe P&L tracking with target (+5% default) and stop (-3% default) thresholds.
-    - **Cycle Gate**: Blocks COPY_BET/COPY_CASHOUT/COPY_DUTCHING signals when cycle threshold reached (TARGET_HIT or STOPPED).
-    - **Persistence**: Cycle state persisted to `follower_cycle_state` table, survives app restart.
-    - **UI Controls**: Stake type selector, cycle enable toggle, target/stop inputs, live status display, reset button.
-    - **Callback System**: Notifies user with dialog when cycle ends (target hit or stopped).
-    - **Test Suite**: 48 tests (38 core + 10 CycleManager).
--   **v3.73.1 Telegram Threading Fix**:
-    - **Background Thread Execution**: `_process_telegram_auto_bet`, `_process_telegram_booking`, and `_process_telegram_copy_dutching` now run in dedicated background threads instead of main thread via `root.after()`.
-    - **UI Freeze Prevention**: All ~15 blocking Betfair API calls per function now execute in worker threads, eliminating UI freezes during Telegram signal processing.
-    - **Thread-Safe MessageBox**: All `messagebox` calls wrapped with `root.after(0, ...)` for safe cross-thread UI updates.
-    - **Pattern**: `threading.Thread(target=lambda s=signal: self._process_telegram_auto_bet(s, settings), daemon=True, name="TelegramAutoBet").start()`
--   **v3.73.2 Stream Disconnect Fix**:
-    - **Safe Disconnect with Timeout**: `_safe_disconnect_stream()` wraps stream disconnect in background thread with 3s timeout - prevents infinite hang.
-    - **Non-blocking Logout**: `_disconnect()` now runs `client.logout()` in background thread.
-    - **Root Cause**: `order_stream.disconnect()` was blocking main thread indefinitely when stream was unresponsive.
-    - **Pattern**: Timeout-based disconnect prevents UI freeze even when network is slow/unresponsive.
-    - **Order Stream Throttling**: `_on_order_stream_update()` now uses throttling (max 4 refresh/sec = 250ms) to prevent UI flooding from rapid stream updates.
--   **v3.73.3 Thread Guard System**:
-    - **`@assert_not_ui_thread` decorator**: Applied to ALL critical Betfair API methods (`get_account_funds`, `get_available_markets`, `get_market_book`, `place_bet`, `place_bets`, `get_current_orders`, `cancel_orders`, `replace_orders`, `execute_cashout`).
-    - **Hard Crash Instead of Freeze**: If any protected method is called from main thread → `RuntimeError` with full stack trace instead of silent freeze.
-    - **`ui_guard()` decorator**: For button callbacks - logs timing and warns if >200ms, thread dump if >2s.
-    - **`is_ui_thread()` helper**: Thread-safe check for main thread detection.
-    - **Test Mode Support**: Guards auto-disabled during pytest via `THREAD_GUARD_DISABLED=1` env var.
-    - **Pattern**: Converts silent UI freezes into immediate, debuggable crashes with stack traces.
--   **v3.73.4 Anti-Freeze Extensions**:
-    - **Database Guards**: `@assert_not_ui_thread("DB_HEAVY")` ONLY on truly heavy operations (`_backup_and_recreate`). Fast queries (get_statistics, get_today_pl) stay unguarded - they have LIMIT and indices.
-    - **TimerManager**: Class to prevent `.after()` timer accumulation. Ensures only one timer per name is active. Used for `auto_refresh`, `match_timeline`.
-    - **chunked_tree_insert()**: Helper function for inserting large datasets into Treeview in chunks (default 50 items) to prevent UI freeze.
-    - **Pattern**: Deduplication of timers prevents memory leaks and CPU waste from accumulated callbacks.
--   **v3.73.5 Non-blocking Stream Stop**:
-    - **`_stop_streaming()` now non-blocking**: `client.stop_streaming()` runs in background thread instead of main thread.
-    - **`_unsubscribe_from_market_stream_async()`**: New async version for UI calls - unsubscribes in background thread.
-    - **Root Cause Fix**: Click on new market was freezing because `_stop_streaming()` called blocking stream operations on main thread.
--   **v3.73.6 Non-blocking Telegram**:
-    - **`_stop_telegram_listener()`**: Now runs `listener.stop()` in background thread (was blocking up to 10s).
-    - **`_broadcast_copy_bet()`**: Now non-blocking via background thread.
-    - **`_broadcast_copy_dutching()`**: Now non-blocking via background thread.
-    - **`_broadcast_copy_cashout()`**: Now non-blocking via background thread.
-    - **Root Cause**: `connect_for_sending()` in TelegramListener can block up to 3s waiting for loop readiness.
--   **v3.73.7 Telegram Send Thread Reliability**:
-    - **`send_thread` now `daemon=False`**: Critical fix for Copy Trading Master mode. Ensures send thread survives main thread issues and completes pending messages before shutdown.
-    - **Telethon Checklist Verified**: Same event loop ✓, same thread ✓, entity cached ✓, `.result()` called ✓, reconnect handled ✓, FloodWait handled ✓, async queue for burst ✓, timestamp anti-flood ✓.
-    - **Root Cause**: `daemon=True` threads die immediately when main thread terminates, losing queued messages.
-
-### Frozen API Signatures (v3.66-enterprise)
-**DO NOT MODIFY** - Core dutching signatures are frozen for stability:
-```python
-# Dutching Core
-calculate_dutching_stakes(selections, total_stake, bet_type="BACK", commission=0.0) -> Tuple[List[Dict], float, float]
-calculate_mixed_dutching(selections, total_stake, commission=0.0) -> Tuple[List[Dict], float, float]
-dynamic_cashout_single(back_stake, back_price, lay_price, commission=4.5) -> Dict  # returns: lay_stake, net_profit, profit_if_wins, profit_if_loses
-
-# Simulation Broker
-SimulationBroker.place_order(selection_id, price, stake, side, order_type) -> str
-SimulationBroker.orders: Dict[str, SimulatedOrder]
-```
+-   **Plugin System**: A secure, sandboxed environment for custom scripts.
+-   **My Bets Panel**: Real-time order tracking with P&L display and inline actions.
+-   **Trading Automation PRO**: Includes a P&L Engine, Stop Loss/Take Profit, Trailing Stop, Partial Green, Tick Storage, Simulation Broker, Book Optimizer, and Tick Replay Engine.
+-   **Safety Package**: Comprehensive validation including market and profit uniformity validation, auto-green security, and a safety logger.
+-   **Safe Mode Manager**: Automatically disables trading functions after consecutive errors.
+-   **Performance Optimizations**: Features a Tick Dispatcher, P&L/Dutching Caches, Automation Optimizer, UI Optimizer, and Simulation Speed Controller.
+-   **PRO UI Components**: DutchingController, AIPatternEngine for Weight of Money (WoM) analysis, MiniLadder, and DraggableRunner.
+-   **Preflight Check + Dry Run**: A pre-order validation system checking stake, liquidity, spread, price, and book percentage.
+-   **Enterprise WoM + One-Click**: WoM Engine for historical tick analysis, enhanced AI analysis, and OneClickLadder for single-click order placement.
+-   **Liquidity Guard**: Configurable protection that blocks orders when liquidity is insufficient.
+-   **Antifreeze Architecture**: Ensures UI responsiveness through serialized Betfair API calls via `BetfairExecutor`, UI watchdog, non-blocking future handling (`poll_future()`), and a `guarded()` decorator for safe operations. Includes circuit breakers, rate limiters, a prioritized UI queue, health monitoring, and graceful shutdown procedures. Non-blocking implementations for stream stops, Telegram operations, and database access prevent UI freezes. Thread guards (`@assert_not_ui_thread`) prevent critical API methods from being called on the main UI thread.
+-   **Live Match Timeline**: Integrates with API-Football to display real-time match progress, goal markers, and dynamic color-coded states on a MatchTimeline widget, without influencing trading decisions directly.
 
 ### System Design Choices
-Data is stored in an SQLite database (`pickfair.db`) within `%APPDATA%\Pickfair`, including application data, Telegram session files, plugin configurations, and license keys. `theme.py` provides consistent dark theming. The database uses persistent connections, retry mechanisms, and WAL mode for concurrency. The plugin system incorporates code validation, sandboxing, timeout protection, and thread-safe execution for security.
+Data is persistently stored in an SQLite database (`pickfair.db`) using WAL mode for concurrency, located in `%APPDATA%\Pickfair`. This includes application data, Telegram session files, plugin configurations, and license keys. The plugin system emphasizes security through sandboxing and thread-safe execution.
 
 ## External Dependencies
 
 -   **customtkinter**: For the modern GUI.
 -   **betfairlightweight**: Python wrapper for the Betfair Exchange API.
 -   **telethon**: For Telegram client operations.
--   **numpy**: For various numerical calculations.
--   **PyInstaller**: For packaging the application into executables.
+-   **numpy**: For numerical calculations.
+-   **PyInstaller**: For packaging the application.
