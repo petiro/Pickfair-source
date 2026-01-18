@@ -97,6 +97,8 @@ try:
     logging.debug("Importing cycle_manager...")
     from cycle_manager import CycleManager
     from telegram_listener import set_cycle_manager
+    logging.debug("Importing ui_queue...")
+    from ui_queue import UIUpdateQueue, UIPriority, run_bg, ui_call, treeview_insert_chunked
     logging.info("All modules imported successfully")
 except Exception as e:
     logging.error(f"Failed to import modules: {e}")
@@ -264,13 +266,13 @@ class TimerManager:
             self.cancel(name)
 
 
-def chunked_tree_insert(root, tree, parent, items, chunk_size=50, callback=None):
+def chunked_tree_insert(root, tree, parent, items, chunk_size=50, callback=None, app=None):
     """
     Insert items into Treeview in chunks to prevent UI freeze.
     
     USE THIS for any insert of 100+ items. Example:
         items = [{'iid': evt['id'], 'values': (evt['name'], date_str)} for evt in events]
-        chunked_tree_insert(self.root, self.events_tree, '', items)
+        chunked_tree_insert(self.root, self.events_tree, '', items, app=self)
     
     Args:
         root: Tk root window
@@ -279,6 +281,7 @@ def chunked_tree_insert(root, tree, parent, items, chunk_size=50, callback=None)
         items: List of dicts with 'iid', 'values', 'text' (optional), 'tags' (optional)
         chunk_size: Number of items per chunk (default 50)
         callback: Optional callback when all items inserted
+        app: App instance with uiq for UIQueue integration (optional)
     """
     def insert_chunk(index=0):
         end = min(index + chunk_size, len(items))
@@ -297,7 +300,13 @@ def chunked_tree_insert(root, tree, parent, items, chunk_size=50, callback=None)
                 pass  # Item already exists or invalid
         
         if end < len(items):
-            root.after(1, lambda: insert_chunk(end))
+            # Use UIQueue if available, otherwise fallback to root.after
+            if app and hasattr(app, 'uiq'):
+                app.uiq.post(lambda idx=end: insert_chunk(idx), 
+                            key=f"chunk_insert_{id(tree)}", priority=UIPriority.LOW,
+                            debug_name="chunked_tree_insert")
+            else:
+                root.after(1, lambda: insert_chunk(end))
         elif callback:
             callback()
     
@@ -781,14 +790,14 @@ class PickfairApp:
         self.stream_label.pack(side=tk.LEFT, padx=10)
         
         self.connect_btn = ctk.CTkButton(status_frame, text="Connetti", 
-                                         command=self._toggle_connection,
+                                         command=lambda: run_bg(self, "ToggleConnection", self._toggle_connection),
                                          fg_color=COLORS['button_primary'],
                                          hover_color=COLORS['back_hover'],
                                          corner_radius=6, width=100)
         self.connect_btn.pack(side=tk.RIGHT, padx=10)
         
         self.refresh_btn = ctk.CTkButton(status_frame, text="Aggiorna", 
-                                         command=self._refresh_data, state=tk.DISABLED,
+                                         command=lambda: run_bg(self, "RefreshData", self._refresh_data), state=tk.DISABLED,
                                          fg_color=COLORS['button_secondary'],
                                          corner_radius=6, width=100)
         self.refresh_btn.pack(side=tk.RIGHT, padx=5)
@@ -1390,7 +1399,8 @@ class PickfairApp:
         ctk.CTkButton(btn_frame, text="Cancella Selezioni", command=self._clear_selections,
                       fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
                       corner_radius=6).pack(side=tk.LEFT)
-        self.place_btn = ctk.CTkButton(btn_frame, text="Piazza Scommesse", command=self._place_bets, 
+        self.place_btn = ctk.CTkButton(btn_frame, text="Piazza Scommesse", 
+                                       command=lambda: run_bg(self, "PlaceBets", self._place_bets), 
                                        state=tk.DISABLED,
                                        fg_color=COLORS['button_success'], hover_color='#4caf50',
                                        corner_radius=6)
@@ -1427,7 +1437,7 @@ class PickfairApp:
                                                fg_color=COLORS['success'], hover_color='#0d9668',
                                                font=('Segoe UI', 9, 'bold'), state=tk.DISABLED,
                                                corner_radius=6, width=100,
-                                               command=self._do_market_cashout)
+                                               command=lambda: run_bg(self, "MarketCashout", self._do_market_cashout))
         self.market_cashout_btn.pack(side=tk.LEFT, padx=2)
         
         # Auto-confirm checkbox (skip confirmation dialog)
@@ -1480,13 +1490,13 @@ class PickfairApp:
         ctk.CTkButton(header_frame, text="Aggiorna", 
                       fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
                       corner_radius=6, width=70, height=26,
-                      command=self._refresh_my_bets_panel).pack(side=tk.RIGHT, padx=(2, 0))
+                      command=lambda: run_bg(self, "RefreshMyBets", self._refresh_my_bets_panel)).pack(side=tk.RIGHT, padx=(2, 0))
         
         # Cancel All button
         self.cancel_all_btn = ctk.CTkButton(header_frame, text="Annulla", 
                                             fg_color=COLORS['loss'], hover_color='#c62828',
                                             corner_radius=6, width=70, height=26,
-                                            command=self._cancel_all_unmatched_orders)
+                                            command=lambda: run_bg(self, "CancelAllOrders", self._cancel_all_unmatched_orders))
         self.cancel_all_btn.pack(side=tk.RIGHT, padx=2)
         
         # Scrollable container for all sections
@@ -1963,7 +1973,8 @@ class PickfairApp:
                             o.update(snap)
                             break
                 
-                self.root.after(0, lambda o=orders: self._update_my_bets_display(o))
+                self.uiq.post(self._update_my_bets_display, orders, key="my_bets_display", 
+                             priority=UIPriority.NORMAL, debug_name="update_my_bets_display")
             except Exception as e:
                 logging.error(f"Error fetching orders for My Bets: {e}")
         
@@ -2383,8 +2394,10 @@ class PickfairApp:
                 # Filter orders for current market
                 market_orders = [o for o in matched if o.get('marketId') == market_id]
                 
-                # Update UI in main thread
-                self.root.after(0, lambda: self._display_placed_bets(market_orders, runner_names))
+                # Update UI in main thread via queue
+                self.uiq.post(self._display_placed_bets, market_orders, runner_names, 
+                             key="placed_bets_display", priority=UIPriority.NORMAL, 
+                             debug_name="display_placed_bets")
             except Exception as e:
                 print(f"Error fetching placed bets: {e}")
         
@@ -2511,7 +2524,8 @@ class PickfairApp:
                     if not self.market_cashout_fetch_cancelled:
                         self._display_market_cashout_positions(positions)
                 
-                self.root.after(0, update_ui)
+                self.uiq.post(update_ui, key="cashout_positions_display", 
+                             priority=UIPriority.NORMAL, debug_name="update_cashout_positions")
             except Exception as e:
                 self.market_cashout_fetch_in_progress = False
                 logging.error(f"Error fetching cashout positions: {e}")
@@ -4554,7 +4568,9 @@ class PickfairApp:
                 logging.info(f"Loading markets for tree: {event_id}")
                 markets = self.client.get_available_markets(event_id)
                 logging.info(f"Got {len(markets) if markets else 0} markets for tree")
-                self.root.after(0, lambda: self._add_markets_to_tree(event_id, markets))
+                self.uiq.post(self._add_markets_to_tree, event_id, markets,
+                             key=f"markets_tree_{event_id}", priority=UIPriority.NORMAL,
+                             debug_name="add_markets_to_tree")
             except Exception as e:
                 logging.error(f"Error loading markets for tree: {e}")
         
@@ -4656,11 +4672,14 @@ class PickfairApp:
                 logging.info(f"Loading markets for event: {event_id}")
                 markets = self.client.get_available_markets(event_id)
                 logging.info(f"Got {len(markets) if markets else 0} markets")
-                self.root.after(0, lambda: self._display_available_markets(markets))
+                self.uiq.post(self._display_available_markets, markets,
+                             key="available_markets", priority=UIPriority.NORMAL,
+                             debug_name="display_available_markets")
             except Exception as e:
                 err_msg = str(e)
                 logging.error(f"Error loading markets: {err_msg}")
-                self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", f"Errore caricamento mercati: {msg}"))
+                self.uiq.post(lambda: messagebox.showerror("Errore", f"Errore caricamento mercati: {err_msg}"),
+                             priority=UIPriority.HIGH, debug_name="error_markets")
         
         threading.Thread(target=fetch, daemon=True).start()
     
@@ -4721,10 +4740,13 @@ class PickfairApp:
         def fetch():
             try:
                 market = self.client.get_market_with_prices(market_id)
-                self.root.after(0, lambda: self._display_market(market))
+                self.uiq.post(self._display_market, market,
+                             key="display_market", priority=UIPriority.HIGH,
+                             debug_name="display_market")
             except Exception as e:
                 err_msg = str(e)
-                self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", f"Mercato non disponibile: {msg}"))
+                self.uiq.post(lambda: messagebox.showerror("Errore", f"Mercato non disponibile: {err_msg}"),
+                             priority=UIPriority.HIGH, debug_name="error_market")
         
         threading.Thread(target=fetch, daemon=True).start()
     
@@ -6832,7 +6854,8 @@ class PickfairApp:
                                                      font=('Segoe UI', 11), text_color=COLORS['text_secondary'])
         self.dashboard_not_connected.pack(pady=20)
         
-        ctk.CTkButton(main_frame, text="Aggiorna Dashboard", command=self._refresh_dashboard_tab,
+        ctk.CTkButton(main_frame, text="Aggiorna Dashboard", 
+                      command=lambda: run_bg(self, "RefreshDashboard", self._refresh_dashboard_tab),
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
                       corner_radius=6).pack(anchor=tk.E, pady=10)
         
@@ -6898,17 +6921,17 @@ class PickfairApp:
         ctk.CTkButton(btn_frame, text="Aggiungi Mercato Corrente", 
                       fg_color=COLORS['success'], hover_color='#4caf50',
                       corner_radius=6, width=150,
-                      command=self._add_current_to_watch).pack(side=tk.LEFT, padx=5)
+                      command=lambda: run_bg(self, "AddToWatch", self._add_current_to_watch)).pack(side=tk.LEFT, padx=5)
         
         ctk.CTkButton(btn_frame, text="Rimuovi Selezionato", 
                       fg_color=COLORS['loss'], hover_color='#c62828',
                       corner_radius=6, width=130,
-                      command=self._remove_from_watch).pack(side=tk.LEFT, padx=5)
+                      command=lambda: run_bg(self, "RemoveFromWatch", self._remove_from_watch)).pack(side=tk.LEFT, padx=5)
         
         ctk.CTkButton(btn_frame, text="Aggiorna", 
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
                       corner_radius=6, width=80,
-                      command=self._refresh_market_watch).pack(side=tk.LEFT, padx=5)
+                      command=lambda: run_bg(self, "RefreshMarketWatch", self._refresh_market_watch)).pack(side=tk.LEFT, padx=5)
         
         # Auto-refresh checkbox
         self.market_watch_auto_var = tk.BooleanVar(value=True)
@@ -8096,10 +8119,12 @@ class PickfairApp:
         
         btn_frame = ctk.CTkFrame(config_frame, fg_color='transparent')
         btn_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
-        ctk.CTkButton(btn_frame, text="Avvia Listener", command=self._start_telegram_listener,
+        ctk.CTkButton(btn_frame, text="Avvia Listener", 
+                      command=lambda: run_bg(self, "StartTelegram", self._start_telegram_listener),
                       fg_color=COLORS['button_success'], hover_color='#4caf50',
                       corner_radius=6, width=100).pack(side=tk.LEFT, padx=2)
-        ctk.CTkButton(btn_frame, text="Ferma", command=self._stop_telegram_listener,
+        ctk.CTkButton(btn_frame, text="Ferma", 
+                      command=lambda: run_bg(self, "StopTelegram", self._stop_telegram_listener),
                       fg_color=COLORS['button_danger'], hover_color='#c62828',
                       corner_radius=6, width=60).pack(side=tk.LEFT, padx=2)
         
