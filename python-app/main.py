@@ -420,6 +420,11 @@ class PickfairApp:
         self.antifreeze = AntifreezeManager(self.root)
         self.antifreeze.start()
         
+        # UIUpdateQueue: Centralized UI update queue (30 updates/sec max, dedup, priority)
+        from ui_queue import UIUpdateQueue, UIPriority, run_bg
+        self.uiq = UIUpdateQueue(self.root, logger=None, max_updates_per_sec=30)
+        self.uiq.start()
+        
         # Register shutdown handlers ONCE at initialization (not in _on_closing)
         self.antifreeze.shutdown_manager.register("streams", lambda: self._shutdown_streams(), priority=1)
         self.antifreeze.shutdown_manager.register("api_football", lambda: self._shutdown_api_football(), priority=2)
@@ -13374,15 +13379,24 @@ Evento: {event_name}"""
         """Handle application closing - graceful shutdown of all resources.
         
         Uses GracefulShutdown manager to ensure orderly cleanup:
-        1. Stop streaming (Betfair market/order streams)
-        2. Stop API workers (API-Football)
-        3. Stop Telegram listener
-        4. Stop antifreeze components
-        5. Close database connection
+        1. Flush and stop UI queue
+        2. Stop streaming (Betfair market/order streams)
+        3. Stop API workers (API-Football)
+        4. Stop Telegram listener
+        5. Stop antifreeze components
+        6. Close database connection
         
         Note: Handlers are registered ONCE in __init__, not here.
         """
         logging.info("[SHUTDOWN] Application closing - starting graceful shutdown")
+        
+        # Flush and stop UI queue first (ensure pending updates complete)
+        try:
+            if hasattr(self, 'uiq'):
+                self.uiq.flush(timeout_sec=1.5)
+                self.uiq.stop()
+        except Exception as e:
+            logging.error(f"[SHUTDOWN] Error flushing UI queue: {e}")
         
         # Execute graceful shutdown (handlers already registered in __init__)
         try:
