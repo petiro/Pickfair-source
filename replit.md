@@ -102,6 +102,10 @@ The core application is managed by `main.py`, interacting with `betfair_client.p
     - **`_broadcast_copy_dutching()`**: Now non-blocking via background thread.
     - **`_broadcast_copy_cashout()`**: Now non-blocking via background thread.
     - **Root Cause**: `connect_for_sending()` in TelegramListener can block up to 3s waiting for loop readiness.
+-   **v3.73.7 Telegram Send Thread Reliability**:
+    - **`send_thread` now `daemon=False`**: Critical fix for Copy Trading Master mode. Ensures send thread survives main thread issues and completes pending messages before shutdown.
+    - **Telethon Checklist Verified**: Same event loop ✓, same thread ✓, entity cached ✓, `.result()` called ✓, reconnect handled ✓, FloodWait handled ✓, async queue for burst ✓, timestamp anti-flood ✓.
+    - **Root Cause**: `daemon=True` threads die immediately when main thread terminates, losing queued messages.
 
 ### Frozen API Signatures (v3.66-enterprise)
 **DO NOT MODIFY** - Core dutching signatures are frozen for stability:

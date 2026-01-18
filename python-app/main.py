@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.73.6"  # Non-blocking Telegram + removed API call in _create_orders_list
+APP_VERSION = "3.73.7"  # Telegram send thread daemon=False for reliable copy trading
 
 # Setup file logging
 def setup_logging():

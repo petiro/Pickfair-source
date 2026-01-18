@@ -311,7 +311,9 @@ class TelegramListener:
                     # Reset on exit (loop stopped or error)
                     self._reset_send_connection()
             
-            self.send_thread = threading.Thread(target=_connect_thread, daemon=True)
+            # CRITICAL: daemon=False ensures send thread survives main thread issues
+            # and completes pending messages before shutdown
+            self.send_thread = threading.Thread(target=_connect_thread, daemon=False)
             self.send_thread.start()
             
             # Wait for connection
