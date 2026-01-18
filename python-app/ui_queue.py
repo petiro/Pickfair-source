@@ -32,7 +32,7 @@ class UIJob:
     priority: int
     created_ts: float = field(compare=False, default_factory=time.time)
     key: Optional[str] = field(compare=False, default=None)
-    fn: Callable = field(compare=False, default=None)
+    fn: Optional[Callable] = field(compare=False, default=None)
     args: tuple = field(compare=False, default_factory=tuple)
     kwargs: dict = field(compare=False, default_factory=dict)
     debug_name: str = field(compare=False, default="ui_job")
