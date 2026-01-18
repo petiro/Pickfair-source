@@ -6842,36 +6842,44 @@ class PickfairApp:
     def _create_dashboard_tab(self):
         """Create dashboard tab content."""
         main_frame = ctk.CTkFrame(self.dashboard_tab, fg_color='transparent')
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
         
-        ctk.CTkLabel(main_frame, text="Dashboard - Account Betfair Italy", 
-                     font=FONTS['title'], text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(0, 20))
+        # Header row with title and refresh button (compact)
+        header_row = ctk.CTkFrame(main_frame, fg_color='transparent')
+        header_row.pack(fill=tk.X, pady=(0, 5))
         
+        ctk.CTkLabel(header_row, text="Dashboard - Account Betfair Italy", 
+                     font=FONTS['title'], text_color=COLORS['text_primary']).pack(side=tk.LEFT)
+        
+        ctk.CTkButton(header_row, text="Aggiorna Dashboard", 
+                      command=lambda: run_bg(self, "RefreshDashboard", self._refresh_dashboard_tab),
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, height=28).pack(side=tk.RIGHT)
+        
+        # Stats frame (compact)
         self.dashboard_stats_frame = ctk.CTkFrame(main_frame, fg_color='transparent')
-        self.dashboard_stats_frame.pack(fill=tk.X, pady=10)
+        self.dashboard_stats_frame.pack(fill=tk.X, pady=5)
         
         self.dashboard_not_connected = ctk.CTkLabel(main_frame, text="Connettiti a Betfair per vedere i dati", 
                                                      font=('Segoe UI', 11), text_color=COLORS['text_secondary'])
-        self.dashboard_not_connected.pack(pady=20)
+        self.dashboard_not_connected.pack(pady=10)
         
-        ctk.CTkButton(main_frame, text="Aggiorna Dashboard", 
-                      command=lambda: run_bg(self, "RefreshDashboard", self._refresh_dashboard_tab),
-                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
-                      corner_radius=6).pack(anchor=tk.E, pady=10)
-        
-        # Session banner for empty history
+        # Session banner for empty history (auto-hide after 5 seconds)
         if self.persistent_storage.is_history_empty():
-            session_banner = ctk.CTkFrame(main_frame, fg_color=COLORS['warning'], corner_radius=6)
-            session_banner.pack(fill=tk.X, pady=(0, 10))
-            ctk.CTkLabel(session_banner, text="Sessione avviata - lo storico verra popolato dalle prossime operazioni", 
-                        font=('Segoe UI', 11), text_color=COLORS['bg_main']).pack(pady=8, padx=15)
+            self.session_banner = ctk.CTkFrame(main_frame, fg_color=COLORS['warning'], corner_radius=6)
+            self.session_banner.pack(fill=tk.X, pady=(0, 5))
+            ctk.CTkLabel(self.session_banner, text="Sessione avviata - lo storico verra popolato dalle prossime operazioni", 
+                        font=('Segoe UI', 10), text_color=COLORS['bg_main']).pack(pady=5, padx=10)
+            # Auto-hide banner after 5 seconds
+            self.root.after(5000, self._hide_session_banner)
         
-        # Dashboard sub-tabs (using CTkTabview)
+        # Dashboard sub-tabs (using CTkTabview) with minimum height
         self.dashboard_notebook = ctk.CTkTabview(main_frame, fg_color=COLORS['bg_panel'],
                                                   segmented_button_fg_color=COLORS['bg_card'],
                                                   segmented_button_selected_color=COLORS['back'],
-                                                  segmented_button_unselected_color=COLORS['bg_card'])
-        self.dashboard_notebook.pack(fill=tk.BOTH, expand=True, pady=10)
+                                                  segmented_button_unselected_color=COLORS['bg_card'],
+                                                  height=400)
+        self.dashboard_notebook.pack(fill=tk.BOTH, expand=True, pady=5)
         
         self.dashboard_notebook.add("Market Watch")
         self.dashboard_notebook.add("Scommesse Recenti")
@@ -6902,6 +6910,14 @@ class PickfairApp:
         
         # Initialize Market Watch
         self._setup_market_watch_tab()
+    
+    def _hide_session_banner(self):
+        """Hide session banner after timeout."""
+        try:
+            if hasattr(self, 'session_banner') and self.session_banner.winfo_exists():
+                self.session_banner.pack_forget()
+        except Exception:
+            pass
     
     def _setup_market_watch_tab(self):
         """Setup Market Watch List tab in Dashboard."""
@@ -7177,14 +7193,14 @@ class PickfairApp:
         self.dashboard_not_connected.configure(text="")
         
         def create_stat_card(parent, title, value, subtitle, col):
-            card = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
-            card.grid(row=0, column=col, padx=5, sticky='nsew')
-            ctk.CTkLabel(card, text=title, font=('Segoe UI', 9), 
-                        text_color=COLORS['text_secondary']).pack(pady=(10, 2))
-            ctk.CTkLabel(card, text=value, font=FONTS['title'], 
+            card = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=6)
+            card.grid(row=0, column=col, padx=3, sticky='nsew')
+            ctk.CTkLabel(card, text=title, font=('Segoe UI', 8), 
+                        text_color=COLORS['text_secondary']).pack(pady=(5, 1))
+            ctk.CTkLabel(card, text=value, font=('Segoe UI', 14, 'bold'), 
                         text_color=COLORS['text_primary']).pack()
-            ctk.CTkLabel(card, text=subtitle, font=('Segoe UI', 8), 
-                        text_color=COLORS['text_tertiary']).pack(pady=(2, 10))
+            ctk.CTkLabel(card, text=subtitle, font=('Segoe UI', 7), 
+                        text_color=COLORS['text_tertiary']).pack(pady=(1, 5))
             return card
         
         def fetch_data():
