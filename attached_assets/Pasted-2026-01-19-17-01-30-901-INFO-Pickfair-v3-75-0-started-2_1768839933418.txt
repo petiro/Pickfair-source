@@ -1,0 +1,176 @@
+2026-01-19 17:01:30,901 [INFO] === Pickfair v3.75.0 started ===
+2026-01-19 17:01:30,926 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-19 17:01:30,926 [INFO] Importing modules...
+2026-01-19 17:01:30,926 [DEBUG] Importing thread_guard...
+2026-01-19 17:01:30,926 [DEBUG] Importing database...
+2026-01-19 17:01:30,956 [ERROR] Failed to import modules: 'str' object has no attribute '__qualname__'
+2026-01-19 17:10:19,296 [INFO] === Pickfair v3.75.0 started ===
+2026-01-19 17:10:19,341 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-19 17:10:19,341 [INFO] Importing modules...
+2026-01-19 17:10:19,341 [DEBUG] Importing thread_guard...
+2026-01-19 17:10:19,341 [DEBUG] Importing database...
+2026-01-19 17:10:19,464 [DEBUG] Importing betfair_client...
+2026-01-19 17:10:20,853 [DEBUG] [SOCKET] Global timeout set to 12 seconds
+2026-01-19 17:10:20,932 [DEBUG] Importing storage...
+2026-01-19 17:10:20,932 [DEBUG] Importing bet_logger...
+2026-01-19 17:10:20,932 [DEBUG] Importing betfair_stream...
+2026-01-19 17:10:20,932 [DEBUG] Importing dutching...
+2026-01-19 17:10:20,963 [DEBUG] Importing telegram_listener...
+2026-01-19 17:10:21,019 [DEBUG] [SSL] Preloaded: C:\Users\chiara\AppData\Local\Temp\_MEI42722\libcrypto-1_1.dll
+2026-01-19 17:10:21,034 [DEBUG] [SSL] Preloaded: C:\Users\chiara\AppData\Local\Temp\_MEI42722\libssl-1_1.dll
+2026-01-19 17:10:21,034 [INFO] [SSL] Preloaded 2 OpenSSL DLLs for Telethon
+2026-01-19 17:10:22,441 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2026-01-19 17:10:22,441 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2026-01-19 17:10:22,991 [INFO] [STORAGE] Database tables initialized
+2026-01-19 17:10:22,991 [INFO] [STORAGE] Database initialized: C:\Users\chiara\AppData\Roaming\Pickfair\pickfair_history.db
+2026-01-19 17:10:22,991 [DEBUG] cryptg not available - using standard encryption
+2026-01-19 17:10:22,991 [DEBUG] Importing auto_updater...
+2026-01-19 17:10:23,007 [DEBUG] Importing theme...
+2026-01-19 17:10:23,007 [DEBUG] Importing plugin_manager...
+2026-01-19 17:10:23,012 [DEBUG] Importing license_manager...
+2026-01-19 17:10:23,012 [DEBUG] Importing pnl_engine...
+2026-01-19 17:10:23,012 [DEBUG] Importing automation_engine...
+2026-01-19 17:10:23,012 [DEBUG] Importing tick_storage...
+2026-01-19 17:10:23,028 [DEBUG] Importing live_context...
+2026-01-19 17:10:23,028 [DEBUG] Importing match_timeline...
+2026-01-19 17:10:23,028 [DEBUG] Importing api_football...
+2026-01-19 17:10:23,028 [DEBUG] Importing hard_sync...
+2026-01-19 17:10:23,028 [DEBUG] Importing team_name_resolver...
+2026-01-19 17:10:23,028 [DEBUG] Importing cycle_manager...
+2026-01-19 17:10:23,028 [DEBUG] Importing ui_queue...
+2026-01-19 17:10:23,028 [DEBUG] Importing micro_stake...
+2026-01-19 17:10:23,043 [INFO] All modules imported successfully
+2026-01-19 17:10:23,043 [INFO] Single instance check passed - mutex acquired
+2026-01-19 17:10:27,431 [INFO] [STORAGE] Schema migration check complete
+2026-01-19 17:10:27,431 [INFO] [STORAGE] Index check complete
+2026-01-19 17:10:27,475 [INFO] [STORAGE] DB version set to 3588
+2026-01-19 17:10:27,519 [INFO] [STORAGE] Backup created: C:\Users\chiara\AppData\Roaming\Pickfair\backup\pickfair_20260119.db
+2026-01-19 17:10:27,535 [INFO] [STORAGE] Persistent storage initialized
+2026-01-19 17:10:27,552 [INFO] [EXECUTOR] BetfairExecutor initialized (max_workers=1)
+2026-01-19 17:10:27,552 [INFO] [API-Football] Worker started
+2026-01-19 17:10:27,568 [INFO] [UI_QUEUE] Started
+2026-01-19 17:10:27,568 [INFO] [HEALTH] Monitor started
+2026-01-19 17:10:27,568 [INFO] [ANTIFREEZE] Manager started
+2026-01-19 17:10:27,568 [INFO] [UIQ] Started
+2026-01-19 17:10:27,568 [ERROR] Application crashed: run_bg() missing 2 required positional arguments: 'name' and 'fn'
+2026-01-19 17:21:58,260 [INFO] === Pickfair v3.75.0 started ===
+2026-01-19 17:21:58,276 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-19 17:21:58,276 [INFO] Importing modules...
+2026-01-19 17:21:58,276 [DEBUG] Importing thread_guard...
+2026-01-19 17:21:58,276 [DEBUG] Importing database...
+2026-01-19 17:21:58,628 [DEBUG] Importing betfair_client...
+2026-01-19 17:22:01,021 [DEBUG] [SOCKET] Global timeout set to 12 seconds
+2026-01-19 17:22:01,070 [DEBUG] Importing storage...
+2026-01-19 17:22:01,070 [DEBUG] Importing bet_logger...
+2026-01-19 17:22:01,070 [DEBUG] Importing betfair_stream...
+2026-01-19 17:22:01,076 [DEBUG] Importing dutching...
+2026-01-19 17:22:01,079 [DEBUG] Importing telegram_listener...
+2026-01-19 17:22:01,155 [DEBUG] [SSL] Preloaded: C:\Users\chiara\AppData\Local\Temp\_MEI6122\libcrypto-1_1.dll
+2026-01-19 17:22:01,156 [DEBUG] [SSL] Preloaded: C:\Users\chiara\AppData\Local\Temp\_MEI6122\libssl-1_1.dll
+2026-01-19 17:22:01,157 [INFO] [SSL] Preloaded 2 OpenSSL DLLs for Telethon
+2026-01-19 17:22:02,615 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2026-01-19 17:22:02,616 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2026-01-19 17:22:03,112 [INFO] [STORAGE] Database tables initialized
+2026-01-19 17:22:03,112 [INFO] [STORAGE] Database initialized: C:\Users\chiara\AppData\Roaming\Pickfair\pickfair_history.db
+2026-01-19 17:22:03,113 [DEBUG] cryptg not available - using standard encryption
+2026-01-19 17:22:03,114 [DEBUG] Importing auto_updater...
+2026-01-19 17:22:03,115 [DEBUG] Importing theme...
+2026-01-19 17:22:03,116 [DEBUG] Importing plugin_manager...
+2026-01-19 17:22:03,123 [DEBUG] Importing license_manager...
+2026-01-19 17:22:03,126 [DEBUG] Importing pnl_engine...
+2026-01-19 17:22:03,127 [DEBUG] Importing automation_engine...
+2026-01-19 17:22:03,130 [DEBUG] Importing tick_storage...
+2026-01-19 17:22:03,133 [DEBUG] Importing live_context...
+2026-01-19 17:22:03,135 [DEBUG] Importing match_timeline...
+2026-01-19 17:22:03,137 [DEBUG] Importing api_football...
+2026-01-19 17:22:03,138 [DEBUG] Importing hard_sync...
+2026-01-19 17:22:03,139 [DEBUG] Importing team_name_resolver...
+2026-01-19 17:22:03,141 [DEBUG] Importing cycle_manager...
+2026-01-19 17:22:03,142 [DEBUG] Importing ui_queue...
+2026-01-19 17:22:03,145 [DEBUG] Importing micro_stake...
+2026-01-19 17:22:03,147 [INFO] All modules imported successfully
+2026-01-19 17:22:03,149 [INFO] Single instance check passed - mutex acquired
+2026-01-19 17:22:05,347 [INFO] [STORAGE] Schema migration check complete
+2026-01-19 17:22:05,348 [INFO] [STORAGE] Index check complete
+2026-01-19 17:22:06,370 [INFO] [STORAGE] DB version set to 3588
+2026-01-19 17:22:06,372 [INFO] [STORAGE] Persistent storage initialized
+2026-01-19 17:22:06,379 [INFO] [EXECUTOR] BetfairExecutor initialized (max_workers=1)
+2026-01-19 17:22:06,380 [INFO] [API-Football] Worker started
+2026-01-19 17:22:06,389 [INFO] [UI_QUEUE] Started
+2026-01-19 17:22:06,390 [INFO] [HEALTH] Monitor started
+2026-01-19 17:22:06,390 [INFO] [ANTIFREEZE] Manager started
+2026-01-19 17:22:06,390 [INFO] [UIQ] Started
+2026-01-19 17:22:06,391 [INFO] [BG] START load_micro_settings
+2026-01-19 17:22:06,391 [DEBUG] [SHUTDOWN] Registered handler: streams (priority=1)
+2026-01-19 17:22:06,392 [DEBUG] [SHUTDOWN] Registered handler: api_football (priority=2)
+2026-01-19 17:22:06,392 [DEBUG] [SHUTDOWN] Registered handler: telegram (priority=3)
+2026-01-19 17:22:06,392 [DEBUG] [SHUTDOWN] Registered handler: antifreeze (priority=4)
+2026-01-19 17:22:06,393 [DEBUG] [SHUTDOWN] Registered handler: database (priority=5)
+2026-01-19 17:22:07,494 [ERROR] [BG] CRASH load_micro_settings: main thread is not in main loop
+Traceback (most recent call last):
+  File "ui_queue.py", line 285, in _job
+  File "main.py", line 458, in load_micro_settings
+  File "tkinter\__init__.py", line 821, in after
+  File "tkinter\__init__.py", line 1528, in _register
+RuntimeError: main thread is not in main loop
+2026-01-19 17:22:11,603 [INFO] [DASHBOARD] Auto-refresh timer started (5s interval)
+2026-01-19 17:22:11,603 [INFO] [PERF] Performance logging started (10s interval)
+2026-01-19 17:22:11,605 [INFO] [WATCHDOG] Started with timeout=15s
+2026-01-19 17:22:11,609 [INFO] [STORAGE] Recovered 0 open positions
+2026-01-19 17:22:11,610 [INFO] [RECOVERY] No open positions to recover
+2026-01-19 17:22:11,628 [INFO] [UIQ] stats executed=0 dropped=0 errors=0 qsize=0
+2026-01-19 17:22:16,639 [INFO] [UIQ] stats executed=0 dropped=0 errors=0 qsize=0
+2026-01-19 17:22:21,645 [INFO] [UIQ] stats executed=0 dropped=0 errors=0 qsize=0
+2026-01-19 17:22:23,361 [INFO] [BG] START ToggleConnection
+2026-01-19 17:22:23,362 [INFO] [UI-CLICK] toggle_connection
+2026-01-19 17:22:23,369 [INFO] [UI-CLICK] CONNECT
+2026-01-19 17:22:23,377 [INFO] [UI-CLICK] toggle_connection done in 8ms
+2026-01-19 17:22:23,383 [ERROR] [BG] CRASH ToggleConnection: name 'time' is not defined
+Traceback (most recent call last):
+  File "ui_queue.py", line 285, in _job
+  File "thread_guard.py", line 44, in wrapper
+  File "main.py", line 3343, in _toggle_connection
+  File "main.py", line 3347, in _connect
+  File "main.py", line 698, in _log_click
+NameError: name 'time' is not defined
+2026-01-19 17:22:23,394 [INFO] [UIQ] ERROR in ui_job: 'config' is not implemented for CTk widgets. For consistency, always use 'configure' instead.
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 111, in config
+AttributeError: 'config' is not implemented for CTk widgets. For consistency, always use 'configure' instead.
+
+2026-01-19 17:22:26,645 [INFO] [UIQ] stats executed=0 dropped=0 errors=1 qsize=0
+2026-01-19 17:22:31,652 [INFO] [UIQ] stats executed=0 dropped=0 errors=1 qsize=0
+2026-01-19 17:22:31,687 [INFO] [BG] START ToggleConnection
+2026-01-19 17:22:31,689 [INFO] [UI-CLICK] toggle_connection
+2026-01-19 17:22:31,697 [INFO] [UI-CLICK] CONNECT
+2026-01-19 17:22:31,705 [INFO] [UI-CLICK] toggle_connection done in 8ms
+2026-01-19 17:22:31,711 [ERROR] [BG] CRASH ToggleConnection: name 'time' is not defined
+Traceback (most recent call last):
+  File "ui_queue.py", line 285, in _job
+  File "thread_guard.py", line 44, in wrapper
+  File "main.py", line 3343, in _toggle_connection
+  File "main.py", line 3347, in _connect
+  File "main.py", line 698, in _log_click
+NameError: name 'time' is not defined
+2026-01-19 17:22:31,727 [INFO] [UIQ] ERROR in ui_job: 'config' is not implemented for CTk widgets. For consistency, always use 'configure' instead.
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "customtkinter\windows\widgets\core_widget_classes\ctk_base_class.py", line 111, in config
+AttributeError: 'config' is not implemented for CTk widgets. For consistency, always use 'configure' instead.
+
+2026-01-19 17:22:36,661 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:22:41,662 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:22:46,663 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:22:51,668 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:22:56,702 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:23:01,713 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:23:06,713 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:23:11,721 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:23:16,722 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:23:21,736 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:23:26,759 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:23:31,854 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:23:36,879 [INFO] [BG] START ToggleConnection
+2026-01-19 17:23:36,880 [INFO] [UIQ] stats executed=0 dropped=0 errors=2 qsize=0
+2026-01-19 17:23:53,233 [ERROR] [WATCHDOG] UI FROZEN > 15s (dump #1)

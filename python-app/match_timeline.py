@@ -199,9 +199,9 @@ class MatchTimeline(ttk.Frame):
     def _update_labels(self):
         """Aggiorna label testuali."""
         if self.ctx.home_team and self.ctx.away_team:
-            self.team_label.config(text=f"{self.ctx.home_team} vs {self.ctx.away_team}")
+            self.team_label.configure(text=f"{self.ctx.home_team} vs {self.ctx.away_team}")
         
-        self.score_label.config(
+        self.score_label.configure(
             text=f"{self.ctx.goals_home} - {self.ctx.goals_away}",
             foreground=self._bar_color()
         )
@@ -215,9 +215,9 @@ class MatchTimeline(ttk.Frame):
                 self._injury_seconds = max(0, self._injury_seconds - 1)
             elif self.ctx.injury_time:
                 label += f" +{self.ctx.injury_time}"
-            self.minute_label.config(text=label, foreground=self._bar_color())
+            self.minute_label.configure(text=label, foreground=self._bar_color())
         else:
-            self.minute_label.config(text="--'", foreground="#888")
+            self.minute_label.configure(text="--'", foreground="#888")
             
     def _on_motion(self, event):
         """Mostra tooltip sui goal."""
@@ -225,7 +225,7 @@ class MatchTimeline(ttk.Frame):
             x = int((g / self.max_min) * self.width)
             if abs(event.x - x) < 8:
                 text = self.ctx.goal_events.get(g, f"Goal {g}'")
-                self.tooltip.config(text=text)
+                self.tooltip.configure(text=text)
                 self.tooltip.place(x=event.x + 10, y=event.y - 30)
                 return
         self.tooltip.place_forget()

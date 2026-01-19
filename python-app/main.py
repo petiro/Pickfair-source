@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import sys
+import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
@@ -450,12 +451,12 @@ class PickfairApp:
             # Validate amount is in valid range (0.01 - 1.99)
             if not (0.01 <= amount < 2.0):
                 amount = 0.50
-            # Apply settings on UI thread to respect Tk threading rules
+            # Apply settings on UI thread via UIQ (safe from background thread)
             def apply_settings():
                 self.micro_stake_manager.enabled = enabled
                 self.micro_stake_manager.micro_amount = amount
                 logging.debug(f"[MICRO_STAKE] Settings applied: enabled={enabled}, amount={amount}")
-            self.root.after(0, apply_settings)
+            self.uiq.post(apply_settings, key="micro_stake_init", debug_name="apply_micro_settings")
         run_bg(self, "load_micro_settings", load_micro_settings)
         
         # Register shutdown handlers ONCE at initialization (not in _on_closing)
@@ -10293,9 +10294,9 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     no_positions_label[0] = ttk.Label(parent, text="Nessuna posizione aperta al momento", 
                              font=('Segoe UI', 10))
                     no_positions_label[0].pack(anchor=tk.W, pady=5)
-                    cashout_btn.config(state='disabled')
+                    cashout_btn.configure(state='disabled')
                 else:
-                    cashout_btn.config(state='normal')
+                    cashout_btn.configure(state='normal')
             
             # Start background fetch
             threading.Thread(target=fetch_positions, daemon=True).start()
@@ -10395,14 +10396,14 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 live_tracking_id[0] = parent.after(LIVE_REFRESH_INTERVAL, update_pl)
             
             live_tracking_id[0] = parent.after(LIVE_REFRESH_INTERVAL, update_pl)
-            live_status_label.config(text="LIVE", foreground='#28a745')
+            live_status_label.configure(text="LIVE", foreground='#28a745')
         
         def stop_live_tracking():
             """Stop live tracking."""
             if live_tracking_id[0]:
                 parent.after_cancel(live_tracking_id[0])
                 live_tracking_id[0] = None
-            live_status_label.config(text="", foreground='gray')
+            live_status_label.configure(text="", foreground='gray')
         
         ttk.Checkbutton(btn_frame, text="Live Tracking", variable=live_tracking_var,
                        command=toggle_live_tracking).pack(side=tk.LEFT, padx=15)
@@ -13458,7 +13459,7 @@ Evento: {event_name}"""
         pl_color = 'green' if stats['profit_loss'] >= 0 else 'red'
         pl_label = ttk.Label(balance_frame, text=f"Profitto/Perdita: {format_currency(stats['profit_loss'])}")
         pl_label.pack(anchor=tk.W)
-        pl_label.config(foreground=pl_color)
+        pl_label.configure(foreground=pl_color)
         
         # Stats section
         stats_frame = ttk.LabelFrame(frame, text="Statistiche Scommesse", padding=10)
