@@ -67,7 +67,7 @@ class Database:
             print(f"[ERROR] Database error: {e}")
             self._backup_and_recreate()
     
-    @assert_not_ui_thread("DB_HEAVY")
+    @assert_not_ui_thread
     def _backup_and_recreate(self):
         """Backup corrupted database and create fresh one."""
         import shutil
