@@ -447,15 +447,14 @@ class PickfairApp:
             settings = self.db.get_setting('micro_stake_settings') or {}
             enabled = bool(settings.get('enabled', False))
             amount = settings.get('amount', 0.50)
-            retry = bool(settings.get('retry', True))  # Default: retry enabled
-            if amount not in [0.50, 1.00, 1.50]:
+            # Validate amount is in valid range (0.01 - 1.99)
+            if not (0.01 <= amount < 2.0):
                 amount = 0.50
             # Apply settings on UI thread to respect Tk threading rules
             def apply_settings():
                 self.micro_stake_manager.enabled = enabled
                 self.micro_stake_manager.micro_amount = amount
-                self.micro_stake_manager.retry_enabled = retry
-                logging.debug(f"[MICRO_STAKE] Settings applied: enabled={enabled}, amount={amount}, retry={retry}")
+                logging.debug(f"[MICRO_STAKE] Settings applied: enabled={enabled}, amount={amount}")
             self.root.after(0, apply_settings)
         run_bg(load_micro_settings)
         
@@ -9475,7 +9474,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         
         ctk.CTkLabel(micro_frame, text="Micro Stake (Trucco 50 Cent)", font=FONTS['heading'],
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=15, pady=(15, 5))
-        ctk.CTkLabel(micro_frame, text="Permette stake di €0.50, €1.00 o €1.50 (sotto il minimo Betfair di €2)", 
+        ctk.CTkLabel(micro_frame, text="Permette stake da €0.01 a €1.99 (sotto il minimo Betfair di €2)", 
                      font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(anchor=tk.W, padx=15)
         
         micro_options = ctk.CTkFrame(micro_frame, fg_color='transparent')
@@ -9484,7 +9483,6 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         # Use values from in-memory manager (loaded async at startup)
         current_enabled = self.micro_stake_manager.enabled if hasattr(self, 'micro_stake_manager') else False
         current_amount = self.micro_stake_manager.micro_amount if hasattr(self, 'micro_stake_manager') else 0.50
-        current_retry = self.micro_stake_manager.retry_enabled if hasattr(self, 'micro_stake_manager') else True
         
         self.micro_stake_enabled_var = tk.BooleanVar(value=current_enabled)
         ctk.CTkCheckBox(micro_options, text="Abilita Micro Stake", variable=self.micro_stake_enabled_var,
@@ -9493,25 +9491,15 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         
         amount_frame = ctk.CTkFrame(micro_options, fg_color='transparent')
         amount_frame.pack(anchor=tk.W, pady=5)
-        ctk.CTkLabel(amount_frame, text="Importo Micro:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        ctk.CTkLabel(amount_frame, text="Importo Default:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
         
-        self.micro_stake_amount_var = tk.StringVar(value=str(current_amount))
-        micro_combo = ctk.CTkComboBox(amount_frame, variable=self.micro_stake_amount_var,
-                                       values=['0.50', '1.00', '1.50'], width=80,
-                                       fg_color=COLORS['bg_card'], border_color=COLORS['border'],
-                                       button_color=COLORS['button_secondary'],
-                                       dropdown_fg_color=COLORS['bg_panel'])
-        micro_combo.pack(side=tk.LEFT, padx=5)
-        ctk.CTkLabel(amount_frame, text="EUR", text_color=COLORS['text_tertiary']).pack(side=tk.LEFT)
+        self.micro_stake_amount_var = tk.StringVar(value=f"{current_amount:.2f}")
+        micro_entry = ctk.CTkEntry(amount_frame, textvariable=self.micro_stake_amount_var,
+                                   width=70, fg_color=COLORS['bg_card'], border_color=COLORS['border'])
+        micro_entry.pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(amount_frame, text="EUR (0.01 - 1.99)", text_color=COLORS['text_tertiary']).pack(side=tk.LEFT)
         
-        # Retry fallback option
-        self.micro_stake_retry_var = tk.BooleanVar(value=current_retry)
-        ctk.CTkCheckBox(micro_options, text="Retry automatico (se €0.50 fallisce, prova €1.00 poi €1.50)", 
-                        variable=self.micro_stake_retry_var,
-                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
-                        text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(5, 0))
-        
-        ctk.CTkLabel(micro_frame, text="Nota: Quando attivo, gli stake < €2 useranno il trucco automaticamente", 
+        ctk.CTkLabel(micro_frame, text="Nota: Qualsiasi stake < €2 userà il trucco automaticamente. Nessun retry.", 
                      font=('Segoe UI', 8), text_color=COLORS['warning']).pack(anchor=tk.W, padx=15, pady=(0, 5))
         
         ctk.CTkButton(micro_frame, text="Salva Micro Stake", command=self._save_micro_stake_settings,
@@ -9528,24 +9516,24 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         """Save micro stake settings - runs DB operation in background."""
         try:
             amount = float(self.micro_stake_amount_var.get().replace(',', '.'))
-            if amount not in [0.50, 1.00, 1.50]:
-                amount = 0.50
+            amount = round(amount, 2)
+            # Validate: must be between 0.01 and 1.99
+            if not (0.01 <= amount < 2.0):
+                messagebox.showerror("Errore", "Importo deve essere tra €0.01 e €1.99")
+                return
         except:
-            amount = 0.50
-        
-        retry = self.micro_stake_retry_var.get() if hasattr(self, 'micro_stake_retry_var') else True
+            messagebox.showerror("Errore", "Importo non valido")
+            return
         
         settings = {
             'enabled': self.micro_stake_enabled_var.get(),
-            'amount': amount,
-            'retry': retry
+            'amount': amount
         }
         
         # Update manager immediately (memory-only)
         if hasattr(self, 'micro_stake_manager'):
             self.micro_stake_manager.enabled = settings['enabled']
             self.micro_stake_manager.micro_amount = amount
-            self.micro_stake_manager.retry_enabled = retry
         
         # Save to DB in background thread
         settings_copy = dict(settings)
@@ -9553,7 +9541,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             self.db.save_setting('micro_stake_settings', settings_copy)
         
         run_bg(do_save)
-        messagebox.showinfo("Salvato", "Impostazioni Micro Stake salvate")
+        messagebox.showinfo("Salvato", f"Micro Stake salvato: €{amount:.2f}")
     
     def _save_telegram_settings_from_impostazioni(self):
         """Save Telegram settings from Impostazioni tab."""
