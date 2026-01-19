@@ -34,6 +34,7 @@ class Database:
         self._cleanup_stale_files()
         self._init_connection()
         self._init_db()
+        self._ensure_app_settings_table()
     
     def _cleanup_stale_files(self):
         """Remove stale WAL/SHM files if database appears locked."""
@@ -566,6 +567,58 @@ class Database:
         cursor.execute('UPDATE settings SET skipped_version = ? WHERE id = 1', (version,))
         conn.commit()
         # conn.close() - using persistent connection
+    
+    def _ensure_app_settings_table(self):
+        """Ensure app_settings table exists (called once during init)."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        ''')
+        conn.commit()
+    
+    def get_setting(self, key):
+        """Get a generic setting by key from app_settings table.
+        
+        Thread-safe through the existing _get_connection() which uses WAL mode.
+        """
+        import json
+        with self._lock:
+            try:
+                conn = self._get_connection()
+                cursor = conn.cursor()
+                cursor.execute('SELECT value FROM app_settings WHERE key = ?', (key,))
+                row = cursor.fetchone()
+                if row and row[0]:
+                    try:
+                        return json.loads(row[0])
+                    except:
+                        return row[0]
+                return None
+            except Exception as e:
+                logging.error(f"[DB] get_setting error: {e}")
+                return None
+    
+    def save_setting(self, key, value):
+        """Save a generic setting by key to app_settings table.
+        
+        Thread-safe through lock and WAL mode.
+        """
+        import json
+        with self._lock:
+            try:
+                conn = self._get_connection()
+                cursor = conn.cursor()
+                value_str = json.dumps(value) if isinstance(value, (dict, list)) else str(value)
+                cursor.execute('''
+                    INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)
+                ''', (key, value_str))
+                conn.commit()
+            except Exception as e:
+                logging.error(f"[DB] save_setting error: {e}")
     
     def save_bet(self, event_name, market_id, market_name, bet_type, 
                  selections, total_stake, potential_profit, status):

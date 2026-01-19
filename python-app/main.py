@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.74.0"  # Antifreeze System: Circuit Breaker, Rate Limiter, Health Monitor, Graceful Shutdown, UI Queue
+APP_VERSION = "3.75.0"  # Micro Stake: 50 cent trick for betting below €2 minimum
 
 # Setup file logging
 def setup_logging():
@@ -99,6 +99,8 @@ try:
     from telegram_listener import set_cycle_manager
     logging.debug("Importing ui_queue...")
     from ui_queue import UIUpdateQueue, UIPriority, run_bg, ui_call, treeview_insert_chunked
+    logging.debug("Importing micro_stake...")
+    from micro_stake import MicroStakeManager
     logging.info("All modules imported successfully")
 except Exception as e:
     logging.error(f"Failed to import modules: {e}")
@@ -433,6 +435,26 @@ class PickfairApp:
         from ui_queue import UIUpdateQueue, UIPriority, run_bg
         self.uiq = UIUpdateQueue(self.root, logger=None, max_updates_per_sec=30)
         self.uiq.start()
+        
+        # Micro Stake Manager: Enables betting below €2 minimum (€0.50, €1.00, €1.50)
+        self.micro_stake_manager = MicroStakeManager(
+            betfair_client=None,  # Will be set when connected
+            on_progress=self._micro_stake_progress
+        )
+        # Load micro stake settings from database in background, apply on UI thread
+        def load_micro_settings():
+            settings = self.db.get_setting('micro_stake_settings') or {}
+            enabled = bool(settings.get('enabled', False))
+            amount = settings.get('amount', 0.50)
+            if amount not in [0.50, 1.00, 1.50]:
+                amount = 0.50
+            # Apply settings on UI thread to respect Tk threading rules
+            def apply_settings():
+                self.micro_stake_manager.enabled = enabled
+                self.micro_stake_manager.micro_amount = amount
+                logging.debug(f"[MICRO_STAKE] Settings applied: enabled={enabled}, amount={amount}")
+            self.root.after(0, apply_settings)
+        run_bg(load_micro_settings)
         
         # Register shutdown handlers ONCE at initialization (not in _on_closing)
         self.antifreeze.shutdown_manager.register("streams", lambda: self._shutdown_streams(), priority=1)
@@ -2291,6 +2313,11 @@ class PickfairApp:
         self._refresh_my_bets_panel()
         self._add_log(f"Green-up eseguito! Profitto: €{net_profit:.2f}", 'success')
     
+    def _micro_stake_progress(self, message):
+        """Callback for micro stake progress updates."""
+        logging.info(f"[MICRO_STAKE] {message}")
+        self._add_log(f"Micro Stake: {message}", 'info')
+    
     def _on_auto_green_up(self, bet_id, trigger_type):
         """Callback for automated green-up (SL/TP/TR)."""
         logging.info(f"[AUTOMATION] Auto green-up triggered: bet_id={bet_id} type={trigger_type}")
@@ -3566,6 +3593,13 @@ class PickfairApp:
             self.status_label.configure(text="Connesso a Betfair Italia", text_color=COLORS['success'])
             self.connect_btn.configure(text="Disconnetti", state=tk.NORMAL)
             self.refresh_btn.configure(state=tk.NORMAL)
+            
+            # Update Micro Stake Manager with connected client (bidirectional)
+            if hasattr(self, 'micro_stake_manager'):
+                self.micro_stake_manager.client = self.client
+                self.client.micro_stake_manager = self.micro_stake_manager
+                logging.debug("[MICRO_STAKE] Client updated (bidirectional)")
+            
             logging.debug("[CONNECT] UI updated - no I/O done yet")
         except Exception as e:
             logging.error(f"[CONNECT] UI update error: {e}")
@@ -6140,6 +6174,7 @@ class PickfairApp:
             else:
                 match_price = captured_price
             
+            # Micro stake is handled centrally in BetfairClient.place_bet
             return self.client.place_bet(
                 market_id=captured_market['marketId'],
                 selection_id=captured_runner['selectionId'],
@@ -9419,6 +9454,80 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         ctk.CTkButton(tg_frame, text="Salva Impostazioni Telegram", command=self._save_telegram_settings_from_impostazioni,
                       fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
                       corner_radius=6, width=200).pack(anchor=tk.W, padx=15, pady=(10, 15))
+        
+        # Micro Stake Section (50 cent trick)
+        micro_frame = ctk.CTkFrame(main_frame, fg_color=COLORS['bg_panel'], corner_radius=8)
+        micro_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        ctk.CTkLabel(micro_frame, text="Micro Stake (Trucco 50 Cent)", font=FONTS['heading'],
+                     text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=15, pady=(15, 5))
+        ctk.CTkLabel(micro_frame, text="Permette stake di €0.50, €1.00 o €1.50 (sotto il minimo Betfair di €2)", 
+                     font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(anchor=tk.W, padx=15)
+        
+        micro_options = ctk.CTkFrame(micro_frame, fg_color='transparent')
+        micro_options.pack(fill=tk.X, padx=15, pady=10)
+        
+        # Use values from in-memory manager (loaded async at startup)
+        current_enabled = self.micro_stake_manager.enabled if hasattr(self, 'micro_stake_manager') else False
+        current_amount = self.micro_stake_manager.micro_amount if hasattr(self, 'micro_stake_manager') else 0.50
+        
+        self.micro_stake_enabled_var = tk.BooleanVar(value=current_enabled)
+        ctk.CTkCheckBox(micro_options, text="Abilita Micro Stake", variable=self.micro_stake_enabled_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary'], command=self._on_micro_stake_toggle).pack(anchor=tk.W)
+        
+        amount_frame = ctk.CTkFrame(micro_options, fg_color='transparent')
+        amount_frame.pack(anchor=tk.W, pady=5)
+        ctk.CTkLabel(amount_frame, text="Importo Micro:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
+        
+        self.micro_stake_amount_var = tk.StringVar(value=str(current_amount))
+        micro_combo = ctk.CTkComboBox(amount_frame, variable=self.micro_stake_amount_var,
+                                       values=['0.50', '1.00', '1.50'], width=80,
+                                       fg_color=COLORS['bg_card'], border_color=COLORS['border'],
+                                       button_color=COLORS['button_secondary'],
+                                       dropdown_fg_color=COLORS['bg_panel'])
+        micro_combo.pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(amount_frame, text="EUR", text_color=COLORS['text_tertiary']).pack(side=tk.LEFT)
+        
+        ctk.CTkLabel(micro_frame, text="Nota: Quando attivo, gli stake < €2 useranno il trucco automaticamente", 
+                     font=('Segoe UI', 8), text_color=COLORS['warning']).pack(anchor=tk.W, padx=15, pady=(0, 5))
+        
+        ctk.CTkButton(micro_frame, text="Salva Micro Stake", command=self._save_micro_stake_settings,
+                      fg_color=COLORS['button_primary'], hover_color=COLORS['back_hover'],
+                      corner_radius=6, width=150).pack(anchor=tk.W, padx=15, pady=(5, 15))
+    
+    def _on_micro_stake_toggle(self):
+        """Handle micro stake toggle."""
+        enabled = self.micro_stake_enabled_var.get()
+        if hasattr(self, 'micro_stake_manager'):
+            self.micro_stake_manager.enabled = enabled
+    
+    def _save_micro_stake_settings(self):
+        """Save micro stake settings - runs DB operation in background."""
+        try:
+            amount = float(self.micro_stake_amount_var.get().replace(',', '.'))
+            if amount not in [0.50, 1.00, 1.50]:
+                amount = 0.50
+        except:
+            amount = 0.50
+        
+        settings = {
+            'enabled': self.micro_stake_enabled_var.get(),
+            'amount': amount
+        }
+        
+        # Update manager immediately (memory-only)
+        if hasattr(self, 'micro_stake_manager'):
+            self.micro_stake_manager.enabled = settings['enabled']
+            self.micro_stake_manager.micro_amount = amount
+        
+        # Save to DB in background thread
+        settings_copy = dict(settings)
+        def do_save():
+            self.db.save_setting('micro_stake_settings', settings_copy)
+        
+        run_bg(do_save)
+        messagebox.showinfo("Salvato", "Impostazioni Micro Stake salvate")
     
     def _save_telegram_settings_from_impostazioni(self):
         """Save Telegram settings from Impostazioni tab."""
@@ -10392,12 +10501,14 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                                 current_price_copy = current_price
                                 
                                 def do_booking_bet():
-                                    return self.client.place_bets(market_id_copy, [{
-                                        'selectionId': booking_copy['selection_id'],
-                                        'side': booking_copy['side'],
-                                        'price': current_price_copy,
-                                        'size': booking_copy['stake']
-                                    }])
+                                    # Micro stake is handled centrally in BetfairClient.place_bet
+                                    return self.client.place_bet(
+                                        market_id=market_id_copy,
+                                        selection_id=booking_copy['selection_id'],
+                                        side=booking_copy['side'],
+                                        price=current_price_copy,
+                                        size=booking_copy['stake']
+                                    )
                                 
                                 def on_booking_result(result):
                                     if result and result.get('status') == 'SUCCESS':
@@ -12898,6 +13009,7 @@ Evento: {event_name}"""
                 retry_delay = 10
                 
                 for attempt in range(max_retries):
+                    # Micro stake is handled centrally in BetfairClient.place_bet
                     result = self.client.place_bet(
                         market_id=target_market['marketId'],
                         selection_id=target_runner['selectionId'],

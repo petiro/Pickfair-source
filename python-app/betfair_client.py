@@ -374,6 +374,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
         self.stream_thread = None
         self.streaming_active = False
         self.price_callbacks = {}
+        self.micro_stake_manager = None  # Set externally when enabled
     
     @staticmethod
     def _clean_string(value):
@@ -1033,12 +1034,37 @@ class BetfairClient(metaclass=GuardedAPIMeta):
         return self.streaming_active and self.stream is not None
     
     @assert_not_ui_thread
-    def place_bet(self, market_id, selection_id, side, price, size, persistence_type='LAPSE'):
+    def place_bet(self, market_id, selection_id, side, price, size, persistence_type='LAPSE', _bypass_micro=False):
         """
         Place a single bet on Betfair.
         
-        Convenience wrapper around place_bets for single bet placement.
+        Automatically uses micro stake trick for stakes < €2 when enabled.
+        
+        Args:
+            _bypass_micro: Internal flag to prevent recursion from micro stake flow
         """
+        # Check if micro stake should be used (centralized interception)
+        # Skip if _bypass_micro is True (called from within micro stake flow)
+        if (not _bypass_micro and 
+            self.micro_stake_manager and 
+            self.micro_stake_manager.should_use_micro_stake(size)):
+            logging.info(f"[MICRO_STAKE] Centralized interception for €{size}")
+            micro_result = self.micro_stake_manager.place_micro_order(
+                market_id=market_id,
+                selection_id=selection_id,
+                side=side,
+                target_odds=price,
+                micro_stake=size,
+                persistence_type=persistence_type
+            )
+            if micro_result.get('success'):
+                return {
+                    'status': 'SUCCESS',
+                    'instructionReports': [{'betId': micro_result.get('bet_id'), 'sizeMatched': size}]
+                }
+            else:
+                return {'status': 'FAILURE', 'errorCode': micro_result.get('message', 'MICRO_STAKE_ERROR')}
+        
         instructions = [{
             'selectionId': selection_id,
             'side': side,
@@ -1048,7 +1074,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
         return self.place_bets(market_id, instructions)
     
     @assert_not_ui_thread
-    def place_bets(self, market_id, instructions):
+    def place_bets(self, market_id, instructions, _bypass_micro=False):
         """
         Place bets on Betfair.
         
@@ -1058,9 +1084,30 @@ class BetfairClient(metaclass=GuardedAPIMeta):
             'price': float,
             'size': float
         }
+        
+        Note: Micro stake interception only applies to SINGLE orders.
+        Multi-bet dutching with small stakes is legal and bypasses micro stake.
         """
         if not self.client:
             raise Exception("Non connesso a Betfair")
+        
+        # For single orders, check if micro stake should be used
+        # Multi-bet (dutching) with small stakes is legal, don't intercept
+        if (not _bypass_micro and 
+            len(instructions) == 1 and 
+            self.micro_stake_manager and
+            self.micro_stake_manager.should_use_micro_stake(instructions[0].get('size', 0))):
+            inst = instructions[0]
+            logging.info(f"[MICRO_STAKE] Intercepting single order in place_bets: €{inst['size']}")
+            # Use _bypass_micro=True to prevent recursion back through place_bets
+            return self.place_bet(
+                market_id=market_id,
+                selection_id=inst['selectionId'],
+                side=inst['side'],
+                price=inst['price'],
+                size=inst['size'],
+                _bypass_micro=True  # Critical: prevents infinite recursion
+            )
         
         # Safe mode gate - block bet placement if too many errors
         if _safe_mode and not _safe_mode.can_auto_bet():
@@ -1169,17 +1216,36 @@ class BetfairClient(metaclass=GuardedAPIMeta):
         return result
     
     @assert_not_ui_thread
-    def cancel_orders(self, market_id, bet_ids=None):
-        """Cancel unmatched orders."""
+    def cancel_orders(self, market_id, bet_ids=None, size_reduction=None):
+        """Cancel unmatched orders.
+        
+        Args:
+            market_id: Market ID
+            bet_ids: List of bet IDs to cancel, or single bet ID string
+            size_reduction: If provided, partial cancel by this amount (€)
+        """
         if not self.client:
             raise Exception("Non connesso a Betfair")
         
         instructions = []
+        
+        # Handle single bet_id string
+        if isinstance(bet_ids, str):
+            bet_ids = [bet_ids]
+        
         if bet_ids:
             for bet_id in bet_ids:
-                instructions.append(
-                    betfairlightweight.filters.cancel_instruction(bet_id=bet_id)
-                )
+                if size_reduction is not None:
+                    instructions.append(
+                        betfairlightweight.filters.cancel_instruction(
+                            bet_id=bet_id, 
+                            size_reduction=size_reduction
+                        )
+                    )
+                else:
+                    instructions.append(
+                        betfairlightweight.filters.cancel_instruction(bet_id=bet_id)
+                    )
         
         result = self.client.betting.cancel_orders(
             market_id=market_id,
