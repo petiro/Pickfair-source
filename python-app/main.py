@@ -815,7 +815,7 @@ class PickfairApp:
         self.stream_label.pack(side=tk.LEFT, padx=10)
         
         self.connect_btn = ctk.CTkButton(status_frame, text="Connetti", 
-                                         command=lambda: run_bg(self, "ToggleConnection", self._toggle_connection),
+                                         command=self._toggle_connection,
                                          fg_color=COLORS['button_primary'],
                                          hover_color=COLORS['back_hover'],
                                          corner_radius=6, width=100)
@@ -3411,12 +3411,12 @@ class PickfairApp:
                     
                     self.db.save_session(result['session_token'], result['expiry'])
                     
-                    self.root.after(0, self._on_connected)
+                    self.uiq.post(self._on_connected, key="on_connected", debug_name="on_connected")
                 except Exception as e:
                     error_msg = str(e)
-                    self.root.after(0, lambda msg=error_msg: self._on_connection_error(msg))
+                    self.uiq.post(lambda msg=error_msg: self._on_connection_error(msg), key="on_conn_error", debug_name="on_conn_error")
             
-            threading.Thread(target=login_thread, daemon=True).start()
+            threading.Thread(target=login_thread, daemon=True, name="BetfairLogin").start()
         
         pwd_entry.bind('<Return>', lambda e: do_login())
         ttk.Button(frame, text="Connetti", command=do_login).pack(pady=10)
