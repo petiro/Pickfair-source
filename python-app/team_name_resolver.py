@@ -38,16 +38,38 @@ def normalize_team_name(name: str) -> str:
     name = name.replace(",", "")
     name = name.replace("'", "")
 
+    # Comprehensive stopwords for worldwide team name matching
     STOPWORDS = [
-        "fc", "cf", "calcio", "football", "club", "afc", "sc", "ac",
-        # Brazilian club prefixes
-        "se", "ec", "ca", "cr", "aa", "ad", "cd", "ce", "rc", "gr", "sao", "sp",
-        # Other common prefixes
-        "fk", "nk", "sk", "as", "us", "ss", "ssc", "rcd", "sd",
-        "women", "w", "ladies", "femminile",
-        "u21", "u20", "u19", "u18", "u17", "u16",
-        "reserves", "reserve", "b", "ii",
-        "team", "squad", "youth"
+        # Generic football terms
+        "fc", "cf", "calcio", "football", "club", "futbol", "futebol", "fussball",
+        # European prefixes
+        "ac", "afc", "sc", "as", "us", "ss", "ssc", "asd", "usd",  # Italy
+        "fk", "nk", "sk", "hk", "bk",  # Eastern Europe
+        "if", "bk", "ik", "ff",  # Scandinavia
+        "sv", "tsv", "vfb", "vfl", "fsv", "spvgg", "bsc", "bsv",  # Germany
+        "rcd", "sd", "ud", "cd", "ad", "ue", "ce",  # Spain
+        "sl", "gd", "cf", "csd", "cdf",  # Portugal
+        "aek", "paok", "pas", "gf", "ae", "ao", "gs",  # Greece
+        # South American prefixes
+        "se", "ec", "ca", "cr", "aa", "ad", "cd", "ce", "rc", "gr",  # Brazil
+        "sp", "rj", "mg", "pr", "rs", "ba", "pe", "go",  # Brazil state codes
+        "csd", "cd", "deportivo", "atletico", "atl",  # Argentina/others
+        # British prefixes
+        "afc", "fc", "utd", "united", "city", "town", "rovers", "wanderers",
+        # Asian prefixes
+        "jef", "yokohama", "cerezo", "urawa", "kawasaki",  # Japan
+        "beijing", "shanghai", "guangzhou", "shandong",  # China
+        "fc seoul", "ulsan", "jeonbuk", "pohang",  # Korea
+        # Other regions
+        "al", "el",  # Arabic (careful - also part of names)
+        # Youth/Women/Reserve
+        "women", "w", "ladies", "femminile", "damen", "frauen",
+        "u23", "u21", "u20", "u19", "u18", "u17", "u16", "u15",
+        "reserves", "reserve", "b", "ii", "2", "primavera", "juvenil",
+        "team", "squad", "youth", "jong", "ii", "iii",
+        # Common suffixes
+        "1893", "1896", "1898", "1899", "1900", "1904", "1905", "1907", "1908", "1909",
+        "1910", "1911", "1912", "1913", "1919", "1920", "1925", "1927", "1932", "1945",
     ]
 
     tokens = name.split()
@@ -72,22 +94,238 @@ CREATE INDEX IF NOT EXISTS idx_alias ON team_aliases(alias_name);
 """
 
 BUILTIN_ALIASES = {
-    "inter": ["inter milan", "internazionale", "inter milano"],
-    "milan": ["ac milan", "ac milano"],
-    "man united": ["manchester united", "manchester utd", "man utd"],
-    "man city": ["manchester city"],
-    "psg": ["paris saint germain", "paris sg", "paris saint-germain"],
-    "bayern": ["bayern munich", "bayern munchen", "bayern münchen"],
-    "roma": ["as roma", "roma"],
-    "napoli": ["ssc napoli"],
-    "juventus": ["juve"],
-    "real madrid": ["real"],
-    "atletico madrid": ["atletico", "atl madrid"],
-    "barcelona": ["barca", "fc barcelona"],
-    "tottenham": ["spurs", "tottenham hotspur"],
-    "arsenal": ["arsenal fc"],
-    "chelsea": ["chelsea fc"],
-    "liverpool": ["liverpool fc"],
+    # ITALY - Serie A
+    "inter": ["inter milan", "internazionale", "inter milano", "fc internazionale"],
+    "milan": ["ac milan", "ac milano", "rossoneri"],
+    "juventus": ["juve", "juventus turin", "juventus torino"],
+    "napoli": ["ssc napoli", "napoli calcio"],
+    "roma": ["as roma", "roma calcio"],
+    "lazio": ["ss lazio", "lazio roma"],
+    "atalanta": ["atalanta bergamo", "atalanta bc"],
+    "fiorentina": ["acf fiorentina", "fiorentina firenze", "viola"],
+    "torino": ["torino fc", "toro"],
+    "bologna": ["bologna fc"],
+    "udinese": ["udinese calcio"],
+    "sassuolo": ["us sassuolo"],
+    "empoli": ["empoli fc"],
+    "cagliari": ["cagliari calcio"],
+    "verona": ["hellas verona", "verona fc"],
+    "genoa": ["genoa cfc", "genoa cricket"],
+    "sampdoria": ["uc sampdoria", "samp"],
+    "monza": ["ac monza"],
+    "lecce": ["us lecce"],
+    "salernitana": ["us salernitana"],
+    "frosinone": ["frosinone calcio"],
+    "spezia": ["spezia calcio"],
+    "cremonese": ["us cremonese"],
+    "venezia": ["venezia fc"],
+    
+    # ENGLAND - Premier League
+    "man united": ["manchester united", "manchester utd", "man utd", "mufc"],
+    "man city": ["manchester city", "mcfc"],
+    "liverpool": ["liverpool fc", "lfc"],
+    "arsenal": ["arsenal fc", "gunners"],
+    "chelsea": ["chelsea fc", "cfc"],
+    "tottenham": ["spurs", "tottenham hotspur", "thfc"],
+    "newcastle": ["newcastle united", "newcastle utd", "nufc"],
+    "aston villa": ["villa", "avfc"],
+    "west ham": ["west ham united", "west ham utd", "hammers"],
+    "brighton": ["brighton hove albion", "brighton and hove albion"],
+    "wolves": ["wolverhampton", "wolverhampton wanderers"],
+    "crystal palace": ["palace", "cpfc"],
+    "everton": ["everton fc", "toffees"],
+    "brentford": ["brentford fc"],
+    "nottm forest": ["nottingham forest", "forest", "nffc"],
+    "fulham": ["fulham fc"],
+    "bournemouth": ["afc bournemouth"],
+    "burnley": ["burnley fc"],
+    "sheffield utd": ["sheffield united", "sheffield u", "blades"],
+    "luton": ["luton town"],
+    
+    # SPAIN - La Liga
+    "real madrid": ["real", "madrid", "rmcf"],
+    "barcelona": ["barca", "fc barcelona", "fcb"],
+    "atletico madrid": ["atletico", "atl madrid", "atleti"],
+    "sevilla": ["sevilla fc"],
+    "real sociedad": ["sociedad", "la real"],
+    "villarreal": ["villarreal cf", "yellow submarine"],
+    "betis": ["real betis", "betis sevilla"],
+    "athletic bilbao": ["athletic", "athletic club"],
+    "valencia": ["valencia cf"],
+    "osasuna": ["ca osasuna"],
+    "celta vigo": ["celta", "rc celta"],
+    "rayo vallecano": ["rayo"],
+    "mallorca": ["rcd mallorca"],
+    "getafe": ["getafe cf"],
+    "cadiz": ["cadiz cf"],
+    "alaves": ["deportivo alaves"],
+    "girona": ["girona fc"],
+    "almeria": ["ud almeria"],
+    "granada": ["granada cf"],
+    "las palmas": ["ud las palmas"],
+    
+    # GERMANY - Bundesliga
+    "bayern": ["bayern munich", "bayern munchen", "bayern münchen", "fcb"],
+    "dortmund": ["borussia dortmund", "bvb"],
+    "leipzig": ["rb leipzig", "rasenballsport leipzig"],
+    "leverkusen": ["bayer leverkusen", "bayer 04"],
+    "frankfurt": ["eintracht frankfurt", "sge"],
+    "wolfsburg": ["vfl wolfsburg"],
+    "gladbach": ["borussia monchengladbach", "borussia mgladbach", "bmg"],
+    "freiburg": ["sc freiburg"],
+    "hoffenheim": ["tsg hoffenheim", "1899 hoffenheim"],
+    "union berlin": ["1 fc union berlin", "union"],
+    "koln": ["1 fc koln", "fc koln", "cologne"],
+    "mainz": ["mainz 05", "1 fsv mainz"],
+    "augsburg": ["fc augsburg"],
+    "stuttgart": ["vfb stuttgart"],
+    "werder bremen": ["werder", "sv werder"],
+    "bochum": ["vfl bochum"],
+    "heidenheim": ["1 fc heidenheim"],
+    "darmstadt": ["sv darmstadt 98"],
+    
+    # FRANCE - Ligue 1
+    "psg": ["paris saint germain", "paris sg", "paris saint-germain", "paris"],
+    "marseille": ["olympique marseille", "om"],
+    "lyon": ["olympique lyon", "olympique lyonnais", "ol"],
+    "monaco": ["as monaco", "asm"],
+    "lille": ["losc lille", "losc"],
+    "nice": ["ogc nice"],
+    "lens": ["rc lens"],
+    "rennes": ["stade rennais", "stade rennes"],
+    "nantes": ["fc nantes"],
+    "montpellier": ["montpellier hsc"],
+    "strasbourg": ["rc strasbourg", "racing strasbourg"],
+    "reims": ["stade reims", "stade de reims"],
+    "toulouse": ["toulouse fc"],
+    "brest": ["stade brestois", "stade brest"],
+    "lorient": ["fc lorient"],
+    "clermont": ["clermont foot"],
+    "metz": ["fc metz"],
+    "le havre": ["le havre ac"],
+    
+    # PORTUGAL - Primeira Liga
+    "benfica": ["sl benfica", "sport lisboa benfica"],
+    "porto": ["fc porto", "fcp"],
+    "sporting": ["sporting cp", "sporting lisbon", "sporting lisboa"],
+    "braga": ["sc braga", "sporting braga"],
+    "guimaraes": ["vitoria guimaraes", "vitoria sc"],
+    "famalicao": ["fc famalicao"],
+    "estoril": ["estoril praia"],
+    "rio ave": ["rio ave fc"],
+    "boavista": ["boavista fc"],
+    "casa pia": ["casa pia ac"],
+    "arouca": ["fc arouca"],
+    "vizela": ["fc vizela"],
+    "chaves": ["gd chaves"],
+    "gil vicente": ["gil vicente fc"],
+    "farense": ["sc farense"],
+    "moreirense": ["moreirense fc"],
+    "portimonense": ["portimonense sc"],
+    
+    # NETHERLANDS - Eredivisie
+    "ajax": ["ajax amsterdam", "afc ajax"],
+    "psv": ["psv eindhoven"],
+    "feyenoord": ["feyenoord rotterdam"],
+    "az": ["az alkmaar"],
+    "twente": ["fc twente"],
+    "utrecht": ["fc utrecht"],
+    "vitesse": ["vitesse arnhem"],
+    "heerenveen": ["sc heerenveen"],
+    "groningen": ["fc groningen"],
+    
+    # BRAZIL - Serie A/B
+    "palmeiras": ["se palmeiras", "sociedade esportiva palmeiras"],
+    "flamengo": ["cr flamengo", "clube de regatas flamengo"],
+    "corinthians": ["sc corinthians", "sport club corinthians"],
+    "sao paulo": ["sao paulo fc", "spfc"],
+    "santos": ["santos fc"],
+    "gremio": ["gremio porto alegre", "gremio fbpa"],
+    "internacional": ["sc internacional", "inter porto alegre"],
+    "atletico mg": ["atletico mineiro", "galo"],
+    "fluminense": ["fluminense fc"],
+    "botafogo": ["botafogo fr", "botafogo rj"],
+    "vasco": ["vasco da gama", "cr vasco da gama"],
+    "cruzeiro": ["cruzeiro ec"],
+    "athletico pr": ["athletico paranaense", "cap", "atletico paranaense"],
+    "fortaleza": ["fortaleza ec"],
+    "bahia": ["ec bahia", "esporte clube bahia"],
+    "cuiaba": ["cuiaba ec"],
+    "goias": ["goias ec"],
+    "bragantino": ["red bull bragantino", "rb bragantino"],
+    "america mg": ["america mineiro"],
+    "coritiba": ["coritiba fc"],
+    
+    # ARGENTINA - Primera Division
+    "boca juniors": ["boca", "cabj"],
+    "river plate": ["river", "carp"],
+    "racing": ["racing club", "racing avellaneda"],
+    "independiente": ["ca independiente"],
+    "san lorenzo": ["san lorenzo de almagro"],
+    "huracan": ["ca huracan"],
+    "velez": ["velez sarsfield"],
+    "estudiantes": ["estudiantes la plata"],
+    "lanus": ["ca lanus"],
+    "defensa y justicia": ["defensa justicia"],
+    "talleres": ["talleres cordoba"],
+    "argentinos jrs": ["argentinos juniors"],
+    "newells": ["newells old boys"],
+    "rosario central": ["rosario"],
+    "godoy cruz": ["godoy cruz antonio tomba"],
+    "union santa fe": ["club atletico union"],
+    "colon": ["colon santa fe"],
+    "gimnasia lp": ["gimnasia la plata"],
+    "platense": ["ca platense"],
+    "tigre": ["ca tigre"],
+    "banfield": ["ca banfield"],
+    "sarmiento": ["sarmiento junin"],
+    "central cordoba": ["central cordoba sde"],
+    
+    # TURKEY - Super Lig
+    "galatasaray": ["galatasaray sk", "gala", "gs"],
+    "fenerbahce": ["fenerbahce sk", "fener", "fb"],
+    "besiktas": ["besiktas jk", "bjk"],
+    "trabzonspor": ["trabzon", "ts"],
+    "basaksehir": ["istanbul basaksehir"],
+    "kasimpasa": ["kasimpasa sk"],
+    "konyaspor": ["konya"],
+    "antalyaspor": ["antalya"],
+    "sivasspor": ["sivas"],
+    "alanyaspor": ["alanya"],
+    "kayserispor": ["kayseri"],
+    "gaziantep": ["gaziantep fk"],
+    "hatayspor": ["hatay"],
+    "adana demirspor": ["adana demir"],
+    "rizespor": ["caykur rizespor"],
+    
+    # GREECE - Super League
+    "olympiacos": ["olympiacos piraeus", "olympiakos"],
+    "panathinaikos": ["panathinaikos athens", "pao"],
+    "aek athens": ["aek", "aek fc"],
+    "paok": ["paok thessaloniki", "paok salonika"],
+    "aris": ["aris thessaloniki", "aris salonika"],
+    
+    # OTHER MAJOR CLUBS
+    "celtic": ["celtic glasgow", "celtic fc"],
+    "rangers": ["rangers glasgow", "rangers fc"],
+    "anderlecht": ["rsc anderlecht"],
+    "club brugge": ["club bruges"],
+    "ajax": ["ajax amsterdam"],
+    "psv": ["psv eindhoven"],
+    "shakhtar": ["shakhtar donetsk"],
+    "dynamo kyiv": ["dynamo kiev"],
+    "zenit": ["zenit st petersburg", "zenit saint petersburg"],
+    "spartak moscow": ["spartak moskva"],
+    "cska moscow": ["cska moskva"],
+    "red star": ["red star belgrade", "crvena zvezda"],
+    "partizan": ["partizan belgrade"],
+    "dinamo zagreb": ["gnk dinamo zagreb"],
+    "hajduk split": ["hnk hajduk split"],
+    "salzburg": ["rb salzburg", "red bull salzburg"],
+    "rapid vienna": ["rapid wien"],
+    "young boys": ["bsc young boys"],
+    "basel": ["fc basel"],
+    "copenhagen": ["fc copenhagen", "fc kobenhavn"],
 }
 
 
