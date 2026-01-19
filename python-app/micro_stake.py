@@ -29,19 +29,24 @@ class MicroStakeManager:
     Thread-safe implementation for use with Pickfair's antifreeze architecture.
     """
     
-    def __init__(self, betfair_client, on_progress: Optional[Callable[[str], None]] = None):
+    def __init__(self, betfair_client, 
+                 on_progress: Optional[Callable[[str], None]] = None,
+                 on_result: Optional[Callable[[bool, str], None]] = None):
         """
         Initialize MicroStakeManager.
         
         Args:
             betfair_client: BetfairClient instance for API calls
             on_progress: Optional callback for progress updates
+            on_result: Optional callback for final result (success: bool, message: str)
         """
         self.client = betfair_client
         self.on_progress = on_progress or (lambda msg: None)
+        self.on_result = on_result or (lambda success, msg: None)
         self._lock = threading.Lock()
         self._enabled = False
         self._micro_amount = 0.50
+        self._retry_enabled = True  # Enable automatic retry with fallback
     
     @property
     def enabled(self) -> bool:
@@ -63,6 +68,15 @@ class MicroStakeManager:
         self._micro_amount = value
         logging.info(f"[MICRO_STAKE] Amount set to €{value:.2f}")
     
+    @property
+    def retry_enabled(self) -> bool:
+        return self._retry_enabled
+    
+    @retry_enabled.setter
+    def retry_enabled(self, value: bool):
+        self._retry_enabled = value
+        logging.info(f"[MICRO_STAKE] Retry mode {'enabled' if value else 'disabled'}")
+    
     def is_micro_stake(self, stake: float) -> bool:
         """Check if stake requires micro stake handling."""
         return stake < MICRO_STAKE_BASE and stake in MICRO_STAKE_VALID_AMOUNTS
@@ -83,6 +97,9 @@ class MicroStakeManager:
         """
         Place a micro stake order using the 50 cent trick.
         
+        With retry_enabled, if the order fails it will try progressively larger
+        micro stakes (0.50 -> 1.00 -> 1.50) until one succeeds.
+        
         Args:
             market_id: Betfair market ID
             selection_id: Runner selection ID
@@ -95,24 +112,52 @@ class MicroStakeManager:
             Dict with result: {'success': bool, 'bet_id': str, 'message': str}
         """
         if micro_stake not in MICRO_STAKE_VALID_AMOUNTS:
-            return {
-                'success': False,
-                'bet_id': None,
-                'message': f"Invalid micro stake: €{micro_stake}. Use 0.50, 1.00, or 1.50"
-            }
+            msg = f"Invalid micro stake: €{micro_stake}. Use 0.50, 1.00, or 1.50"
+            self.on_result(False, msg)
+            return {'success': False, 'bet_id': None, 'message': msg}
         
         with self._lock:
-            try:
-                return self._execute_micro_order(
-                    market_id, selection_id, side, target_odds, micro_stake, persistence_type
-                )
-            except Exception as e:
-                logging.error(f"[MICRO_STAKE] Error: {e}")
-                return {
-                    'success': False,
-                    'bet_id': None,
-                    'message': f"Micro stake error: {str(e)}"
-                }
+            # Build fallback sequence starting from requested amount
+            if self._retry_enabled:
+                # Get amounts >= requested, in order
+                fallback_amounts = [a for a in MICRO_STAKE_VALID_AMOUNTS if a >= micro_stake]
+            else:
+                fallback_amounts = [micro_stake]
+            
+            last_error = None
+            for attempt_stake in fallback_amounts:
+                try:
+                    self.on_progress(f"Tentativo micro stake €{attempt_stake:.2f}...")
+                    result = self._execute_micro_order(
+                        market_id, selection_id, side, target_odds, attempt_stake, persistence_type
+                    )
+                    
+                    if result.get('success'):
+                        msg = f"Micro stake €{attempt_stake:.2f} piazzato con successo!"
+                        self.on_result(True, msg)
+                        return result
+                    else:
+                        last_error = result.get('message', 'Unknown error')
+                        logging.warning(f"[MICRO_STAKE] €{attempt_stake:.2f} failed: {last_error}")
+                        
+                        # If retry enabled and not last attempt, continue to next
+                        if self._retry_enabled and attempt_stake != fallback_amounts[-1]:
+                            self.on_progress(f"Tentativo €{attempt_stake:.2f} fallito, provo importo maggiore...")
+                            time.sleep(0.2)
+                            continue
+                        
+                except Exception as e:
+                    last_error = str(e)
+                    logging.error(f"[MICRO_STAKE] Error at €{attempt_stake:.2f}: {e}")
+                    
+                    if self._retry_enabled and attempt_stake != fallback_amounts[-1]:
+                        time.sleep(0.2)
+                        continue
+            
+            # All attempts failed
+            msg = f"Micro stake fallito: {last_error}"
+            self.on_result(False, msg)
+            return {'success': False, 'bet_id': None, 'message': msg}
     
     def _execute_micro_order(
         self,

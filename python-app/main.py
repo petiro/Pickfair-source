@@ -439,20 +439,23 @@ class PickfairApp:
         # Micro Stake Manager: Enables betting below €2 minimum (€0.50, €1.00, €1.50)
         self.micro_stake_manager = MicroStakeManager(
             betfair_client=None,  # Will be set when connected
-            on_progress=self._micro_stake_progress
+            on_progress=self._micro_stake_progress,
+            on_result=self._micro_stake_result
         )
         # Load micro stake settings from database in background, apply on UI thread
         def load_micro_settings():
             settings = self.db.get_setting('micro_stake_settings') or {}
             enabled = bool(settings.get('enabled', False))
             amount = settings.get('amount', 0.50)
+            retry = bool(settings.get('retry', True))  # Default: retry enabled
             if amount not in [0.50, 1.00, 1.50]:
                 amount = 0.50
             # Apply settings on UI thread to respect Tk threading rules
             def apply_settings():
                 self.micro_stake_manager.enabled = enabled
                 self.micro_stake_manager.micro_amount = amount
-                logging.debug(f"[MICRO_STAKE] Settings applied: enabled={enabled}, amount={amount}")
+                self.micro_stake_manager.retry_enabled = retry
+                logging.debug(f"[MICRO_STAKE] Settings applied: enabled={enabled}, amount={amount}, retry={retry}")
             self.root.after(0, apply_settings)
         run_bg(load_micro_settings)
         
@@ -2317,6 +2320,17 @@ class PickfairApp:
         """Callback for micro stake progress updates."""
         logging.info(f"[MICRO_STAKE] {message}")
         self._add_log(f"Micro Stake: {message}", 'info')
+    
+    def _micro_stake_result(self, success: bool, message: str):
+        """Callback for micro stake final result - shows notification."""
+        if success:
+            logging.info(f"[MICRO_STAKE] SUCCESS: {message}")
+            self.root.after(0, lambda: self._add_log(f"MICRO STAKE: {message}", 'success'))
+        else:
+            logging.warning(f"[MICRO_STAKE] FAILED: {message}")
+            self.root.after(0, lambda: self._add_log(f"MICRO STAKE FALLITO: {message}", 'error'))
+            # Also show messagebox for critical failures
+            self.root.after(0, lambda m=message: messagebox.showwarning("Micro Stake", m))
     
     def _on_auto_green_up(self, bet_id, trigger_type):
         """Callback for automated green-up (SL/TP/TR)."""
@@ -9470,6 +9484,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         # Use values from in-memory manager (loaded async at startup)
         current_enabled = self.micro_stake_manager.enabled if hasattr(self, 'micro_stake_manager') else False
         current_amount = self.micro_stake_manager.micro_amount if hasattr(self, 'micro_stake_manager') else 0.50
+        current_retry = self.micro_stake_manager.retry_enabled if hasattr(self, 'micro_stake_manager') else True
         
         self.micro_stake_enabled_var = tk.BooleanVar(value=current_enabled)
         ctk.CTkCheckBox(micro_options, text="Abilita Micro Stake", variable=self.micro_stake_enabled_var,
@@ -9488,6 +9503,13 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                                        dropdown_fg_color=COLORS['bg_panel'])
         micro_combo.pack(side=tk.LEFT, padx=5)
         ctk.CTkLabel(amount_frame, text="EUR", text_color=COLORS['text_tertiary']).pack(side=tk.LEFT)
+        
+        # Retry fallback option
+        self.micro_stake_retry_var = tk.BooleanVar(value=current_retry)
+        ctk.CTkCheckBox(micro_options, text="Retry automatico (se €0.50 fallisce, prova €1.00 poi €1.50)", 
+                        variable=self.micro_stake_retry_var,
+                        fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
+                        text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(5, 0))
         
         ctk.CTkLabel(micro_frame, text="Nota: Quando attivo, gli stake < €2 useranno il trucco automaticamente", 
                      font=('Segoe UI', 8), text_color=COLORS['warning']).pack(anchor=tk.W, padx=15, pady=(0, 5))
@@ -9511,15 +9533,19 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         except:
             amount = 0.50
         
+        retry = self.micro_stake_retry_var.get() if hasattr(self, 'micro_stake_retry_var') else True
+        
         settings = {
             'enabled': self.micro_stake_enabled_var.get(),
-            'amount': amount
+            'amount': amount,
+            'retry': retry
         }
         
         # Update manager immediately (memory-only)
         if hasattr(self, 'micro_stake_manager'):
             self.micro_stake_manager.enabled = settings['enabled']
             self.micro_stake_manager.micro_amount = amount
+            self.micro_stake_manager.retry_enabled = retry
         
         # Save to DB in background thread
         settings_copy = dict(settings)
