@@ -456,7 +456,7 @@ class PickfairApp:
                 self.micro_stake_manager.micro_amount = amount
                 logging.debug(f"[MICRO_STAKE] Settings applied: enabled={enabled}, amount={amount}")
             self.root.after(0, apply_settings)
-        run_bg(load_micro_settings)
+        run_bg(self, "load_micro_settings", load_micro_settings)
         
         # Register shutdown handlers ONCE at initialization (not in _on_closing)
         self.antifreeze.shutdown_manager.register("streams", lambda: self._shutdown_streams(), priority=1)
