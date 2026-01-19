@@ -704,6 +704,27 @@ class PickfairApp:
         
         self.root.after(0, done)
     
+    def _add_log(self, message: str, level: str = 'info'):
+        """Add a log message with specified level.
+        
+        Args:
+            message: The message to log
+            level: One of 'info', 'success', 'warning', 'error', 'debug'
+        """
+        level_map = {
+            'info': logging.INFO,
+            'success': logging.INFO,  # Success uses INFO level with [SUCCESS] prefix
+            'warning': logging.WARNING,
+            'error': logging.ERROR,
+            'debug': logging.DEBUG
+        }
+        log_level = level_map.get(level, logging.INFO)
+        
+        if level == 'success':
+            message = f"[SUCCESS] {message}"
+        
+        logging.log(log_level, message)
+    
     def _on_close(self):
         """Handle window close."""
         self._stop_auto_refresh()
