@@ -9540,7 +9540,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         def do_save():
             self.db.save_setting('micro_stake_settings', settings_copy)
         
-        run_bg(do_save)
+        run_bg(self, "SaveMicroStakeSettings", do_save)
         messagebox.showinfo("Salvato", f"Micro Stake salvato: €{amount:.2f}")
     
     def _save_telegram_settings_from_impostazioni(self):
