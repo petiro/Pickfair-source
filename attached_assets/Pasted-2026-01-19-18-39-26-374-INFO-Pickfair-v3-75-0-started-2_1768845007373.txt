@@ -1,0 +1,1279 @@
+2026-01-19 18:39:26,374 [INFO] === Pickfair v3.75.0 started ===
+2026-01-19 18:39:26,374 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-19 18:39:26,375 [INFO] Importing modules...
+2026-01-19 18:39:26,375 [DEBUG] Importing thread_guard...
+2026-01-19 18:39:26,376 [DEBUG] Importing database...
+2026-01-19 18:39:26,889 [DEBUG] Importing betfair_client...
+2026-01-19 18:39:29,336 [DEBUG] [SOCKET] Global timeout set to 12 seconds
+2026-01-19 18:39:29,413 [DEBUG] Importing storage...
+2026-01-19 18:39:29,415 [DEBUG] Importing bet_logger...
+2026-01-19 18:39:29,416 [DEBUG] Importing betfair_stream...
+2026-01-19 18:39:29,418 [DEBUG] Importing dutching...
+2026-01-19 18:39:29,420 [DEBUG] Importing telegram_listener...
+2026-01-19 18:39:29,509 [DEBUG] [SSL] Preloaded: C:\Users\chiara\AppData\Local\Temp\_MEI95802\libcrypto-1_1.dll
+2026-01-19 18:39:29,510 [DEBUG] [SSL] Preloaded: C:\Users\chiara\AppData\Local\Temp\_MEI95802\libssl-1_1.dll
+2026-01-19 18:39:29,511 [INFO] [SSL] Preloaded 2 OpenSSL DLLs for Telethon
+2026-01-19 18:39:31,075 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2026-01-19 18:39:31,076 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2026-01-19 18:39:31,444 [INFO] [STORAGE] Database tables initialized
+2026-01-19 18:39:31,445 [INFO] [STORAGE] Database initialized: C:\Users\chiara\AppData\Roaming\Pickfair\pickfair_history.db
+2026-01-19 18:39:31,446 [DEBUG] cryptg not available - using standard encryption
+2026-01-19 18:39:31,446 [DEBUG] Importing auto_updater...
+2026-01-19 18:39:31,447 [DEBUG] Importing theme...
+2026-01-19 18:39:31,448 [DEBUG] Importing plugin_manager...
+2026-01-19 18:39:31,456 [DEBUG] Importing license_manager...
+2026-01-19 18:39:31,460 [DEBUG] Importing pnl_engine...
+2026-01-19 18:39:31,461 [DEBUG] Importing automation_engine...
+2026-01-19 18:39:31,464 [DEBUG] Importing tick_storage...
+2026-01-19 18:39:31,470 [DEBUG] Importing live_context...
+2026-01-19 18:39:31,473 [DEBUG] Importing match_timeline...
+2026-01-19 18:39:31,474 [DEBUG] Importing api_football...
+2026-01-19 18:39:31,475 [DEBUG] Importing hard_sync...
+2026-01-19 18:39:31,477 [DEBUG] Importing team_name_resolver...
+2026-01-19 18:39:31,478 [DEBUG] Importing cycle_manager...
+2026-01-19 18:39:31,479 [DEBUG] Importing ui_queue...
+2026-01-19 18:39:31,483 [DEBUG] Importing micro_stake...
+2026-01-19 18:39:31,484 [INFO] All modules imported successfully
+2026-01-19 18:39:31,485 [INFO] Single instance check passed - mutex acquired
+2026-01-19 18:39:32,362 [INFO] [STORAGE] Schema migration check complete
+2026-01-19 18:39:32,363 [INFO] [STORAGE] Index check complete
+2026-01-19 18:39:32,401 [INFO] [STORAGE] DB version set to 3588
+2026-01-19 18:39:32,402 [INFO] [STORAGE] Persistent storage initialized
+2026-01-19 18:39:32,406 [INFO] [EXECUTOR] BetfairExecutor initialized (max_workers=1)
+2026-01-19 18:39:32,407 [INFO] [API-Football] Worker started
+2026-01-19 18:39:32,414 [INFO] [UI_QUEUE] Started
+2026-01-19 18:39:32,414 [INFO] [HEALTH] Monitor started
+2026-01-19 18:39:32,415 [INFO] [ANTIFREEZE] Manager started
+2026-01-19 18:39:32,415 [INFO] [UIQ] Started
+2026-01-19 18:39:32,416 [INFO] [BG] START load_micro_settings
+2026-01-19 18:39:32,416 [DEBUG] [SHUTDOWN] Registered handler: streams (priority=1)
+2026-01-19 18:39:32,416 [DEBUG] [SHUTDOWN] Registered handler: api_football (priority=2)
+2026-01-19 18:39:32,416 [INFO] [BG] DONE load_micro_settings in 0.0ms
+2026-01-19 18:39:32,417 [DEBUG] [SHUTDOWN] Registered handler: telegram (priority=3)
+2026-01-19 18:39:32,417 [DEBUG] [SHUTDOWN] Registered handler: antifreeze (priority=4)
+2026-01-19 18:39:32,417 [DEBUG] [SHUTDOWN] Registered handler: database (priority=5)
+2026-01-19 18:39:35,661 [INFO] [DASHBOARD] Auto-refresh timer started (5s interval)
+2026-01-19 18:39:35,661 [INFO] [PERF] Performance logging started (10s interval)
+2026-01-19 18:39:35,663 [INFO] [WATCHDOG] Started with timeout=15s
+2026-01-19 18:39:35,666 [INFO] [STORAGE] Recovered 0 open positions
+2026-01-19 18:39:35,686 [INFO] [RECOVERY] No open positions to recover
+2026-01-19 18:39:35,724 [INFO] [MICRO_STAKE] Disabled
+2026-01-19 18:39:35,724 [INFO] [MICRO_STAKE] Amount set to €0.50
+2026-01-19 18:39:35,725 [DEBUG] [MICRO_STAKE] Settings applied: enabled=False, amount=0.5
+2026-01-19 18:39:35,741 [INFO] [UIQ] stats executed=2 dropped=0 errors=0 qsize=0
+2026-01-19 18:39:40,617 [INFO] [UI-CLICK] toggle_connection
+2026-01-19 18:39:40,617 [INFO] [UI-CLICK] CONNECT
+2026-01-19 18:39:40,618 [INFO] [CONNECT] _connect() called - getting settings...
+2026-01-19 18:39:40,618 [INFO] [CONNECT] Settings retrieved
+2026-01-19 18:39:40,618 [INFO] [CONNECT] Creating password dialog...
+2026-01-19 18:39:40,619 [INFO] [CONNECT] Password dialog created
+2026-01-19 18:39:40,645 [INFO] [UI-CLICK] toggle_connection done in 27ms
+2026-01-19 18:39:40,655 [INFO] [UI-CLICK] CONNECT done in 37ms
+2026-01-19 18:39:40,663 [INFO] [CONNECT] Password dialog finalized and grab_set()
+2026-01-19 18:39:40,730 [INFO] [UIQ] stats executed=5 dropped=0 errors=0 qsize=0
+2026-01-19 18:39:42,544 [DEBUG] Starting new HTTPS connection (1): identitysso-cert.betfair.it:443
+2026-01-19 18:39:43,185 [DEBUG] https://identitysso-cert.betfair.it:443 "POST /api/certlogin HTTP/11" 200 125
+2026-01-19 18:39:43,288 [INFO] [CONNECT] _on_connected: Starting...
+2026-01-19 18:39:43,297 [DEBUG] [MICRO_STAKE] Client updated (bidirectional)
+2026-01-19 18:39:43,297 [DEBUG] [CONNECT] UI updated - no I/O done yet
+2026-01-19 18:39:43,297 [DEBUG] [UI] Yielding to mainloop - scheduling staggered API calls
+2026-01-19 18:39:43,298 [INFO] [CONNECT] _on_connected: Complete - 7 steps scheduled
+2026-01-19 18:39:43,799 [DEBUG] [CONNECT] Step 1: _update_balance
+2026-01-19 18:39:43,799 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:39:43,801 [DEBUG] [EXECUTOR] Job #1 START: execute
+2026-01-19 18:39:43,801 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:39:43,804 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-19 18:39:44,026 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:39:44,027 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:39:44,028 [DEBUG] [EXECUTOR] Job #1 DONE: execute
+2026-01-19 18:39:44,060 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:39:45,731 [INFO] [UIQ] stats executed=14 dropped=0 errors=0 qsize=0
+2026-01-19 18:39:46,306 [DEBUG] [CONNECT] Step 2: _load_events
+2026-01-19 18:39:46,306 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:39:46,307 [DEBUG] [EXECUTOR] Job #2 START: execute
+2026-01-19 18:39:46,307 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:39:46,412 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:39:46,510 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 414
+2026-01-19 18:39:46,512 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:39:46,512 [DEBUG] [EXECUTOR] Job #2 DONE: execute
+2026-01-19 18:39:46,562 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:39:49,303 [DEBUG] [CONNECT] Step 3: auto-refresh
+2026-01-19 18:39:49,319 [INFO] [UI-CLICK] TREE_country_AR
+2026-01-19 18:39:49,319 [DEBUG] [UI] Country toggle: country_AR
+2026-01-19 18:39:49,320 [INFO] [UI-CLICK] TREE_country_AR done in 1ms
+2026-01-19 18:39:50,276 [INFO] [UI-CLICK] TREE_country_AR
+2026-01-19 18:39:50,277 [DEBUG] [UI] Country toggle: country_AR
+2026-01-19 18:39:50,277 [INFO] [UI-CLICK] TREE_country_AR done in 0ms
+2026-01-19 18:39:50,304 [DEBUG] [CONNECT] Step 4: keepalive
+2026-01-19 18:39:50,738 [INFO] [UIQ] stats executed=23 dropped=0 errors=0 qsize=0
+2026-01-19 18:39:50,891 [INFO] [UI-CLICK] TREE_country_AR
+2026-01-19 18:39:50,891 [DEBUG] [UI] Country toggle: country_AR
+2026-01-19 18:39:50,892 [INFO] [UI-CLICK] TREE_country_AR done in 1ms
+2026-01-19 18:39:51,298 [DEBUG] [CONNECT] Step 5: order stream
+2026-01-19 18:39:51,298 [INFO] _start_order_stream: Queuing background start...
+2026-01-19 18:39:51,299 [DEBUG] _start_order_stream: [BG] Stopping existing stream...
+2026-01-19 18:39:51,299 [INFO] _start_order_stream: Background thread started
+2026-01-19 18:39:51,299 [DEBUG] _start_order_stream: [BG] Existing stream stopped
+2026-01-19 18:39:51,300 [DEBUG] _start_order_stream: [BG] Getting settings from DB...
+2026-01-19 18:39:51,300 [DEBUG] _start_order_stream: [BG] Settings retrieved
+2026-01-19 18:39:51,300 [INFO] _start_order_stream: [BG] app_key=bBtYjoZD..., session=True
+2026-01-19 18:39:51,301 [DEBUG] _start_order_stream: [BG] Creating BetfairStream...
+2026-01-19 18:39:51,301 [DEBUG] _start_order_stream: [BG] BetfairStream created
+2026-01-19 18:39:51,301 [DEBUG] _start_order_stream: [BG] Connecting...
+2026-01-19 18:39:51,301 [INFO] Connecting to Betfair Stream: stream-api.betfair.it:443
+2026-01-19 18:39:52,158 [INFO] [UI-CLICK] TREE_country_BR
+2026-01-19 18:39:52,159 [DEBUG] [UI] Country toggle: country_BR
+2026-01-19 18:39:52,159 [INFO] [UI-CLICK] TREE_country_BR done in 0ms
+2026-01-19 18:39:53,306 [DEBUG] [CONNECT] Step 6: dashboard refresh
+2026-01-19 18:39:53,306 [INFO] [UI-CLICK] DASHBOARD_REFRESH
+2026-01-19 18:39:53,308 [INFO] [CONNECT] All initialization steps scheduled
+2026-01-19 18:39:53,311 [INFO] [UI-CLICK] DASHBOARD_REFRESH done in 5ms
+2026-01-19 18:39:53,405 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:39:53,500 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-19 18:39:53,605 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 93
+2026-01-19 18:39:53,701 [INFO] [UIQ] ERROR in dash_ui: 'NoneType' object has no attribute 'protocol'
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 7278, in <lambda>
+  File "main.py", line 7318, in update_ui
+  File "main.py", line 10427, in _create_cashout_view
+AttributeError: 'NoneType' object has no attribute 'protocol'
+
+2026-01-19 18:39:53,759 [INFO] [UI-CLICK] TREE_35164434
+2026-01-19 18:39:53,760 [INFO] API-Football monitoring: Novorizontino vs SE Palmeiras
+2026-01-19 18:39:53,774 [INFO] Loading markets for tree: 35164434
+2026-01-19 18:39:53,774 [DEBUG] get_available_markets called with event_id: 35164434 (type: str)
+2026-01-19 18:39:53,775 [INFO] [UI-CLICK] TREE_35164434 done in 15ms
+2026-01-19 18:39:53,883 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 None
+2026-01-19 18:39:53,904 [DEBUG] list_market_catalogue returned 21 markets for event 35164434
+2026-01-19 18:39:53,905 [DEBUG] Market: 1.252904079 - Half Time/Full Time - type: N/A
+2026-01-19 18:39:53,905 [DEBUG] Market: 1.252904078 - Over/Under 3.5 Goals - type: N/A
+2026-01-19 18:39:53,905 [DEBUG] Market: 1.252904077 - Over/Under 1.5 Goals - type: N/A
+2026-01-19 18:39:53,905 [DEBUG] Market: 1.252904075 - Over/Under 4.5 Goals - type: N/A
+2026-01-19 18:39:53,906 [DEBUG] Market: 1.252904076 - Half Time Score - type: N/A
+2026-01-19 18:39:54,005 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 972
+2026-01-19 18:39:54,008 [INFO] Got 21 markets for tree
+2026-01-19 18:39:54,054 [DEBUG] _display_available_markets called with 21 markets
+2026-01-19 18:39:54,054 [DEBUG] Setting combobox values: ['Half Time/Full Time', 'Over/Under 3.5 Goals', 'Over/Under 1.5 Goals']...
+2026-01-19 18:39:54,055 [DEBUG] Combobox values set, count: 21
+2026-01-19 18:39:54,056 [DEBUG] Selected first market: Half Time/Full Time
+2026-01-19 18:39:54,186 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 289
+2026-01-19 18:39:54,285 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 624
+2026-01-19 18:39:54,299 [DEBUG] [CONNECT] Step 7: register health checks
+2026-01-19 18:39:54,299 [INFO] [HEALTH] Health checks registered
+2026-01-19 18:39:55,073 [ERROR] [THREAD VIOLATION] BetfairStream.is_connected called from UI thread!
+This would freeze the UI. Stack trace:
+  File "main.py", line 13552, in run
+  File "customtkinter\windows\ctk_tk.py", line 165, in mainloop
+  File "tkinter\__init__.py", line 1429, in mainloop
+  File "tkinter\__init__.py", line 1892, in __call__
+  File "tkinter\__init__.py", line 814, in callit
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 4915, in _display_market
+  File "main.py", line 5368, in _start_streaming
+  File "main.py", line 4265, in _subscribe_to_market_stream
+  File "thread_guard.py", line 100, in wrapper
+
+2026-01-19 18:39:55,074 [INFO] [UIQ] ERROR in display_market: [THREAD VIOLATION] BetfairStream.is_connected called from UI thread!
+This would freeze the UI. Stack trace:
+  File "main.py", line 13552, in run
+  File "customtkinter\windows\ctk_tk.py", line 165, in mainloop
+  File "tkinter\__init__.py", line 1429, in mainloop
+  File "tkinter\__init__.py", line 1892, in __call__
+  File "tkinter\__init__.py", line 814, in callit
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 4915, in _display_market
+  File "main.py", line 5368, in _start_streaming
+  File "main.py", line 4265, in _subscribe_to_market_stream
+  File "thread_guard.py", line 100, in wrapper
+
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 4915, in _display_market
+  File "main.py", line 5368, in _start_streaming
+  File "main.py", line 4265, in _subscribe_to_market_stream
+  File "thread_guard.py", line 107, in wrapper
+RuntimeError: [THREAD VIOLATION] BetfairStream.is_connected called from UI thread!
+This would freeze the UI. Stack trace:
+  File "main.py", line 13552, in run
+  File "customtkinter\windows\ctk_tk.py", line 165, in mainloop
+  File "tkinter\__init__.py", line 1429, in mainloop
+  File "tkinter\__init__.py", line 1892, in __call__
+  File "tkinter\__init__.py", line 814, in callit
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 4915, in _display_market
+  File "main.py", line 5368, in _start_streaming
+  File "main.py", line 4265, in _subscribe_to_market_stream
+  File "thread_guard.py", line 100, in wrapper
+
+
+2026-01-19 18:39:56,366 [INFO] [UIQ] stats executed=40 dropped=0 errors=2 qsize=0
+2026-01-19 18:39:57,498 [INFO] [HEALTH] betfair: HEALTHY -> UNHEALTHY
+2026-01-19 18:39:57,498 [WARNING] [ANTIFREEZE] Component unhealthy: betfair - 'BetfairClient' object has no attribute 'session_token'
+2026-01-19 18:40:01,376 [INFO] [UIQ] stats executed=42 dropped=0 errors=2 qsize=0
+2026-01-19 18:40:02,880 [DEBUG] Starting new HTTPS connection (1): v3.football.api-sports.io:443
+2026-01-19 18:40:04,136 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:40:04,149 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,159 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,169 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,180 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,190 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,200 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,211 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,220 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,233 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,244 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,254 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,264 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,275 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,285 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,296 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:04,306 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:06,382 [INFO] [UIQ] stats executed=52 dropped=0 errors=2 qsize=0
+2026-01-19 18:40:07,456 [INFO] [UI-CLICK] TREE_market_35164434_1.25
+2026-01-19 18:40:07,480 [INFO] [UI-CLICK] TREE_market_35164434_1.25 done in 24ms
+2026-01-19 18:40:07,577 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 245
+2026-01-19 18:40:07,675 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 490
+2026-01-19 18:40:08,319 [ERROR] [THREAD VIOLATION] BetfairStream.is_connected called from UI thread!
+This would freeze the UI. Stack trace:
+  File "main.py", line 13552, in run
+  File "customtkinter\windows\ctk_tk.py", line 165, in mainloop
+  File "tkinter\__init__.py", line 1429, in mainloop
+  File "tkinter\__init__.py", line 1892, in __call__
+  File "tkinter\__init__.py", line 814, in callit
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 4915, in _display_market
+  File "main.py", line 5368, in _start_streaming
+  File "main.py", line 4265, in _subscribe_to_market_stream
+  File "thread_guard.py", line 100, in wrapper
+
+2026-01-19 18:40:08,320 [INFO] [UIQ] ERROR in display_market: [THREAD VIOLATION] BetfairStream.is_connected called from UI thread!
+This would freeze the UI. Stack trace:
+  File "main.py", line 13552, in run
+  File "customtkinter\windows\ctk_tk.py", line 165, in mainloop
+  File "tkinter\__init__.py", line 1429, in mainloop
+  File "tkinter\__init__.py", line 1892, in __call__
+  File "tkinter\__init__.py", line 814, in callit
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 4915, in _display_market
+  File "main.py", line 5368, in _start_streaming
+  File "main.py", line 4265, in _subscribe_to_market_stream
+  File "thread_guard.py", line 100, in wrapper
+
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 4915, in _display_market
+  File "main.py", line 5368, in _start_streaming
+  File "main.py", line 4265, in _subscribe_to_market_stream
+  File "thread_guard.py", line 107, in wrapper
+RuntimeError: [THREAD VIOLATION] BetfairStream.is_connected called from UI thread!
+This would freeze the UI. Stack trace:
+  File "main.py", line 13552, in run
+  File "customtkinter\windows\ctk_tk.py", line 165, in mainloop
+  File "tkinter\__init__.py", line 1429, in mainloop
+  File "tkinter\__init__.py", line 1892, in __call__
+  File "tkinter\__init__.py", line 814, in callit
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 4915, in _display_market
+  File "main.py", line 5368, in _start_streaming
+  File "main.py", line 4265, in _subscribe_to_market_stream
+  File "thread_guard.py", line 100, in wrapper
+
+
+2026-01-19 18:40:11,390 [INFO] [UIQ] stats executed=56 dropped=0 errors=3 qsize=0
+2026-01-19 18:40:12,532 [ERROR] Betfair Stream connection error: [WinError 10060] Impossibile stabilire la connessione. Risposta non corretta della parte connessa dopo l'intervallo di tempo oppure mancata risposta dall'host collegato
+2026-01-19 18:40:12,532 [INFO] Betfair Stream: Disconnected
+2026-01-19 18:40:12,533 [INFO] Order Stream status: DISCONNECTED
+2026-01-19 18:40:12,534 [ERROR] Order Stream: [BG] Failed to connect
+2026-01-19 18:40:16,391 [INFO] [UIQ] stats executed=60 dropped=0 errors=3 qsize=0
+2026-01-19 18:40:19,313 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:40:19,314 [DEBUG] [EXECUTOR] Job #3 START: execute
+2026-01-19 18:40:19,314 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:40:19,318 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:40:19,327 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,337 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,347 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,357 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,367 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,377 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,387 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,397 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,407 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,416 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,426 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,435 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:40:19,444 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,454 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,465 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,475 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,485 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:19,521 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 414
+2026-01-19 18:40:19,523 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:40:19,524 [DEBUG] [EXECUTOR] Job #3 DONE: execute
+2026-01-19 18:40:19,524 [DEBUG] [EXECUTOR] Job #4 START: execute
+2026-01-19 18:40:19,524 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:40:19,551 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:40:19,615 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:40:19,616 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:40:19,616 [DEBUG] [EXECUTOR] Job #4 DONE: execute
+2026-01-19 18:40:19,676 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:40:21,392 [INFO] [UIQ] stats executed=77 dropped=0 errors=3 qsize=0
+2026-01-19 18:40:26,393 [INFO] [UIQ] stats executed=78 dropped=0 errors=3 qsize=0
+2026-01-19 18:40:31,403 [INFO] [UIQ] stats executed=79 dropped=0 errors=3 qsize=0
+2026-01-19 18:40:34,558 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:40:34,571 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,581 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,590 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,600 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,609 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,619 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,629 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,639 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,649 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,659 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,668 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,677 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,687 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,696 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,707 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:34,716 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:36,403 [INFO] [UIQ] stats executed=89 dropped=0 errors=3 qsize=0
+2026-01-19 18:40:41,404 [INFO] [UIQ] stats executed=90 dropped=0 errors=3 qsize=0
+2026-01-19 18:40:46,410 [INFO] [UIQ] stats executed=91 dropped=0 errors=3 qsize=0
+2026-01-19 18:40:49,334 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:40:49,334 [DEBUG] [EXECUTOR] Job #5 START: execute
+2026-01-19 18:40:49,335 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:40:49,335 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:40:49,443 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:40:49,551 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 414
+2026-01-19 18:40:49,553 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:40:49,554 [DEBUG] [EXECUTOR] Job #5 DONE: execute
+2026-01-19 18:40:49,554 [DEBUG] [EXECUTOR] Job #6 START: execute
+2026-01-19 18:40:49,554 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:40:49,587 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:40:49,655 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:40:49,656 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:40:49,657 [DEBUG] [EXECUTOR] Job #6 DONE: execute
+2026-01-19 18:40:49,712 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:40:49,737 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,746 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,757 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,766 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,776 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,786 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,795 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,805 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,814 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,824 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,834 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,846 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,856 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,865 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,875 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:49,884 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:40:51,425 [INFO] [UIQ] stats executed=108 dropped=0 errors=3 qsize=0
+2026-01-19 18:40:56,434 [INFO] [UIQ] stats executed=109 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:01,442 [INFO] [UIQ] stats executed=110 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:04,957 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:41:04,970 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:04,979 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:04,989 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,004 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,013 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,023 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,034 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,044 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,054 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,063 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,075 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,086 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,095 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,124 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,135 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:05,145 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:06,452 [INFO] [UIQ] stats executed=120 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:11,464 [INFO] [UIQ] stats executed=121 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:16,467 [INFO] [UIQ] stats executed=122 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:19,340 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:41:19,340 [DEBUG] [EXECUTOR] Job #7 START: execute
+2026-01-19 18:41:19,341 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:41:19,341 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:41:19,440 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:41:19,530 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 414
+2026-01-19 18:41:19,532 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:41:19,533 [DEBUG] [EXECUTOR] Job #7 DONE: execute
+2026-01-19 18:41:19,533 [DEBUG] [EXECUTOR] Job #8 START: execute
+2026-01-19 18:41:19,533 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:41:19,589 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:41:19,625 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:41:19,626 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:41:19,627 [DEBUG] [EXECUTOR] Job #8 DONE: execute
+2026-01-19 18:41:19,652 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:41:20,157 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,167 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,176 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,186 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,195 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,206 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,216 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,232 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,242 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,252 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,262 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,272 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,282 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,292 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,302 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:20,311 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:21,469 [INFO] [UIQ] stats executed=138 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:26,483 [INFO] [UIQ] stats executed=139 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:31,495 [INFO] [UIQ] stats executed=140 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:35,381 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:41:35,392 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,402 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,411 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,421 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,431 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,440 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,449 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,459 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,469 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,478 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,489 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,499 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,508 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,519 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,528 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:35,538 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:36,497 [INFO] [UIQ] stats executed=150 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:41,502 [INFO] [UIQ] stats executed=151 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:46,506 [INFO] [UIQ] stats executed=152 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:49,351 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:41:49,351 [DEBUG] [EXECUTOR] Job #9 START: execute
+2026-01-19 18:41:49,352 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:41:49,352 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:41:49,438 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:41:49,525 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 414
+2026-01-19 18:41:49,527 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:41:49,527 [DEBUG] [EXECUTOR] Job #9 DONE: execute
+2026-01-19 18:41:49,528 [DEBUG] [EXECUTOR] Job #10 START: execute
+2026-01-19 18:41:49,528 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:41:49,536 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:41:49,651 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:41:49,652 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:41:49,652 [DEBUG] [EXECUTOR] Job #10 DONE: execute
+2026-01-19 18:41:49,661 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:41:50,559 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,569 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,580 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,590 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,602 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,613 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,622 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,634 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,643 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,655 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,666 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,676 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,687 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,699 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,709 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:50,725 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:41:51,511 [INFO] [UIQ] stats executed=167 dropped=0 errors=3 qsize=0
+2026-01-19 18:41:56,522 [INFO] [UIQ] stats executed=168 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:01,524 [INFO] [UIQ] stats executed=169 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:05,798 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:42:05,811 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,820 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,830 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,840 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,850 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,860 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,869 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,880 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,889 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,899 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,909 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,919 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,930 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,939 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,949 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:05,959 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:06,534 [INFO] [UIQ] stats executed=180 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:11,538 [INFO] [UIQ] stats executed=181 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:16,543 [INFO] [UIQ] stats executed=182 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:19,360 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:42:19,360 [DEBUG] [EXECUTOR] Job #11 START: execute
+2026-01-19 18:42:19,360 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:42:19,361 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:42:19,450 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:42:19,544 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 414
+2026-01-19 18:42:19,547 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:42:19,547 [DEBUG] [EXECUTOR] Job #11 DONE: execute
+2026-01-19 18:42:19,548 [DEBUG] [EXECUTOR] Job #12 START: execute
+2026-01-19 18:42:19,548 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:42:19,595 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:42:19,639 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:42:19,641 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:42:19,641 [DEBUG] [EXECUTOR] Job #12 DONE: execute
+2026-01-19 18:42:19,657 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:42:20,975 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:20,984 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:20,994 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,003 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,013 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,023 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,033 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,043 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,053 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,063 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,072 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,084 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,096 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,105 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,115 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,125 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:21,547 [INFO] [UIQ] stats executed=198 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:26,549 [INFO] [UIQ] stats executed=199 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:31,556 [INFO] [UIQ] stats executed=200 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:36,200 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:42:36,211 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,221 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,230 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,240 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,250 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,260 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,269 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,280 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,289 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,299 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,309 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,318 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,328 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,338 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,350 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,361 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:36,561 [INFO] [UIQ] stats executed=211 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:41,562 [INFO] [UIQ] stats executed=212 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:46,570 [INFO] [UIQ] stats executed=213 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:49,366 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:42:49,367 [DEBUG] [EXECUTOR] Job #13 START: execute
+2026-01-19 18:42:49,367 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:42:49,368 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:42:49,458 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:42:49,552 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 414
+2026-01-19 18:42:49,553 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:42:49,554 [DEBUG] [EXECUTOR] Job #13 DONE: execute
+2026-01-19 18:42:49,554 [DEBUG] [EXECUTOR] Job #14 START: execute
+2026-01-19 18:42:49,554 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:42:49,615 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:42:49,660 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:42:49,661 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:42:49,662 [DEBUG] [EXECUTOR] Job #14 DONE: execute
+2026-01-19 18:42:49,677 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:42:51,377 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,388 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,397 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,408 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,417 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,427 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,438 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,447 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,458 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,467 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,479 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,489 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,499 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,509 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,518 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,529 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:42:51,574 [INFO] [UIQ] stats executed=230 dropped=0 errors=3 qsize=0
+2026-01-19 18:42:56,586 [INFO] [UIQ] stats executed=231 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:01,594 [INFO] [UIQ] stats executed=232 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:06,608 [INFO] [UIQ] stats executed=233 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:06,611 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:43:06,625 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,635 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,646 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,656 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,665 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,676 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,685 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,696 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,706 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,715 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,725 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,735 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,745 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,757 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,766 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:06,777 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:11,619 [INFO] [UIQ] stats executed=243 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:16,625 [INFO] [UIQ] stats executed=244 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:19,383 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:43:19,383 [DEBUG] [EXECUTOR] Job #15 START: execute
+2026-01-19 18:43:19,384 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:43:19,384 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:43:19,469 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:43:19,554 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 418
+2026-01-19 18:43:19,556 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:43:19,557 [DEBUG] [EXECUTOR] Job #15 DONE: execute
+2026-01-19 18:43:19,557 [DEBUG] [EXECUTOR] Job #16 START: execute
+2026-01-19 18:43:19,557 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:43:19,569 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:43:19,646 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:43:19,647 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:43:19,648 [DEBUG] [EXECUTOR] Job #16 DONE: execute
+2026-01-19 18:43:19,695 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:43:21,633 [INFO] [UIQ] stats executed=251 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:21,802 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,812 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,823 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,832 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,842 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,852 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,864 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,874 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,884 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,893 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,904 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,913 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,923 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,932 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,942 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:21,952 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:26,645 [INFO] [UIQ] stats executed=261 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:31,654 [INFO] [UIQ] stats executed=262 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:36,666 [INFO] [UIQ] stats executed=263 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:37,019 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:43:37,032 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,042 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,052 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,062 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,072 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,082 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,092 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,102 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,112 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,133 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,143 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,153 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,162 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,173 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,183 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:37,193 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:41,682 [INFO] [UIQ] stats executed=275 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:46,689 [INFO] [UIQ] stats executed=276 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:49,392 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:43:49,392 [DEBUG] [EXECUTOR] Job #17 START: execute
+2026-01-19 18:43:49,392 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:43:49,393 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:43:49,522 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:43:49,624 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 418
+2026-01-19 18:43:49,626 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:43:49,626 [DEBUG] [EXECUTOR] Job #17 DONE: execute
+2026-01-19 18:43:49,627 [DEBUG] [EXECUTOR] Job #18 START: execute
+2026-01-19 18:43:49,627 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:43:49,640 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:43:49,722 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:43:49,723 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:43:49,723 [DEBUG] [EXECUTOR] Job #18 DONE: execute
+2026-01-19 18:43:49,768 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:43:51,690 [INFO] [UIQ] stats executed=283 dropped=0 errors=3 qsize=0
+2026-01-19 18:43:52,217 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,227 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,236 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,247 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,256 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,267 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,276 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,287 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,297 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,306 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,317 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,326 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,337 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,347 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,357 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:52,367 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:43:56,692 [INFO] [UIQ] stats executed=294 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:01,695 [INFO] [UIQ] stats executed=295 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:06,709 [INFO] [UIQ] stats executed=296 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:07,444 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:44:07,455 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,465 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,475 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,484 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,494 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,503 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,514 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,523 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,533 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,542 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,552 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,562 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,572 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,581 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,591 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:07,601 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:11,713 [INFO] [UIQ] stats executed=307 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:16,723 [INFO] [UIQ] stats executed=308 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:19,401 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:44:19,401 [DEBUG] [EXECUTOR] Job #19 START: execute
+2026-01-19 18:44:19,402 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:44:19,402 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:44:19,518 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:44:19,635 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 418
+2026-01-19 18:44:19,637 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:44:19,637 [DEBUG] [EXECUTOR] Job #19 DONE: execute
+2026-01-19 18:44:19,638 [DEBUG] [EXECUTOR] Job #20 START: execute
+2026-01-19 18:44:19,638 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:44:19,651 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:44:19,730 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:44:19,731 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:44:19,731 [DEBUG] [EXECUTOR] Job #20 DONE: execute
+2026-01-19 18:44:19,781 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:44:21,733 [INFO] [UIQ] stats executed=315 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:22,626 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,637 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,647 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,657 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,667 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,676 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,686 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,697 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,707 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,717 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,728 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,737 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,748 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,757 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,768 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:22,778 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:26,735 [INFO] [UIQ] stats executed=326 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:31,751 [INFO] [UIQ] stats executed=327 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:36,757 [INFO] [UIQ] stats executed=328 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:37,858 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:44:37,872 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,882 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,892 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,901 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,911 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,921 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,931 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,940 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,950 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,960 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,969 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,979 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:37,989 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:38,002 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:38,012 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:38,022 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:41,771 [INFO] [UIQ] stats executed=338 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:46,783 [INFO] [UIQ] stats executed=339 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:49,406 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:44:49,406 [DEBUG] [EXECUTOR] Job #21 START: execute
+2026-01-19 18:44:49,407 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:44:49,407 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:44:49,507 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:44:49,602 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 418
+2026-01-19 18:44:49,604 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:44:49,604 [DEBUG] [EXECUTOR] Job #21 DONE: execute
+2026-01-19 18:44:49,605 [DEBUG] [EXECUTOR] Job #22 START: execute
+2026-01-19 18:44:49,605 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:44:49,657 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:44:49,700 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:44:49,701 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:44:49,701 [DEBUG] [EXECUTOR] Job #22 DONE: execute
+2026-01-19 18:44:49,727 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:44:50,310 [DEBUG] Starting new HTTPS connection (1): identitysso.betfair.it:443
+2026-01-19 18:44:50,517 [DEBUG] https://identitysso.betfair.it:443 "POST /api/keepAlive HTTP/11" 200 None
+2026-01-19 18:44:50,518 [DEBUG] Session keepalive: OK
+2026-01-19 18:44:51,791 [INFO] [UIQ] stats executed=348 dropped=0 errors=3 qsize=0
+2026-01-19 18:44:53,045 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,057 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,067 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,077 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,086 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,096 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,107 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,117 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,127 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,136 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,146 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,156 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,166 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,175 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,185 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:53,195 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:44:56,794 [INFO] [UIQ] stats executed=358 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:01,796 [INFO] [UIQ] stats executed=359 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:06,804 [INFO] [UIQ] stats executed=360 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:08,286 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:45:08,299 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,309 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,319 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,329 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,339 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,349 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,359 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,369 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,380 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,404 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,414 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,425 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,435 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,445 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,457 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:08,467 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:11,806 [INFO] [UIQ] stats executed=371 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:16,807 [INFO] [UIQ] stats executed=372 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:19,422 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:45:19,422 [DEBUG] [EXECUTOR] Job #23 START: execute
+2026-01-19 18:45:19,423 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:45:19,424 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:45:19,515 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:45:19,607 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 418
+2026-01-19 18:45:19,609 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:45:19,609 [DEBUG] [EXECUTOR] Job #23 DONE: execute
+2026-01-19 18:45:19,610 [DEBUG] [EXECUTOR] Job #24 START: execute
+2026-01-19 18:45:19,610 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:45:19,657 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:45:19,701 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:45:19,702 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:45:19,703 [DEBUG] [EXECUTOR] Job #24 DONE: execute
+2026-01-19 18:45:19,721 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:45:21,818 [INFO] [UIQ] stats executed=379 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:23,478 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,489 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,499 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,514 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,524 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,533 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,543 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,553 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,563 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,573 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,582 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,593 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,609 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,618 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,630 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:23,641 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:26,831 [INFO] [UIQ] stats executed=388 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:31,842 [INFO] [UIQ] stats executed=389 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:36,856 [INFO] [UIQ] stats executed=390 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:38,719 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:45:38,733 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,743 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,754 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,763 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,774 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,786 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,796 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,807 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,817 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,827 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,838 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,848 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,858 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,867 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,877 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:38,897 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:41,861 [INFO] [UIQ] stats executed=401 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:46,864 [INFO] [UIQ] stats executed=402 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:49,431 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:45:49,432 [DEBUG] [EXECUTOR] Job #25 START: execute
+2026-01-19 18:45:49,432 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:45:49,432 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:45:49,518 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:45:49,611 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 418
+2026-01-19 18:45:49,613 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:45:49,614 [DEBUG] [EXECUTOR] Job #25 DONE: execute
+2026-01-19 18:45:49,614 [DEBUG] [EXECUTOR] Job #26 START: execute
+2026-01-19 18:45:49,614 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:45:49,660 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:45:49,700 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:45:49,702 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:45:49,702 [DEBUG] [EXECUTOR] Job #26 DONE: execute
+2026-01-19 18:45:49,722 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:45:50,381 [INFO] [UI-CLICK] TREE_country_AR
+2026-01-19 18:45:50,381 [DEBUG] [UI] Country toggle: country_AR
+2026-01-19 18:45:50,382 [INFO] [UI-CLICK] TREE_country_AR done in 1ms
+2026-01-19 18:45:51,877 [INFO] [UIQ] stats executed=410 dropped=0 errors=3 qsize=0
+2026-01-19 18:45:53,921 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:53,931 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:53,942 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:53,953 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:53,963 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:53,973 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:53,983 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:53,993 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:54,004 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:54,019 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:54,029 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:54,055 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:54,066 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:54,076 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:54,086 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:54,096 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:45:56,885 [INFO] [UIQ] stats executed=422 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:01,893 [INFO] [UIQ] stats executed=423 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:06,908 [INFO] [UIQ] stats executed=424 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:09,186 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:46:09,199 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,209 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,220 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,229 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,240 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,250 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,259 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,270 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,279 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,289 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,299 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,309 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,322 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,332 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,343 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:09,353 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:11,916 [INFO] [UIQ] stats executed=435 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:16,919 [INFO] [UIQ] stats executed=436 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:19,436 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:46:19,437 [DEBUG] [EXECUTOR] Job #27 START: execute
+2026-01-19 18:46:19,437 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:46:19,438 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:46:19,525 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:46:19,610 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 418
+2026-01-19 18:46:19,612 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:46:19,613 [DEBUG] [EXECUTOR] Job #27 DONE: execute
+2026-01-19 18:46:19,613 [DEBUG] [EXECUTOR] Job #28 START: execute
+2026-01-19 18:46:19,613 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:46:19,617 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:46:19,702 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:46:19,703 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:46:19,704 [DEBUG] [EXECUTOR] Job #28 DONE: execute
+2026-01-19 18:46:19,748 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:46:21,921 [INFO] [UIQ] stats executed=442 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:24,370 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,380 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,389 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,398 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,406 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,416 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,425 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,436 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,447 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,456 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,466 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,475 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,484 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,493 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,503 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:24,512 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:26,925 [INFO] [UIQ] stats executed=449 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:31,939 [INFO] [UIQ] stats executed=450 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:36,948 [INFO] [UIQ] stats executed=451 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:39,582 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:46:39,597 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,609 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,621 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,633 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,646 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,659 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,671 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,685 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,700 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,710 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,719 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,730 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,742 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,753 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,762 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:39,774 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:41,954 [INFO] [UIQ] stats executed=462 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:46,963 [INFO] [UIQ] stats executed=463 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:49,441 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:46:49,441 [DEBUG] [EXECUTOR] Job #29 START: execute
+2026-01-19 18:46:49,442 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:46:49,442 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:46:49,532 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:46:49,621 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 418
+2026-01-19 18:46:49,624 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:46:49,625 [DEBUG] [EXECUTOR] Job #29 DONE: execute
+2026-01-19 18:46:49,625 [DEBUG] [EXECUTOR] Job #30 START: execute
+2026-01-19 18:46:49,626 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:46:49,675 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:46:49,721 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:46:49,722 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:46:49,722 [DEBUG] [EXECUTOR] Job #30 DONE: execute
+2026-01-19 18:46:49,738 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:46:51,967 [INFO] [UIQ] stats executed=469 dropped=0 errors=3 qsize=0
+2026-01-19 18:46:54,788 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,798 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,807 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,818 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,828 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,838 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,847 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,857 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,867 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,877 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,886 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,896 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,905 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,917 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,927 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:54,936 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:46:56,968 [INFO] [UIQ] stats executed=477 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:01,983 [INFO] [UIQ] stats executed=478 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:06,984 [INFO] [UIQ] stats executed=479 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:10,015 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:47:10,030 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,041 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,052 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,063 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,074 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,086 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,097 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,109 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,120 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,131 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,142 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,155 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,171 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,183 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,196 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:10,207 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:11,988 [INFO] [UIQ] stats executed=491 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:16,989 [INFO] [UIQ] stats executed=492 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:19,453 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:47:19,454 [DEBUG] [EXECUTOR] Job #31 START: execute
+2026-01-19 18:47:19,454 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:47:19,454 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:47:19,545 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:47:19,691 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 419
+2026-01-19 18:47:19,692 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:47:19,693 [DEBUG] [EXECUTOR] Job #31 DONE: execute
+2026-01-19 18:47:19,693 [DEBUG] [EXECUTOR] Job #32 START: execute
+2026-01-19 18:47:19,693 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:47:19,707 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:47:19,780 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:47:19,782 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:47:19,782 [DEBUG] [EXECUTOR] Job #32 DONE: execute
+2026-01-19 18:47:19,827 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:47:21,994 [INFO] [UIQ] stats executed=499 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:25,229 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,240 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,250 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,261 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,271 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,280 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,291 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,301 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,312 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,322 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,333 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,344 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,355 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,365 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,373 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:25,383 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:27,003 [INFO] [UIQ] stats executed=509 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:32,005 [INFO] [UIQ] stats executed=510 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:35,400 [INFO] [MICRO_STAKE] Enabled
+2026-01-19 18:47:36,967 [INFO] [MICRO_STAKE] Enabled
+2026-01-19 18:47:36,968 [INFO] [MICRO_STAKE] Amount set to €0.50
+2026-01-19 18:47:36,968 [INFO] [BG] START SaveMicroStakeSettings
+2026-01-19 18:47:36,969 [INFO] [BG] DONE SaveMicroStakeSettings in 0.0ms
+2026-01-19 18:47:37,016 [INFO] [UIQ] stats executed=513 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:40,464 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:47:40,476 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,486 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,496 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,504 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,515 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,524 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,533 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,543 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,552 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,563 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,572 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,582 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,593 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,601 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,611 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:40,620 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:42,025 [INFO] [UIQ] stats executed=521 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:47,031 [INFO] [UIQ] stats executed=522 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:49,465 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:47:49,465 [DEBUG] [EXECUTOR] Job #33 START: execute
+2026-01-19 18:47:49,466 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:47:49,466 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:47:49,576 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:47:49,662 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 419
+2026-01-19 18:47:49,664 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:47:49,664 [DEBUG] [EXECUTOR] Job #33 DONE: execute
+2026-01-19 18:47:49,665 [DEBUG] [EXECUTOR] Job #34 START: execute
+2026-01-19 18:47:49,665 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:47:49,715 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:47:49,747 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:47:49,749 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:47:49,749 [DEBUG] [EXECUTOR] Job #34 DONE: execute
+2026-01-19 18:47:49,777 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:47:52,037 [INFO] [UIQ] stats executed=529 dropped=0 errors=3 qsize=0
+2026-01-19 18:47:55,644 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,654 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,663 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,674 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,684 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,693 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,704 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,714 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,725 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,735 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,746 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,756 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,766 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,778 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,787 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:55,799 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:47:57,052 [INFO] [UIQ] stats executed=538 dropped=0 errors=3 qsize=0
+2026-01-19 18:48:02,061 [INFO] [UIQ] stats executed=539 dropped=0 errors=3 qsize=0
+2026-01-19 18:48:07,071 [INFO] [UIQ] stats executed=540 dropped=0 errors=3 qsize=0
+2026-01-19 18:48:09,037 [INFO] [BET] _place_quick_real_bet CALLED: runner=SE Palmeiras, type=BACK, price=1.73, stake=1.0, persist=LAPSE
+2026-01-19 18:48:09,038 [DEBUG] [EXECUTOR] Job #35 START: execute
+2026-01-19 18:48:09,039 [DEBUG] [EXECUTOR] Starting: quick_bet
+2026-01-19 18:48:09,039 [INFO] [BET] do_place STARTED
+2026-01-19 18:48:09,039 [INFO] Quick bet using market price: requested=1.73, match_price=1000.0
+2026-01-19 18:48:09,040 [INFO] [MICRO_STAKE] Centralized interception for €1.0
+2026-01-19 18:48:09,040 [INFO] [MICRO_STAKE] Micro stake €1.00...
+2026-01-19 18:48:09,040 [ERROR] [MICRO_STAKE] Errore micro stake: 'PickfairApp' object has no attribute '_add_log'
+2026-01-19 18:48:09,041 [WARNING] [MICRO_STAKE] FAILED: Errore micro stake: 'PickfairApp' object has no attribute '_add_log'
+2026-01-19 18:48:09,041 [DEBUG] [EXECUTOR] Completed: quick_bet
+2026-01-19 18:48:09,042 [DEBUG] [EXECUTOR] Job #35 DONE: execute
+2026-01-19 18:48:09,111 [INFO] Quick bet result: status=FAILURE, runner=SE Palmeiras
+2026-01-19 18:48:09,111 [INFO] Full bet result: {'status': 'FAILURE', 'errorCode': "Errore micro stake: 'PickfairApp' object has no attribute '_add_log'"}
+2026-01-19 18:48:09,112 [WARNING] Quick bet failed: status=FAILURE, errorCode=Errore micro stake: 'PickfairApp' object has no attribute '_add_log', details=[]
+2026-01-19 18:48:10,870 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:48:10,881 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,891 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,900 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,909 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,918 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,927 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,936 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,945 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,954 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,964 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,974 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,982 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:10,991 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:11,000 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:11,010 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:11,020 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:19,472 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:48:19,472 [DEBUG] [EXECUTOR] Job #36 START: execute
+2026-01-19 18:48:19,472 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:48:19,473 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:48:19,564 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:48:19,653 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 420
+2026-01-19 18:48:19,655 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:48:19,656 [DEBUG] [EXECUTOR] Job #36 DONE: execute
+2026-01-19 18:48:19,656 [DEBUG] [EXECUTOR] Job #37 START: execute
+2026-01-19 18:48:19,656 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:48:19,718 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:48:19,744 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:48:19,745 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:48:19,746 [DEBUG] [EXECUTOR] Job #37 DONE: execute
+2026-01-19 18:48:19,782 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:48:26,034 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,042 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,051 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,060 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,069 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,078 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,088 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,096 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,106 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,115 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,124 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,133 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,142 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,151 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,160 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:26,169 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,239 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:48:41,255 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,267 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,282 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,297 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,308 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,320 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,331 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,342 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,355 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,368 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,381 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,394 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,408 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,420 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,433 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:41,444 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:49,487 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:48:49,487 [DEBUG] [EXECUTOR] Job #38 START: execute
+2026-01-19 18:48:49,488 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:48:49,488 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:48:49,620 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:48:49,706 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 420
+2026-01-19 18:48:49,707 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:48:49,708 [DEBUG] [EXECUTOR] Job #38 DONE: execute
+2026-01-19 18:48:49,708 [DEBUG] [EXECUTOR] Job #39 START: execute
+2026-01-19 18:48:49,708 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:48:49,737 [INFO] [EVENTS] Got 86 events
+2026-01-19 18:48:49,793 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:48:49,794 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:48:49,795 [DEBUG] [EXECUTOR] Job #39 DONE: execute
+2026-01-19 18:48:49,800 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:48:56,462 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,471 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,480 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,490 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,502 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,511 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,521 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,529 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,539 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,547 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,559 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,571 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,580 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,592 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,604 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:48:56,614 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:07,618 [INFO] [UIQ] ERROR in micro_log_err: 'PickfairApp' object has no attribute '_add_log'
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 2331, in <lambda>
+AttributeError: 'PickfairApp' object has no attribute '_add_log'
+
+2026-01-19 18:49:07,647 [INFO] [UIQ] stats executed=544 dropped=0 errors=4 qsize=0
+2026-01-19 18:49:11,697 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-19 18:49:11,712 [DEBUG] [TEAM-RESOLVER] No match | API: Cremonese vs Verona | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,723 [DEBUG] [TEAM-RESOLVER] No match | API: Ironi Kiryat Shmona vs Hapoel Haifa | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,732 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Shalem vs Hapoel Ra'anana | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,742 [DEBUG] [TEAM-RESOLVER] No match | API: Göztepe vs Rizespor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,757 [DEBUG] [TEAM-RESOLVER] No match | API: Mamelodi Sundowns vs Orbit College | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,781 [DEBUG] [TEAM-RESOLVER] No match | API: Céleste vs Etoile de Kivu | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,793 [DEBUG] [TEAM-RESOLVER] No match | API: Panetolikos vs Levadiakos | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,805 [DEBUG] [TEAM-RESOLVER] No match | API: Partizani vs Teuta Durrës | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,826 [DEBUG] [TEAM-RESOLVER] No match | API: Al Arabi vs Al Fahaheel | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,843 [DEBUG] [TEAM-RESOLVER] No match | API: BST Galaxy vs Samger | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,859 [DEBUG] [TEAM-RESOLVER] No match | API: GPA vs Fortune | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,872 [DEBUG] [TEAM-RESOLVER] No match | API: Hapoel Kfar Saba vs Hapoel Afula | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,885 [DEBUG] [TEAM-RESOLVER] No match | API: Kafr Qasim vs Maccabi Petah Tikva | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,897 [DEBUG] [TEAM-RESOLVER] No match | API: Beşiktaş vs Kayserispor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,910 [DEBUG] [TEAM-RESOLVER] No match | API: BB Bodrumspor vs Sivasspor | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:11,922 [DEBUG] [TEAM-RESOLVER] No match | API: Omonia Aradippou vs Enosis | BF: Novorizontino v SE Palmeiras
+2026-01-19 18:49:12,677 [INFO] [UIQ] stats executed=556 dropped=0 errors=4 qsize=0
