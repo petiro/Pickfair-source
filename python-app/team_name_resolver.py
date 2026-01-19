@@ -40,6 +40,10 @@ def normalize_team_name(name: str) -> str:
 
     STOPWORDS = [
         "fc", "cf", "calcio", "football", "club", "afc", "sc", "ac",
+        # Brazilian club prefixes
+        "se", "ec", "ca", "cr", "aa", "ad", "cd", "ce", "rc", "gr", "sao", "sp",
+        # Other common prefixes
+        "fk", "nk", "sk", "as", "us", "ss", "ssc", "rcd", "sd",
         "women", "w", "ladies", "femminile",
         "u21", "u20", "u19", "u18", "u17", "u16",
         "reserves", "reserve", "b", "ii",
