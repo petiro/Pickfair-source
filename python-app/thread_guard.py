@@ -98,8 +98,9 @@ def assert_not_ui_thread(fn):
         
         if threading.current_thread() is threading.main_thread():
             stack = "".join(traceback.format_stack(limit=10))
+            fn_name = getattr(fn, "__qualname__", str(fn))
             error_msg = (
-                f"[THREAD VIOLATION] {fn.__qualname__} called from UI thread!\n"
+                f"[THREAD VIOLATION] {fn_name} called from UI thread!\n"
                 f"This would freeze the UI. Stack trace:\n{stack}"
             )
             logging.error(error_msg)
@@ -147,8 +148,9 @@ def warn_if_ui_thread(fn):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         if threading.current_thread() is threading.main_thread():
+            fn_name = getattr(fn, "__qualname__", str(fn))
             logging.warning(
-                f"[THREAD WARNING] {fn.__qualname__} called from UI thread. "
+                f"[THREAD WARNING] {fn_name} called from UI thread. "
                 f"Consider moving to background thread."
             )
         return fn(*args, **kwargs)

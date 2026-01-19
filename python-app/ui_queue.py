@@ -258,12 +258,12 @@ def ui_call(app, fn: Callable, *args, key=None, priority=UIPriority.NORMAL, debu
 
 def ui_set_text(app, widget, text: str, key: str, priority=UIPriority.NORMAL):
     """Set widget text via UI queue (deduped)."""
-    app.uiq.post(widget.config, text=text, key=key, priority=priority, debug_name="ui_set_text")
+    app.uiq.post(widget.configure, text=text, key=key, priority=priority, debug_name="ui_set_text")
 
 
 def ui_set_state(app, widget, state: str, key: str, priority=UIPriority.LOW):
     """Set widget state via UI queue (deduped)."""
-    app.uiq.post(widget.config, state=state, key=key, priority=priority, debug_name="ui_set_state")
+    app.uiq.post(widget.configure, state=state, key=key, priority=priority, debug_name="ui_set_state")
 
 
 def ui_set_progress(app, progressbar, value: float, key: str, priority=UIPriority.LOW):
@@ -271,13 +271,23 @@ def ui_set_progress(app, progressbar, value: float, key: str, priority=UIPriorit
     app.uiq.post(progressbar.set, value, key=key, priority=priority, debug_name="ui_set_progress")
 
 
-def run_bg(app, name: str, fn: Callable, *args, **kwargs):
+def run_bg(app, name: str = None, fn: Callable = None, *args, **kwargs):
     """
     Run a function in background thread. Anti-freeze for button clicks.
     
     Usage:
         command=lambda: run_bg(self, "LoadEvents", self._load_events)
+        # or with auto-name:
+        command=lambda: run_bg(self, fn=self._load_events)
     """
+    # Validate fn is provided
+    if fn is None:
+        raise TypeError("run_bg() requires 'fn' argument - the function to run")
+    
+    # Auto-generate name if not provided
+    if name is None:
+        name = getattr(fn, "__qualname__", getattr(fn, "__name__", "bg_task"))
+    
     def _job():
         try:
             logging.info(f"[BG] START {name}")
@@ -290,7 +300,7 @@ def run_bg(app, name: str, fn: Callable, *args, **kwargs):
             # Update status label if available (non-blocking)
             if hasattr(app, "uiq") and hasattr(app, "status_label"):
                 app.uiq.post(
-                    app.status_label.config,
+                    app.status_label.configure,
                     text=f"Errore: {e}",
                     key="status_label",
                     priority=UIPriority.CRITICAL
