@@ -4711,6 +4711,18 @@ class PickfairApp:
         
         self._stop_streaming()
         self._clear_selections()
+        
+        # Sync the dropdown with the selected market from tree
+        if self.available_markets:
+            for m in self.available_markets:
+                if m.get('marketId') == market_id:
+                    name = m.get('displayName') or m.get('marketName', 'Sconosciuto')
+                    if m.get('inPlay'):
+                        name = f"[LIVE] {name}"
+                    self.market_combo.set(name)
+                    logging.debug(f"[TREE] Synced dropdown to: {name}")
+                    break
+        
         self._load_market(market_id)
     
     def _load_available_markets(self, event_id):
