@@ -1,0 +1,106 @@
+2026-01-19 18:20:10,783 [INFO] === Pickfair v3.75.0 started ===
+2026-01-19 18:20:10,783 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-19 18:20:10,783 [INFO] Importing modules...
+2026-01-19 18:20:10,783 [DEBUG] Importing thread_guard...
+2026-01-19 18:20:10,799 [DEBUG] Importing database...
+2026-01-19 18:20:10,863 [DEBUG] Importing betfair_client...
+2026-01-19 18:20:13,202 [DEBUG] [SOCKET] Global timeout set to 12 seconds
+2026-01-19 18:20:13,297 [DEBUG] Importing storage...
+2026-01-19 18:20:13,297 [DEBUG] Importing bet_logger...
+2026-01-19 18:20:13,297 [DEBUG] Importing betfair_stream...
+2026-01-19 18:20:13,297 [DEBUG] Importing dutching...
+2026-01-19 18:20:13,313 [DEBUG] Importing telegram_listener...
+2026-01-19 18:20:13,368 [DEBUG] [SSL] Preloaded: C:\Users\chiara\AppData\Local\Temp\_MEI59042\libcrypto-1_1.dll
+2026-01-19 18:20:13,368 [DEBUG] [SSL] Preloaded: C:\Users\chiara\AppData\Local\Temp\_MEI59042\libssl-1_1.dll
+2026-01-19 18:20:13,368 [INFO] [SSL] Preloaded 2 OpenSSL DLLs for Telethon
+2026-01-19 18:20:14,925 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2026-01-19 18:20:14,925 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2026-01-19 18:20:16,912 [INFO] [STORAGE] Database tables initialized
+2026-01-19 18:20:16,912 [INFO] [STORAGE] Database initialized: C:\Users\chiara\AppData\Roaming\Pickfair\pickfair_history.db
+2026-01-19 18:20:16,912 [DEBUG] cryptg not available - using standard encryption
+2026-01-19 18:20:16,912 [DEBUG] Importing auto_updater...
+2026-01-19 18:20:16,912 [DEBUG] Importing theme...
+2026-01-19 18:20:16,912 [DEBUG] Importing plugin_manager...
+2026-01-19 18:20:17,153 [DEBUG] Importing license_manager...
+2026-01-19 18:20:17,153 [DEBUG] Importing pnl_engine...
+2026-01-19 18:20:17,153 [DEBUG] Importing automation_engine...
+2026-01-19 18:20:17,168 [DEBUG] Importing tick_storage...
+2026-01-19 18:20:17,168 [DEBUG] Importing live_context...
+2026-01-19 18:20:17,168 [DEBUG] Importing match_timeline...
+2026-01-19 18:20:17,176 [DEBUG] Importing api_football...
+2026-01-19 18:20:17,176 [DEBUG] Importing hard_sync...
+2026-01-19 18:20:17,176 [DEBUG] Importing team_name_resolver...
+2026-01-19 18:20:17,192 [DEBUG] Importing cycle_manager...
+2026-01-19 18:20:17,192 [DEBUG] Importing ui_queue...
+2026-01-19 18:20:17,192 [DEBUG] Importing micro_stake...
+2026-01-19 18:20:17,192 [INFO] All modules imported successfully
+2026-01-19 18:20:17,192 [INFO] Single instance check passed - mutex acquired
+2026-01-19 18:20:18,241 [INFO] [STORAGE] Schema migration check complete
+2026-01-19 18:20:18,241 [INFO] [STORAGE] Index check complete
+2026-01-19 18:20:19,079 [INFO] [STORAGE] DB version set to 3588
+2026-01-19 18:20:19,079 [INFO] [STORAGE] Persistent storage initialized
+2026-01-19 18:20:19,079 [INFO] [EXECUTOR] BetfairExecutor initialized (max_workers=1)
+2026-01-19 18:20:19,095 [INFO] [API-Football] Worker started
+2026-01-19 18:20:19,099 [INFO] [UI_QUEUE] Started
+2026-01-19 18:20:19,099 [INFO] [HEALTH] Monitor started
+2026-01-19 18:20:19,099 [INFO] [ANTIFREEZE] Manager started
+2026-01-19 18:20:19,099 [INFO] [UIQ] Started
+2026-01-19 18:20:19,099 [INFO] [BG] START load_micro_settings
+2026-01-19 18:20:19,099 [DEBUG] [SHUTDOWN] Registered handler: streams (priority=1)
+2026-01-19 18:20:19,099 [DEBUG] [SHUTDOWN] Registered handler: api_football (priority=2)
+2026-01-19 18:20:19,099 [INFO] [BG] DONE load_micro_settings in 0.0ms
+2026-01-19 18:20:19,099 [DEBUG] [SHUTDOWN] Registered handler: telegram (priority=3)
+2026-01-19 18:20:19,099 [DEBUG] [SHUTDOWN] Registered handler: antifreeze (priority=4)
+2026-01-19 18:20:19,099 [DEBUG] [SHUTDOWN] Registered handler: database (priority=5)
+2026-01-19 18:20:23,474 [INFO] [DASHBOARD] Auto-refresh timer started (5s interval)
+2026-01-19 18:20:23,474 [INFO] [PERF] Performance logging started (10s interval)
+2026-01-19 18:20:23,489 [INFO] [WATCHDOG] Started with timeout=15s
+2026-01-19 18:20:23,498 [INFO] [STORAGE] Recovered 0 open positions
+2026-01-19 18:20:23,528 [INFO] [RECOVERY] No open positions to recover
+2026-01-19 18:20:23,534 [INFO] [MICRO_STAKE] Disabled
+2026-01-19 18:20:23,534 [INFO] [MICRO_STAKE] Amount set to €0.50
+2026-01-19 18:20:23,534 [DEBUG] [MICRO_STAKE] Settings applied: enabled=False, amount=0.5
+2026-01-19 18:20:23,534 [INFO] [UIQ] stats executed=1 dropped=0 errors=0 qsize=0
+2026-01-19 18:20:28,543 [INFO] [UIQ] stats executed=1 dropped=0 errors=0 qsize=0
+2026-01-19 18:20:30,753 [INFO] [UI-CLICK] toggle_connection
+2026-01-19 18:20:30,753 [INFO] [UI-CLICK] CONNECT
+2026-01-19 18:20:30,753 [INFO] [CONNECT] _connect() called - getting settings...
+2026-01-19 18:20:30,753 [INFO] [CONNECT] Settings retrieved
+2026-01-19 18:20:30,753 [INFO] [CONNECT] Creating password dialog...
+2026-01-19 18:20:30,753 [INFO] [CONNECT] Password dialog created
+2026-01-19 18:20:30,779 [INFO] [UI-CLICK] toggle_connection done in 16ms
+2026-01-19 18:20:30,794 [INFO] [UI-CLICK] CONNECT done in 41ms
+2026-01-19 18:20:33,548 [INFO] [UIQ] stats executed=1 dropped=0 errors=0 qsize=0
+2026-01-19 18:20:33,878 [DEBUG] Starting new HTTPS connection (1): identitysso-cert.betfair.it:443
+2026-01-19 18:20:34,517 [DEBUG] https://identitysso-cert.betfair.it:443 "POST /api/certlogin HTTP/11" 200 125
+2026-01-19 18:20:34,614 [INFO] [CONNECT] _on_connected: Starting...
+2026-01-19 18:20:34,614 [DEBUG] [MICRO_STAKE] Client updated (bidirectional)
+2026-01-19 18:20:34,614 [DEBUG] [CONNECT] UI updated - no I/O done yet
+2026-01-19 18:20:34,614 [DEBUG] [UI] Yielding to mainloop - scheduling staggered API calls
+2026-01-19 18:20:34,614 [INFO] [CONNECT] _on_connected: Complete - 7 steps scheduled
+2026-01-19 18:20:35,129 [DEBUG] [CONNECT] Step 1: _update_balance
+2026-01-19 18:20:35,129 [DEBUG] [BALANCE] _update_balance called...
+2026-01-19 18:20:35,129 [DEBUG] [EXECUTOR] Job #1 START: execute
+2026-01-19 18:20:35,129 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-19 18:20:35,145 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-19 18:20:35,373 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+2026-01-19 18:20:35,373 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-19 18:20:35,388 [DEBUG] [EXECUTOR] Job #1 DONE: execute
+2026-01-19 18:20:35,403 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+2026-01-19 18:20:37,636 [DEBUG] [CONNECT] Step 2: _load_events
+2026-01-19 18:20:37,636 [DEBUG] [EVENTS] _load_events called...
+2026-01-19 18:20:37,636 [DEBUG] [EXECUTOR] Job #2 START: execute
+2026-01-19 18:20:37,636 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-19 18:20:37,808 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2189
+2026-01-19 18:20:37,932 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 349
+2026-01-19 18:20:37,932 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-19 18:20:37,943 [DEBUG] [EXECUTOR] Job #2 DONE: execute
+2026-01-19 18:20:37,962 [INFO] [EVENTS] Got 84 events
+2026-01-19 18:20:38,567 [INFO] [UIQ] stats executed=2 dropped=0 errors=0 qsize=0
+2026-01-19 18:20:40,638 [DEBUG] [CONNECT] Step 3: auto-refresh
+2026-01-19 18:20:41,632 [DEBUG] [CONNECT] Step 4: keepalive
+2026-01-19 18:20:42,643 [DEBUG] [CONNECT] Step 5: order stream
+2026-01-19 18:20:42,643 [INFO] _start_order_stream: Queuing background start...
+2026-01-19 18:20:42,643 [DEBUG] _start_order_stream: [BG] Stopping existing stream...
+2026-01-19 18:20:42,643 [INFO] _start_order_stream: Background thread started
+2026-01-19 18:20:57,735 [ERROR] [WATCHDOG] UI FROZEN > 15s (dump #1)

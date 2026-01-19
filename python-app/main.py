@@ -2325,12 +2325,11 @@ class PickfairApp:
         """Callback for micro stake final result - shows notification."""
         if success:
             logging.info(f"[MICRO_STAKE] SUCCESS: {message}")
-            self.root.after(0, lambda: self._add_log(f"MICRO STAKE: {message}", 'success'))
+            self.uiq.post(lambda: self._add_log(f"MICRO STAKE: {message}", 'success'), key="micro_log", debug_name="micro_log")
         else:
             logging.warning(f"[MICRO_STAKE] FAILED: {message}")
-            self.root.after(0, lambda: self._add_log(f"MICRO STAKE FALLITO: {message}", 'error'))
-            # Also show messagebox for critical failures
-            self.root.after(0, lambda m=message: messagebox.showwarning("Micro Stake", m))
+            self.uiq.post(lambda: self._add_log(f"MICRO STAKE FALLITO: {message}", 'error'), key="micro_log_err", debug_name="micro_log_err")
+            self.uiq.post(lambda m=message: messagebox.showwarning("Micro Stake", m), key="micro_warn", debug_name="micro_warn")
     
     def _on_auto_green_up(self, bet_id, trigger_type):
         """Callback for automated green-up (SL/TP/TR)."""
@@ -2339,7 +2338,7 @@ class PickfairApp:
         with self.automation_engine.sltp_engine.lock:
             state = self.automation_engine.sltp_engine.positions.get(bet_id)
             if state:
-                self.root.after(0, lambda: self._execute_auto_green(state, trigger_type))
+                self.uiq.post(lambda: self._execute_auto_green(state, trigger_type), key=f"auto_green_{bet_id}", debug_name="auto_green")
     
     def _execute_auto_green(self, state, trigger_type):
         """Execute automated green-up from automation engine."""
@@ -3449,13 +3448,13 @@ class PickfairApp:
         if not self.antifreeze.betfair_breaker.can_execute():
             logging.warning(f"[EXECUTOR] Circuit OPEN - blocking {operation_name}")
             if on_error:
-                self.root.after(0, lambda: on_error("Betfair API temporaneamente bloccata (troppi errori)"))
+                self.uiq.post(lambda: on_error("Betfair API temporaneamente bloccata (troppi errori)"), key="circuit_err", debug_name="circuit_err")
             return
         
         # Check rate limiter
         if not self.antifreeze.betfair_limiter.acquire():
             logging.warning(f"[EXECUTOR] Rate limited - delaying {operation_name}")
-            # Retry after 200ms
+            # Retry after 200ms using timer (main thread ok for scheduling)
             self.root.after(200, lambda: self._execute_betfair_call(operation_name, fn, on_success, on_error, timeout_ms))
             return
         
@@ -3515,12 +3514,13 @@ class PickfairApp:
         if not self.antifreeze.betfair_breaker.can_execute():
             logging.warning(f"[EXECUTOR] Circuit OPEN - blocking order {operation_name}")
             if on_error:
-                self.root.after(0, lambda: on_error("Betfair API temporaneamente bloccata (troppi errori)"))
+                self.uiq.post(lambda: on_error("Betfair API temporaneamente bloccata (troppi errori)"), key="circuit_ord_err", debug_name="circuit_ord_err")
             return
         
         # Check rate limiter
         if not self.antifreeze.betfair_limiter.acquire():
             logging.warning(f"[EXECUTOR] Rate limited - delaying order {operation_name}")
+            # Retry after 200ms using timer (main thread ok for scheduling)
             self.root.after(200, lambda: self._execute_order_operation(operation_name, fn, on_success, on_error, check_safe_mode, timeout_ms))
             return
         
@@ -3729,7 +3729,7 @@ class PickfairApp:
                         
                         if self._keepalive_fail_count >= 2:
                             # Try to re-login silently if session expired
-                            self.root.after(0, self._try_silent_relogin)
+                            self.uiq.post(self._try_silent_relogin, key="relogin", debug_name="relogin")
                 
                 # Run keepalive in background thread to prevent UI freeze
                 threading.Thread(target=do_keepalive, daemon=True).start()
@@ -3924,16 +3924,16 @@ class PickfairApp:
                     try:
                         success = self._subscribe_to_market_stream(market_id)
                         logging.info(f"Market Stream: Background subscription result: {success}")
-                        self.root.after(0, lambda: update_ui_only("CONNECTED", subscribed=success))
+                        self.uiq.post(lambda: update_ui_only("CONNECTED", subscribed=success), key="stream_status", debug_name="stream_status")
                     except Exception as e:
                         logging.error(f"Market Stream: Subscription error: {e}")
-                        self.root.after(0, lambda: update_ui_only("CONNECTED", subscribed=False))
+                        self.uiq.post(lambda: update_ui_only("CONNECTED", subscribed=False), key="stream_status", debug_name="stream_status")
                 
                 threading.Thread(target=subscribe_in_background, daemon=True).start()
             else:
-                self.root.after(0, lambda: update_ui_only("CONNECTED", subscribed=False))
+                self.uiq.post(lambda: update_ui_only("CONNECTED", subscribed=False), key="stream_status", debug_name="stream_status")
         else:
-            self.root.after(0, lambda: update_ui_only(status))
+            self.uiq.post(lambda: update_ui_only(status), key="stream_status", debug_name="stream_status")
     
     def _on_order_stream_error(self, error: str):
         """Handle order stream error."""
@@ -4296,10 +4296,10 @@ class PickfairApp:
                 except Exception as e:
                     logging.warning(f"Silent relogin failed: {e}")
                     # Show notification to user (scheduled to main thread)
-                    self.root.after(0, lambda: messagebox.showwarning(
+                    self.uiq.post(lambda: messagebox.showwarning(
                         "Sessione Scaduta", 
                         "La sessione è scaduta. Riconnettiti manualmente."
-                    ))
+                    ), key="session_warn", debug_name="session_warn")
         
         threading.Thread(target=do_relogin, daemon=True, name="SilentRelogin").start()
     
@@ -5405,7 +5405,7 @@ class PickfairApp:
                             'backPrices': back_prices,
                             'layPrices': lay_prices
                         })
-                    self.root.after(0, lambda: self._on_price_update(market_id, runners_data))
+                    self.uiq.post(lambda: self._on_price_update(market_id, runners_data), key="price_update", debug_name="price_update")
             except Exception as e:
                 logging.debug(f"Polling refresh error: {e}")
         
@@ -5570,7 +5570,7 @@ class PickfairApp:
                 except Exception:
                     pass
         
-        self.root.after(0, update_ui)
+        self.uiq.post(update_ui, key="price_ui", debug_name="price_ui")
     
     def _clear_price_highlight(self, selection_id):
         """Clear price highlight from a runner row (preserve other tags)."""
@@ -6785,13 +6785,13 @@ class PickfairApp:
         
         def on_result(result):
             if result.get('update_available'):
-                self.root.after(0, lambda: self._show_update_notification(result))
+                self.uiq.post(lambda: self._show_update_notification(result), key="update_notif", debug_name="update_notif")
             elif result.get('error'):
-                self.root.after(0, lambda: messagebox.showerror("Errore", 
-                    f"Impossibile verificare aggiornamenti:\n{result.get('error')}"))
+                self.uiq.post(lambda: messagebox.showerror("Errore", 
+                    f"Impossibile verificare aggiornamenti:\n{result.get('error')}"), key="update_err", debug_name="update_err")
             else:
-                self.root.after(0, lambda: messagebox.showinfo("Aggiornamenti", 
-                    f"Hai gia' l'ultima versione ({APP_VERSION})!"))
+                self.uiq.post(lambda: messagebox.showinfo("Aggiornamenti", 
+                    f"Hai gia' l'ultima versione ({APP_VERSION})!"), key="update_ok", debug_name="update_ok")
         
         check_for_updates(APP_VERSION, callback=on_result, update_url=update_url)
     
@@ -6861,10 +6861,10 @@ class PickfairApp:
             try:
                 events = self.client.get_live_events_only()
                 live_events = events
-                self.root.after(0, lambda evts=live_events: self._populate_events(evts, live_only=True))
+                self.uiq.post(lambda evts=live_events: self._populate_events(evts, live_only=True), key="live_events", debug_name="live_events")
             except Exception as e:
                 err_msg = str(e)
-                self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", msg))
+                self.uiq.post(lambda msg=err_msg: messagebox.showerror("Errore", msg), key="live_err", debug_name="live_err")
         
         threading.Thread(target=fetch, daemon=True).start()
     
@@ -7160,7 +7160,7 @@ class PickfairApp:
                         data['maxPL'] = total_potential
                         data['minPL'] = -total_stake
                 
-                self.root.after(0, self._update_market_watch_display)
+                self.uiq.post(self._update_market_watch_display, key="market_watch", debug_name="market_watch")
             except Exception as e:
                 logging.error(f"Error refreshing market watch: {e}")
         
@@ -7268,10 +7268,10 @@ class PickfairApp:
                 except:
                     settled_bets = []
                 
-                self.root.after(0, lambda: update_ui(funds, daily_pl, active_count, orders, settled_bets))
+                self.uiq.post(lambda: update_ui(funds, daily_pl, active_count, orders, settled_bets), key="dash_ui", debug_name="dash_ui")
             except Exception as e:
                 err_msg = str(e)
-                self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", msg))
+                self.uiq.post(lambda msg=err_msg: messagebox.showerror("Errore", msg), key="dash_err", debug_name="dash_err")
         
         def update_ui(funds, daily_pl, active_count, orders, settled_bets=None):
             for widget in self.dashboard_stats_frame.winfo_children():
@@ -7817,8 +7817,9 @@ class PickfairApp:
             def emit(self, record):
                 try:
                     msg = self.format(record)
-                    # Schedule UI update in main thread
-                    self.app.root.after(0, lambda: self._append_log(msg, record.levelname))
+                    # Schedule UI update in main thread via UIQ (thread-safe)
+                    if hasattr(self.app, 'uiq'):
+                        self.app.uiq.post(lambda: self._append_log(msg, record.levelname), key="log", debug_name="log")
                 except Exception:
                     pass
             
@@ -8458,20 +8459,20 @@ class PickfairApp:
         """Callback when follower cycle ends (target hit or stopped)."""
         logging.info(f"[CYCLE] Ended: {reason}, P&L: {final_pnl:.2f}")
         
-        # Update UI
-        self.root.after(0, self._update_cycle_status_display)
+        # Update UI via thread-safe queue
+        self.uiq.post(self._update_cycle_status_display, key="cycle_status", debug_name="cycle_status")
         
         # Show notification
         if 'TARGET' in reason.upper():
-            self.root.after(0, lambda: messagebox.showinfo(
+            self.uiq.post(lambda: messagebox.showinfo(
                 "Ciclo Completato", 
                 f"Target raggiunto! P&L finale: +{final_pnl:.2f}\nLa replica e' stata fermata."
-            ))
+            ), key="cycle_info", debug_name="cycle_info")
         else:
-            self.root.after(0, lambda: messagebox.showwarning(
+            self.uiq.post(lambda: messagebox.showwarning(
                 "Ciclo Fermato", 
                 f"Stop Loss raggiunto. P&L finale: {final_pnl:.2f}\nLa replica e' stata fermata."
-            ))
+            ), key="cycle_warn", debug_name="cycle_warn")
     
     def _load_available_chats(self):
         """Load available chats from Telegram account into the tree."""
@@ -8488,9 +8489,9 @@ class PickfairApp:
         if self.telegram_listener and self.telegram_listener.running:
             def on_dialogs_result(result):
                 if result is None:
-                    self.root.after(0, lambda: self.tg_available_status.configure(text="Errore caricamento"))
+                    self.uiq.post(lambda: self.tg_available_status.configure(text="Errore caricamento"), key="tg_status", debug_name="tg_status")
                 else:
-                    self.root.after(0, lambda: self._populate_available_chats(result))
+                    self.uiq.post(lambda: self._populate_available_chats(result), key="tg_chats", debug_name="tg_chats")
             
             self.telegram_listener.get_available_dialogs(on_dialogs_result)
             return
@@ -8544,16 +8545,16 @@ class PickfairApp:
                 loop.close()
                 
                 if result is None:
-                    self.root.after(0, lambda: self.tg_available_status.configure(text="Non autenticato"))
-                    self.root.after(0, lambda: messagebox.showwarning("Attenzione", 
-                        "Non autenticato. Clicca 'Invia Codice' e poi 'Verifica'."))
+                    self.uiq.post(lambda: self.tg_available_status.configure(text="Non autenticato"), key="tg_status", debug_name="tg_status")
+                    self.uiq.post(lambda: messagebox.showwarning("Attenzione", 
+                        "Non autenticato. Clicca 'Invia Codice' e poi 'Verifica'."), key="tg_warn", debug_name="tg_warn")
                 else:
-                    self.root.after(0, lambda: self._populate_available_chats(result))
+                    self.uiq.post(lambda: self._populate_available_chats(result), key="tg_chats", debug_name="tg_chats")
                 
             except Exception as e:
                 err = str(e)
                 logging.error(f"Error loading available chats: {e}")
-                self.root.after(0, lambda: self.tg_available_status.configure(text=f"Errore: {err[:30]}"))
+                self.uiq.post(lambda: self.tg_available_status.configure(text=f"Errore: {err[:30]}"), key="tg_err", debug_name="tg_err")
         
         threading.Thread(target=fetch_dialogs, daemon=True).start()
     
@@ -9768,7 +9769,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             except:
                 active_count = self.db.get_active_bets_count()
             
-            self.root.after(0, lambda: populate_ui(funds, daily_pl, active_count))
+            self.uiq.post(lambda: populate_ui(funds, daily_pl, active_count), key="sim_dash", debug_name="sim_dash")
         
         def populate_ui(funds, daily_pl, active_count):
             if not dialog.winfo_exists():
@@ -9810,12 +9811,12 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     except:
                         active_count = self.db.get_active_bets_count()
                     
-                    # Schedule UI update on main thread
+                    # Schedule UI update on main thread via UIQ
                     f, pl, ac = funds, daily_pl, active_count
-                    self.root.after(0, lambda f=f, pl=pl, ac=ac: update_ui(f, pl, ac))
+                    self.uiq.post(lambda f=f, pl=pl, ac=ac: update_ui(f, pl, ac), key="sim_refresh", debug_name="sim_refresh")
                 except Exception as e:
                     err_msg = str(e)
-                    self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", msg))
+                    self.uiq.post(lambda msg=err_msg: messagebox.showerror("Errore", msg), key="sim_err", debug_name="sim_err")
             
             def update_ui(funds, daily_pl, active_count):
                 if not dialog.winfo_exists():
@@ -10248,11 +10249,11 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                                 'selection_id': selection_id
                             })
                     
-                    # Schedule UI update on main thread
-                    self.root.after(0, lambda: update_positions_ui(positions_list))
+                    # Schedule UI update on main thread via UIQ
+                    self.uiq.post(lambda: update_positions_ui(positions_list), key="positions_ui", debug_name="positions_ui")
                 except Exception as e:
                     err_msg = str(e)
-                    self.root.after(0, lambda msg=err_msg: messagebox.showerror("Errore", f"Impossibile caricare posizioni: {msg}"))
+                    self.uiq.post(lambda msg=err_msg: messagebox.showerror("Errore", f"Impossibile caricare posizioni: {msg}"), key="positions_err", debug_name="positions_err")
             
             def update_positions_ui(positions_list):
                 # Clear previous no-positions label if exists
@@ -10715,7 +10716,7 @@ Evento: {event_name}"""
             
             # Refresh statistics view if visible
             if hasattr(self, 'dashboard_stats_tab_frame'):
-                self.root.after(0, lambda: self._refresh_statistics_view(self.dashboard_stats_tab_frame))
+                self.uiq.post(lambda: self._refresh_statistics_view(self.dashboard_stats_tab_frame), key="stats_refresh", debug_name="stats_refresh")
         except Exception as e:
             print(f"Settlement monitor error: {e}")
     
@@ -11688,7 +11689,7 @@ Evento: {event_name}"""
                     signal.get('raw_text', ''),
                     signal
                 )
-                self.root.after(0, lambda: self._notify_new_signal(signal))
+                self.uiq.post(lambda: self._notify_new_signal(signal), key="tg_signal", debug_name="tg_signal")
                 
                 # Handle COPY DUTCHING signals (unified dutching from Master)
                 if signal.get('is_copy_dutching') and signal.get('event') and signal.get('selections'):
@@ -11705,9 +11706,9 @@ Evento: {event_name}"""
             def on_status(status, message):
                 self.telegram_status = status
                 if status == 'AUTH_REQUIRED':
-                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: AUTH_REQUIRED"))
+                    self.uiq.post(lambda: self.tg_status_label.configure(text="Stato: AUTH_REQUIRED"), key="tg_stat", debug_name="tg_stat")
                 elif status == 'CONNECTED':
-                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: CONNECTED"))
+                    self.uiq.post(lambda: self.tg_status_label.configure(text="Stato: CONNECTED"), key="tg_stat", debug_name="tg_stat")
             
             self.telegram_listener.set_callbacks(on_signal=on_signal, on_status=on_status)
             self.telegram_listener.start()
@@ -11816,8 +11817,8 @@ Evento: {event_name}"""
                     signal
                 )
                 signal['signal_id'] = signal_id
-                self.root.after(0, lambda: self._notify_new_signal(signal))
-                self.root.after(0, lambda: self._refresh_telegram_signals_tree())
+                self.uiq.post(lambda: self._notify_new_signal(signal), key="tg_signal", debug_name="tg_signal")
+                self.uiq.post(lambda: self._refresh_telegram_signals_tree(), key="tg_signals_tree", debug_name="tg_signals_tree")
                 
                 logging.debug(f"[AUTO-BET DEBUG] Signal received: event={signal.get('event')}, market_type={signal.get('market_type')}, selection={signal.get('selection')}, auto_bet={settings.get('auto_bet')}")
                 
@@ -11845,9 +11846,9 @@ Evento: {event_name}"""
                 self.telegram_status = status
                 try:
                     if status == 'AUTH_REQUIRED':
-                        self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: AUTH_REQUIRED"))
+                        self.uiq.post(lambda: self.tg_status_label.configure(text="Stato: AUTH_REQUIRED"), key="tg_stat", debug_name="tg_stat")
                     elif status == 'CONNECTED':
-                        self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: CONNECTED (Auto)"))
+                        self.uiq.post(lambda: self.tg_status_label.configure(text="Stato: CONNECTED (Auto)"), key="tg_stat", debug_name="tg_stat")
                 except:
                     pass
             
@@ -11936,15 +11937,15 @@ Evento: {event_name}"""
                 loop.close()
                 
                 if result == "ALREADY_AUTH":
-                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: Gia autenticato!"))
-                    self.root.after(0, lambda: messagebox.showinfo("Telegram", "Sei gia autenticato! Clicca 'Carica/Aggiorna Chat'."))
+                    self.uiq.post(lambda: self.tg_status_label.configure(text="Stato: Gia autenticato!"), key="tg_auth", debug_name="tg_auth")
+                    self.uiq.post(lambda: messagebox.showinfo("Telegram", "Sei gia autenticato! Clicca 'Carica/Aggiorna Chat'."), key="tg_msg", debug_name="tg_msg")
                 else:
-                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: Codice inviato! Inserisci e clicca Verifica"))
-                    self.root.after(0, lambda: messagebox.showinfo("Telegram", "Codice inviato! Controlla Telegram e inseriscilo nel campo 'Codice'."))
+                    self.uiq.post(lambda: self.tg_status_label.configure(text="Stato: Codice inviato! Inserisci e clicca Verifica"), key="tg_auth", debug_name="tg_auth")
+                    self.uiq.post(lambda: messagebox.showinfo("Telegram", "Codice inviato! Controlla Telegram e inseriscilo nel campo 'Codice'."), key="tg_msg", debug_name="tg_msg")
             except Exception as e:
                 err = str(e)
-                self.root.after(0, lambda: self.tg_status_label.configure(text=f"Stato: Errore: {err[:50]}"))
-                self.root.after(0, lambda: messagebox.showerror("Errore Telegram", f"Errore: {err}"))
+                self.uiq.post(lambda: self.tg_status_label.configure(text=f"Stato: Errore: {err[:50]}"), key="tg_err", debug_name="tg_err")
+                self.uiq.post(lambda: messagebox.showerror("Errore Telegram", f"Errore: {err}"), key="tg_err_msg", debug_name="tg_err_msg")
         
         threading.Thread(target=send_thread, daemon=True).start()
     
@@ -12006,15 +12007,15 @@ Evento: {event_name}"""
                 loop.close()
                 
                 if result == "OK":
-                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: AUTHENTICATED"))
-                    self.root.after(0, lambda: messagebox.showinfo("Telegram", "Autenticazione completata!"))
+                    self.uiq.post(lambda: self.tg_status_label.configure(text="Stato: AUTHENTICATED"), key="tg_auth", debug_name="tg_auth")
+                    self.uiq.post(lambda: messagebox.showinfo("Telegram", "Autenticazione completata!"), key="tg_msg", debug_name="tg_msg")
                 elif result == "2FA":
-                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: Richiesta password 2FA"))
+                    self.uiq.post(lambda: self.tg_status_label.configure(text="Stato: Richiesta password 2FA"), key="tg_auth", debug_name="tg_auth")
                 else:
-                    self.root.after(0, lambda: self.tg_status_label.configure(text="Stato: Autenticazione fallita"))
+                    self.uiq.post(lambda: self.tg_status_label.configure(text="Stato: Autenticazione fallita"), key="tg_auth", debug_name="tg_auth")
             except Exception as e:
                 err = str(e)
-                self.root.after(0, lambda: self.tg_status_label.configure(text=f"Stato: Errore: {err[:50]}"))
+                self.uiq.post(lambda: self.tg_status_label.configure(text=f"Stato: Errore: {err[:50]}"), key="tg_err", debug_name="tg_err")
         
         threading.Thread(target=verify_thread, daemon=True).start()
     
@@ -12042,7 +12043,7 @@ Evento: {event_name}"""
         It MUST be called from a background thread, NOT from the main UI thread.
         """
         if not self.client:
-            self.root.after(0, lambda: messagebox.showwarning("Prenotazione", "Non connesso a Betfair"))
+            self.uiq.post(lambda: messagebox.showwarning("Prenotazione", "Non connesso a Betfair"), key="book_warn", debug_name="book_warn")
             return
         
         event_name = signal.get('event', '')
@@ -12091,7 +12092,7 @@ Evento: {event_name}"""
                     break
             
             if not matched_event:
-                self.root.after(0, lambda e=event_name: messagebox.showwarning("Prenotazione", f"Evento non trovato: {e}"))
+                self.uiq.post(lambda e=event_name: messagebox.showwarning("Prenotazione", f"Evento non trovato: {e}"), key="book_warn", debug_name="book_warn")
                 return
             
             # Get market for this event
@@ -12141,7 +12142,7 @@ Evento: {event_name}"""
             )
             
             if not markets:
-                self.root.after(0, lambda mt=market_type, en=matched_event['name']: messagebox.showwarning("Prenotazione", f"Mercato {mt} non trovato per {en}"))
+                self.uiq.post(lambda mt=market_type, en=matched_event['name']: messagebox.showwarning("Prenotazione", f"Mercato {mt} non trovato per {en}"), key="book_warn", debug_name="book_warn")
                 return
             
             target_market = markets[0]
@@ -12222,7 +12223,7 @@ Evento: {event_name}"""
                         break
             
             if not target_runner:
-                self.root.after(0, lambda s=selection: messagebox.showwarning("Prenotazione", f"Selezione '{s}' non trovata nel mercato"))
+                self.uiq.post(lambda s=selection: messagebox.showwarning("Prenotazione", f"Selezione '{s}' non trovata nel mercato"), key="book_warn", debug_name="book_warn")
                 return
             
             # Get current price
@@ -12249,10 +12250,10 @@ Evento: {event_name}"""
                    f"Quota target: {target_odds}\n"
                    f"Quota attuale: {current_price:.2f}\n"
                    f"Stake: {stake:.2f}€")
-            self.root.after(0, lambda m=msg: messagebox.showinfo("Prenotazione", m))
+            self.uiq.post(lambda m=msg: messagebox.showinfo("Prenotazione", m), key="book_info", debug_name="book_info")
         
         except Exception as e:
-            self.root.after(0, lambda err=str(e): messagebox.showerror("Errore Prenotazione", f"Errore: {err}"))
+            self.uiq.post(lambda err=str(e): messagebox.showerror("Errore Prenotazione", f"Errore: {err}"), key="book_err", debug_name="book_err")
     
     def _process_telegram_copy_dutching(self, signal, settings):
         """Process COPY DUTCHING signal from Master - place dutching bets with profit target.
@@ -12466,7 +12467,7 @@ Evento: {event_name}"""
         Use threading.Thread(target=lambda: self._process_telegram_auto_bet(...)).start()
         """
         if not self.client:
-            self.root.after(0, lambda: messagebox.showwarning("Auto-Bet", "Non connesso a Betfair"))
+            self.uiq.post(lambda: messagebox.showwarning("Auto-Bet", "Non connesso a Betfair"), key="autobet_warn", debug_name="autobet_warn")
             return
         
         event_name = signal.get('event', '')
@@ -12600,7 +12601,7 @@ Evento: {event_name}"""
                     reason += f" ({league})"
                 log_failed_bet(reason)
                 update_status('FAILED')
-                self.root.after(0, lambda r=reason: messagebox.showwarning("Auto-Bet", r))
+                self.uiq.post(lambda r=reason: messagebox.showwarning("Auto-Bet", r), key="autobet_warn", debug_name="autobet_warn")
                 return
             
             markets = self.client.get_markets(matched_event['id'])
@@ -12785,7 +12786,7 @@ Evento: {event_name}"""
                         reason = f"Dutching incompleto - risultati non trovati: {', '.join(missing_selections)}"
                         log_failed_bet(reason)
                         update_status('FAILED')
-                        self.root.after(0, lambda r=reason: messagebox.showwarning("Auto-Bet Dutching", r))
+                        self.uiq.post(lambda r=reason: messagebox.showwarning("Auto-Bet Dutching", r), key="dutch_warn", debug_name="dutch_warn")
                         return
                     
                     if matched_runners and len(matched_runners) == len(dutching_selections):
@@ -12818,7 +12819,7 @@ Evento: {event_name}"""
                                 potential_profit=total_profit
                             )
                             update_status('PLACED')
-                            self.root.after(0, lambda bi=bet_info: messagebox.showinfo("Auto-Bet Dutching (Simulazione)", f"Dutching simulato piazzato!\n\n{bi}"))
+                            self.uiq.post(lambda bi=bet_info: messagebox.showinfo("Auto-Bet Dutching (Simulazione)", f"Dutching simulato piazzato!\n\n{bi}"), key="dutch_info", debug_name="dutch_info")
                         else:
                             # Place real dutching bets with retry (3 attempts, 10s delay)
                             import time
@@ -12844,7 +12845,7 @@ Evento: {event_name}"""
                                 
                                 if success_count == len(dutching_result):
                                     update_status('PLACED')
-                                    self.root.after(0, lambda bi=bet_info: messagebox.showinfo("Auto-Bet Dutching", f"Dutching piazzato con successo!\n\n{bi}"))
+                                    self.uiq.post(lambda bi=bet_info: messagebox.showinfo("Auto-Bet Dutching", f"Dutching piazzato con successo!\n\n{bi}"), key="dutch_info", debug_name="dutch_info")
                                     break
                                 elif attempt < max_retries - 1:
                                     # Retry failed bets after delay
@@ -12855,17 +12856,17 @@ Evento: {event_name}"""
                                     if success_count > 0:
                                         update_status('PARTIAL')
                                         sc, mr = success_count, len(matched_runners)
-                                        self.root.after(0, lambda s=sc, m=mr: messagebox.showwarning("Auto-Bet Dutching", f"Dutching parziale dopo {max_retries} tentativi: {s}/{m} scommesse piazzate"))
+                                        self.uiq.post(lambda s=sc, m=mr: messagebox.showwarning("Auto-Bet Dutching", f"Dutching parziale dopo {max_retries} tentativi: {s}/{m} scommesse piazzate"), key="dutch_warn", debug_name="dutch_warn")
                                     else:
                                         update_status('FAILED')
                                         log_failed_bet(f"Tutte le scommesse dutching fallite dopo {max_retries} tentativi")
-                                        self.root.after(0, lambda: messagebox.showerror("Auto-Bet Dutching Errore", f"Errore piazzamento dopo {max_retries} tentativi"))
+                                        self.uiq.post(lambda: messagebox.showerror("Auto-Bet Dutching Errore", f"Errore piazzamento dopo {max_retries} tentativi"), key="dutch_err", debug_name="dutch_err")
                         return
                     else:
                         reason = f"Nessun risultato trovato per dutching: {', '.join(dutching_selections)}"
                         log_failed_bet(reason)
                         update_status('FAILED')
-                        self.root.after(0, lambda r=reason: messagebox.showwarning("Auto-Bet", r))
+                        self.uiq.post(lambda r=reason: messagebox.showwarning("Auto-Bet", r), key="autobet_warn", debug_name="autobet_warn")
                         return
                 
                 elif target_market:
@@ -12964,14 +12965,14 @@ Evento: {event_name}"""
                 reason = f"Mercato {market_type} non trovato per {matched_event['name']}"
                 log_failed_bet(reason)
                 update_status('FAILED')
-                self.root.after(0, lambda r=reason: messagebox.showwarning("Auto-Bet", r))
+                self.uiq.post(lambda r=reason: messagebox.showwarning("Auto-Bet", r), key="autobet_warn", debug_name="autobet_warn")
                 return
             
             if not target_runner:
                 reason = f"Selezione '{selection}' non disponibile per {matched_event['name']}"
                 log_failed_bet(reason)
                 update_status('FAILED')
-                self.root.after(0, lambda r=reason: messagebox.showwarning("Auto-Bet", r))
+                self.uiq.post(lambda r=reason: messagebox.showwarning("Auto-Bet", r), key="autobet_warn", debug_name="autobet_warn")
                 return
             
             if bet_side == 'LAY':
@@ -13016,7 +13017,7 @@ Evento: {event_name}"""
                     potential_profit=net_profit
                 )
                 update_status('PLACED')
-                self.root.after(0, lambda bi=bet_info: messagebox.showinfo("Auto-Bet (Simulazione)", f"Scommessa simulata piazzata!\n\n{bi}"))
+                self.uiq.post(lambda bi=bet_info: messagebox.showinfo("Auto-Bet (Simulazione)", f"Scommessa simulata piazzata!\n\n{bi}"), key="autobet_info", debug_name="autobet_info")
             else:
                 # Place bet with retry (3 attempts, 10s delay)
                 import time
@@ -13052,7 +13053,7 @@ Evento: {event_name}"""
                             logging.info(f"[COPY] Auto-bet broadcast call completed")
                         except Exception as e:
                             logging.error(f"[COPY] Auto-bet broadcast FAILED: {e}")
-                        self.root.after(0, lambda bi=bet_info: messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bi}"))
+                        self.uiq.post(lambda bi=bet_info: messagebox.showinfo("Auto-Bet", f"Scommessa piazzata con successo!\n\n{bi}"), key="autobet_info", debug_name="autobet_info")
                         break
                     elif attempt < max_retries - 1:
                         # Retry after delay
@@ -13063,12 +13064,12 @@ Evento: {event_name}"""
                         reason = f"Errore Betfair dopo {max_retries} tentativi: {error}"
                         update_status('FAILED')
                         log_failed_bet(reason)
-                        self.root.after(0, lambda e=error: messagebox.showerror("Auto-Bet Errore", f"Errore piazzamento dopo {max_retries} tentativi: {e}"))
+                        self.uiq.post(lambda e=error: messagebox.showerror("Auto-Bet Errore", f"Errore piazzamento dopo {max_retries} tentativi: {e}"), key="autobet_err", debug_name="autobet_err")
         
         except Exception as e:
             log_failed_bet(f"Eccezione: {str(e)}")
             update_status('FAILED')
-            self.root.after(0, lambda err=str(e): messagebox.showerror("Auto-Bet Errore", f"Errore: {err}"))
+            self.uiq.post(lambda err=str(e): messagebox.showerror("Auto-Bet Errore", f"Errore: {err}"), key="autobet_err", debug_name="autobet_err")
     
     def _show_multi_market_monitor(self):
         """Show multi-market monitor window."""
