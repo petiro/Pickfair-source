@@ -92,6 +92,11 @@ jobs:
         files: dist/Pickfair.exe
         repository: petiro/Pickfair
         token: ${{ secrets.RELEASE_TOKEN }}
+        name: ${{ github.ref_name }}
+        body: |
+          Pickfair ${{ github.ref_name }}
+          
+          Scarica Pickfair.exe e avvialo.
     
     - name: Upload artifact (for manual runs)
       uses: actions/upload-artifact@v4
