@@ -3359,14 +3359,8 @@ class PickfairApp:
         pwd_dialog.title("Password Betfair")
         pwd_dialog.geometry("350x180")
         pwd_dialog.transient(self.root)
-        pwd_dialog.grab_set()
+        # NOTE: grab_set() moved to AFTER dialog is fully built to prevent freeze
         logging.info("[CONNECT] Password dialog created")
-        
-        # Center dialog on screen
-        pwd_dialog.update_idletasks()
-        x = (pwd_dialog.winfo_screenwidth() // 2) - (175)
-        y = (pwd_dialog.winfo_screenheight() // 2) - (90)
-        pwd_dialog.geometry(f"350x180+{x}+{y}")
         
         frame = ttk.Frame(pwd_dialog, padding=20)
         frame.pack(fill=tk.BOTH, expand=True)
@@ -3378,7 +3372,6 @@ class PickfairApp:
         pwd_var = tk.StringVar(value=saved_password or '')
         pwd_entry = ttk.Entry(frame, textvariable=pwd_var, show='*')
         pwd_entry.pack(fill=tk.X, pady=5)
-        pwd_entry.focus()
         
         # Save password checkbox
         save_pwd_var = tk.BooleanVar(value=bool(saved_password))
@@ -3419,6 +3412,20 @@ class PickfairApp:
         
         pwd_entry.bind('<Return>', lambda e: do_login())
         ttk.Button(frame, text="Connetti", command=do_login).pack(pady=10)
+        
+        # Center dialog on screen and finalize AFTER all widgets are created
+        def finalize_dialog():
+            pwd_dialog.update_idletasks()
+            x = (pwd_dialog.winfo_screenwidth() // 2) - (175)
+            y = (pwd_dialog.winfo_screenheight() // 2) - (90)
+            pwd_dialog.geometry(f"350x180+{x}+{y}")
+            pwd_entry.focus_set()
+            # grab_set() MUST be called after dialog is fully rendered to avoid freeze
+            pwd_dialog.grab_set()
+            logging.info("[CONNECT] Password dialog finalized and grab_set()")
+        
+        # Defer finalization to next mainloop iteration to prevent freeze
+        pwd_dialog.after(10, finalize_dialog)
     
     def _defer(self, fn, delay=100):
         """Schedule a function to run after delay, yielding to mainloop first."""
