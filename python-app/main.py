@@ -4278,22 +4278,43 @@ class PickfairApp:
                 logging.debug(f"Cashout buffer update error: {e}")
     
     def _subscribe_to_market_stream(self, market_id: str):
-        """Subscribe to real-time market data for a specific market."""
+        """Subscribe to real-time market data for a specific market.
+        
+        NOTE: This must run in background thread since is_connected() has thread guard.
+        """
         if not hasattr(self, 'order_stream') or not self.order_stream:
             logging.debug("Market Stream: No stream connection available")
             return False
         
-        if not self.order_stream.is_connected():
-            logging.debug("Market Stream: Stream not connected")
-            return False
+        # Cache the stream reference to avoid race conditions
+        stream = self.order_stream
         
-        logging.info(f"Subscribing to market stream: {market_id}")
-        return self.order_stream.subscribe_markets([market_id])
+        def do_subscribe():
+            try:
+                if not stream.is_connected():
+                    logging.debug("Market Stream: Stream not connected")
+                    return False
+                logging.info(f"Subscribing to market stream: {market_id}")
+                return stream.subscribe_markets([market_id])
+            except Exception as e:
+                logging.debug(f"Market stream subscribe error: {e}")
+                return False
+        
+        # Run in background to avoid thread violation
+        threading.Thread(target=do_subscribe, daemon=True, name="SubMarket").start()
+        return True  # Assume success, actual result logged in thread
     
     def _unsubscribe_from_market_stream(self):
-        """Unsubscribe from market data (blocking - use async version in UI)."""
-        if hasattr(self, 'order_stream') and self.order_stream and self.order_stream.is_connected():
-            self.order_stream.unsubscribe_markets()
+        """Unsubscribe from market data (runs in background to avoid thread violation)."""
+        if hasattr(self, 'order_stream') and self.order_stream:
+            stream = self.order_stream
+            def unsub_bg():
+                try:
+                    if stream.is_connected():
+                        stream.unsubscribe_markets()
+                except Exception as e:
+                    logging.debug(f"Unsubscribe error: {e}")
+            threading.Thread(target=unsub_bg, daemon=True, name="UnsubMarket").start()
     
     def _unsubscribe_from_market_stream_async(self):
         """Unsubscribe from market data (non-blocking)."""
@@ -10452,12 +10473,13 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         live_status_label = ttk.Label(btn_frame, text="", font=('Segoe UI', 9, 'bold'))
         live_status_label.pack(side=tk.LEFT)
         
-        # Stop live tracking when dialog closes
-        def on_close():
-            stop_live_tracking()
-            dialog.destroy()
-        
-        dialog.protocol("WM_DELETE_WINDOW", on_close)
+        # Stop live tracking when dialog closes (only if dialog exists)
+        if dialog is not None:
+            def on_close():
+                stop_live_tracking()
+                dialog.destroy()
+            
+            dialog.protocol("WM_DELETE_WINDOW", on_close)
         
         # Auto-cashout section
         auto_frame = ttk.LabelFrame(parent, text="Auto-Cashout", padding=10)
