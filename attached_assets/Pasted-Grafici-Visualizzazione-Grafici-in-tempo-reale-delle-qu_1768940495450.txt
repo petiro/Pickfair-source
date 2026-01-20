@@ -1,0 +1,79 @@
+Grafici & Visualizzazione
+Grafici in tempo reale delle quote (ladder charts, candlestick)
+Heatmaps per vedere dove si concentra la liquidità
+Depth charts per visualizzare la profondità del mercato
+Ladder Interface
+Trading ladder con un click per puntare/bancare
+One-click trading con stake preimpostati
+Drag & drop per spostare ordini
+Automazione Avanzata
+Trigger rules (se quota raggiunge X, fai Y)
+Stop loss / Take profit automatici
+Trailing stop dinamici
+Green up automatico (lock-in profit)
+Multi-Market
+Vista simultanea di più mercati
+Sincronizzazione tra mercati correlati
+Watchlist personalizzate
+Strumenti Professionali
+Storico quote e replay
+Excel integration per strategie custom
+API scripting (Bet Angel usa Guardian)
+Tennis/Horse racing tools specifici
+Cosa ha già Pickfair:
+✅ Dutching avanzato (BACK/LAY misto)
+✅ Telegram integration automatica
+✅ Cashout manuale/auto
+✅ Multi-market monitoring
+✅ Simulazione
+✅ Aggiornamenti automatici
+
+Cosa potresti aggiungere:
+Ladder interface - la più richiesta
+Grafici quote in tempo reale
+Trigger rules (stop loss/take profit)
+Green up con un click
+Vuoi che implementi qualcuna di queste funzionalità?
+
+Worked for 16 seconds
+Una domanda ricevo attualmente questi dati real-time:
+quote BACK / LAY
+tick
+volumi
+tempo evento
+P&L per selezione
+🔹 Betfair Streaming API
+Con:
+MarketBook
+RunnerBook
+TradedVolume
+
+Sì, con quei dati hai già una buona base! Ecco cosa puoi fare con ciò che ricevi:
+
+✅ Già possibile con i tuoi dati attuali:
+Funzionalità	Dati necessari	Hai?
+Ladder interface	Quote BACK/LAY, volumi	✅
+Display profondità	3 livelli BACK/LAY	✅
+P&L real-time	P&L per selezione	✅
+Volume indicator	TradedVolume	✅
+Stato evento	Tempo evento, inPlay	✅
+⚠️ Per funzionalità avanzate servono dati aggiuntivi:
+Funzionalità	Dati necessari	Hai?
+Grafici storici quote	Storico tick (da salvare tu)	❌
+Candlestick charts	OHLC calcolato dai tick	❌ (calcolabile)
+Weight of Money	Volumi su tutti i livelli	✅
+Last Price Matched	LPM (da MarketBook)	✅
+💡 Suggerimento:
+Per grafici in tempo reale, devi:
+
+Salvare i tick man mano che arrivano (ogni 200ms circa)
+Aggregare in candele (1s, 5s, 1min)
+Visualizzare con matplotlib o PyQtGraph
+I dati li hai già - serve solo accumularli nel tempo e visualizzarli.
+
+Vuoi che aggiunga:
+
+Ladder interface (fattibile subito)
+Accumulo tick per grafici
+Grafico quote real-time
+Worked for 16 seconds
