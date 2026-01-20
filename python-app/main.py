@@ -13390,16 +13390,21 @@ Evento: {event_name}"""
             name = filter_select_var.get()
             if name == "-- Seleziona Filtro --":
                 return
-            f = self.db.get_saved_filter_by_name(name)
-            if f:
+            
+            def do_load():
+                f = self.db.get_saved_filter_by_name(name)
+                if f:
+                    db_criteria = self.db.get_filter_criteria(f['id'])
+                    self.uiq.post(lambda: apply_loaded_filter(f, db_criteria), key="filter_load")
+            
+            def apply_loaded_filter(f, db_criteria):
+                if not dialog.winfo_exists():
+                    return
                 comp_var.set(f.get('competition_ids') or '')
                 time_var.set(f.get('date_range') or 'all')
                 live_var.set(f.get('in_play') == 'live')
                 keyword_var.set(f.get('keywords') or '')
-                
-                # Load criteria
                 criteria_list.clear()
-                db_criteria = self.db.get_filter_criteria(f['id'])
                 for c in db_criteria:
                     criteria_list.append({
                         'market_type': c.get('market_type', ''),
@@ -13409,6 +13414,8 @@ Evento: {event_name}"""
                         'max_liquidity': c.get('max_liquidity')
                     })
                 refresh_criteria_display()
+            
+            threading.Thread(target=do_load, daemon=True).start()
         
         ttk.Button(saved_frame, text="Carica", command=load_selected_filter, width=8).pack(side=tk.LEFT, padx=3)
         
@@ -13417,12 +13424,19 @@ Evento: {event_name}"""
             if name == "-- Seleziona Filtro --":
                 return
             if messagebox.askyesno("Conferma", f"Eliminare '{name}'?"):
-                f = self.db.get_saved_filter_by_name(name)
-                if f:
-                    self.db.delete_filter(f['id'])
-                    new_filters = self.db.get_saved_filters()
-                    filter_combo['values'] = ["-- Seleziona Filtro --"] + [ff['name'] for ff in new_filters]
-                    filter_select_var.set("-- Seleziona Filtro --")
+                def do_delete():
+                    f = self.db.get_saved_filter_by_name(name)
+                    if f:
+                        self.db.delete_filter(f['id'])
+                        new_filters = self.db.get_saved_filters()
+                        self.uiq.post(lambda: update_after_delete(new_filters), key="filter_del")
+                
+                def update_after_delete(new_filters):
+                    if dialog.winfo_exists():
+                        filter_combo['values'] = ["-- Seleziona Filtro --"] + [ff['name'] for ff in new_filters]
+                        filter_select_var.set("-- Seleziona Filtro --")
+                
+                threading.Thread(target=do_delete, daemon=True).start()
         
         ttk.Button(saved_frame, text="Elimina", command=delete_selected_filter, width=8).pack(side=tk.LEFT, padx=3)
         
@@ -13547,13 +13561,23 @@ Evento: {event_name}"""
                 'in_play': 'live' if live_var.get() else 'all',
                 'keywords': keyword_var.get()
             }
+            criteria_copy = list(criteria_list)
             
-            self.db.save_filter_with_criteria(name, base_settings, criteria_list)
+            def do_save():
+                try:
+                    self.db.save_filter_with_criteria(name, base_settings, criteria_copy)
+                    new_filters = self.db.get_saved_filters()
+                    self.uiq.post(lambda: update_after_save(new_filters), key="filter_save")
+                except Exception as e:
+                    self.uiq.post(lambda: messagebox.showerror("Errore", str(e)), key="filter_save_err")
             
-            new_filters = self.db.get_saved_filters()
-            filter_combo['values'] = ["-- Seleziona Filtro --"] + [ff['name'] for ff in new_filters]
-            messagebox.showinfo("Salvato", f"Filtro '{name}' salvato con {len(criteria_list)} criteri!")
-            save_name_var.set("")
+            def update_after_save(new_filters):
+                if dialog.winfo_exists():
+                    filter_combo['values'] = ["-- Seleziona Filtro --"] + [ff['name'] for ff in new_filters]
+                    messagebox.showinfo("Salvato", f"Filtro '{name}' salvato con {len(criteria_copy)} criteri!")
+                    save_name_var.set("")
+            
+            threading.Thread(target=do_save, daemon=True).start()
         
         ttk.Button(save_frame, text="Salva", command=save_current_filter, width=10).pack(side=tk.LEFT, padx=5)
         
