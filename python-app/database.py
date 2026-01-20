@@ -578,6 +578,28 @@ class Database:
                 value TEXT
             )
         ''')
+        # Create saved_filters table for market search filters
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS saved_filters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                sport_id TEXT,
+                competition_ids TEXT,
+                country TEXT,
+                market_types TEXT,
+                in_play TEXT,
+                date_range TEXT,
+                time_from TEXT,
+                time_to TEXT,
+                min_liquidity REAL,
+                max_liquidity REAL,
+                min_odds REAL,
+                max_odds REAL,
+                keywords TEXT,
+                created_at TEXT,
+                updated_at TEXT
+            )
+        ''')
         conn.commit()
     
     def get_setting(self, key):
@@ -1460,4 +1482,90 @@ class Database:
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute('DELETE FROM follower_cycle_state WHERE id = 1')
+        conn.commit()
+    
+    # ==================== SAVED FILTERS ====================
+    
+    def get_saved_filters(self) -> list:
+        """Get all saved market filters."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM saved_filters ORDER BY name')
+        return [dict(row) for row in cursor.fetchall()]
+    
+    def get_saved_filter(self, filter_id: int) -> dict:
+        """Get a single saved filter by ID."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM saved_filters WHERE id = ?', (filter_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    def get_saved_filter_by_name(self, name: str) -> dict:
+        """Get a single saved filter by name."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM saved_filters WHERE name = ?', (name,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    def save_filter(self, name: str, sport_id: str = None, competition_ids: str = None,
+                    country: str = None, market_types: str = None, in_play: str = None,
+                    date_range: str = None, time_from: str = None, time_to: str = None,
+                    min_liquidity: float = None, max_liquidity: float = None,
+                    min_odds: float = None, max_odds: float = None, keywords: str = None) -> int:
+        """Save a new market filter. Returns the filter ID."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        now = datetime.now().isoformat()
+        cursor.execute('''
+            INSERT INTO saved_filters 
+            (name, sport_id, competition_ids, country, market_types, in_play,
+             date_range, time_from, time_to, min_liquidity, max_liquidity,
+             min_odds, max_odds, keywords, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (name, sport_id, competition_ids, country, market_types, in_play,
+              date_range, time_from, time_to, min_liquidity, max_liquidity,
+              min_odds, max_odds, keywords, now, now))
+        conn.commit()
+        return cursor.lastrowid
+    
+    def update_filter(self, filter_id: int, name: str = None, sport_id: str = None,
+                      competition_ids: str = None, country: str = None, 
+                      market_types: str = None, in_play: str = None,
+                      date_range: str = None, time_from: str = None, time_to: str = None,
+                      min_liquidity: float = None, max_liquidity: float = None,
+                      min_odds: float = None, max_odds: float = None, keywords: str = None):
+        """Update an existing filter."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        now = datetime.now().isoformat()
+        cursor.execute('''
+            UPDATE saved_filters SET
+                name = COALESCE(?, name),
+                sport_id = ?,
+                competition_ids = ?,
+                country = ?,
+                market_types = ?,
+                in_play = ?,
+                date_range = ?,
+                time_from = ?,
+                time_to = ?,
+                min_liquidity = ?,
+                max_liquidity = ?,
+                min_odds = ?,
+                max_odds = ?,
+                keywords = ?,
+                updated_at = ?
+            WHERE id = ?
+        ''', (name, sport_id, competition_ids, country, market_types, in_play,
+              date_range, time_from, time_to, min_liquidity, max_liquidity,
+              min_odds, max_odds, keywords, now, filter_id))
+        conn.commit()
+    
+    def delete_filter(self, filter_id: int):
+        """Delete a saved filter."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM saved_filters WHERE id = ?', (filter_id,))
         conn.commit()
