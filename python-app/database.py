@@ -600,6 +600,20 @@ class Database:
                 updated_at TEXT
             )
         ''')
+        # Create filter_criteria table for multi-criteria filters (Over 2.5 @ 1.80, etc.)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS filter_criteria (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                filter_id INTEGER NOT NULL,
+                market_type TEXT NOT NULL,
+                min_odds REAL,
+                max_odds REAL,
+                min_liquidity REAL,
+                max_liquidity REAL,
+                created_at TEXT,
+                FOREIGN KEY (filter_id) REFERENCES saved_filters(id) ON DELETE CASCADE
+            )
+        ''')
         conn.commit()
     
     def get_setting(self, key):
@@ -1564,8 +1578,93 @@ class Database:
         conn.commit()
     
     def delete_filter(self, filter_id: int):
-        """Delete a saved filter."""
+        """Delete a saved filter and its criteria."""
         conn = self._get_connection()
         cursor = conn.cursor()
+        cursor.execute('DELETE FROM filter_criteria WHERE filter_id = ?', (filter_id,))
         cursor.execute('DELETE FROM saved_filters WHERE id = ?', (filter_id,))
         conn.commit()
+    
+    # === FILTER CRITERIA (Multi-criteria support) ===
+    
+    def add_filter_criterion(self, filter_id: int, market_type: str, 
+                              min_odds: float = None, max_odds: float = None,
+                              min_liquidity: float = None, max_liquidity: float = None) -> int:
+        """Add a criterion to a saved filter (e.g., Over 2.5 @ 1.80 with 100€ liquidity)."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        now = datetime.now().isoformat()
+        cursor.execute('''
+            INSERT INTO filter_criteria 
+            (filter_id, market_type, min_odds, max_odds, min_liquidity, max_liquidity, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (filter_id, market_type, min_odds, max_odds, min_liquidity, max_liquidity, now))
+        conn.commit()
+        return cursor.lastrowid
+    
+    def get_filter_criteria(self, filter_id: int) -> list:
+        """Get all criteria for a saved filter."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM filter_criteria WHERE filter_id = ? ORDER BY id', (filter_id,))
+        return [dict(row) for row in cursor.fetchall()]
+    
+    def delete_filter_criterion(self, criterion_id: int):
+        """Delete a single criterion from a filter."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM filter_criteria WHERE id = ?', (criterion_id,))
+        conn.commit()
+    
+    def delete_all_filter_criteria(self, filter_id: int):
+        """Delete all criteria for a filter."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM filter_criteria WHERE filter_id = ?', (filter_id,))
+        conn.commit()
+    
+    def save_filter_with_criteria(self, name: str, base_settings: dict, criteria: list) -> int:
+        """Save a filter with multiple criteria in one transaction.
+        
+        Args:
+            name: Filter name
+            base_settings: Dict with competition_ids, date_range, in_play, keywords
+            criteria: List of dicts with market_type, min_odds, max_odds, min_liquidity, max_liquidity
+        
+        Returns:
+            filter_id
+        """
+        # First save/update the base filter
+        existing = self.get_saved_filter_by_name(name)
+        if existing:
+            filter_id = existing['id']
+            self.delete_all_filter_criteria(filter_id)
+            self.update_filter(
+                filter_id=filter_id,
+                name=name,
+                competition_ids=base_settings.get('competition_ids'),
+                date_range=base_settings.get('date_range'),
+                in_play=base_settings.get('in_play'),
+                keywords=base_settings.get('keywords')
+            )
+        else:
+            filter_id = self.save_filter(
+                name=name,
+                competition_ids=base_settings.get('competition_ids'),
+                date_range=base_settings.get('date_range'),
+                in_play=base_settings.get('in_play'),
+                keywords=base_settings.get('keywords')
+            )
+        
+        # Add all criteria
+        for c in criteria:
+            self.add_filter_criterion(
+                filter_id=filter_id,
+                market_type=c.get('market_type', ''),
+                min_odds=c.get('min_odds'),
+                max_odds=c.get('max_odds'),
+                min_liquidity=c.get('min_liquidity'),
+                max_liquidity=c.get('max_liquidity')
+            )
+        
+        return filter_id
