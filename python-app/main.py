@@ -102,6 +102,8 @@ try:
     from ui_queue import UIUpdateQueue, UIPriority, run_bg, ui_call, treeview_insert_chunked
     logging.debug("Importing micro_stake...")
     from micro_stake import MicroStakeManager
+    logging.debug("Importing trading_charts...")
+    from trading_charts import ChartPanel, QuoteLineChart, CandlestickChart, DepthChart
     logging.info("All modules imported successfully")
 except Exception as e:
     logging.error(f"Failed to import modules: {e}")
@@ -1156,8 +1158,14 @@ class PickfairApp:
         # Context menu for runners
         self.runner_context_menu = tk.Menu(self.root, tearoff=0)
         self.runner_context_menu.add_command(label="Prenota Scommessa", command=self._book_selected_runner)
+        self.runner_context_menu.add_command(label="Grafici Quote", command=self._show_runner_charts)
+        self.runner_context_menu.add_command(label="Trigger Rules", command=self._show_trigger_rules)
         self.runner_context_menu.add_separator()
         self.runner_context_menu.add_command(label="Seleziona per Dutching", command=lambda: None)
+        
+        # Chart panel reference
+        self.chart_panel = None
+        self.chart_panel_selection = None
     
     def _create_dutching_panel(self, parent):
         """Create dutching calculator panel with scrollable content."""
@@ -4089,6 +4097,10 @@ class PickfairApp:
                             self.root.after(500, lambda sid=selection_id: self._reset_runner_tag(sid))
                         except ValueError:
                             pass
+                    
+                    # Check trigger rules for this selection (non-blocking)
+                    if back_price and hasattr(self, 'trigger_rules') and selection_id in self.trigger_rules:
+                        self._check_trigger_rules(selection_id, back_price, lay_price)
                             
                 except Exception as e:
                     logging.debug(f"Stream buffer UI error: {e}")
@@ -4884,6 +4896,10 @@ class PickfairApp:
             widget.destroy()
         self.runner_rows = {}
         
+        # Reset trigger rules for new market (clear triggered flags)
+        if hasattr(self, 'trigger_rules'):
+            self.trigger_rules = {}
+        
         # Cache runner metadata for quick bet (stable reference even after streaming updates)
         self.runner_meta = {}
         
@@ -5671,6 +5687,333 @@ class PickfairApp:
                         self.current_market['marketId']
                     )
                 break
+    
+    def _show_runner_charts(self):
+        """Show real-time charts for selected runner in a dialog."""
+        if not hasattr(self, '_context_menu_selection') or not self._context_menu_selection:
+            return
+        
+        selection_id = self._context_menu_selection
+        if not self.current_market:
+            return
+        
+        runner_name = ""
+        for runner in self.current_market['runners']:
+            if str(runner['selectionId']) == selection_id:
+                runner_name = runner.get('runnerName', f'Sel {selection_id}')
+                break
+        
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"Grafici Quote - {runner_name}")
+        dialog.geometry("750x500")
+        dialog.transient(self.root)
+        dialog.configure(bg=COLORS['bg_main'])
+        
+        chart_panel = ChartPanel(dialog, tick_storage=self.tick_storage, uiq=self.uiq)
+        chart_panel.pack(fill=tk.BOTH, expand=True)
+        chart_panel.set_selection(int(selection_id), runner_name)
+        
+        back_levels = []
+        lay_levels = []
+        if selection_id in self.runner_rows:
+            widgets = self.runner_rows[selection_id]
+            for i in range(3):
+                back_key = f'back{i+1}_lbl'
+                lay_key = f'lay{i+1}_lbl'
+                back_size_key = f'back{i+1}_size'
+                lay_size_key = f'lay{i+1}_size'
+                
+                try:
+                    if back_key in widgets:
+                        price = float(widgets[back_key].cget('text').replace(',', '.'))
+                        size = float(widgets.get(back_size_key, {}).cget('text').replace('€', '').replace(',', '.')) if back_size_key in widgets else 0
+                        if price > 0:
+                            back_levels.append((price, size))
+                except:
+                    pass
+                
+                try:
+                    if lay_key in widgets:
+                        price = float(widgets[lay_key].cget('text').replace(',', '.'))
+                        size = float(widgets.get(lay_size_key, {}).cget('text').replace('€', '').replace(',', '.')) if lay_size_key in widgets else 0
+                        if price > 0:
+                            lay_levels.append((price, size))
+                except:
+                    pass
+        
+        if back_levels or lay_levels:
+            chart_panel.set_depth_levels(back_levels, lay_levels)
+        
+        chart_panel.start_updates()
+        
+        def on_close():
+            chart_panel.stop_updates()
+            chart_panel.destroy()
+            dialog.destroy()
+        
+        dialog.protocol("WM_DELETE_WINDOW", on_close)
+        dialog.bind("<Destroy>", lambda e: chart_panel.stop_updates() if e.widget == dialog else None)
+    
+    def _show_trigger_rules(self):
+        """Show trigger rules configuration dialog for selected runner."""
+        if not hasattr(self, '_context_menu_selection') or not self._context_menu_selection:
+            return
+        
+        selection_id = self._context_menu_selection
+        if not self.current_market:
+            return
+        
+        runner_name = ""
+        for runner in self.current_market['runners']:
+            if str(runner['selectionId']) == selection_id:
+                runner_name = runner.get('runnerName', f'Sel {selection_id}')
+                break
+        
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"Trigger Rules - {runner_name}")
+        dialog.geometry("500x550")
+        dialog.transient(self.root)
+        dialog.after(10, dialog.grab_set)
+        
+        frame = ttk.Frame(dialog, padding=20)
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(frame, text=f"Regole Automatiche: {runner_name}", 
+                  font=('Segoe UI', 12, 'bold')).pack(pady=(0, 15))
+        
+        rules_frame = ttk.LabelFrame(frame, text="Nuova Regola", padding=10)
+        rules_frame.pack(fill=tk.X, pady=10)
+        
+        cond_frame = ttk.Frame(rules_frame)
+        cond_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Label(cond_frame, text="SE quota").pack(side=tk.LEFT)
+        
+        condition_var = tk.StringVar(value="<=")
+        ttk.Combobox(cond_frame, textvariable=condition_var, 
+                     values=["<=", ">=", "==", "<", ">"], width=5, state='readonly').pack(side=tk.LEFT, padx=5)
+        
+        price_var = tk.StringVar(value="1.50")
+        ttk.Entry(cond_frame, textvariable=price_var, width=8).pack(side=tk.LEFT, padx=5)
+        
+        action_frame = ttk.Frame(rules_frame)
+        action_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Label(action_frame, text="ALLORA").pack(side=tk.LEFT)
+        
+        action_var = tk.StringVar(value="green_up")
+        action_choices = [
+            ("green_up", "Green Up (Cashout)"),
+            ("back", "Piazza BACK"),
+            ("lay", "Piazza LAY"),
+            ("alert", "Notifica"),
+            ("stop_loss", "Stop Loss"),
+            ("take_profit", "Take Profit")
+        ]
+        
+        action_combo = ttk.Combobox(action_frame, textvariable=action_var,
+                                     values=[a[0] for a in action_choices], width=15, state='readonly')
+        action_combo.pack(side=tk.LEFT, padx=5)
+        
+        stake_frame = ttk.Frame(rules_frame)
+        stake_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Label(stake_frame, text="Stake (se applicabile):").pack(side=tk.LEFT)
+        stake_var = tk.StringVar(value="10")
+        ttk.Entry(stake_frame, textvariable=stake_var, width=8).pack(side=tk.LEFT, padx=5)
+        ttk.Label(stake_frame, text="EUR").pack(side=tk.LEFT)
+        
+        enabled_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(rules_frame, text="Regola attiva", variable=enabled_var).pack(anchor=tk.W, pady=5)
+        
+        active_rules = []
+        
+        rules_list_frame = ttk.LabelFrame(frame, text="Regole Attive", padding=10)
+        rules_list_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        
+        rules_tree = ttk.Treeview(rules_list_frame, columns=('condition', 'action', 'status'), 
+                                   show='headings', height=6)
+        rules_tree.heading('condition', text='Condizione')
+        rules_tree.heading('action', text='Azione')
+        rules_tree.heading('status', text='Stato')
+        rules_tree.column('condition', width=150)
+        rules_tree.column('action', width=150)
+        rules_tree.column('status', width=80)
+        rules_tree.pack(fill=tk.BOTH, expand=True)
+        
+        def refresh_rules_tree():
+            rules_tree.delete(*rules_tree.get_children())
+            for i, rule in enumerate(active_rules):
+                status = "Attiva" if rule.get('enabled') else "Disattivata"
+                rules_tree.insert('', tk.END, iid=str(i), values=(
+                    f"Quota {rule['condition']} {rule['price']}",
+                    rule['action'],
+                    status
+                ))
+        
+        def add_rule():
+            rule = {
+                'selection_id': selection_id,
+                'condition': condition_var.get(),
+                'price': float(price_var.get()),
+                'action': action_var.get(),
+                'stake': float(stake_var.get()) if stake_var.get() else 0,
+                'enabled': enabled_var.get()
+            }
+            active_rules.append(rule)
+            
+            if not hasattr(self, 'trigger_rules'):
+                self.trigger_rules = {}
+            if selection_id not in self.trigger_rules:
+                self.trigger_rules[selection_id] = []
+            self.trigger_rules[selection_id].append(rule)
+            
+            refresh_rules_tree()
+            self._add_log(f"Regola aggiunta: {rule['condition']} {rule['price']} -> {rule['action']}", 'info')
+        
+        def remove_rule():
+            sel = rules_tree.selection()
+            if sel:
+                idx = int(sel[0])
+                if 0 <= idx < len(active_rules):
+                    removed = active_rules.pop(idx)
+                    if hasattr(self, 'trigger_rules') and selection_id in self.trigger_rules:
+                        try:
+                            self.trigger_rules[selection_id].remove(removed)
+                        except:
+                            pass
+                    refresh_rules_tree()
+        
+        if hasattr(self, 'trigger_rules') and selection_id in self.trigger_rules:
+            active_rules.extend(self.trigger_rules[selection_id])
+            refresh_rules_tree()
+        
+        btn_frame = ttk.Frame(frame)
+        btn_frame.pack(fill=tk.X, pady=10)
+        
+        ttk.Button(btn_frame, text="+ Aggiungi Regola", command=add_rule).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Rimuovi", command=remove_rule).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Chiudi", command=dialog.destroy).pack(side=tk.RIGHT, padx=5)
+    
+    def _check_trigger_rules(self, selection_id, back_price, lay_price):
+        """Check and execute trigger rules for a selection (called from stream loop)."""
+        if not hasattr(self, 'trigger_rules') or selection_id not in self.trigger_rules:
+            return
+        
+        rules = self.trigger_rules.get(selection_id, [])
+        if not rules:
+            return
+        
+        current_price = back_price or lay_price or 0
+        if current_price <= 0:
+            return
+        
+        for rule in rules:
+            if not rule.get('enabled', True):
+                continue
+            
+            if rule.get('triggered'):
+                continue
+            
+            target_price = rule.get('price', 0)
+            condition = rule.get('condition', '<=')
+            
+            triggered = False
+            if condition == '<=' and current_price <= target_price:
+                triggered = True
+            elif condition == '>=' and current_price >= target_price:
+                triggered = True
+            elif condition == '==' and abs(current_price - target_price) < 0.02:
+                triggered = True
+            elif condition == '<' and current_price < target_price:
+                triggered = True
+            elif condition == '>' and current_price > target_price:
+                triggered = True
+            
+            if triggered:
+                rule['triggered'] = True
+                action = rule.get('action', 'alert')
+                stake = rule.get('stake', 10)
+                
+                def execute_rule(r_action, r_stake, r_selection, r_price):
+                    try:
+                        if r_action == 'alert':
+                            self.uiq.post(lambda: self._add_log(
+                                f"TRIGGER: Quota {r_price:.2f} raggiunta per sel {r_selection}", 
+                                'warning'), key=f"trigger_alert_{r_selection}")
+                        elif r_action == 'green_up':
+                            self._execute_trigger_green_up(r_selection)
+                        elif r_action == 'back':
+                            self._execute_trigger_bet(r_selection, 'BACK', r_stake, r_price)
+                        elif r_action == 'lay':
+                            self._execute_trigger_bet(r_selection, 'LAY', r_stake, r_price)
+                        elif r_action == 'stop_loss':
+                            self._execute_trigger_green_up(r_selection)
+                        elif r_action == 'take_profit':
+                            self._execute_trigger_green_up(r_selection)
+                    except Exception as e:
+                        logging.error(f"Trigger rule execution error: {e}")
+                
+                threading.Thread(target=execute_rule, 
+                                 args=(action, stake, selection_id, current_price),
+                                 daemon=True).start()
+    
+    def _execute_trigger_green_up(self, selection_id):
+        """Execute green-up from trigger rule."""
+        if not self.current_market:
+            return
+        
+        market_id = self.current_market.get('marketId')
+        if not market_id:
+            return
+        
+        for order in getattr(self, 'current_orders', []):
+            if str(order.get('selectionId')) == str(selection_id):
+                self.uiq.post(lambda: self._green_up_selection(market_id, selection_id, order),
+                              key=f"trigger_green_{selection_id}")
+                break
+    
+    def _execute_trigger_bet(self, selection_id, bet_type, stake, price):
+        """Execute bet from trigger rule."""
+        if not self.current_market:
+            return
+        
+        market_id = self.current_market.get('marketId')
+        if not market_id:
+            return
+        
+        def place_bet():
+            try:
+                if self.simulation_mode:
+                    sim_bet = {
+                        'betId': f'SIM_TRIG_{int(time.time()*1000)}',
+                        'marketId': market_id,
+                        'selectionId': selection_id,
+                        'side': bet_type,
+                        'price': price,
+                        'size': stake,
+                        'status': 'MATCHED',
+                        'placedDate': datetime.now().isoformat()
+                    }
+                    self.simulation_bets.append(sim_bet)
+                    self.uiq.post(lambda: self._add_log(
+                        f"TRIGGER SIM: {bet_type} €{stake:.2f} @ {price:.2f}", 'success'),
+                        key=f"trigger_sim_{selection_id}")
+                elif self.client:
+                    result = self.client.place_bet(market_id, int(selection_id), bet_type, stake, price)
+                    if result and result.get('status') == 'SUCCESS':
+                        self.uiq.post(lambda: self._add_log(
+                            f"TRIGGER: {bet_type} €{stake:.2f} @ {price:.2f} piazzato!", 'success'),
+                            key=f"trigger_bet_{selection_id}")
+                    else:
+                        error = result.get('error', 'Errore sconosciuto') if result else 'Nessuna risposta'
+                        self.uiq.post(lambda: self._add_log(
+                            f"TRIGGER ERRORE: {error}", 'error'),
+                            key=f"trigger_err_{selection_id}")
+            except Exception as e:
+                logging.error(f"Trigger bet error: {e}")
+        
+        threading.Thread(target=place_bet, daemon=True).start()
     
     def _on_runner_clicked(self, event):
         """Handle runner row click - check which column was clicked for quick betting."""
