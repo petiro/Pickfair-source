@@ -7733,28 +7733,32 @@ class PickfairApp:
         
         errors = self.persistent_storage.get_recent_errors(limit=100)
         
+        # Frame contenitore per la tabella
+        table_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+        table_frame.pack(fill=tk.BOTH, expand=True, pady=5, padx=5)
+        
         columns = ('data', 'livello', 'sorgente', 'messaggio')
-        tree = ttk.Treeview(parent, columns=columns, show='headings', height=15)
+        tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15)
         tree.heading('data', text='Data/Ora')
         tree.heading('livello', text='Livello')
         tree.heading('sorgente', text='Sorgente')
         tree.heading('messaggio', text='Messaggio')
-        tree.column('data', width=140)
-        tree.column('livello', width=70)
-        tree.column('sorgente', width=120)
-        tree.column('messaggio', width=400)
+        tree.column('data', width=160, anchor='center')
+        tree.column('livello', width=90, anchor='center')
+        tree.column('sorgente', width=140, anchor='center')
+        tree.column('messaggio', width=450)
         
         tree.tag_configure('error', foreground='#dc3545')
         tree.tag_configure('warning', foreground='#ffc107')
         tree.tag_configure('info', foreground='#17a2b8')
         
         if not errors:
-            placeholder = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
-            placeholder.pack(fill=tk.X, pady=20, padx=5)
+            placeholder = ctk.CTkFrame(table_frame, fg_color=COLORS['bg_card'], corner_radius=8)
+            placeholder.pack(fill=tk.BOTH, expand=True, pady=20, padx=5)
             ctk.CTkLabel(placeholder, text="Nessun errore registrato", 
-                        font=('Segoe UI Bold', 14), text_color=COLORS['success']).pack(pady=(20, 5))
+                        font=('Segoe UI Bold', 14), text_color=COLORS['success']).pack(pady=(40, 5))
             ctk.CTkLabel(placeholder, text="Ottimo! Il sistema funziona correttamente.", 
-                        font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(pady=(0, 20))
+                        font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(pady=(0, 40))
         else:
             for err in errors:
                 level = err.get('level', 'INFO')
@@ -7768,11 +7772,11 @@ class PickfairApp:
                     err.get('source', ''),
                     msg_preview
                 ), tags=(tag,))
-        
-        scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
-        tree.configure(yscrollcommand=scrollbar.set)
-        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=5)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=5)
+            
+            scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
+            tree.configure(yscrollcommand=scrollbar.set)
+            tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5,0), pady=5)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y, padx=(0,5), pady=5)
         
         btn_frame = ctk.CTkFrame(parent, fg_color='transparent')
         btn_frame.pack(fill=tk.X, pady=10)
