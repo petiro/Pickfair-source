@@ -7681,26 +7681,30 @@ class PickfairApp:
         
         history = self.persistent_storage.get_telegram_history(limit=100)
         
+        # Frame contenitore per la tabella
+        table_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+        table_frame.pack(fill=tk.BOTH, expand=True, pady=5, padx=5)
+        
         columns = ('data', 'chat', 'azione', 'stato', 'messaggio')
-        tree = ttk.Treeview(parent, columns=columns, show='headings', height=12)
+        tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15)
         tree.heading('data', text='Data')
         tree.heading('chat', text='Chat')
         tree.heading('azione', text='Azione')
         tree.heading('stato', text='Stato')
         tree.heading('messaggio', text='Messaggio')
-        tree.column('data', width=130)
-        tree.column('chat', width=120)
-        tree.column('azione', width=120)
-        tree.column('stato', width=80)
-        tree.column('messaggio', width=300)
+        tree.column('data', width=150, anchor='center')
+        tree.column('chat', width=140, anchor='center')
+        tree.column('azione', width=120, anchor='center')
+        tree.column('stato', width=100, anchor='center')
+        tree.column('messaggio', width=350)
         
         if not history:
-            placeholder = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
-            placeholder.pack(fill=tk.X, pady=20, padx=5)
+            placeholder = ctk.CTkFrame(table_frame, fg_color=COLORS['bg_card'], corner_radius=8)
+            placeholder.pack(fill=tk.BOTH, expand=True, pady=20, padx=5)
             ctk.CTkLabel(placeholder, text="Nessun segnale ricevuto", 
-                        font=('Segoe UI Bold', 14), text_color=COLORS['text_secondary']).pack(pady=(20, 5))
+                        font=('Segoe UI Bold', 14), text_color=COLORS['text_secondary']).pack(pady=(40, 5))
             ctk.CTkLabel(placeholder, text="I segnali Telegram verranno visualizzati qui quando arriveranno.", 
-                        font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(pady=(0, 20))
+                        font=('Segoe UI', 11), text_color=COLORS['text_secondary']).pack(pady=(0, 40))
         else:
             for record in history:
                 msg_preview = (record.get('message_text') or '')[:50]
@@ -7713,11 +7717,11 @@ class PickfairApp:
                     record.get('status', ''),
                     msg_preview
                 ))
-        
-        scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
-        tree.configure(yscrollcommand=scrollbar.set)
-        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=5)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=5)
+            
+            scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
+            tree.configure(yscrollcommand=scrollbar.set)
+            tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5,0), pady=5)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y, padx=(0,5), pady=5)
     
     def _create_error_log_view(self, parent):
         """Create error log view from persistent storage."""
