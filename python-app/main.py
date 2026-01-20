@@ -9700,6 +9700,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         for widget in self.simulazione_tab.winfo_children():
             widget.destroy()
         self._create_simulazione_tab()
+        # Also update the balance in the top status bar
+        self._update_simulation_balance_display()
     
     def _refresh_simulation_bets_list(self):
         """Refresh the simulation bets list."""
@@ -9740,9 +9742,10 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             placed_at = bet.get('placed_at', '')[:16] if bet.get('placed_at') else ''
             event_name = bet.get('event_name', '')[:25]
             market_name = bet.get('market_name', '')[:20]
-            bet_type = bet.get('bet_type', '')
-            stake = bet.get('stake', 0)
-            profit = bet.get('profit', 0) or 0
+            bet_type = bet.get('side', '') or bet.get('bet_type', '')
+            # Database fields are total_stake and potential_profit/profit_loss
+            stake = bet.get('total_stake', 0) or bet.get('stake', 0) or 0
+            profit = bet.get('profit_loss', 0) or bet.get('potential_profit', 0) or bet.get('profit', 0) or 0
             
             tag = 'win' if profit > 0 else 'loss' if profit < 0 else ''
             profit_text = f"+{profit:.2f}" if profit > 0 else f"{profit:.2f}"
@@ -10028,7 +10031,7 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 bet.get('event_name', '')[:25],
                 bet.get('market_name', '')[:18],
                 bet.get('side', bet.get('bet_type', '')),
-                f"{bet.get('stake', bet.get('total_stake', 0)):.2f}",
+                f"{bet.get('total_stake', 0) or bet.get('stake', 0):.2f}",
                 profit_display,
                 status
             ), tags=(tag,) if tag else ())
