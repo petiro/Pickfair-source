@@ -9820,6 +9820,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         
         # Fetch account data in background thread
         def fetch_initial_data():
+            if not self.client:
+                return  # Client disconnected
             try:
                 funds = self.client.get_account_funds()
                 self.account_data = funds
@@ -9828,6 +9830,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             
             daily_pl = self.db.get_today_profit_loss()
             try:
+                if not self.client:
+                    raise Exception("Disconnected")
                 orders = self.client.get_current_orders()
                 active_count = len([o for o in orders.get('matched', []) if o.get('sizeMatched', 0) > 0])
             except:
@@ -9865,11 +9869,15 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
         def refresh_dashboard():
             def fetch_data():
                 try:
+                    if not self.client:
+                        return  # Client disconnected
                     funds = self.client.get_account_funds()
                     self.account_data = funds
                     daily_pl = self.db.get_today_profit_loss()
                     # Get active bets count from Betfair (matched orders)
                     try:
+                        if not self.client:
+                            raise Exception("Disconnected")
                         orders = self.client.get_current_orders()
                         active_count = len([o for o in orders.get('matched', []) if o.get('sizeMatched', 0) > 0])
                     except:
@@ -10254,6 +10262,8 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
             # Run API calls in background thread to avoid UI freeze
             def fetch_positions():
                 try:
+                    if not self.client:
+                        return  # Client disconnected, skip loading
                     orders = self.client.get_current_orders()
                     matched = orders.get('matched', [])
                     
