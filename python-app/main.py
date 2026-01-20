@@ -7621,18 +7621,22 @@ class PickfairApp:
         
         daily_pnl = self.persistent_storage.get_daily_pnl(days=30)
         
+        # Frame contenitore per la tabella
+        table_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
+        table_frame.pack(fill=tk.BOTH, expand=True, pady=5, padx=5)
+        
         columns = ('giorno', 'scommesse', 'vinte', 'perse', 'pnl')
-        tree = ttk.Treeview(parent, columns=columns, show='headings', height=10)
+        tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15)
         tree.heading('giorno', text='Giorno')
         tree.heading('scommesse', text='Scommesse')
         tree.heading('vinte', text='Vinte')
         tree.heading('perse', text='Perse')
         tree.heading('pnl', text='P&L')
-        tree.column('giorno', width=100)
-        tree.column('scommesse', width=80)
-        tree.column('vinte', width=60)
-        tree.column('perse', width=60)
-        tree.column('pnl', width=100)
+        tree.column('giorno', width=120, anchor='center')
+        tree.column('scommesse', width=100, anchor='center')
+        tree.column('vinte', width=80, anchor='center')
+        tree.column('perse', width=80, anchor='center')
+        tree.column('pnl', width=120, anchor='center')
         
         if not daily_pnl:
             placeholder = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
@@ -7653,10 +7657,10 @@ class PickfairApp:
                     pnl_str
                 ))
         
-        scrollbar = ttk.Scrollbar(parent, orient=tk.VERTICAL, command=tree.yview)
+        scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
-        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, pady=5)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=5)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5,0), pady=5)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, padx=(0,5), pady=5)
     
     def _create_telegram_audit_view(self, parent):
         """Create Telegram audit view from persistent storage."""
