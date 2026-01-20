@@ -7,7 +7,7 @@ import sqlite3
 import os
 import json
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from thread_guard import assert_not_ui_thread
@@ -765,8 +765,14 @@ class Database:
         cursor.execute("SELECT COUNT(*) FROM bets WHERE outcome = 'VOID'")
         void = cursor.fetchone()[0] or 0
         
-        # Pending bets (no outcome yet)
-        cursor.execute("SELECT COUNT(*) FROM bets WHERE outcome IS NULL")
+        # Pending bets (no outcome yet, only recent - last 7 days)
+        # Old bets without outcome are likely settled markets we missed
+        seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
+        cursor.execute("""
+            SELECT COUNT(*) FROM bets 
+            WHERE outcome IS NULL 
+            AND placed_at >= ?
+        """, (seven_days_ago,))
         pending = cursor.fetchone()[0] or 0
         
         # Total P/L from settled bets
