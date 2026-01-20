@@ -13308,12 +13308,12 @@ Evento: {event_name}"""
         status.pack(side=tk.BOTTOM, pady=5)
     
     def _show_advanced_filters(self):
-        """Show advanced filters dialog."""
+        """Show advanced filters dialog with save/load functionality."""
         dialog = tk.Toplevel(self.root)
         dialog.title("Filtri Avanzati")
-        dialog.geometry("400x450")
+        dialog.geometry("480x600")
         dialog.transient(self.root)
-        dialog.grab_set()
+        dialog.after(10, dialog.grab_set)
         
         frame = ttk.Frame(dialog, padding=20)
         frame.pack(fill=tk.BOTH, expand=True)
@@ -13327,14 +13327,71 @@ Evento: {event_name}"""
                 'time_filter': 'all',
                 'min_odds': 1.01,
                 'max_odds': 1000,
-                'only_live': False
+                'min_liquidity': 0,
+                'max_liquidity': 0,
+                'only_live': False,
+                'keywords': ''
             }
         
+        # === SAVED FILTERS SECTION ===
+        saved_frame = ttk.LabelFrame(frame, text="Filtri Salvati", padding=10)
+        saved_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        saved_filters = self.db.get_saved_filters()
+        filter_names = ["-- Seleziona Filtro --"] + [f['name'] for f in saved_filters]
+        
+        filter_select_var = tk.StringVar(value="-- Seleziona Filtro --")
+        filter_combo = ttk.Combobox(saved_frame, textvariable=filter_select_var, 
+                                     values=filter_names, state='readonly', width=30)
+        filter_combo.pack(side=tk.LEFT, padx=5)
+        
+        def load_selected_filter():
+            name = filter_select_var.get()
+            if name == "-- Seleziona Filtro --":
+                return
+            f = self.db.get_saved_filter_by_name(name)
+            if f:
+                comp_var.set(f.get('competition_ids') or '')
+                time_var.set(f.get('date_range') or 'all')
+                min_odds_var.set(str(f.get('min_odds') or 1.01))
+                max_odds_var.set(str(f.get('max_odds') or 1000))
+                min_liq_var.set(str(f.get('min_liquidity') or 0))
+                max_liq_var.set(str(f.get('max_liquidity') or 0))
+                live_var.set(f.get('in_play') == 'live')
+                keyword_var.set(f.get('keywords') or '')
+        
+        ttk.Button(saved_frame, text="Carica", command=load_selected_filter, width=10).pack(side=tk.LEFT, padx=5)
+        
+        def delete_selected_filter():
+            name = filter_select_var.get()
+            if name == "-- Seleziona Filtro --":
+                messagebox.showwarning("Attenzione", "Seleziona un filtro da eliminare")
+                return
+            if messagebox.askyesno("Conferma", f"Eliminare il filtro '{name}'?"):
+                f = self.db.get_saved_filter_by_name(name)
+                if f:
+                    self.db.delete_filter(f['id'])
+                    # Refresh combo
+                    new_filters = self.db.get_saved_filters()
+                    filter_combo['values'] = ["-- Seleziona Filtro --"] + [ff['name'] for ff in new_filters]
+                    filter_select_var.set("-- Seleziona Filtro --")
+                    messagebox.showinfo("Eliminato", f"Filtro '{name}' eliminato")
+        
+        ttk.Button(saved_frame, text="Elimina", command=delete_selected_filter, width=10).pack(side=tk.LEFT, padx=5)
+        
+        # === FILTER CRITERIA ===
         # Competition filter
         ttk.Label(frame, text="Campionati (separati da virgola):").pack(anchor=tk.W)
         comp_var = tk.StringVar(value=','.join(self.filter_settings.get('competitions', [])))
-        ttk.Entry(frame, textvariable=comp_var, width=40).pack(fill=tk.X, pady=(0, 10))
+        ttk.Entry(frame, textvariable=comp_var, width=50).pack(fill=tk.X, pady=(0, 5))
         ttk.Label(frame, text="Es: Serie A, Premier League, La Liga", 
+                  font=('Segoe UI', 8), foreground='gray').pack(anchor=tk.W)
+        
+        # Keywords filter
+        ttk.Label(frame, text="Parole chiave (nome evento):").pack(anchor=tk.W, pady=(10, 0))
+        keyword_var = tk.StringVar(value=self.filter_settings.get('keywords', ''))
+        ttk.Entry(frame, textvariable=keyword_var, width=50).pack(fill=tk.X, pady=(0, 5))
+        ttk.Label(frame, text="Es: Milan, Juventus, Real Madrid", 
                   font=('Segoe UI', 8), foreground='gray').pack(anchor=tk.W)
         
         # Time filter
@@ -13349,7 +13406,7 @@ Evento: {event_name}"""
         ttk.Radiobutton(time_frame, text="48 ore", variable=time_var, value='48h').pack(side=tk.LEFT, padx=10)
         
         # Odds range
-        ttk.Label(frame, text="Range Quote:").pack(anchor=tk.W, pady=(15, 0))
+        ttk.Label(frame, text="Range Quote:").pack(anchor=tk.W, pady=(10, 0))
         odds_frame = ttk.Frame(frame)
         odds_frame.pack(fill=tk.X, pady=5)
         
@@ -13361,17 +13418,82 @@ Evento: {event_name}"""
         max_odds_var = tk.StringVar(value=str(self.filter_settings.get('max_odds', 1000)))
         ttk.Entry(odds_frame, textvariable=max_odds_var, width=8).pack(side=tk.LEFT, padx=5)
         
+        # Liquidity range
+        ttk.Label(frame, text="Range Liquidita (EUR):").pack(anchor=tk.W, pady=(10, 0))
+        liq_frame = ttk.Frame(frame)
+        liq_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Label(liq_frame, text="Min:").pack(side=tk.LEFT)
+        min_liq_var = tk.StringVar(value=str(self.filter_settings.get('min_liquidity', 0)))
+        ttk.Entry(liq_frame, textvariable=min_liq_var, width=10).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Label(liq_frame, text="Max:").pack(side=tk.LEFT, padx=(20, 0))
+        max_liq_var = tk.StringVar(value=str(self.filter_settings.get('max_liquidity', 0)))
+        ttk.Entry(liq_frame, textvariable=max_liq_var, width=10).pack(side=tk.LEFT, padx=5)
+        ttk.Label(liq_frame, text="(0 = nessun limite)", font=('Segoe UI', 8), foreground='gray').pack(side=tk.LEFT, padx=10)
+        
         # Live only
         live_var = tk.BooleanVar(value=self.filter_settings.get('only_live', False))
-        ttk.Checkbutton(frame, text="Solo partite LIVE", variable=live_var).pack(anchor=tk.W, pady=15)
+        ttk.Checkbutton(frame, text="Solo partite LIVE", variable=live_var).pack(anchor=tk.W, pady=10)
         
-        # Apply button
+        # === SAVE FILTER SECTION ===
+        save_frame = ttk.LabelFrame(frame, text="Salva Nuovo Filtro", padding=10)
+        save_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        ttk.Label(save_frame, text="Nome:").pack(side=tk.LEFT)
+        save_name_var = tk.StringVar()
+        ttk.Entry(save_frame, textvariable=save_name_var, width=25).pack(side=tk.LEFT, padx=5)
+        
+        def save_current_filter():
+            name = save_name_var.get().strip()
+            if not name:
+                messagebox.showwarning("Attenzione", "Inserisci un nome per il filtro")
+                return
+            # Check if exists
+            existing = self.db.get_saved_filter_by_name(name)
+            if existing:
+                if not messagebox.askyesno("Conferma", f"Un filtro '{name}' esiste gia. Sovrascrivere?"):
+                    return
+                self.db.delete_filter(existing['id'])
+            
+            try:
+                min_odds = float(min_odds_var.get()) if min_odds_var.get() else 1.01
+                max_odds = float(max_odds_var.get()) if max_odds_var.get() else 1000
+                min_liq = float(min_liq_var.get()) if min_liq_var.get() else 0
+                max_liq = float(max_liq_var.get()) if max_liq_var.get() else 0
+            except ValueError:
+                messagebox.showerror("Errore", "Valori numerici non validi")
+                return
+            
+            self.db.save_filter(
+                name=name,
+                competition_ids=comp_var.get(),
+                date_range=time_var.get(),
+                min_odds=min_odds,
+                max_odds=max_odds,
+                min_liquidity=min_liq,
+                max_liquidity=max_liq,
+                in_play='live' if live_var.get() else 'all',
+                keywords=keyword_var.get()
+            )
+            
+            # Refresh combo
+            new_filters = self.db.get_saved_filters()
+            filter_combo['values'] = ["-- Seleziona Filtro --"] + [ff['name'] for ff in new_filters]
+            messagebox.showinfo("Salvato", f"Filtro '{name}' salvato con successo!")
+            save_name_var.set("")
+        
+        ttk.Button(save_frame, text="Salva", command=save_current_filter, width=10).pack(side=tk.LEFT, padx=5)
+        
+        # === APPLY/RESET BUTTONS ===
         def apply_filters():
             try:
-                min_odds = float(min_odds_var.get())
-                max_odds = float(max_odds_var.get())
+                min_odds = float(min_odds_var.get()) if min_odds_var.get() else 1.01
+                max_odds = float(max_odds_var.get()) if max_odds_var.get() else 1000
+                min_liq = float(min_liq_var.get()) if min_liq_var.get() else 0
+                max_liq = float(max_liq_var.get()) if max_liq_var.get() else 0
             except ValueError:
-                messagebox.showerror("Errore", "Quote min/max devono essere numeri")
+                messagebox.showerror("Errore", "Quote/Liquidita devono essere numeri")
                 return
             
             comps = [c.strip() for c in comp_var.get().split(',') if c.strip()]
@@ -13381,7 +13503,10 @@ Evento: {event_name}"""
                 'time_filter': time_var.get(),
                 'min_odds': min_odds,
                 'max_odds': max_odds,
-                'only_live': live_var.get()
+                'min_liquidity': min_liq,
+                'max_liquidity': max_liq,
+                'only_live': live_var.get(),
+                'keywords': keyword_var.get()
             }
             
             self._apply_filters_to_events()
@@ -13394,14 +13519,17 @@ Evento: {event_name}"""
                 'time_filter': 'all',
                 'min_odds': 1.01,
                 'max_odds': 1000,
-                'only_live': False
+                'min_liquidity': 0,
+                'max_liquidity': 0,
+                'only_live': False,
+                'keywords': ''
             }
             self._apply_filters_to_events()
             dialog.destroy()
             messagebox.showinfo("Filtri Reset", "I filtri sono stati rimossi")
         
         btn_frame = ttk.Frame(frame)
-        btn_frame.pack(pady=20)
+        btn_frame.pack(pady=15)
         
         ttk.Button(btn_frame, text="Applica Filtri", command=apply_filters).pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="Reset", command=reset_filters).pack(side=tk.LEFT, padx=5)
@@ -13425,6 +13553,14 @@ Evento: {event_name}"""
                 country = event.get('countryCode', '')
                 comp_match = comp_match or any(comp.lower() in country.lower() for comp in filters['competitions'])
                 if not comp_match:
+                    continue
+            
+            # Keywords filter
+            keywords = filters.get('keywords', '').strip()
+            if keywords:
+                event_name = event.get('name', '').lower()
+                keyword_list = [k.strip().lower() for k in keywords.split(',') if k.strip()]
+                if keyword_list and not any(kw in event_name for kw in keyword_list):
                     continue
             
             # Time filter
