@@ -7969,7 +7969,7 @@ class PickfairApp:
         table_frame.pack(fill=tk.BOTH, expand=True, pady=5, padx=5)
         
         columns = ('giorno', 'scommesse', 'vinte', 'perse', 'pnl')
-        tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=15)
+        tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=20)
         tree.heading('giorno', text='Giorno')
         tree.heading('scommesse', text='Scommesse')
         tree.heading('vinte', text='Vinte')
