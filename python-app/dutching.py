@@ -118,7 +118,7 @@ def _calculate_back_dutching(
         else:
             net_profit = gross_profit
         
-        results.append({
+        result = {
             'selectionId': sel['selectionId'],
             'runnerName': sel['runnerName'],
             'price': sel['price'],
@@ -128,7 +128,13 @@ def _calculate_back_dutching(
             'profitIfWins': round(net_profit, 2),
             'potentialReturn': round(gross_return, 2),
             'impliedProbability': round((1.0 / sel['price']) * 100, 2)
-        })
+        }
+        # Preserve extra fields like item_id for UI matching
+        if 'item_id' in sel:
+            result['item_id'] = sel['item_id']
+        if 'effectiveType' in sel:
+            result['effectiveType'] = sel['effectiveType']
+        results.append(result)
         net_profits.append(net_profit)
     
     # Correggi arrotondamento per mantenere stake totale esatto
@@ -213,7 +219,7 @@ def calculate_back_target_profit(
         # Profitto lordo = ritorno - stake totale
         gross_return = stake * price
         
-        results.append({
+        result = {
             'selectionId': sel['selectionId'],
             'runnerName': sel['runnerName'],
             'price': price,
@@ -223,7 +229,13 @@ def calculate_back_target_profit(
             'profitIfWins': 0,  # Calcolato dopo
             'potentialReturn': round(gross_return, 2),
             'impliedProbability': round((1.0 / price) * 100, 2)
-        })
+        }
+        # Preserve extra fields like item_id for UI matching
+        if 'item_id' in sel:
+            result['item_id'] = sel['item_id']
+        if 'effectiveType' in sel:
+            result['effectiveType'] = sel['effectiveType']
+        results.append(result)
     
     # Correggi arrotondamento per mantenere stake totale esatto
     actual_total = sum(r['stake'] for r in results)
@@ -282,7 +294,7 @@ def _calculate_lay_dutching(
         stake = round(stake, 2)
         liability = round(liability, 2)
         
-        results.append({
+        result = {
             'selectionId': sel['selectionId'],
             'runnerName': sel['runnerName'],
             'price': sel['price'],
@@ -293,7 +305,13 @@ def _calculate_lay_dutching(
             'lossIfWins': liability,
             'potentialReturn': stake,
             'impliedProbability': round((1.0 / sel['price']) * 100, 2)
-        })
+        }
+        # Preserve extra fields like item_id for UI matching
+        if 'item_id' in sel:
+            result['item_id'] = sel['item_id']
+        if 'effectiveType' in sel:
+            result['effectiveType'] = sel['effectiveType']
+        results.append(result)
     
     # Calcola profitto per ogni scenario
     total_stakes = sum(r['stake'] for r in results)
