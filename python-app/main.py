@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.76.0"  # Chart timers fix, dutching item_id fix, session_token property
+APP_VERSION = "3.77.0"  # Fix validate_selections args, protect events tree from TclError on special chars
 
 # Setup file logging
 def setup_logging():
@@ -4489,10 +4489,13 @@ class PickfairApp:
             for event in self.all_events:
                 if search in event['name'].lower():
                     date_str = self._format_event_date(event)
-                    self.events_tree.insert('', tk.END, iid=event['id'], text=event.get('countryCode', ''), values=(
-                        event['name'],
-                        date_str
-                    ))
+                    try:
+                        self.events_tree.insert('', tk.END, iid=event['id'], text=event.get('countryCode', ''), values=(
+                            event['name'],
+                            date_str
+                        ))
+                    except tk.TclError as e:
+                        logging.warning(f"[EVENTS] Skipping event {event['id']}: {e}")
         else:
             # No search - show grouped by country
             countries = {}
@@ -4506,16 +4509,22 @@ class PickfairApp:
                 country_id = f"country_{country}"
                 # Restore expanded state
                 was_open = country_id in expanded_countries
-                self.events_tree.insert('', tk.END, iid=country_id, text=country, open=was_open)
+                try:
+                    self.events_tree.insert('', tk.END, iid=country_id, text=country, open=was_open)
+                except tk.TclError:
+                    continue  # Skip country if already exists
                 
                 for event in countries[country]:
                     date_str = self._format_event_date(event)
                     event_id = event['id']
                     was_event_open = event_id in expanded_events or event_id in loaded_markets
-                    self.events_tree.insert(country_id, tk.END, iid=event_id, values=(
-                        event['name'],
-                        date_str
-                    ), open=was_event_open)
+                    try:
+                        self.events_tree.insert(country_id, tk.END, iid=event_id, values=(
+                            event['name'],
+                            date_str
+                        ), open=was_event_open)
+                    except tk.TclError as e:
+                        logging.warning(f"[EVENTS] Skipping event {event_id}: {e}")
                     
                     # Restore previously loaded markets
                     if event_id in loaded_markets:
@@ -14041,10 +14050,13 @@ Evento: {event_name}"""
             for event in events:
                 if search in event['name'].lower():
                     date_str = self._format_event_date(event)
-                    self.events_tree.insert('', tk.END, iid=event['id'], text=event.get('countryCode', ''), values=(
-                        event['name'],
-                        date_str
-                    ))
+                    try:
+                        self.events_tree.insert('', tk.END, iid=event['id'], text=event.get('countryCode', ''), values=(
+                            event['name'],
+                            date_str
+                        ))
+                    except tk.TclError as e:
+                        logging.warning(f"[EVENTS] Skipping event {event['id']}: {e}")
         else:
             countries = {}
             for event in events:
@@ -14055,14 +14067,20 @@ Evento: {event_name}"""
             
             for country in sorted(countries.keys()):
                 country_id = f"country_{country}"
-                self.events_tree.insert('', tk.END, iid=country_id, text=country, open=False)
+                try:
+                    self.events_tree.insert('', tk.END, iid=country_id, text=country, open=False)
+                except tk.TclError:
+                    continue
                 
                 for event in countries[country]:
                     date_str = self._format_event_date(event)
-                    self.events_tree.insert(country_id, tk.END, iid=event['id'], values=(
-                        event['name'],
-                        date_str
-                    ))
+                    try:
+                        self.events_tree.insert(country_id, tk.END, iid=event['id'], values=(
+                            event['name'],
+                            date_str
+                        ))
+                    except tk.TclError as e:
+                        logging.warning(f"[EVENTS] Skipping event {event['id']}: {e}")
     
     def _toggle_simulation_mode(self):
         """Toggle simulation mode on/off."""
