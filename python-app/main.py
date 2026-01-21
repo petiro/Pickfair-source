@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.75.0"  # Micro Stake: 50 cent trick for betting below €2 minimum
+APP_VERSION = "3.76.0"  # Chart timers fix, dutching item_id fix, session_token property
 
 # Setup file logging
 def setup_logging():
