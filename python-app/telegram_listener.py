@@ -1394,7 +1394,11 @@ class TelegramListener:
                 return
             
             # Dynamic chat filter - allows real-time updates to monitored_chats
+            # FIX: Log all incoming messages for debugging before filtering
+            logging.debug(f"[TG] RAW message from chat {event.chat_id} (monitored: {list(self.monitored_chats)[:5]}...)")
+            
             if self.monitored_chats and event.chat_id not in self.monitored_chats:
+                logging.debug(f"[TG] FILTERED: chat {event.chat_id} not in monitored list")
                 return
             
             logging.info(f"[TG] NewMessage from chat {event.chat_id}")

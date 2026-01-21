@@ -10685,9 +10685,19 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     self.uiq.post(lambda msg=err_msg: messagebox.showerror("Errore", f"Impossibile caricare posizioni: {msg}"), key="positions_err", debug_name="positions_err")
             
             def update_positions_ui(positions_list):
+                # Guard: skip if tree was destroyed (tab closed)
+                try:
+                    if not tree.winfo_exists():
+                        return
+                except:
+                    return
+                
                 # Clear previous no-positions label if exists
                 if no_positions_label[0]:
-                    no_positions_label[0].destroy()
+                    try:
+                        no_positions_label[0].destroy()
+                    except:
+                        pass
                     no_positions_label[0] = None
                 
                 for item in tree.get_children():

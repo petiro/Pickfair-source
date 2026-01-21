@@ -1,0 +1,1001 @@
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:21:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:53 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:21:54 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:54 [DEBUG] Waiting for messages to send...
+23:21:54 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:54 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:21:54 [INFO] [UIQ] stats executed=1531 dropped=0 errors=376 qsize=0
+23:21:55 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:55 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:21:55 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:55 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:21:55 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:55 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:21:55 [DEBUG] Receiving items from the network...
+23:21:56 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:56 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:21:57 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:57 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:21:57 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:57 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:21:57 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:57 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:21:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:58 [DEBUG] [TEAM-RESOLVER] No match | API: Bahia vs Barcelona BA | BF: Spanish Town Police v Montego Bay United
+23:21:58 [DEBUG] [TEAM-RESOLVER] No match | API: Stranraer vs Queen's Park | BF: Spanish Town Police v Montego Bay United
+23:21:58 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:21:59 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:59 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:21:59 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:59 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:21:59 [INFO] [UIQ] stats executed=1559 dropped=0 errors=386 qsize=0
+23:21:59 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:21:59 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:00 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:00 [DEBUG] Cashout: Total matched=0, unmatched=0
+23:22:00 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:00 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:01 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:01 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:01 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:01 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:01 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:01 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:02 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:02 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:03 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:03 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:03 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:03 [DEBUG] [DASHBOARD] Marked dirty for auto-refresh
+23:22:04 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:04 [INFO] [UI-CLICK] DASHBOARD_REFRESH
+23:22:04 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:04 [INFO] [UI-CLICK] DASHBOARD_REFRESH done in 30ms
+23:22:04 [INFO] [UIQ] stats executed=1591 dropped=0 errors=396 qsize=0
+23:22:04 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 152
+23:22:04 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:05 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 93
+23:22:05 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:05 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:05 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:05 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:05 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:06 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:06 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:06 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:07 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:07 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:07 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:08 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:08 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:09 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:09 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:09 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:09 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:09 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:09 [INFO] [UIQ] stats executed=1624 dropped=0 errors=407 qsize=0
+23:22:09 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:09 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:10 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:10 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:10 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:11 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:11 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:11 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:11 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:11 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:11 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:11 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:12 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:12 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:12 [DEBUG] Cashout: Total matched=0, unmatched=0
+23:22:12 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:12 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:13 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:13 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+23:22:13 [DEBUG] [TEAM-RESOLVER] No match | API: Huachipato vs U. Catolica | BF: Spanish Town Police v Montego Bay United
+23:22:13 [DEBUG] [TEAM-RESOLVER] No match | API: UA Zacatecas vs Cimarrones | BF: Spanish Town Police v Montego Bay United
+23:22:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:13 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:14 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:14 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:14 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:14 [INFO] [UIQ] stats executed=1658 dropped=0 errors=419 qsize=0
+23:22:15 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:15 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:15 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:15 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:15 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:15 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:15 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:16 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:16 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:16 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:16 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:16 [DEBUG] Cashout: Total matched=0, unmatched=0
+23:22:17 [DEBUG] [BALANCE] _update_balance called...
+23:22:17 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:17 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:17 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 2602
+23:22:17 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+23:22:17 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:17 [DEBUG] [EXECUTOR] Job #22 DONE: execute
+23:22:17 [INFO] [BALANCE] Got funds: {'available': 10.44, 'exposure': 0.0, 'total': 10.44}
+23:22:17 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:17 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:18 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:18 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:19 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:19 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:19 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:19 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:19 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:19 [INFO] [UIQ] stats executed=1694 dropped=0 errors=431 qsize=0
+23:22:19 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:19 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:20 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:20 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:20 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:21 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:21 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:21 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:21 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:21 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:22 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:22 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:22 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:23 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:23 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:23 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:24 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:24 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:24 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:25 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:25 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:25 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:25 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:25 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:25 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:26 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:26 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:26 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:27 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:27 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:27 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:27 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:27 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:27 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:27 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:28 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:28 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:28 [DEBUG] [TEAM-RESOLVER] No match | API: UA Zacatecas vs Cimarrones | BF: Spanish Town Police v Montego Bay United
+23:22:29 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:29 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:29 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:29 [INFO] [UIQ] stats executed=1751 dropped=0 errors=454 qsize=0
+23:22:29 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:29 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:30 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:30 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:30 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:31 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:31 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:31 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:31 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:31 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:32 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:32 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:32 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:33 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:33 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:34 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:34 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:34 [INFO] [UIQ] stats executed=1776 dropped=0 errors=464 qsize=0
+23:22:34 [DEBUG] Cashout: Total matched=0, unmatched=0
+23:22:34 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:34 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:35 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:35 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:35 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:35 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:35 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:35 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:36 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:36 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:36 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:37 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:37 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:37 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:37 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:37 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:37 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:37 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:38 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:38 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:39 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:39 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:39 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:39 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame7.!treeview"
+
+23:22:39 [INFO] [UIQ] stats executed=1809 dropped=0 errors=477 qsize=0
+23:22:39 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:39 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame5.!treeview"
+
+23:22:40 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:40 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame9.!treeview"
+
+23:22:40 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame3.!treeview"
+
+23:22:41 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+23:22:41 [INFO] [UIQ] ERROR in positions_ui: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+Traceback (most recent call last):
+  File "ui_queue.py", line 186, in _tick
+  File "main.py", line 10339, in <lambda>
+  File "main.py", line 10350, in update_positions_ui
+  File "tkinter\ttk.py", line 1220, in get_children
+_tkinter.TclError: invalid command name ".!ctkframe.!ctktabview.!ctkframe2.!ctkframe.!ctktabview.!ctkframe5.!frame.!treeview"
+
+23:22:41 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+
