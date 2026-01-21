@@ -6780,7 +6780,7 @@ class PickfairApp:
                 self.profit_label.configure(text=f"Profitto Atteso: {format_currency(profit)}")
             self.prob_label.configure(text=f"Probabilita Implicita: {implied_prob:.1f}%")
             
-            errors = validate_selections(results, bet_type)
+            errors = validate_selections(results)
             if not errors:
                 self.place_btn.configure(state=tk.NORMAL)
             else:
