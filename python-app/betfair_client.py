@@ -376,6 +376,13 @@ class BetfairClient(metaclass=GuardedAPIMeta):
         self.price_callbacks = {}
         self.micro_stake_manager = None  # Set externally when enabled
     
+    @property
+    def session_token(self):
+        """Return session token from internal betfairlightweight client."""
+        if self.client and hasattr(self.client, 'session_token'):
+            return self.client.session_token
+        return None
+    
     @staticmethod
     def _clean_string(value):
         """Remove all whitespace, newlines, and control characters from a string."""
