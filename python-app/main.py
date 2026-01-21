@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.77.0"  # Fix validate_selections args, protect events tree from TclError on special chars
+APP_VERSION = "3.78.0"  # API-Football callback now connected to LiveContextStore
 
 # Setup file logging
 def setup_logging():
@@ -420,6 +420,7 @@ class PickfairApp:
         # IMPORTANT: Betfair = MASTER, API-Football = sensor only
         self.hard_sync = HardSyncController(safe_mode_manager=None)
         self.api_football_worker = APIFootballWorker(client=None, poll_interval=15)
+        self.api_football_worker.register_callback(self._on_api_football_data)
         self.api_football_worker.start()
         
         # Dashboard auto-refresh
@@ -5431,6 +5432,60 @@ class PickfairApp:
             logging.info(f"API-Football monitoring: {home} vs {away}")
         else:
             self.api_football_worker.clear_match()
+    
+    def _on_api_football_data(self, data: dict):
+        """Callback from API-Football worker - updates LiveContextStore (runs in background thread)."""
+        try:
+            status = data.get("status", "")
+            
+            if status == "UNAVAILABLE":
+                logging.debug("[API-Football] Match not found or API unavailable")
+                return
+            
+            minute = data.get("minute")
+            injury_time = data.get("extra_time", 0)
+            home_goals = data.get("home_goals", 0)
+            away_goals = data.get("away_goals", 0)
+            home_team = data.get("home_team", "")
+            away_team = data.get("away_team", "")
+            events = data.get("events", [])
+            
+            goal_minutes = []
+            goal_events = {}
+            for ev in events:
+                if ev.get("type") == "Goal":
+                    gm = ev.get("time", {}).get("elapsed", 0)
+                    if gm:
+                        goal_minutes.append(gm)
+                        team = ev.get("team", {}).get("name", "")
+                        goal_events[gm] = "H" if team == home_team else "A"
+            
+            period = "LIVE"
+            if status in ("HT", "BT"):
+                period = "HT"
+            elif status in ("2H",):
+                period = "2H"
+            elif status in ("1H",):
+                period = "1H"
+            elif status in ("FT", "AET", "PEN"):
+                period = "FT"
+            
+            live_context_store.update(
+                minute=minute,
+                injury_time=injury_time,
+                goals_home=home_goals,
+                goals_away=away_goals,
+                goal_minutes=goal_minutes,
+                goal_events=goal_events,
+                period=period,
+                home_team=home_team,
+                away_team=away_team
+            )
+            
+            logging.debug(f"[API-Football] Updated: {minute}' {home_team} {home_goals}-{away_goals} {away_team}")
+            
+        except Exception as e:
+            logging.error(f"[API-Football] Callback error: {e}")
     
     def _start_streaming(self):
         """Start streaming prices for current market (with polling fallback)."""
