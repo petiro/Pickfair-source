@@ -2095,8 +2095,13 @@ class PickfairApp:
                 if self.simulation_mode:
                     try:
                         raw_sim_bets = self.db.get_simulation_bets(limit=20)
+                        current_market_id = self.current_market.get('marketId', '') if self.current_market else ''
                         for sb in raw_sim_bets:
                             if sb.get('status') == 'MATCHED':
+                                # Filter by current market if one is selected
+                                bet_market_id = sb.get('market_id', '')
+                                if current_market_id and bet_market_id != current_market_id:
+                                    continue  # Skip bets from other markets
                                 # Parse selections to get original prices
                                 selections = sb.get('selections', '[]')
                                 if isinstance(selections, str):
@@ -4492,50 +4497,79 @@ class PickfairApp:
         
         For green-up preview, shows potential green profit at current prices.
         """
-        if not hasattr(self, 'market_cashout_positions') or not self.market_cashout_positions:
-            return None
-        
         sid = str(selection_id)
         total_pnl = 0.0
         has_position = False
         
-        for bet_id, pos in self.market_cashout_positions.items():
-            if str(pos.get('selection_id')) != sid:
-                continue
-            
-            has_position = True
-            side = pos.get('side', 'BACK')
-            stake = pos.get('stake', 0)
-            matched_price = pos.get('price', 0)
-            
-            if stake <= 0 or matched_price <= 0:
-                continue
-            
-            if side == 'BACK':
-                # BACK position: green-up by LAYing at current_lay
-                if current_lay and current_lay > 0:
-                    # Potential profit if we lay to green now
-                    liability = stake * matched_price
-                    green_stake = liability / current_lay
-                    profit_if_wins = stake * (matched_price - 1) - green_stake * (current_lay - 1)
-                    profit_if_loses = green_stake - stake
-                    # Show minimum guaranteed (green profit)
-                    total_pnl += min(profit_if_wins, profit_if_loses)
+        # Check real positions
+        if hasattr(self, 'market_cashout_positions') and self.market_cashout_positions:
+            for bet_id, pos in self.market_cashout_positions.items():
+                if str(pos.get('selection_id')) != sid:
+                    continue
+                
+                has_position = True
+                side = pos.get('side', 'BACK')
+                stake = pos.get('stake', 0)
+                matched_price = pos.get('price', 0)
+                
+                if stake <= 0 or matched_price <= 0:
+                    continue
+                
+                if side == 'BACK':
+                    if current_lay and current_lay > 0:
+                        liability = stake * matched_price
+                        green_stake = liability / current_lay
+                        profit_if_wins = stake * (matched_price - 1) - green_stake * (current_lay - 1)
+                        profit_if_loses = green_stake - stake
+                        total_pnl += min(profit_if_wins, profit_if_loses)
+                    else:
+                        total_pnl += stake * (matched_price - 1)
                 else:
-                    # No lay available - show raw profit if wins
-                    total_pnl += stake * (matched_price - 1)
-            else:
-                # LAY position: green-up by BACKing at current_back
-                if current_back and current_back > 0:
-                    liability = stake * (matched_price - 1)
-                    # Potential profit if we back to green now
-                    green_stake = liability / (current_back - 1) if current_back > 1 else 0
-                    profit_if_wins = -liability + green_stake * (current_back - 1)
-                    profit_if_loses = stake - green_stake
-                    total_pnl += min(profit_if_wins, profit_if_loses) if green_stake > 0 else -liability
-                else:
-                    # No back available - show raw profit if loses
-                    total_pnl += stake
+                    if current_back and current_back > 0:
+                        liability = stake * (matched_price - 1)
+                        green_stake = liability / (current_back - 1) if current_back > 1 else 0
+                        profit_if_wins = -liability + green_stake * (current_back - 1)
+                        profit_if_loses = stake - green_stake
+                        total_pnl += min(profit_if_wins, profit_if_loses) if green_stake > 0 else -liability
+                    else:
+                        total_pnl += stake
+        
+        # Check simulation positions
+        if self.simulation_mode and self.current_market:
+            current_market_id = self.current_market.get('marketId', '')
+            if hasattr(self, '_sim_positions_cache') and self._sim_positions_cache:
+                for sim_pos in self._sim_positions_cache:
+                    if sim_pos.get('market_id') != current_market_id:
+                        continue
+                    if str(sim_pos.get('selection_id')) != sid:
+                        continue
+                    
+                    has_position = True
+                    side = sim_pos.get('side', 'BACK')
+                    stake = sim_pos.get('stake', 0)
+                    matched_price = sim_pos.get('price', 0)
+                    
+                    if stake <= 0 or matched_price <= 0:
+                        continue
+                    
+                    if side == 'BACK':
+                        if current_lay and current_lay > 0:
+                            liability = stake * matched_price
+                            green_stake = liability / current_lay
+                            profit_if_wins = stake * (matched_price - 1) - green_stake * (current_lay - 1)
+                            profit_if_loses = green_stake - stake
+                            total_pnl += min(profit_if_wins, profit_if_loses)
+                        else:
+                            total_pnl += stake * (matched_price - 1)
+                    else:
+                        if current_back and current_back > 0:
+                            liability = stake * (matched_price - 1)
+                            green_stake = liability / (current_back - 1) if current_back > 1 else 0
+                            profit_if_wins = -liability + green_stake * (current_back - 1)
+                            profit_if_loses = stake - green_stake
+                            total_pnl += min(profit_if_wins, profit_if_loses) if green_stake > 0 else -liability
+                        else:
+                            total_pnl += stake
         
         return total_pnl if has_position else None
     
@@ -5258,6 +5292,43 @@ class PickfairApp:
         
         threading.Thread(target=fetch, daemon=True).start()
     
+    def _load_sim_positions_cache(self, market_id):
+        """Load simulation bet positions for P&L display in ladder."""
+        self._sim_positions_cache = []
+        if not market_id:
+            return
+        
+        try:
+            raw_bets = self.db.get_simulation_bets(limit=50)
+            for sb in raw_bets:
+                if sb.get('status') != 'MATCHED':
+                    continue
+                if sb.get('market_id') != market_id:
+                    continue
+                
+                # Parse selections
+                selections_str = sb.get('selections', '[]')
+                try:
+                    selections = json.loads(selections_str) if isinstance(selections_str, str) else selections_str
+                except:
+                    selections = []
+                
+                if not selections:
+                    continue
+                
+                # Add position for each selection
+                for sel in selections:
+                    self._sim_positions_cache.append({
+                        'market_id': market_id,
+                        'selection_id': sel.get('selectionId', 0),
+                        'side': sb.get('side', 'BACK'),
+                        'stake': sel.get('stake', sb.get('total_stake', 0)),
+                        'price': sel.get('price', 0),
+                        'bet_id': sb.get('id')
+                    })
+        except Exception as e:
+            logging.debug(f"[SIM] Error loading positions cache: {e}")
+    
     def _display_market(self, market):
         """Display market runners with professional ladder-style UI."""
         if not market or not market.get('runners'):
@@ -5269,6 +5340,10 @@ class PickfairApp:
                        self.runner_rows)
         
         self.current_market = market
+        
+        # Load simulation positions cache for this market
+        if self.simulation_mode:
+            self._load_sim_positions_cache(market.get('marketId', ''))
         
         if same_market:
             # Just update existing cells with new prices
