@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.7"  # Reduce margin above tab bar
+APP_VERSION = "3.82.8"  # Compact status bar and move tabs to top
 
 # Setup file logging
 def setup_logging():
@@ -828,7 +828,7 @@ class PickfairApp:
     def _create_main_layout(self):
         """Create main application layout with tabs."""
         self.main_frame = ctk.CTkFrame(self.root, fg_color=COLORS['bg_dark'])
-        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=2)
+        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=0)
         
         self._create_status_bar()
         
@@ -838,7 +838,7 @@ class PickfairApp:
                                             segmented_button_selected_color=COLORS['back'],
                                             segmented_button_unselected_color=COLORS['bg_panel'],
                                             text_color=COLORS['text_primary'])
-        self.main_notebook.pack(fill=tk.BOTH, expand=True, pady=2)
+        self.main_notebook.pack(fill=tk.BOTH, expand=True, pady=0)
         
         self.main_notebook.add("Trading")
         self.main_notebook.add("Dashboard")
@@ -875,51 +875,51 @@ class PickfairApp:
         self._create_simulazione_tab()
     
     def _create_status_bar(self):
-        """Create status bar with connection info and mode buttons."""
-        status_frame = ctk.CTkFrame(self.main_frame, fg_color=COLORS['bg_panel'], corner_radius=8, height=50)
-        status_frame.pack(fill=tk.X, pady=(0, 10))
+        """Create compact status bar with connection info and mode buttons."""
+        status_frame = ctk.CTkFrame(self.main_frame, fg_color=COLORS['bg_panel'], corner_radius=4, height=32)
+        status_frame.pack(fill=tk.X, pady=(0, 2))
         status_frame.pack_propagate(False)
         
         self.status_label = ctk.CTkLabel(status_frame, text="Non connesso", 
-                                         text_color=COLORS['error'], font=FONTS['default'])
-        self.status_label.pack(side=tk.LEFT, padx=15)
+                                         text_color=COLORS['error'], font=('Segoe UI', 10))
+        self.status_label.pack(side=tk.LEFT, padx=10)
         
         self.balance_label = ctk.CTkLabel(status_frame, text="", 
-                                          text_color=COLORS['back'], font=('Segoe UI', 12, 'bold'))
-        self.balance_label.pack(side=tk.LEFT, padx=20)
+                                          text_color=COLORS['back'], font=('Segoe UI', 10, 'bold'))
+        self.balance_label.pack(side=tk.LEFT, padx=10)
         
         self.stream_label = ctk.CTkLabel(status_frame, text="", 
-                                         text_color=COLORS['warning'], font=FONTS['default'])
-        self.stream_label.pack(side=tk.LEFT, padx=10)
+                                         text_color=COLORS['warning'], font=('Segoe UI', 10))
+        self.stream_label.pack(side=tk.LEFT, padx=5)
+        
+        self.sim_balance_label = ctk.CTkLabel(status_frame, text="", 
+                                              text_color='#9c27b0', font=('Segoe UI', 10, 'bold'))
+        self.sim_balance_label.pack(side=tk.LEFT, padx=5)
         
         self.connect_btn = ctk.CTkButton(status_frame, text="Connetti", 
                                          command=self._toggle_connection,
                                          fg_color=COLORS['button_primary'],
                                          hover_color=COLORS['back_hover'],
-                                         corner_radius=6, width=100)
-        self.connect_btn.pack(side=tk.RIGHT, padx=10)
+                                         corner_radius=4, width=80, height=24)
+        self.connect_btn.pack(side=tk.RIGHT, padx=5)
         
         self.refresh_btn = ctk.CTkButton(status_frame, text="Aggiorna", 
                                          command=lambda: run_bg(self, "RefreshData", self._refresh_data), state=tk.DISABLED,
                                          fg_color=COLORS['button_secondary'],
-                                         corner_radius=6, width=100)
-        self.refresh_btn.pack(side=tk.RIGHT, padx=5)
+                                         corner_radius=4, width=80, height=24)
+        self.refresh_btn.pack(side=tk.RIGHT, padx=3)
         
         self.live_btn = ctk.CTkButton(status_frame, text="LIVE",
                                       fg_color=COLORS['loss'], hover_color='#c62828',
                                       command=self._toggle_live_mode,
-                                      corner_radius=6, width=80)
-        self.live_btn.pack(side=tk.RIGHT, padx=5)
+                                      corner_radius=4, width=60, height=24)
+        self.live_btn.pack(side=tk.RIGHT, padx=3)
         
-        self.sim_btn = ctk.CTkButton(status_frame, text="SIMULAZIONE",
+        self.sim_btn = ctk.CTkButton(status_frame, text="SIMULAZIONE ON",
                                      fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
                                      command=self._toggle_simulation_mode,
-                                     corner_radius=6, width=120)
-        self.sim_btn.pack(side=tk.RIGHT, padx=5)
-        
-        self.sim_balance_label = ctk.CTkLabel(status_frame, text="", 
-                                              text_color='#9c27b0', font=('Segoe UI', 11, 'bold'))
-        self.sim_balance_label.pack(side=tk.LEFT, padx=10)
+                                     corner_radius=4, width=110, height=24)
+        self.sim_btn.pack(side=tk.RIGHT, padx=3)
     
     def _create_events_panel(self, parent):
         """Create events list panel with country grouping."""
