@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.5"  # Fix silent exception in in-play events loading
+APP_VERSION = "3.82.6"  # Show full country names instead of codes
 
 # Setup file logging
 def setup_logging():
@@ -113,6 +113,60 @@ except Exception as e:
 
 WINDOW_WIDTH = 1400
 WINDOW_HEIGHT = 900
+
+COUNTRY_NAMES = {
+    'AD': 'Andorra', 'AE': 'Emirati Arabi', 'AF': 'Afghanistan', 'AG': 'Antigua', 'AI': 'Anguilla',
+    'AL': 'Albania', 'AM': 'Armenia', 'AO': 'Angola', 'AR': 'Argentina', 'AS': 'Samoa Americana',
+    'AT': 'Austria', 'AU': 'Australia', 'AW': 'Aruba', 'AZ': 'Azerbaijan', 'BA': 'Bosnia',
+    'BB': 'Barbados', 'BD': 'Bangladesh', 'BE': 'Belgio', 'BF': 'Burkina Faso', 'BG': 'Bulgaria',
+    'BH': 'Bahrain', 'BI': 'Burundi', 'BJ': 'Benin', 'BM': 'Bermuda', 'BN': 'Brunei',
+    'BO': 'Bolivia', 'BR': 'Brasile', 'BS': 'Bahamas', 'BT': 'Bhutan', 'BW': 'Botswana',
+    'BY': 'Bielorussia', 'BZ': 'Belize', 'CA': 'Canada', 'CD': 'Congo', 'CF': 'Centrafricana',
+    'CG': 'Congo', 'CH': 'Svizzera', 'CI': 'Costa d\'Avorio', 'CL': 'Cile', 'CM': 'Camerun',
+    'CN': 'Cina', 'CO': 'Colombia', 'CR': 'Costa Rica', 'CU': 'Cuba', 'CV': 'Capo Verde',
+    'CY': 'Cipro', 'CZ': 'Rep. Ceca', 'DE': 'Germania', 'DJ': 'Gibuti', 'DK': 'Danimarca',
+    'DM': 'Dominica', 'DO': 'Rep. Dominicana', 'DZ': 'Algeria', 'EC': 'Ecuador', 'EE': 'Estonia',
+    'EG': 'Egitto', 'ER': 'Eritrea', 'ES': 'Spagna', 'ET': 'Etiopia', 'FI': 'Finlandia',
+    'FJ': 'Fiji', 'FK': 'Falkland', 'FM': 'Micronesia', 'FO': 'Isole Faroe', 'FR': 'Francia',
+    'GA': 'Gabon', 'GB': 'Regno Unito', 'GD': 'Grenada', 'GE': 'Georgia', 'GF': 'Guyana Fr.',
+    'GH': 'Ghana', 'GI': 'Gibilterra', 'GL': 'Groenlandia', 'GM': 'Gambia', 'GN': 'Guinea',
+    'GP': 'Guadalupa', 'GQ': 'Guinea Eq.', 'GR': 'Grecia', 'GT': 'Guatemala', 'GU': 'Guam',
+    'GW': 'Guinea-Bissau', 'GY': 'Guyana', 'HK': 'Hong Kong', 'HN': 'Honduras', 'HR': 'Croazia',
+    'HT': 'Haiti', 'HU': 'Ungheria', 'ID': 'Indonesia', 'IE': 'Irlanda', 'IL': 'Israele',
+    'IN': 'India', 'IQ': 'Iraq', 'IR': 'Iran', 'IS': 'Islanda', 'IT': 'Italia',
+    'JM': 'Giamaica', 'JO': 'Giordania', 'JP': 'Giappone', 'KE': 'Kenya', 'KG': 'Kirghizistan',
+    'KH': 'Cambogia', 'KI': 'Kiribati', 'KM': 'Comore', 'KN': 'Saint Kitts', 'KP': 'Corea Nord',
+    'KR': 'Corea Sud', 'KW': 'Kuwait', 'KY': 'Cayman', 'KZ': 'Kazakistan', 'LA': 'Laos',
+    'LB': 'Libano', 'LC': 'Saint Lucia', 'LI': 'Liechtenstein', 'LK': 'Sri Lanka', 'LR': 'Liberia',
+    'LS': 'Lesotho', 'LT': 'Lituania', 'LU': 'Lussemburgo', 'LV': 'Lettonia', 'LY': 'Libia',
+    'MA': 'Marocco', 'MC': 'Monaco', 'MD': 'Moldavia', 'ME': 'Montenegro', 'MG': 'Madagascar',
+    'MH': 'Marshall', 'MK': 'Macedonia', 'ML': 'Mali', 'MM': 'Myanmar', 'MN': 'Mongolia',
+    'MO': 'Macao', 'MQ': 'Martinica', 'MR': 'Mauritania', 'MS': 'Montserrat', 'MT': 'Malta',
+    'MU': 'Mauritius', 'MV': 'Maldive', 'MW': 'Malawi', 'MX': 'Messico', 'MY': 'Malesia',
+    'MZ': 'Mozambico', 'NA': 'Namibia', 'NC': 'Nuova Caledonia', 'NE': 'Niger', 'NG': 'Nigeria',
+    'NI': 'Nicaragua', 'NL': 'Olanda', 'NO': 'Norvegia', 'NP': 'Nepal', 'NR': 'Nauru',
+    'NZ': 'Nuova Zelanda', 'OM': 'Oman', 'PA': 'Panama', 'PE': 'Perù', 'PF': 'Polinesia Fr.',
+    'PG': 'Papua Nuova Guinea', 'PH': 'Filippine', 'PK': 'Pakistan', 'PL': 'Polonia', 'PM': 'Saint Pierre',
+    'PR': 'Porto Rico', 'PS': 'Palestina', 'PT': 'Portogallo', 'PW': 'Palau', 'PY': 'Paraguay',
+    'QA': 'Qatar', 'RE': 'Réunion', 'RO': 'Romania', 'RS': 'Serbia', 'RU': 'Russia',
+    'RW': 'Ruanda', 'SA': 'Arabia Saudita', 'SB': 'Salomone', 'SC': 'Seychelles', 'SD': 'Sudan',
+    'SE': 'Svezia', 'SG': 'Singapore', 'SI': 'Slovenia', 'SK': 'Slovacchia', 'SL': 'Sierra Leone',
+    'SM': 'San Marino', 'SN': 'Senegal', 'SO': 'Somalia', 'SR': 'Suriname', 'SS': 'Sud Sudan',
+    'ST': 'São Tomé', 'SV': 'El Salvador', 'SY': 'Siria', 'SZ': 'Eswatini', 'TC': 'Turks Caicos',
+    'TD': 'Ciad', 'TG': 'Togo', 'TH': 'Thailandia', 'TJ': 'Tagikistan', 'TL': 'Timor Est',
+    'TM': 'Turkmenistan', 'TN': 'Tunisia', 'TO': 'Tonga', 'TR': 'Turchia', 'TT': 'Trinidad Tobago',
+    'TV': 'Tuvalu', 'TW': 'Taiwan', 'TZ': 'Tanzania', 'UA': 'Ucraina', 'UG': 'Uganda',
+    'US': 'Stati Uniti', 'UY': 'Uruguay', 'UZ': 'Uzbekistan', 'VA': 'Vaticano', 'VC': 'Saint Vincent',
+    'VE': 'Venezuela', 'VG': 'Isole Vergini UK', 'VI': 'Isole Vergini US', 'VN': 'Vietnam',
+    'VU': 'Vanuatu', 'WS': 'Samoa', 'XK': 'Kosovo', 'YE': 'Yemen', 'ZA': 'Sudafrica',
+    'ZM': 'Zambia', 'ZW': 'Zimbabwe', 'XX': 'Internazionale', 'INT': 'Internazionale'
+}
+
+def get_country_name(code):
+    """Convert country code to full name."""
+    if not code:
+        return 'Sconosciuto'
+    return COUNTRY_NAMES.get(code.upper(), code)
 
 def check_single_instance():
     """Ensure only one instance of Pickfair is running using Windows mutex."""
@@ -4693,7 +4747,7 @@ class PickfairApp:
                 # Restore expanded state
                 was_open = country_id in expanded_countries
                 try:
-                    self.events_tree.insert('', tk.END, iid=country_id, text=country, open=was_open)
+                    self.events_tree.insert('', tk.END, iid=country_id, text=get_country_name(country), open=was_open)
                 except tk.TclError:
                     continue  # Skip country if already exists
                 
