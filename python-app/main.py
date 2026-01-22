@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.78.0"  # API-Football callback now connected to LiveContextStore
+APP_VERSION = "3.79.0"  # Silent handling for connection errors in positions loading
 
 # Setup file logging
 def setup_logging():
@@ -10746,7 +10746,11 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                     self.uiq.post(lambda: update_positions_ui(positions_list), key="positions_ui", debug_name="positions_ui")
                 except Exception as e:
                     err_msg = str(e)
-                    self.uiq.post(lambda msg=err_msg: messagebox.showerror("Errore", f"Impossibile caricare posizioni: {msg}"), key="positions_err", debug_name="positions_err")
+                    # Silent handling for connection errors (don't show popup)
+                    if any(x in err_msg.lower() for x in ['connection', 'disconnected', 'aborted', 'timeout', 'remote end']):
+                        logging.warning(f"[Posizioni] Errore connessione (silenzioso): {err_msg}")
+                    else:
+                        self.uiq.post(lambda msg=err_msg: messagebox.showerror("Errore", f"Impossibile caricare posizioni: {msg}"), key="positions_err", debug_name="positions_err")
             
             def update_positions_ui(positions_list):
                 # Guard: skip if tree was destroyed (tab closed)
