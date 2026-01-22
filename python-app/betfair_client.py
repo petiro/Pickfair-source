@@ -708,6 +708,9 @@ class BetfairClient(metaclass=GuardedAPIMeta):
                     )
                 )
                 logging.info(f"[EVENTS] Loaded {len(inplay_events)} in-play events")
+                # Log in-play event names for debugging auto-bet matching
+                for ev in inplay_events[:10]:  # Log first 10
+                    logging.debug(f"[EVENTS] In-play: {ev.event.name} | ID: {ev.event.id}")
             except Exception as e:
                 logging.error(f"[EVENTS] Error loading in-play events: {e}")
         
