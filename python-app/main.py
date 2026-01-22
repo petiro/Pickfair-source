@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.9"  # Auto streaming, sim bet P&L, team name matching fix
+APP_VERSION = "3.82.11"  # Auto streaming, sim bet P&L, team name matching fix
 
 # Setup file logging
 def setup_logging():
