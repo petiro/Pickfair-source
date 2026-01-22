@@ -1214,6 +1214,49 @@ class Database:
         # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
+    def get_open_simulation_bets(self, limit=50):
+        """Get open simulation bets (not yet settled)."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM simulation_bets 
+            WHERE status = 'MATCHED' 
+            ORDER BY placed_at DESC LIMIT ?
+        ''', (limit,))
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+    
+    def settle_simulation_bet(self, bet_id, result, pnl):
+        """Settle a simulation bet with result (WIN/LOSS) and P&L."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Update bet status
+        cursor.execute('''
+            UPDATE simulation_bets 
+            SET status = 'SETTLED', 
+                profit_loss = ?,
+                settled_at = ?,
+                result = ?
+            WHERE id = ?
+        ''', (pnl, datetime.now().isoformat(), result, bet_id))
+        
+        # Update simulation balance and stats
+        cursor.execute('SELECT virtual_balance, total_won, total_lost FROM simulation_settings')
+        row = cursor.fetchone()
+        if row:
+            new_balance = row['virtual_balance'] + pnl
+            total_won = row['total_won'] + (1 if result == 'WIN' else 0)
+            total_lost = row['total_lost'] + (1 if result == 'LOSS' else 0)
+            cursor.execute('''
+                UPDATE simulation_settings 
+                SET virtual_balance = ?, total_won = ?, total_lost = ?
+            ''', (new_balance, total_won, total_lost))
+        
+        conn.commit()
+        logging.info(f"[SIM] Settled bet {bet_id}: {result}, P&L: {pnl:+.2f}")
+        return True
+    
     def close_simulation_bet(self, bet_id, pnl, close_price):
         """Close a simulation bet and update balance."""
         conn = self._get_connection()

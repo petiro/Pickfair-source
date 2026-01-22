@@ -2121,28 +2121,32 @@ class PickfairApp:
                                 if market_id and self.client and original_price > 0:
                                     try:
                                         book = self.client.get_market_book(market_id)
-                                        if book and book.runners:
+                                        runners = book.get('runners', []) if isinstance(book, dict) else []
+                                        if runners:
                                             # Find matching runner or use first
-                                            runner = book.runners[0]
+                                            runner = runners[0]
                                             if selection_id:
-                                                for r in book.runners:
-                                                    if str(r.selection_id) == str(selection_id):
+                                                for r in runners:
+                                                    if str(r.get('selectionId', 0)) == str(selection_id):
                                                         runner = r
                                                         break
                                             
                                             side = sb.get('side', 'BACK')
                                             stake = sb.get('total_stake', 0)
+                                            ex = runner.get('ex', {})
                                             
                                             if side == 'BACK':
                                                 # Get current LAY price to calculate cashout P&L
-                                                if runner.ex.available_to_lay:
-                                                    current_price = runner.ex.available_to_lay[0].price
+                                                lay_prices = ex.get('availableToLay', [])
+                                                if lay_prices and lay_prices[0].get('price'):
+                                                    current_price = lay_prices[0]['price']
                                                     # P&L = stake * (original - current) / current
                                                     pnl = stake * (original_price - current_price) / current_price if current_price > 0 else 0
                                             else:
                                                 # LAY: get BACK price
-                                                if runner.ex.available_to_back:
-                                                    current_price = runner.ex.available_to_back[0].price
+                                                back_prices = ex.get('availableToBack', [])
+                                                if back_prices and back_prices[0].get('price'):
+                                                    current_price = back_prices[0]['price']
                                                     pnl = stake * (current_price - original_price) / original_price if original_price > 0 else 0
                                     except Exception as e:
                                         logging.debug(f"[SIM] Cannot get real-time price: {e}")
@@ -11570,6 +11574,9 @@ Evento: {event_name}"""
         """Single settlement monitor cycle - check for settled bets."""
         if self.client and not self.simulation_mode:
             threading.Thread(target=self._check_bet_settlements, daemon=True).start()
+        # Also check simulation bets settlement
+        if self.client:
+            threading.Thread(target=self._check_simulation_bet_settlements, daemon=True).start()
         # Schedule next check every 60 seconds
         self.settlement_monitor_id = self.root.after(60000, self._do_settlement_monitor)
     
@@ -11607,6 +11614,117 @@ Evento: {event_name}"""
                 self.uiq.post(lambda: self._refresh_statistics_view(self.dashboard_stats_tab_frame), key="stats_refresh", debug_name="stats_refresh")
         except Exception as e:
             print(f"Settlement monitor error: {e}")
+    
+    def _check_simulation_bet_settlements(self):
+        """Check open simulation bets for settlement based on market status."""
+        if not self.client:
+            return
+        
+        try:
+            # Get open simulation bets
+            open_bets = self.db.get_open_simulation_bets(limit=30)
+            if not open_bets:
+                return
+            
+            for bet in open_bets:
+                try:
+                    market_id = bet.get('market_id', '')
+                    if not market_id:
+                        continue
+                    
+                    # Get market status
+                    try:
+                        market_book = self.client.get_market_book(market_id)
+                    except Exception:
+                        continue  # Market may not exist anymore
+                    
+                    if not market_book:
+                        continue
+                    
+                    runners = market_book.get('runners', []) if isinstance(market_book, dict) else []
+                    if not runners:
+                        continue
+                    
+                    # Parse selections to find which runner was bet on
+                    import json
+                    selections_str = bet.get('selections', '[]')
+                    try:
+                        selections = json.loads(selections_str) if selections_str else []
+                    except:
+                        selections = []
+                    
+                    if not selections:
+                        continue
+                    
+                    first_sel = selections[0] if selections else {}
+                    selection_id = first_sel.get('selectionId', 0)
+                    original_price = first_sel.get('price', 0)
+                    side = bet.get('side', 'BACK')
+                    stake = bet.get('total_stake', 0)
+                    
+                    # Check if market is closed/settled
+                    # A runner with back price of 1.01 or very low means it won
+                    # A runner with no price or very high lay means it lost
+                    runner_data = None
+                    for r in runners:
+                        if str(r.get('selectionId', 0)) == str(selection_id):
+                            runner_data = r
+                            break
+                    
+                    if not runner_data:
+                        runner_data = runners[0] if runners else None
+                    
+                    if not runner_data:
+                        continue
+                    
+                    ex = runner_data.get('ex', {})
+                    back_prices = ex.get('availableToBack', [])
+                    lay_prices = ex.get('availableToLay', [])
+                    
+                    # Check if market appears settled (no liquidity = closed)
+                    if not back_prices and not lay_prices:
+                        # Market is closed - try to determine result from last traded price
+                        # For now, mark as LOSS if no data (conservative)
+                        result = 'LOSS'
+                        pnl = -stake
+                        
+                        # Check if runner won (back price was 1.01 which means winner)
+                        # This is a simplified check - in reality we'd need market result
+                        self.db.settle_simulation_bet(bet['id'], result, pnl)
+                        logging.info(f"[SIM] Auto-settled bet {bet['id']}: {result} (market closed)")
+                    
+                    # Check for obvious winner (price very close to 1.0)
+                    elif back_prices and back_prices[0].get('price'):
+                        current_back = back_prices[0]['price']
+                        if current_back <= 1.02:  # Runner won
+                            if side == 'BACK':
+                                result = 'WIN'
+                                pnl = stake * (original_price - 1) if original_price > 0 else 0
+                            else:  # LAY
+                                result = 'LOSS'
+                                pnl = -stake * (original_price - 1) if original_price > 0 else 0
+                            
+                            self.db.settle_simulation_bet(bet['id'], result, round(pnl, 2))
+                            logging.info(f"[SIM] Auto-settled bet {bet['id']}: {result}, P&L: {pnl:+.2f}")
+                        elif current_back >= 1000:  # Runner lost (very high odds = loser)
+                            if side == 'BACK':
+                                result = 'LOSS'
+                                pnl = -stake
+                            else:  # LAY
+                                result = 'WIN'
+                                pnl = stake  # Simplified - LAY win = liability kept
+                            
+                            self.db.settle_simulation_bet(bet['id'], result, round(pnl, 2))
+                            logging.info(f"[SIM] Auto-settled bet {bet['id']}: {result}, P&L: {pnl:+.2f}")
+                
+                except Exception as e:
+                    logging.debug(f"[SIM] Error checking bet {bet.get('id')}: {e}")
+            
+            # Refresh My Bets display
+            self.uiq.post(self._refresh_my_bets_panel, key="my_bets_sim_settle", debug_name="refresh_my_bets_sim")
+            
+        except Exception as e:
+            logging.debug(f"[SIM] Settlement monitor error: {e}")
     
     def _start_auto_cashout_monitor(self):
         """Start monitoring positions for auto-cashout triggers."""
