@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.6"  # Show full country names instead of codes
+APP_VERSION = "3.82.7"  # Reduce margin above tab bar
 
 # Setup file logging
 def setup_logging():
@@ -828,7 +828,7 @@ class PickfairApp:
     def _create_main_layout(self):
         """Create main application layout with tabs."""
         self.main_frame = ctk.CTkFrame(self.root, fg_color=COLORS['bg_dark'])
-        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=2)
         
         self._create_status_bar()
         
@@ -838,7 +838,7 @@ class PickfairApp:
                                             segmented_button_selected_color=COLORS['back'],
                                             segmented_button_unselected_color=COLORS['bg_panel'],
                                             text_color=COLORS['text_primary'])
-        self.main_notebook.pack(fill=tk.BOTH, expand=True, pady=10)
+        self.main_notebook.pack(fill=tk.BOTH, expand=True, pady=2)
         
         self.main_notebook.add("Trading")
         self.main_notebook.add("Dashboard")
