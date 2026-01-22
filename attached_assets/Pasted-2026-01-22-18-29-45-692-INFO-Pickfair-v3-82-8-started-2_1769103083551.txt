@@ -1,0 +1,272 @@
+2026-01-22 18:29:45,692 [INFO] === Pickfair v3.82.8 started ===
+2026-01-22 18:29:45,693 [INFO] Log file: C:\Users\chiara\AppData\Roaming\Pickfair\logs\pickfair.log
+2026-01-22 18:29:45,693 [INFO] Importing modules...
+2026-01-22 18:29:45,693 [DEBUG] Importing thread_guard...
+2026-01-22 18:29:45,713 [DEBUG] Importing database...
+2026-01-22 18:29:45,793 [DEBUG] Importing betfair_client...
+2026-01-22 18:29:46,553 [DEBUG] [SOCKET] Global timeout set to 12 seconds
+2026-01-22 18:29:46,737 [DEBUG] Importing storage...
+2026-01-22 18:29:46,739 [DEBUG] Importing bet_logger...
+2026-01-22 18:29:46,759 [DEBUG] Importing betfair_stream...
+2026-01-22 18:29:46,761 [DEBUG] Importing dutching...
+2026-01-22 18:29:46,763 [DEBUG] Importing telegram_listener...
+2026-01-22 18:29:46,871 [DEBUG] [SSL] Preloaded: C:\Users\chiara\AppData\Local\Temp\_MEI93562\libcrypto-1_1.dll
+2026-01-22 18:29:46,872 [DEBUG] [SSL] Preloaded: C:\Users\chiara\AppData\Local\Temp\_MEI93562\libssl-1_1.dll
+2026-01-22 18:29:46,872 [INFO] [SSL] Preloaded 2 OpenSSL DLLs for Telethon
+2026-01-22 18:29:48,774 [INFO] Failed to load SSL library: <class 'OSError'> (no library called "ssl" found)
+2026-01-22 18:29:48,775 [INFO] cryptg module not installed and libssl not found, falling back to (slower) Python encryption
+2026-01-22 18:29:48,971 [INFO] [STORAGE] Database tables initialized
+2026-01-22 18:29:48,971 [INFO] [STORAGE] Database initialized: C:\Users\chiara\AppData\Roaming\Pickfair\pickfair_history.db
+2026-01-22 18:29:48,972 [DEBUG] cryptg not available - using standard encryption
+2026-01-22 18:29:48,972 [DEBUG] Importing auto_updater...
+2026-01-22 18:29:48,984 [DEBUG] Importing theme...
+2026-01-22 18:29:48,985 [DEBUG] Importing plugin_manager...
+2026-01-22 18:29:48,993 [DEBUG] Importing license_manager...
+2026-01-22 18:29:48,995 [DEBUG] Importing pnl_engine...
+2026-01-22 18:29:48,996 [DEBUG] Importing automation_engine...
+2026-01-22 18:29:49,000 [DEBUG] Importing tick_storage...
+2026-01-22 18:29:49,003 [DEBUG] Importing live_context...
+2026-01-22 18:29:49,005 [DEBUG] Importing match_timeline...
+2026-01-22 18:29:49,006 [DEBUG] Importing api_football...
+2026-01-22 18:29:49,008 [DEBUG] Importing hard_sync...
+2026-01-22 18:29:49,009 [DEBUG] Importing team_name_resolver...
+2026-01-22 18:29:49,011 [DEBUG] Importing cycle_manager...
+2026-01-22 18:29:49,012 [DEBUG] Importing ui_queue...
+2026-01-22 18:29:49,016 [DEBUG] Importing micro_stake...
+2026-01-22 18:29:49,017 [DEBUG] Importing trading_charts...
+2026-01-22 18:29:49,020 [WARNING] matplotlib not available - charts disabled
+2026-01-22 18:29:49,020 [INFO] All modules imported successfully
+2026-01-22 18:29:49,021 [INFO] Single instance check passed - mutex acquired
+2026-01-22 18:29:49,730 [INFO] [STORAGE] Schema migration check complete
+2026-01-22 18:29:49,731 [INFO] [STORAGE] Index check complete
+2026-01-22 18:29:49,810 [INFO] [STORAGE] DB version set to 3588
+2026-01-22 18:29:49,811 [INFO] [STORAGE] Persistent storage initialized
+2026-01-22 18:29:49,827 [INFO] [EXECUTOR] BetfairExecutor initialized (max_workers=1)
+2026-01-22 18:29:49,828 [INFO] [API-Football] Worker started
+2026-01-22 18:29:49,835 [INFO] [UI_QUEUE] Started
+2026-01-22 18:29:49,836 [INFO] [HEALTH] Monitor started
+2026-01-22 18:29:49,836 [INFO] [ANTIFREEZE] Manager started
+2026-01-22 18:29:49,837 [INFO] [UIQ] Started
+2026-01-22 18:29:49,837 [INFO] [BG] START load_micro_settings
+2026-01-22 18:29:49,838 [DEBUG] [SHUTDOWN] Registered handler: streams (priority=1)
+2026-01-22 18:29:49,838 [DEBUG] [SHUTDOWN] Registered handler: api_football (priority=2)
+2026-01-22 18:29:49,838 [DEBUG] [SHUTDOWN] Registered handler: telegram (priority=3)
+2026-01-22 18:29:49,839 [DEBUG] [SHUTDOWN] Registered handler: antifreeze (priority=4)
+2026-01-22 18:29:49,839 [DEBUG] [SHUTDOWN] Registered handler: database (priority=5)
+2026-01-22 18:29:49,841 [INFO] [BG] DONE load_micro_settings in 3.0ms
+2026-01-22 18:29:53,672 [INFO] [DASHBOARD] Auto-refresh timer started (5s interval)
+2026-01-22 18:29:53,672 [INFO] [PERF] Performance logging started (10s interval)
+2026-01-22 18:29:53,711 [INFO] [WATCHDOG] Started with timeout=15s
+2026-01-22 18:29:53,715 [INFO] [STORAGE] Recovered 0 open positions
+2026-01-22 18:29:53,733 [INFO] [RECOVERY] No open positions to recover
+2026-01-22 18:29:53,754 [INFO] [MICRO_STAKE] Enabled
+2026-01-22 18:29:53,755 [INFO] [MICRO_STAKE] Amount set to €0.50
+2026-01-22 18:29:53,755 [DEBUG] [MICRO_STAKE] Settings applied: enabled=True, amount=0.5
+2026-01-22 18:29:53,774 [INFO] [UIQ] stats executed=2 dropped=0 errors=0 qsize=0
+2026-01-22 18:29:58,767 [INFO] [UIQ] stats executed=3 dropped=0 errors=0 qsize=0
+2026-01-22 18:30:00,183 [INFO] [UI-CLICK] toggle_connection
+2026-01-22 18:30:00,183 [INFO] [UI-CLICK] CONNECT
+2026-01-22 18:30:00,184 [INFO] [CONNECT] _connect() called - getting settings...
+2026-01-22 18:30:00,184 [INFO] [CONNECT] Settings retrieved
+2026-01-22 18:30:00,184 [INFO] [CONNECT] Creating password dialog...
+2026-01-22 18:30:00,185 [INFO] [CONNECT] Password dialog created
+2026-01-22 18:30:00,216 [INFO] [UI-CLICK] toggle_connection done in 33ms
+2026-01-22 18:30:00,226 [INFO] [UI-CLICK] CONNECT done in 42ms
+2026-01-22 18:30:00,233 [INFO] [CONNECT] Password dialog finalized and grab_set()
+2026-01-22 18:30:01,740 [DEBUG] Starting new HTTPS connection (1): identitysso-cert.betfair.it:443
+2026-01-22 18:30:02,285 [DEBUG] https://identitysso-cert.betfair.it:443 "POST /api/certlogin HTTP/11" 200 125
+2026-01-22 18:30:02,339 [INFO] [CONNECT] _on_connected: Starting...
+2026-01-22 18:30:02,347 [DEBUG] [MICRO_STAKE] Client updated (bidirectional)
+2026-01-22 18:30:02,347 [DEBUG] [CONNECT] UI updated - no I/O done yet
+2026-01-22 18:30:02,348 [DEBUG] [UI] Yielding to mainloop - scheduling staggered API calls
+2026-01-22 18:30:02,348 [INFO] [CONNECT] _on_connected: Complete - 7 steps scheduled
+2026-01-22 18:30:02,850 [DEBUG] [CONNECT] Step 1: _update_balance
+2026-01-22 18:30:02,850 [DEBUG] [BALANCE] _update_balance called...
+2026-01-22 18:30:02,852 [DEBUG] [EXECUTOR] Job #1 START: execute
+2026-01-22 18:30:02,852 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-22 18:30:02,855 [DEBUG] Starting new HTTPS connection (1): api.betfair.com:443
+2026-01-22 18:30:03,032 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 151
+2026-01-22 18:30:03,033 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-22 18:30:03,034 [DEBUG] [EXECUTOR] Job #1 DONE: execute
+2026-01-22 18:30:03,088 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+2026-01-22 18:30:03,774 [INFO] [UIQ] stats executed=14 dropped=0 errors=0 qsize=0
+2026-01-22 18:30:05,352 [DEBUG] [CONNECT] Step 2: _load_events
+2026-01-22 18:30:05,352 [DEBUG] [EVENTS] _load_events called...
+2026-01-22 18:30:05,353 [DEBUG] [EXECUTOR] Job #2 START: execute
+2026-01-22 18:30:05,353 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-22 18:30:05,510 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 None
+2026-01-22 18:30:05,525 [INFO] [EVENTS] Loaded 272 upcoming events
+2026-01-22 18:30:05,640 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 163
+2026-01-22 18:30:05,641 [INFO] [EVENTS] Loaded 1 in-play events
+2026-01-22 18:30:05,641 [DEBUG] [EVENTS] In-play: Randers v Real Salt Lake | ID: 35175764
+2026-01-22 18:30:05,643 [INFO] [EVENTS] Total events returned: 273 (in-play: 1)
+2026-01-22 18:30:05,643 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-22 18:30:05,644 [DEBUG] [EXECUTOR] Job #2 DONE: execute
+2026-01-22 18:30:05,671 [INFO] [EVENTS] Got 273 events
+2026-01-22 18:30:05,671 [INFO] [EVENTS] Loaded 273 football events
+2026-01-22 18:30:05,672 [DEBUG] [EVENTS] Sample: Randers v Real Salt Lake | Country: None
+2026-01-22 18:30:05,672 [DEBUG] [EVENTS] Sample: FC Utrecht v Genk | Country: None
+2026-01-22 18:30:05,672 [DEBUG] [EVENTS] Sample: Ferencvaros v Panathinaikos | Country: None
+2026-01-22 18:30:05,672 [DEBUG] [EVENTS] Sample: Roma v Stuttgart | Country: None
+2026-01-22 18:30:05,672 [DEBUG] [EVENTS] Sample: Tivoli Gardens v Racing United FC | Country: JM
+2026-01-22 18:30:07,148 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:08,348 [DEBUG] [CONNECT] Step 3: auto-refresh
+2026-01-22 18:30:08,779 [INFO] [UIQ] stats executed=23 dropped=0 errors=0 qsize=0
+2026-01-22 18:30:09,355 [DEBUG] [CONNECT] Step 4: keepalive
+2026-01-22 18:30:10,356 [DEBUG] [CONNECT] Step 5: order stream
+2026-01-22 18:30:10,356 [INFO] _start_order_stream: Queuing background start...
+2026-01-22 18:30:10,357 [DEBUG] _start_order_stream: [BG] Stopping existing stream...
+2026-01-22 18:30:10,357 [INFO] _start_order_stream: Background thread started
+2026-01-22 18:30:10,357 [DEBUG] _start_order_stream: [BG] Existing stream stopped
+2026-01-22 18:30:10,357 [DEBUG] _start_order_stream: [BG] Getting settings from DB...
+2026-01-22 18:30:10,358 [DEBUG] _start_order_stream: [BG] Settings retrieved
+2026-01-22 18:30:10,358 [INFO] _start_order_stream: [BG] app_key=bBtYjoZD..., session=True
+2026-01-22 18:30:10,358 [DEBUG] _start_order_stream: [BG] Creating BetfairStream...
+2026-01-22 18:30:10,359 [DEBUG] _start_order_stream: [BG] BetfairStream created
+2026-01-22 18:30:10,359 [DEBUG] _start_order_stream: [BG] Connecting...
+2026-01-22 18:30:10,359 [INFO] Connecting to Betfair Stream: stream-api.betfair.it:443
+2026-01-22 18:30:12,157 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:12,380 [DEBUG] [CONNECT] Step 6: dashboard refresh
+2026-01-22 18:30:12,381 [INFO] [UI-CLICK] DASHBOARD_REFRESH
+2026-01-22 18:30:12,382 [INFO] [CONNECT] All initialization steps scheduled
+2026-01-22 18:30:12,429 [INFO] [UI-CLICK] DASHBOARD_REFRESH done in 48ms
+2026-01-22 18:30:12,494 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 151
+2026-01-22 18:30:12,581 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:12,687 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 93
+2026-01-22 18:30:12,777 [DEBUG] get_bet_statistics: total=2
+2026-01-22 18:30:12,868 [INFO] [STORAGE] Rebuilt daily P&L for 0 days
+2026-01-22 18:30:13,010 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:13,131 [INFO] Telegram listener start() called - will monitor chats: [-1002805690312]
+2026-01-22 18:30:13,132 [DEBUG] Using proactor: IocpProactor
+2026-01-22 18:30:13,139 [INFO] Connecting to 149.154.167.92:443/TcpFull...
+2026-01-22 18:30:13,140 [DEBUG] Connection attempt 1...
+2026-01-22 18:30:13,208 [DEBUG] Connection success!
+2026-01-22 18:30:13,208 [DEBUG] Starting send loop
+2026-01-22 18:30:13,208 [DEBUG] Starting receive loop
+2026-01-22 18:30:13,209 [INFO] Connection to 149.154.167.92:443/TcpFull complete!
+2026-01-22 18:30:13,301 [DEBUG] Waiting for messages to send...
+2026-01-22 18:30:13,301 [DEBUG] Assigned msg_id = 7598239585297397364 to InvokeWithLayerRequest (22b62b9ca30)
+2026-01-22 18:30:13,302 [DEBUG] Encrypting 1 message(s) in 76 bytes for sending
+2026-01-22 18:30:13,304 [DEBUG] Encrypted messages put in a queue to be sent
+2026-01-22 18:30:13,305 [DEBUG] Waiting for messages to send...
+2026-01-22 18:30:13,305 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:13,362 [DEBUG] [CONNECT] Step 7: register health checks
+2026-01-22 18:30:13,362 [INFO] [HEALTH] Health checks registered
+2026-01-22 18:30:13,374 [DEBUG] Handling bad salt for message 7598239585297397364
+2026-01-22 18:30:13,375 [DEBUG] 1 message(s) will be resent
+2026-01-22 18:30:13,375 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:13,375 [DEBUG] Assigned msg_id = 7598239585593587628 to InvokeWithLayerRequest (22b62b9ca30)
+2026-01-22 18:30:13,375 [DEBUG] Encrypting 1 message(s) in 76 bytes for sending
+2026-01-22 18:30:13,377 [DEBUG] Encrypted messages put in a queue to be sent
+2026-01-22 18:30:13,377 [DEBUG] Waiting for messages to send...
+2026-01-22 18:30:13,378 [DEBUG] Assigned msg_id = 7598239585605579128 to MsgsAck (22b64a0ca00)
+2026-01-22 18:30:13,378 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2026-01-22 18:30:13,379 [DEBUG] Encrypted messages put in a queue to be sent
+2026-01-22 18:30:13,380 [DEBUG] Waiting for messages to send...
+2026-01-22 18:30:13,446 [DEBUG] Handling container
+2026-01-22 18:30:13,447 [DEBUG] Handling new session created
+2026-01-22 18:30:13,447 [DEBUG] Handling acknowledge for [7598239585593587628]
+2026-01-22 18:30:13,447 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:13,464 [DEBUG] Handling RPC result for message 7598239585593587628
+2026-01-22 18:30:13,465 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:13,465 [DEBUG] Assigned msg_id = 7598239585953976384 to GetUsersRequest (22b64a0ca90)
+2026-01-22 18:30:13,465 [DEBUG] Encrypting 1 message(s) in 32 bytes for sending
+2026-01-22 18:30:13,467 [DEBUG] Encrypted messages put in a queue to be sent
+2026-01-22 18:30:13,467 [DEBUG] Waiting for messages to send...
+2026-01-22 18:30:13,467 [DEBUG] Assigned msg_id = 7598239585961966264 to MsgsAck (22b64a0ce80)
+2026-01-22 18:30:13,468 [DEBUG] Encrypting 1 message(s) in 60 bytes for sending
+2026-01-22 18:30:13,470 [DEBUG] Encrypted messages put in a queue to be sent
+2026-01-22 18:30:13,470 [DEBUG] Waiting for messages to send...
+2026-01-22 18:30:13,564 [DEBUG] Handling RPC result for message 7598239585953976384
+2026-01-22 18:30:13,564 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:13,566 [DEBUG] Assigned msg_id = 7598239586357986200 to GetStateRequest (22b62b9ca30)
+2026-01-22 18:30:13,567 [DEBUG] Encrypting 1 message(s) in 20 bytes for sending
+2026-01-22 18:30:13,568 [DEBUG] Encrypted messages put in a queue to be sent
+2026-01-22 18:30:13,568 [DEBUG] Waiting for messages to send...
+2026-01-22 18:30:13,569 [DEBUG] Assigned msg_id = 7598239586369980564 to MsgsAck (22b64a0cb80)
+2026-01-22 18:30:13,569 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2026-01-22 18:30:13,571 [DEBUG] Encrypted messages put in a queue to be sent
+2026-01-22 18:30:13,571 [DEBUG] Waiting for messages to send...
+2026-01-22 18:30:13,644 [DEBUG] Handling RPC result for message 7598239586357986200
+2026-01-22 18:30:13,644 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:13,645 [DEBUG] Assigned msg_id = 7598239586673978556 to GetDifferenceRequest (22b62b9ca30)
+2026-01-22 18:30:13,645 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2026-01-22 18:30:13,646 [DEBUG] Encrypted messages put in a queue to be sent
+2026-01-22 18:30:13,647 [DEBUG] Waiting for messages to send...
+2026-01-22 18:30:13,647 [DEBUG] Assigned msg_id = 7598239586681974160 to MsgsAck (22b64a0ce50)
+2026-01-22 18:30:13,647 [DEBUG] Encrypting 1 message(s) in 36 bytes for sending
+2026-01-22 18:30:13,650 [DEBUG] Encrypted messages put in a queue to be sent
+2026-01-22 18:30:13,650 [DEBUG] Waiting for messages to send...
+2026-01-22 18:30:13,723 [DEBUG] Handling RPC result for message 7598239586673978556
+2026-01-22 18:30:13,724 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:13,724 [INFO] _start_listening: Setting up handler for 1 chats: [-1002805690312]
+2026-01-22 18:30:13,725 [INFO] Telegram listener STARTED - monitoring 1 chats
+2026-01-22 18:30:13,792 [INFO] [UIQ] stats executed=48 dropped=0 errors=0 qsize=0
+2026-01-22 18:30:14,873 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:16,022 [DEBUG] Handling update UpdateShort
+2026-01-22 18:30:16,022 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:16,872 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:17,193 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:18,797 [INFO] [UIQ] stats executed=56 dropped=0 errors=0 qsize=0
+2026-01-22 18:30:18,868 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:20,873 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:20,921 [DEBUG] Handling update UpdateShort
+2026-01-22 18:30:20,922 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:20,962 [DEBUG] Handling update Updates
+2026-01-22 18:30:20,962 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:21,920 [DEBUG] Handling update UpdateShort
+2026-01-22 18:30:21,921 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:21,922 [DEBUG] Handling update UpdateShort
+2026-01-22 18:30:21,923 [DEBUG] Receiving items from the network...
+2026-01-22 18:30:22,179 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:22,900 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:23,807 [INFO] [UIQ] stats executed=67 dropped=0 errors=0 qsize=0
+2026-01-22 18:30:24,895 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:26,893 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:27,178 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:28,815 [INFO] [UIQ] stats executed=74 dropped=0 errors=0 qsize=0
+2026-01-22 18:30:28,896 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:30,900 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:31,469 [ERROR] Betfair Stream connection error: [WinError 10060] Impossibile stabilire la connessione. Risposta non corretta della parte connessa dopo l'intervallo di tempo oppure mancata risposta dall'host collegato
+2026-01-22 18:30:31,470 [INFO] Betfair Stream: Disconnected
+2026-01-22 18:30:31,470 [INFO] Order Stream status: DISCONNECTED
+2026-01-22 18:30:31,471 [ERROR] Order Stream: [BG] Failed to connect
+2026-01-22 18:30:32,214 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:32,935 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:34,924 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:35,649 [INFO] [UIQ] stats executed=89 dropped=0 errors=0 qsize=0
+2026-01-22 18:30:36,946 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:37,208 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:38,360 [DEBUG] [EVENTS] _load_events called...
+2026-01-22 18:30:38,360 [DEBUG] [EXECUTOR] Job #3 START: execute
+2026-01-22 18:30:38,361 [DEBUG] [BALANCE] _update_balance called...
+2026-01-22 18:30:38,361 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-22 18:30:38,463 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 None
+2026-01-22 18:30:38,470 [INFO] [EVENTS] Loaded 272 upcoming events
+2026-01-22 18:30:38,562 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 163
+2026-01-22 18:30:38,563 [INFO] [EVENTS] Loaded 1 in-play events
+2026-01-22 18:30:38,563 [DEBUG] [EVENTS] In-play: Randers v Real Salt Lake | ID: 35175764
+2026-01-22 18:30:38,565 [INFO] [EVENTS] Total events returned: 273 (in-play: 1)
+2026-01-22 18:30:38,565 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-22 18:30:38,566 [DEBUG] [EXECUTOR] Job #3 DONE: execute
+2026-01-22 18:30:38,566 [DEBUG] [EXECUTOR] Job #4 START: execute
+2026-01-22 18:30:38,566 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-22 18:30:38,625 [INFO] [EVENTS] Got 273 events
+2026-01-22 18:30:38,626 [INFO] [EVENTS] Loaded 273 football events
+2026-01-22 18:30:38,626 [DEBUG] [EVENTS] Sample: Randers v Real Salt Lake | Country: None
+2026-01-22 18:30:38,626 [DEBUG] [EVENTS] Sample: FC Utrecht v Genk | Country: None
+2026-01-22 18:30:38,626 [DEBUG] [EVENTS] Sample: Ferencvaros v Panathinaikos | Country: None
+2026-01-22 18:30:38,627 [DEBUG] [EVENTS] Sample: Roma v Stuttgart | Country: None
+2026-01-22 18:30:38,627 [DEBUG] [EVENTS] Sample: Tivoli Gardens v Racing United FC | Country: JM
+2026-01-22 18:30:38,655 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 151
+2026-01-22 18:30:38,656 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-22 18:30:38,657 [DEBUG] [EXECUTOR] Job #4 DONE: execute
+2026-01-22 18:30:38,705 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+2026-01-22 18:30:38,966 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:40,657 [INFO] [UIQ] stats executed=102 dropped=0 errors=0 qsize=0
+2026-01-22 18:30:40,961 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:42,216 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:42,951 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:44,987 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 18:30:45,667 [INFO] [UIQ] stats executed=111 dropped=0 errors=0 qsize=0
+2026-01-22 18:30:46,979 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94

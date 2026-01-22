@@ -4687,7 +4687,20 @@ class PickfairApp:
             sample = events[:5]
             for e in sample:
                 logging.debug(f"[EVENTS] Sample: {e.get('name')} | Country: {e.get('countryCode')}")
-        self._populate_events_tree()
+        
+        # Apply filters if any are active
+        filters = getattr(self, 'filter_settings', {})
+        has_active_filters = (
+            filters.get('competitions') or
+            filters.get('only_live') or
+            filters.get('keywords') or
+            filters.get('time_filter', 'all') != 'all' or
+            filters.get('criteria')
+        )
+        if has_active_filters:
+            self._apply_filters_to_events()
+        else:
+            self._populate_events_tree()
     
     def _populate_events_tree(self):
         """Populate events tree based on current search filter, preserving selection and loaded markets."""
