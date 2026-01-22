@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.3"  # Add auto-bet debug logging
+APP_VERSION = "3.82.4"  # Add events loading debug logging
 
 # Setup file logging
 def setup_logging():
@@ -4627,6 +4627,12 @@ class PickfairApp:
     def _display_events(self, events):
         """Display events in treeview grouped by country."""
         self.all_events = events
+        logging.info(f"[EVENTS] Loaded {len(events)} football events")
+        # Log a sample of events for debugging
+        if events:
+            sample = events[:5]
+            for e in sample:
+                logging.debug(f"[EVENTS] Sample: {e.get('name')} | Country: {e.get('countryCode')}")
         self._populate_events_tree()
     
     def _populate_events_tree(self):
