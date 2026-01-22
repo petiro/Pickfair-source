@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.80.0"  # Fix parsing rules editor height to show Save button
+APP_VERSION = "3.81.0"  # Add logging for simulation mode debugging
 
 # Setup file logging
 def setup_logging():
@@ -6897,6 +6897,8 @@ class PickfairApp:
         potential_profit = self.calculated_results[0].get('profitIfWins', 0)
         bet_type = self.bet_type_var.get()
         
+        logging.info(f"[PLACE_BETS] simulation_mode={self.simulation_mode}, selections={len(self.calculated_results)}, stake={total_stake}")
+        
         # Different confirmation message for simulation mode
         if self.simulation_mode:
             sim_settings = self.db.get_simulation_settings()
@@ -7051,6 +7053,7 @@ class PickfairApp:
     
     def _place_simulation_bets(self, total_stake, potential_profit, bet_type):
         """Place simulated bets without calling Betfair API."""
+        logging.info(f"[SIMULATION] _place_simulation_bets called: stake={total_stake}, profit={potential_profit}")
         try:
             # Get current simulation balance
             sim_settings = self.db.get_simulation_settings()
