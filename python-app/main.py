@@ -13036,11 +13036,11 @@ Evento: {event_name}"""
         try:
             # Find the event on Betfair
             all_events = self.client.get_football_events(include_inplay=True)
-            event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace(' - ', ' ')
+            event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace(' - ', ' ').replace('-', ' ')
             
             matched_event = None
             for event in all_events:
-                event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ').replace(' - ', ' ')
+                event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ').replace(' - ', ' ').replace('-', ' ')
                 words_signal = set(event_lower.split())
                 words_event = set(event_search.split())
                 common = words_signal & words_event
@@ -13253,13 +13253,13 @@ Evento: {event_name}"""
             live_events = self.client.get_live_events('1')
             all_events = self.client.get_football_events(include_inplay=True)
             
-            event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ')
+            event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
             
             def find_best_match(events_list):
                 best_match = None
                 best_score = 0
                 for event in events_list:
-                    event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ')
+                    event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
                     words_signal = set(event_lower.split())
                     words_event = set(event_search.split())
                     common = words_signal & words_event
@@ -13512,7 +13512,7 @@ Evento: {event_name}"""
             for ev in live_events[:15]:
                 logging.debug(f"[AUTO-BET] Live event: {ev.get('name', 'N/A')}")
             
-            event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ')
+            event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
             league_lower = league.lower() if league else ''
             
             league_country = ''
@@ -13528,7 +13528,7 @@ Evento: {event_name}"""
                 best_match = None
                 best_score = 0
                 for event in events_list:
-                    event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ')
+                    event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
                     competition = event.get('competition', {}).get('name', '').lower()
                     
                     words_signal = set(event_lower.split())
