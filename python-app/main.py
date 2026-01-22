@@ -13419,8 +13419,12 @@ Evento: {event_name}"""
                 prematch_events = [e for e in all_events if e.get('id') not in [le.get('id') for le in live_events]]
                 matched_event = find_best_match(prematch_events)
             elif event_filter == 'LIVE' or live_only:
-                # Only search live events
+                # Search live events first
                 matched_event = find_best_match(live_events)
+                # Fallback: also search all events (some live matches may not be marked in-play yet)
+                if not matched_event:
+                    logging.info(f"[AUTO-BET] Not found in live, trying all events...")
+                    matched_event = find_best_match(all_events)
             else:
                 # Default: search live first, then all events
                 matched_event = find_best_match(live_events)
