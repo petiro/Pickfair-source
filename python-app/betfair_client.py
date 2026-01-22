@@ -695,6 +695,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
                 market_start_time=time_filter
             )
         )
+        logging.info(f"[EVENTS] Loaded {len(events)} upcoming events")
         
         # Also get in-play events
         inplay_events = []
@@ -706,8 +707,9 @@ class BetfairClient(metaclass=GuardedAPIMeta):
                         in_play_only=True
                     )
                 )
-            except:
-                pass
+                logging.info(f"[EVENTS] Loaded {len(inplay_events)} in-play events")
+            except Exception as e:
+                logging.error(f"[EVENTS] Error loading in-play events: {e}")
         
         # Combine events (avoid duplicates)
         event_ids = set()
@@ -739,6 +741,7 @@ class BetfairClient(metaclass=GuardedAPIMeta):
         
         # Sort: in-play first, then by date
         result.sort(key=lambda x: (not x.get('inPlay', False), x['openDate'] or ''))
+        logging.info(f"[EVENTS] Total events returned: {len(result)} (in-play: {sum(1 for e in result if e.get('inPlay'))})")
         return result
     
     @assert_not_ui_thread

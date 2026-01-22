@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.4"  # Add events loading debug logging
+APP_VERSION = "3.82.5"  # Fix silent exception in in-play events loading
 
 # Setup file logging
 def setup_logging():
