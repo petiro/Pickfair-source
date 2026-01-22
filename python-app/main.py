@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.81.0"  # Add logging for simulation mode debugging
+APP_VERSION = "3.82.0"  # Fix advanced dutching simulation + event name
 
 # Setup file logging
 def setup_logging():
@@ -2711,6 +2711,11 @@ class PickfairApp:
                 info_copy = dict(info)
                 bet_id_copy = bet_id
                 
+                # Handle simulation mode cashout
+                if self.simulation_mode:
+                    self._execute_simulation_cashout(pos_copy, info_copy, bet_id_copy)
+                    continue
+                
                 def do_cashout():
                     return self.client.execute_cashout(
                         market_id,
@@ -2762,6 +2767,112 @@ class PickfairApp:
                     messagebox.showerror("Errore", f"Errore cashout: {msg}")
                 
                 self._execute_order_operation("cashout", do_cashout, on_success, on_error)
+    
+    def _execute_simulation_cashout(self, pos, info, bet_id):
+        """Execute cashout in simulation mode - update virtual balance.
+        
+        In simulation mode, when a bet is placed the stake is deducted from virtual balance.
+        When cashing out:
+        - We return the original stake (that was deducted)
+        - We add/subtract the profit/loss (green_up can be negative)
+        
+        Net effect: new_balance = old_balance + stake + profit
+        """
+        try:
+            profit = info.get('green_up', 0)
+            market_id = pos.get('market_id', '')
+            selection_id = pos.get('selection_id', '')
+            runner_name = pos.get('runner_name', 'Unknown')
+            original_stake = pos.get('stake', 0)
+            
+            # Get current virtual balance
+            sim_settings = self.db.get_simulation_settings()
+            if not sim_settings:
+                messagebox.showerror("Errore", "Impostazioni simulazione non trovate")
+                return
+            
+            virtual_balance = sim_settings.get('virtual_balance', 0)
+            
+            # Return original stake and add profit/loss
+            # The stake was deducted when bet was placed, now we return it plus profit
+            new_balance = virtual_balance + original_stake + profit
+            
+            # Capture for background thread
+            data = {
+                'bet_id': bet_id,
+                'market_id': market_id,
+                'selection_id': str(selection_id),
+                'runner_name': runner_name,
+                'profit': profit,
+                'original_stake': original_stake,
+                'cashout_stake': info.get('cashout_stake', 0),
+                'cashout_side': info.get('cashout_side', 'LAY'),
+                'current_price': info.get('current_price', 0),
+                'new_balance': new_balance,
+                'event_name': self.current_event.get('name', '') if self.current_event else '',
+                'market_name': pos.get('market_name', '')
+            }
+            
+            def do_simulation_cashout():
+                """Background thread: update DB and log."""
+                # Update virtual balance
+                self.db.update_simulation_balance(data['new_balance'])
+                
+                # Log the cashout
+                sim_cashout_id = f"SIM-CO-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+                self.bet_logger.log_cashout_completed(
+                    bet_id=data['bet_id'],
+                    market_id=data['market_id'],
+                    selection_id=data['selection_id'],
+                    profit=data['profit'],
+                    original_stake=data['original_stake'],
+                    cashout_stake=data['cashout_stake']
+                )
+                
+                self.persistent_storage.log_bet_event(
+                    market_id=data['market_id'],
+                    selection_id=data['selection_id'],
+                    side=data['cashout_side'],
+                    stake=data['cashout_stake'],
+                    price=data['current_price'],
+                    status='CASHED_OUT',
+                    bet_id=sim_cashout_id,
+                    market_name=data['market_name'],
+                    event_name=data['event_name'],
+                    runner_name=data['runner_name'],
+                    matched_size=data['cashout_stake'],
+                    avg_price_matched=data['current_price'],
+                    source='SIMULATION_CASHOUT'
+                )
+                return True
+            
+            def on_cashout_done(result):
+                """UI thread: update display and show message."""
+                # Remove from positions (mark as closed)
+                if hasattr(self, 'market_cashout_positions') and data['bet_id'] in self.market_cashout_positions:
+                    del self.market_cashout_positions[data['bet_id']]
+                
+                self._mark_dashboard_dirty()
+                self._update_simulation_balance_display()
+                self._update_market_cashout_positions()
+                
+                profit_text = f"+{format_currency(data['profit'])}" if data['profit'] >= 0 else format_currency(data['profit'])
+                messagebox.showinfo("Cashout Simulato", 
+                    f"[SIMULAZIONE] Cashout eseguito!\n\n"
+                    f"Selezione: {data['runner_name']}\n"
+                    f"Profitto: {profit_text}\n"
+                    f"Nuovo Saldo: {format_currency(data['new_balance'])}")
+            
+            def on_cashout_error(msg):
+                logging.error(f"[SIMULATION] Cashout error: {msg}")
+                messagebox.showerror("Errore", f"Errore cashout simulato: {msg}")
+            
+            # Execute in background thread
+            self._execute_order_operation("simulation_cashout", do_simulation_cashout, on_cashout_done, on_cashout_error)
+            
+        except Exception as e:
+            logging.error(f"[SIMULATION] Cashout error: {e}")
+            messagebox.showerror("Errore", f"Errore cashout simulato: {e}")
     
     def _reset_pnl_frame_color(self):
         """Reset total P&L frame color based on current P&L value."""
@@ -3190,6 +3301,32 @@ class PickfairApp:
         if not all([market_id, selection_id, price, stake >= 1]):
             return
         
+        # Handle simulation mode - always do FULL cashout (100%) to avoid accounting issues
+        if self.simulation_mode:
+            # In simulation, we always close the entire position
+            orig_stake = pos.get('stake', 0)
+            orig_price = pos.get('price', 0)
+            
+            # Calculate full green_up based on original stake and price movement
+            if orig_price > 0 and price > 0:
+                if pos.get('side') == 'BACK':
+                    # BACK bet, laying to cashout: profit = stake * (orig_price - price) / price
+                    green_up = orig_stake * (orig_price - price) / price
+                else:
+                    # LAY bet, backing to cashout: profit = stake * (price - orig_price) / orig_price
+                    green_up = orig_stake * (price - orig_price) / orig_price
+            else:
+                green_up = pos.get('green_up', 0)
+            
+            info = {
+                'cashout_side': side,
+                'cashout_stake': orig_stake,  # Full stake for simulation
+                'current_price': price,
+                'green_up': green_up
+            }
+            self._execute_simulation_cashout(pos, info, pos.get('bet_id', ''))
+            return
+        
         def do_partial():
             return self.client.place_single_bet(
                 market_id=market_id,
@@ -3244,9 +3381,11 @@ class PickfairApp:
             return
         
         # Confirm immediate cashout
+        sim_prefix = "[SIMULAZIONE] " if self.simulation_mode else ""
+        title = "Cashout Simulato" if self.simulation_mode else "Cashout Immediato"
         green_text = f"+€{total_green:.2f}" if total_green >= 0 else f"-€{abs(total_green):.2f}"
-        if not messagebox.askyesno("Cashout Immediato", 
-                                    f"Eseguire cashout completo?\n\nProfitto stimato: {green_text}"):
+        if not messagebox.askyesno(title, 
+                                    f"{sim_prefix}Eseguire cashout completo?\n\nProfitto stimato: {green_text}"):
             return
         
         # Execute 100% cashout for each position
@@ -3265,7 +3404,8 @@ class PickfairApp:
                 self._execute_partial_cashout(pos, round(full_stake, 2))
                 executed += 1
         
-        if executed > 0:
+        # In simulation mode, individual cashouts show their own messages
+        if executed > 0 and not self.simulation_mode:
             messagebox.showinfo("Cashout", f"Cashout completo eseguito!\n{executed} ordini piazzati")
         
         self._update_market_cashout_positions()
@@ -6586,9 +6726,12 @@ class PickfairApp:
             new_balance = current_balance - liability
             self.db.increment_simulation_bet_count(new_balance)
             
+            # Get event name from current_event (preferred) or market
+            event_name = self.current_event.get('name', '') if self.current_event else self.current_market.get('eventName', self.current_market.get('marketName', ''))
+            
             # Save bet to simulation DB
             self.db.save_simulation_bet(
-                event_name=self.current_market.get('eventName', 'Quick Bet'),
+                event_name=event_name,
                 market_id=self.current_market['marketId'],
                 market_name=self.current_market.get('marketName', ''),
                 side=bet_type,
@@ -6608,7 +6751,7 @@ class PickfairApp:
                 status='MATCHED',
                 bet_id=sim_bet_id,
                 market_name=self.current_market.get('marketName', ''),
-                event_name=self.current_market.get('eventName', 'Quick Bet'),
+                event_name=event_name,
                 runner_name=runner['runnerName'],
                 matched_size=stake,
                 avg_price_matched=price,
@@ -11906,7 +12049,52 @@ Evento: {event_name}"""
                 event_name = self.current_event.get('name', '') if self.current_event else ''
                 
                 if self.simulation_mode:
-                    for instr in instructions:
+                    # Calculate total stake and potential profit
+                    total_stake = sum(instr['size'] for instr in instructions)
+                    potential_profit = dialog.calculated_results[0].get('profitIfWins', 0) if dialog.calculated_results else 0
+                    
+                    # Check virtual balance
+                    sim_settings = self.db.get_simulation_settings()
+                    virtual_balance = sim_settings.get('virtual_balance', 0) if sim_settings else 0
+                    
+                    if total_stake > virtual_balance:
+                        messagebox.showwarning("Saldo Insufficiente", 
+                            f"Saldo virtuale insufficiente.\n\n"
+                            f"Stake richiesto: {format_currency(total_stake)}\n"
+                            f"Saldo disponibile: {format_currency(virtual_balance)}")
+                        return
+                    
+                    # Deduct from virtual balance
+                    new_balance = virtual_balance - total_stake
+                    self.db.increment_simulation_bet_count(new_balance)
+                    
+                    # Build selections info for database
+                    selections_info = []
+                    for i, instr in enumerate(instructions):
+                        runner_name = dialog.calculated_results[i].get('runnerName', 'Unknown') if i < len(dialog.calculated_results) else 'Unknown'
+                        selections_info.append({
+                            'name': runner_name,
+                            'price': instr['price'],
+                            'stake': instr['size'],
+                            'side': instr['side']
+                        })
+                    
+                    # Save to simulation database
+                    self.db.save_simulation_bet(
+                        event_name=event_name,
+                        market_id=market_id,
+                        market_name=market_name,
+                        side='MIXED' if any(s.get('side') != instructions[0]['side'] for s in instructions if len(instructions) > 1) else instructions[0]['side'],
+                        selections=selections_info,
+                        total_stake=total_stake,
+                        potential_profit=potential_profit
+                    )
+                    
+                    # Log each bet
+                    for i, instr in enumerate(instructions):
+                        runner_name = dialog.calculated_results[i].get('runnerName', 'Unknown') if i < len(dialog.calculated_results) else 'Unknown'
+                        sim_bet_id = f"SIM-ADV-{datetime.now().strftime('%Y%m%d%H%M%S%f')}-{i}"
+                        
                         self.bet_logger.log_order_placed(
                             market_id=market_id,
                             selection_id=str(instr['selectionId']),
@@ -11915,10 +12103,34 @@ Evento: {event_name}"""
                             price=instr['price'],
                             market_name=market_name,
                             event_name=event_name,
+                            runner_name=runner_name,
                             source='SIMULATION'
                         )
+                        
+                        self.persistent_storage.log_bet_event(
+                            market_id=market_id,
+                            selection_id=str(instr['selectionId']),
+                            side=instr['side'],
+                            stake=instr['size'],
+                            price=instr['price'],
+                            status='MATCHED',
+                            bet_id=sim_bet_id,
+                            market_name=market_name,
+                            event_name=event_name,
+                            runner_name=runner_name,
+                            matched_size=instr['size'],
+                            avg_price_matched=instr['price'],
+                            source='SIMULATION'
+                        )
+                    
                     self._mark_dashboard_dirty()
-                    messagebox.showinfo("Simulazione", f"[SIMULAZIONE] {len(instructions)} scommesse piazzate!")
+                    self._update_simulation_balance_display()
+                    
+                    messagebox.showinfo("Simulazione", 
+                        f"[SIMULAZIONE] {len(instructions)} scommesse piazzate!\n\n"
+                        f"Stake Totale: {format_currency(total_stake)}\n"
+                        f"Profitto Potenziale: {format_currency(potential_profit)}\n"
+                        f"Nuovo Saldo: {format_currency(new_balance)}")
                     dialog.destroy()
                     return
                 
