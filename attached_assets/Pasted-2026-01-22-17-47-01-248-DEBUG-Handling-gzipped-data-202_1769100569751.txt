@@ -1,0 +1,105 @@
+2026-01-22 17:47:01,248 [DEBUG] Handling gzipped data
+2026-01-22 17:47:01,249 [DEBUG] Handling update Updates
+2026-01-22 17:47:01,250 [DEBUG] Receiving items from the network...
+2026-01-22 17:47:01,253 [DEBUG] [TG] RAW message from chat -1002805690312 (monitored: [-1002805690312]...)
+2026-01-22 17:47:01,254 [INFO] [TG] NewMessage from chat -1002805690312
+2026-01-22 17:47:01,254 [INFO] [TG] Text: P.Bet.70/80 OVER SUCCESSIVO  🔊 
+
+🏆Amichevole
+🆚randers v real salt lake
+⚽ 0 - 1
+⌚ 46m
+🥅Tiri in Porta ...
+2026-01-22 17:47:01,254 [INFO] [TG] Callbacks: signal=True, message=False, status=True
+2026-01-22 17:47:01,255 [INFO] [PARSER] parse_signal called with: P.Bet.70/80 OVER SUCCESSIVO  🔊 
+
+🏆Amichevole
+🆚randers v real salt lake
+⚽ 0 - 1
+⌚ 46m
+🥅Tiri in Porta ...
+2026-01-22 17:47:01,333 [DEBUG] [STORAGE] Logged Telegram event: SIGNAL_RECEIVED RECEIVED
+2026-01-22 17:47:01,333 [INFO] [LISTENER] Signal parsed from chat -1002805690312: randers v real salt lake -> OVER_UNDER @ 0.5
+2026-01-22 17:47:01,359 [DEBUG] [STORAGE] Logged Telegram event: SIGNAL_PROCESSED PROCESSED
+2026-01-22 17:47:01,433 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 297
+2026-01-22 17:47:01,526 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 None
+2026-01-22 17:47:01,534 [INFO] [EVENTS] Loaded 267 upcoming events
+2026-01-22 17:47:01,620 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 297
+2026-01-22 17:47:01,621 [INFO] [EVENTS] Loaded 4 in-play events
+2026-01-22 17:47:01,624 [INFO] [EVENTS] Total events returned: 271 (in-play: 4)
+2026-01-22 17:47:01,624 [INFO] [AUTO-BET] Searching for: randers v real salt lake
+2026-01-22 17:47:01,625 [INFO] [AUTO-BET] Live events: 4, All events: 271
+2026-01-22 17:47:02,116 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:02,367 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:02,368 [DEBUG] Cashout: Total matched=0, unmatched=0
+2026-01-22 17:47:04,138 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:04,141 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:06,143 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:08,140 [DEBUG] Handling update UpdateShort
+2026-01-22 17:47:08,141 [DEBUG] Receiving items from the network...
+2026-01-22 17:47:08,146 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:08,254 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-22 17:47:08,255 [ERROR] API-Football error: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}
+2026-01-22 17:47:08,255 [DEBUG] [API-Football] Match not found or API unavailable
+2026-01-22 17:47:09,156 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:10,192 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:11,272 [DEBUG] Handling update UpdateShort
+2026-01-22 17:47:11,272 [DEBUG] Receiving items from the network...
+2026-01-22 17:47:12,201 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:13,570 [DEBUG] Handling update UpdateShort
+2026-01-22 17:47:13,570 [DEBUG] Receiving items from the network...
+2026-01-22 17:47:14,155 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:14,180 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:16,261 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:18,193 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:19,164 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:19,905 [DEBUG] Handling update UpdateShort
+2026-01-22 17:47:19,905 [DEBUG] Receiving items from the network...
+2026-01-22 17:47:20,198 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:21,470 [DEBUG] [EVENTS] _load_events called...
+2026-01-22 17:47:21,471 [DEBUG] [EXECUTOR] Job #239 START: execute
+2026-01-22 17:47:21,471 [DEBUG] [EXECUTOR] Starting read: get_football_events
+2026-01-22 17:47:21,471 [DEBUG] [BALANCE] _update_balance called...
+2026-01-22 17:47:21,560 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 None
+2026-01-22 17:47:21,567 [INFO] [EVENTS] Loaded 267 upcoming events
+2026-01-22 17:47:21,655 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 297
+2026-01-22 17:47:21,656 [INFO] [EVENTS] Loaded 4 in-play events
+2026-01-22 17:47:21,658 [INFO] [EVENTS] Total events returned: 271 (in-play: 4)
+2026-01-22 17:47:21,659 [DEBUG] [EXECUTOR] Completed read: get_football_events
+2026-01-22 17:47:21,660 [DEBUG] [EXECUTOR] Job #239 DONE: execute
+2026-01-22 17:47:21,660 [DEBUG] [EXECUTOR] Job #240 START: execute
+2026-01-22 17:47:21,660 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+2026-01-22 17:47:21,662 [INFO] [EVENTS] Got 271 events
+2026-01-22 17:47:21,663 [INFO] [EVENTS] Loaded 271 football events
+2026-01-22 17:47:21,664 [DEBUG] [EVENTS] Sample: Wadi Degla v Ghazl El Mahallah | Country: EG
+2026-01-22 17:47:21,664 [DEBUG] [EVENTS] Sample: Haras El Hodood v Kahraba Ismailia | Country: EG
+2026-01-22 17:47:21,665 [DEBUG] [EVENTS] Sample: Al-Taawoun Buraidah v Al-Hazm (KSA) | Country: SA
+2026-01-22 17:47:21,665 [DEBUG] [EVENTS] Sample: Randers v Real Salt Lake | Country: None
+2026-01-22 17:47:21,666 [DEBUG] [EVENTS] Sample: Ismaily v Al Mokawloon | Country: EG
+2026-01-22 17:47:21,755 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 151
+2026-01-22 17:47:21,756 [DEBUG] [EXECUTOR] Completed read: get_account_funds
+2026-01-22 17:47:21,757 [DEBUG] [EXECUTOR] Job #240 DONE: execute
+2026-01-22 17:47:21,806 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+2026-01-22 17:47:21,950 [DEBUG] Handling update UpdateShort
+2026-01-22 17:47:21,951 [DEBUG] Receiving items from the network...
+2026-01-22 17:47:22,211 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:23,324 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+2026-01-22 17:47:23,325 [ERROR] API-Football error: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}
+2026-01-22 17:47:23,326 [DEBUG] [API-Football] Match not found or API unavailable
+2026-01-22 17:47:24,194 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:24,404 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:26,264 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:28,354 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:29,087 [INFO] [UIQ] stats executed=6724 dropped=0 errors=0 qsize=0
+2026-01-22 17:47:29,178 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:30,251 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:30,487 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:30,488 [DEBUG] Cashout: Total matched=0, unmatched=0
+2026-01-22 17:47:32,259 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:32,496 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:32,497 [DEBUG] Cashout: Total matched=0, unmatched=0
+2026-01-22 17:47:34,103 [INFO] [UIQ] stats executed=6735 dropped=0 errors=0 qsize=0
+2026-01-22 17:47:34,199 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:34,333 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:34,543 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+2026-01-22 17:47:34,545 [DEBUG] Cashout: Total matched=0, unmatched=0

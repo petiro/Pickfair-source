@@ -14056,9 +14056,10 @@ Evento: {event_name}"""
         """Show advanced filters dialog with multi-criteria support."""
         dialog = tk.Toplevel(self.root)
         dialog.title("Filtri Avanzati Multi-Criterio")
-        dialog.geometry("600x750")
+        dialog.geometry("550x500")
         dialog.transient(self.root)
         dialog.after(10, dialog.grab_set)
+        dialog.minsize(500, 400)
         
         # Main scrollable frame
         canvas = tk.Canvas(dialog, highlightthickness=0)
@@ -14068,6 +14069,12 @@ Evento: {event_name}"""
         scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Enable mousewheel scrolling
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        canvas.bind_all('<MouseWheel>', on_mousewheel)
+        dialog.bind('<Destroy>', lambda e: canvas.unbind_all('<MouseWheel>'))
         
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
