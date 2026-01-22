@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.79.0"  # Silent handling for connection errors in positions loading
+APP_VERSION = "3.80.0"  # Fix parsing rules editor height to show Save button
 
 # Setup file logging
 def setup_logging():
@@ -9272,7 +9272,7 @@ class PickfairApp:
                     break
         
         self.pattern_editor_frame = ctk.CTkFrame(self.telegram_tab, fg_color=COLORS['bg_panel'], corner_radius=8)
-        self.pattern_editor_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER, relwidth=0.7, relheight=0.7)
+        self.pattern_editor_frame.place(relx=0.5, rely=0.5, anchor=tk.CENTER, relwidth=0.7, relheight=0.85)
         
         header_frame = ctk.CTkFrame(self.pattern_editor_frame, fg_color='transparent')
         header_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
