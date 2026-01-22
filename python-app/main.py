@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.1"  # Fix Telegram signal_type error
+APP_VERSION = "3.82.2"  # Show simulation bets in My Bets + threading fix
 
 # Setup file logging
 def setup_logging():
@@ -2028,6 +2028,29 @@ class PickfairApp:
                             o.update(snap)
                             break
                 
+                # Load simulation bets in background thread (not UI thread!)
+                sim_bets = []
+                if self.simulation_mode:
+                    try:
+                        raw_sim_bets = self.db.get_simulation_bets(limit=20)
+                        for sb in raw_sim_bets:
+                            if sb.get('status') == 'MATCHED':
+                                sim_bets.append({
+                                    'betId': f"SIM-{sb.get('id', 0)}",
+                                    'marketId': sb.get('market_id', ''),
+                                    'selectionId': 0,
+                                    'selectionName': f"[SIM] {sb.get('event_name', 'Unknown')}",
+                                    'side': sb.get('side', 'BACK'),
+                                    'price': 0,
+                                    'sizeMatched': sb.get('total_stake', 0),
+                                    'isSimulation': True,
+                                    'marketName': sb.get('market_name', ''),
+                                    'potentialProfit': sb.get('potential_profit', 0)
+                                })
+                    except Exception as e:
+                        logging.warning(f"[MY_BETS] Error loading simulation bets: {e}")
+                
+                orders['simulation_bets'] = sim_bets
                 self.uiq.post(self._update_my_bets_display, orders, key="my_bets_display", 
                              priority=UIPriority.NORMAL, debug_name="update_my_bets_display")
             except Exception as e:
@@ -2044,8 +2067,14 @@ class PickfairApp:
         # Pending = orders that are executable but not yet matched (sizeRemaining > 0)
         pending = [o for o in unmatched if o.get('status') == 'EXECUTABLE']
         
+        # Get simulation bets already loaded in background thread
+        sim_bets = orders.get('simulation_bets', [])
+        
+        # Combine real matched with simulated bets (simulated first)
+        all_matched = sim_bets + matched
+        
         # Store for later use
-        self.my_bets_data = {'pending': pending, 'unmatched': unmatched, 'matched': matched}
+        self.my_bets_data = {'pending': pending, 'unmatched': unmatched, 'matched': all_matched}
         
         # Clear existing rows
         for widget in self.pending_bets_list.winfo_children():
@@ -2055,10 +2084,10 @@ class PickfairApp:
         for widget in self.matched_bets_list.winfo_children():
             widget.destroy()
         
-        # Update counts
+        # Update counts (use all_matched which includes simulated bets)
         self.pending_count_label.configure(text=f"({len(pending)})")
         self.unmatched_count_label.configure(text=f"({len(unmatched)})")
-        self.matched_count_label.configure(text=f"({len(matched)})")
+        self.matched_count_label.configure(text=f"({len(all_matched)})")
         
         # Populate Pending with UI yield
         if pending:
@@ -2080,13 +2109,20 @@ class PickfairApp:
             ctk.CTkLabel(self.unmatched_bets_list, text="Nessun ordine unmatched",
                          font=('Segoe UI', 9), text_color='#bdbdbd').pack(pady=5)
         
-        # Populate Matched with UI yield
-        if matched:
-            display_matched = matched
+        # Populate Matched with UI yield (includes simulated bets with [SIM] prefix)
+        if all_matched:
+            display_matched = all_matched
+            # Only consolidate real bets, not simulated
             if self.consolidated_view_var.get():
-                display_matched = self._consolidate_matched_bets(matched)
+                real_matched = [o for o in all_matched if not o.get('isSimulation')]
+                sim_matched = [o for o in all_matched if o.get('isSimulation')]
+                display_matched = sim_matched + self._consolidate_matched_bets(real_matched)
             for i, order in enumerate(display_matched[:15]):
-                self._create_bet_row(self.matched_bets_list, order, 'matched', '#205020', '#c8e6c9')
+                # Use different colors for simulated bets
+                if order.get('isSimulation'):
+                    self._create_bet_row(self.matched_bets_list, order, 'matched', '#2d4a6d', '#90caf9')  # Blue for sim
+                else:
+                    self._create_bet_row(self.matched_bets_list, order, 'matched', '#205020', '#c8e6c9')
                 if (i + 1) % 5 == 0:
                     self.root.update_idletasks()
         else:
