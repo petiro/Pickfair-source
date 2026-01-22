@@ -5605,13 +5605,19 @@ class PickfairApp:
         
         # Bind to frame and labels - use bind on underlying tkinter widget for CTkLabel
         cell_frame.bind('<Button-1>', on_click)
+        # Right-click context menu
+        cell_frame.bind('<Button-3>', lambda e, sid=selection_id: self._show_ladder_context_menu(e, sid))
         try:
             price_lbl._label.bind('<Button-1>', on_click)
             size_lbl._label.bind('<Button-1>', on_click)
+            price_lbl._label.bind('<Button-3>', lambda e, sid=selection_id: self._show_ladder_context_menu(e, sid))
+            size_lbl._label.bind('<Button-3>', lambda e, sid=selection_id: self._show_ladder_context_menu(e, sid))
         except AttributeError:
             # Fallback for older customtkinter versions
             price_lbl.bind('<Button-1>', on_click)
             size_lbl.bind('<Button-1>', on_click)
+            price_lbl.bind('<Button-3>', lambda e, sid=selection_id: self._show_ladder_context_menu(e, sid))
+            size_lbl.bind('<Button-3>', lambda e, sid=selection_id: self._show_ladder_context_menu(e, sid))
         
         return cell_dict
     
