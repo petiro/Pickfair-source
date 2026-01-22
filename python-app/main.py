@@ -2097,17 +2097,69 @@ class PickfairApp:
                         raw_sim_bets = self.db.get_simulation_bets(limit=20)
                         for sb in raw_sim_bets:
                             if sb.get('status') == 'MATCHED':
+                                # Parse selections to get original prices
+                                selections = sb.get('selections', '[]')
+                                if isinstance(selections, str):
+                                    try:
+                                        selections = json.loads(selections)
+                                    except:
+                                        selections = []
+                                
+                                # Get first selection info for display
+                                original_price = 0
+                                selection_id = 0
+                                if selections and isinstance(selections, list) and len(selections) > 0:
+                                    first_sel = selections[0]
+                                    original_price = first_sel.get('price', 0)
+                                    selection_id = first_sel.get('selectionId', 0)
+                                
+                                # Calculate real-time P&L if we have market data
+                                market_id = sb.get('market_id', '')
+                                pnl = sb.get('potential_profit', 0)  # Default to potential profit
+                                
+                                # Try to get real-time price for P&L calculation
+                                if market_id and self.client and original_price > 0:
+                                    try:
+                                        book = self.client.get_market_book(market_id)
+                                        if book and book.runners:
+                                            # Find matching runner or use first
+                                            runner = book.runners[0]
+                                            if selection_id:
+                                                for r in book.runners:
+                                                    if str(r.selection_id) == str(selection_id):
+                                                        runner = r
+                                                        break
+                                            
+                                            side = sb.get('side', 'BACK')
+                                            stake = sb.get('total_stake', 0)
+                                            
+                                            if side == 'BACK':
+                                                # Get current LAY price to calculate cashout P&L
+                                                if runner.ex.available_to_lay:
+                                                    current_price = runner.ex.available_to_lay[0].price
+                                                    # P&L = stake * (original - current) / current
+                                                    pnl = stake * (original_price - current_price) / current_price if current_price > 0 else 0
+                                            else:
+                                                # LAY: get BACK price
+                                                if runner.ex.available_to_back:
+                                                    current_price = runner.ex.available_to_back[0].price
+                                                    pnl = stake * (current_price - original_price) / original_price if original_price > 0 else 0
+                                    except Exception as e:
+                                        logging.debug(f"[SIM] Cannot get real-time price: {e}")
+                                
                                 sim_bets.append({
                                     'betId': f"SIM-{sb.get('id', 0)}",
-                                    'marketId': sb.get('market_id', ''),
-                                    'selectionId': 0,
-                                    'selectionName': f"[SIM] {sb.get('event_name', 'Unknown')}",
+                                    'simBetId': sb.get('id', 0),
+                                    'marketId': market_id,
+                                    'selectionId': selection_id,
+                                    'selectionName': f"[SIM] {sb.get('event_name', 'Unknown')[:15]}",
                                     'side': sb.get('side', 'BACK'),
-                                    'price': 0,
+                                    'price': original_price,
                                     'sizeMatched': sb.get('total_stake', 0),
                                     'isSimulation': True,
                                     'marketName': sb.get('market_name', ''),
-                                    'potentialProfit': sb.get('potential_profit', 0)
+                                    'potentialProfit': sb.get('potential_profit', 0),
+                                    'pnl': round(pnl, 2)  # Real-time P&L
                                 })
                     except Exception as e:
                         logging.warning(f"[MY_BETS] Error loading simulation bets: {e}")
@@ -7387,11 +7439,12 @@ class PickfairApp:
             new_balance = virtual_balance - total_stake
             self.db.increment_simulation_bet_count(new_balance)
             
-            # Save simulation bet
+            # Save simulation bet with selectionId for real-time P&L calculation
             selections_info = [
                 {'name': r.get('runnerName', 'Unknown'), 
                  'price': r['price'], 
-                 'stake': r['stake']}
+                 'stake': r['stake'],
+                 'selectionId': r.get('selectionId', 0)}
                 for r in self.calculated_results
             ]
             
