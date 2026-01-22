@@ -1,0 +1,1001 @@
+17:04:49 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:04:50 [DEBUG] [EXECUTOR] Job #70 DONE: execute
+17:04:50 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:04:50 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:04:50 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:04:50 [DEBUG] [API-Football] Match not found or API unavailable
+17:04:50 [DEBUG] Timeout waiting for updates expired
+17:04:52 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:04:52 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:04:52 [DEBUG] Waiting for messages to send...
+17:04:52 [DEBUG] Handling update Updates
+17:04:52 [DEBUG] Receiving items from the network...
+17:04:52 [DEBUG] [TG] FILTERED: chat -1001873505928 not in monitored list
+17:04:52 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:04:53 [INFO] [UIQ] stats executed=3054 dropped=0 errors=0 qsize=0
+17:04:54 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:04:54 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:04:56 [DEBUG] Timeout waiting for updates expired
+17:04:56 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:04:56 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:04:57 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:04:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:04:58 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:04:58 [INFO] [UIQ] stats executed=3070 dropped=0 errors=0 qsize=0
+17:05:00 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:00 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:02 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:02 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:02 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:03 [INFO] [UIQ] stats executed=3081 dropped=0 errors=0 qsize=0
+17:05:04 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:04 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:05 [DEBUG] [API-Football] Match not found or API unavailable
+17:05:06 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:06 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:08 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:08 [INFO] [UIQ] stats executed=3097 dropped=0 errors=0 qsize=0
+17:05:10 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:10 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:12 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:12 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:12 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:13 [INFO] [UIQ] stats executed=3108 dropped=0 errors=0 qsize=0
+17:05:14 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:14 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:16 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:16 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:17 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:18 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:18 [DEBUG] Receiving items from the network...
+17:05:18 [DEBUG] [TG] FILTERED: chat -1001649705135 not in monitored list
+17:05:18 [INFO] [UIQ] stats executed=3125 dropped=0 errors=0 qsize=0
+17:05:19 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:05:19 [INFO] [EVENTS] Loaded 259 upcoming events
+17:05:19 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:05:19 [DEBUG] [EXECUTOR] Job #72 DONE: execute
+17:05:20 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:05:20 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:20 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:20 [DEBUG] [API-Football] Match not found or API unavailable
+17:05:22 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:22 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:22 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:23 [INFO] [UIQ] stats executed=3142 dropped=0 errors=0 qsize=0
+17:05:24 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:24 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:26 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:26 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:27 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:28 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:28 [INFO] [UIQ] stats executed=3157 dropped=0 errors=0 qsize=0
+17:05:30 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:30 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:32 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:32 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:32 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:33 [INFO] [UIQ] stats executed=3168 dropped=0 errors=0 qsize=0
+17:05:34 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:34 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:35 [DEBUG] [API-Football] Match not found or API unavailable
+17:05:36 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:36 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:37 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:38 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:38 [INFO] [UIQ] stats executed=3184 dropped=0 errors=0 qsize=0
+17:05:40 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:40 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:42 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:42 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:42 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:43 [INFO] [UIQ] stats executed=3195 dropped=0 errors=0 qsize=0
+17:05:44 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:44 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:46 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:46 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:47 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:48 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:48 [INFO] [UIQ] stats executed=3210 dropped=0 errors=0 qsize=0
+17:05:49 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:05:49 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 None
+17:05:49 [INFO] [EVENTS] Loaded 259 upcoming events
+17:05:49 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:05:49 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:05:50 [DEBUG] [EXECUTOR] Job #74 DONE: execute
+17:05:50 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:05:50 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:50 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:50 [DEBUG] Timeout waiting for updates expired
+17:05:50 [DEBUG] Timeout waiting for updates expired
+17:05:51 [DEBUG] [API-Football] Match not found or API unavailable
+17:05:52 [DEBUG] Waiting for messages to send...
+17:05:52 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:52 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:52 [DEBUG] Receiving items from the network...
+17:05:52 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:53 [INFO] [UIQ] stats executed=3233 dropped=0 errors=0 qsize=0
+17:05:54 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:54 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:56 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:56 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:57 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:05:58 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:05:58 [INFO] [UIQ] stats executed=3248 dropped=0 errors=0 qsize=0
+17:06:00 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:00 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:02 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:02 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:02 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:03 [INFO] [UIQ] stats executed=3259 dropped=0 errors=0 qsize=0
+17:06:04 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:04 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:06 [DEBUG] [API-Football] Match not found or API unavailable
+17:06:06 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:06 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:08 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:09 [INFO] [UIQ] stats executed=3275 dropped=0 errors=0 qsize=0
+17:06:10 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:10 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:12 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:12 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:12 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:14 [INFO] [UIQ] stats executed=3286 dropped=0 errors=0 qsize=0
+17:06:14 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:14 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:16 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:16 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:17 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:18 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:19 [INFO] [UIQ] stats executed=3301 dropped=0 errors=0 qsize=0
+17:06:19 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:06:19 [INFO] [EVENTS] Loaded 259 upcoming events
+17:06:19 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:06:19 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:06:19 [DEBUG] [EXECUTOR] Job #76 DONE: execute
+17:06:20 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:06:20 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:20 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:21 [DEBUG] https://v3.football.api-sports.io:443 "GET /fixtures?live=all HTTP/11" 200 None
+17:06:21 [DEBUG] [API-Football] Match not found or API unavailable
+17:06:22 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:22 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:22 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:24 [INFO] [UIQ] stats executed=3320 dropped=0 errors=0 qsize=0
+17:06:24 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:24 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:26 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:26 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:27 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:28 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:29 [INFO] [UIQ] stats executed=3335 dropped=0 errors=0 qsize=0
+17:06:30 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:30 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:32 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:32 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:32 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:34 [INFO] [UIQ] stats executed=3346 dropped=0 errors=0 qsize=0
+17:06:34 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:34 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:36 [DEBUG] [API-Football] Match not found or API unavailable
+17:06:36 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:36 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:37 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:38 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:39 [INFO] [UIQ] stats executed=3362 dropped=0 errors=0 qsize=0
+17:06:40 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:40 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:42 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:42 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:44 [INFO] [UIQ] stats executed=3373 dropped=0 errors=0 qsize=0
+17:06:44 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:44 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:46 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:46 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:48 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:49 [INFO] [UIQ] stats executed=3388 dropped=0 errors=0 qsize=0
+17:06:49 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:06:49 [INFO] [EVENTS] Loaded 259 upcoming events
+17:06:49 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:06:49 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:06:49 [DEBUG] [EXECUTOR] Job #78 DONE: execute
+17:06:50 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:06:50 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:51 [DEBUG] [API-Football] Match not found or API unavailable
+17:06:52 [DEBUG] Waiting for messages to send...
+17:06:52 [DEBUG] Handling update UpdateShort
+17:06:52 [DEBUG] Receiving items from the network...
+17:06:52 [DEBUG] Receiving items from the network...
+17:06:52 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:53 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:54 [INFO] [UIQ] stats executed=3408 dropped=0 errors=0 qsize=0
+17:06:54 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:54 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:54 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:56 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:56 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:06:58 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:06:59 [INFO] [UIQ] stats executed=3425 dropped=0 errors=0 qsize=0
+17:07:00 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:01 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:02 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:03 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:04 [INFO] [UIQ] stats executed=3436 dropped=0 errors=0 qsize=0
+17:07:04 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:05 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:06 [DEBUG] [API-Football] Match not found or API unavailable
+17:07:06 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:07 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:09 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:09 [INFO] [UIQ] stats executed=3452 dropped=0 errors=0 qsize=0
+17:07:10 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:11 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:12 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:13 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:14 [INFO] [UIQ] stats executed=3463 dropped=0 errors=0 qsize=0
+17:07:14 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:15 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:16 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:17 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:19 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:19 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:19 [INFO] [UIQ] stats executed=3478 dropped=0 errors=0 qsize=0
+17:07:19 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:07:19 [INFO] [EVENTS] Loaded 259 upcoming events
+17:07:19 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:07:19 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:07:19 [DEBUG] [EXECUTOR] Job #80 DONE: execute
+17:07:20 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:07:21 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:21 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:21 [DEBUG] [API-Football] Match not found or API unavailable
+17:07:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:23 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:24 [INFO] [UIQ] stats executed=3496 dropped=0 errors=0 qsize=0
+17:07:25 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:25 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:27 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:27 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:29 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:29 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:29 [INFO] [UIQ] stats executed=3511 dropped=0 errors=0 qsize=0
+17:07:31 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:31 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:33 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:34 [INFO] [UIQ] stats executed=3521 dropped=0 errors=0 qsize=0
+17:07:35 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:35 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:36 [DEBUG] [API-Football] Match not found or API unavailable
+17:07:37 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:37 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:39 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:39 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:39 [INFO] [UIQ] stats executed=3537 dropped=0 errors=0 qsize=0
+17:07:41 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:41 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:44 [INFO] [UIQ] stats executed=3547 dropped=0 errors=0 qsize=0
+17:07:45 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:47 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:47 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:49 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:49 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:49 [INFO] [UIQ] stats executed=3561 dropped=0 errors=0 qsize=0
+17:07:49 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:07:49 [INFO] [EVENTS] Loaded 259 upcoming events
+17:07:49 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:07:49 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:07:50 [DEBUG] [EXECUTOR] Job #82 DONE: execute
+17:07:50 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:07:50 [DEBUG] Session keepalive: OK
+17:07:51 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:51 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:51 [DEBUG] [API-Football] Match not found or API unavailable
+17:07:52 [DEBUG] Encrypting 1 message(s) in 76 bytes for sending
+17:07:52 [DEBUG] Waiting for messages to send...
+17:07:52 [DEBUG] Handling container
+17:07:52 [DEBUG] Receiving items from the network...
+17:07:52 [DEBUG] Receiving items from the network...
+17:07:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:53 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:54 [INFO] [UIQ] stats executed=3584 dropped=0 errors=0 qsize=0
+17:07:55 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:57 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:59 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:07:59 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:07:59 [INFO] [UIQ] stats executed=3597 dropped=0 errors=0 qsize=0
+17:08:01 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:01 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:03 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:04 [INFO] [UIQ] stats executed=3607 dropped=0 errors=0 qsize=0
+17:08:05 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:06 [DEBUG] [API-Football] Match not found or API unavailable
+17:08:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:07 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:09 [INFO] [UIQ] stats executed=3618 dropped=0 errors=0 qsize=0
+17:08:09 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:09 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:11 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:11 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:13 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:14 [INFO] [UIQ] stats executed=3633 dropped=0 errors=0 qsize=0
+17:08:15 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:17 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:19 [INFO] [UIQ] stats executed=3642 dropped=0 errors=0 qsize=0
+17:08:19 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:19 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:08:19 [INFO] [EVENTS] Loaded 259 upcoming events
+17:08:19 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:08:19 [DEBUG] [EXECUTOR] Job #84 DONE: execute
+17:08:20 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:08:21 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:22 [DEBUG] [API-Football] Match not found or API unavailable
+17:08:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:23 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:24 [INFO] [UIQ] stats executed=3661 dropped=0 errors=0 qsize=0
+17:08:25 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:27 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:27 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:29 [INFO] [UIQ] stats executed=3671 dropped=0 errors=0 qsize=0
+17:08:29 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:29 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:31 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:31 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:33 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:34 [INFO] [UIQ] stats executed=3686 dropped=0 errors=0 qsize=0
+17:08:35 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:37 [DEBUG] [API-Football] Match not found or API unavailable
+17:08:37 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:39 [INFO] [UIQ] stats executed=3696 dropped=0 errors=0 qsize=0
+17:08:39 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:39 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:41 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:43 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:44 [INFO] [UIQ] stats executed=3710 dropped=0 errors=0 qsize=0
+17:08:45 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:47 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:49 [INFO] [UIQ] stats executed=3719 dropped=0 errors=0 qsize=0
+17:08:49 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:49 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:08:49 [INFO] [EVENTS] Loaded 259 upcoming events
+17:08:49 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:08:50 [DEBUG] https://api.betfair.com:443 "POST /exchange/account/json-rpc/v1 HTTP/11" 200 151
+17:08:50 [DEBUG] [EXECUTOR] Job #86 DONE: execute
+17:08:50 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:08:51 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:52 [DEBUG] [API-Football] Match not found or API unavailable
+17:08:52 [DEBUG] Waiting for messages to send...
+17:08:53 [DEBUG] Receiving items from the network...
+17:08:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:53 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:54 [INFO] [UIQ] stats executed=3740 dropped=0 errors=0 qsize=0
+17:08:55 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:55 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:08:57 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:08:59 [INFO] [UIQ] stats executed=3750 dropped=0 errors=0 qsize=0
+17:08:59 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:01 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:03 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:04 [INFO] [UIQ] stats executed=3762 dropped=0 errors=0 qsize=0
+17:09:05 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:07 [DEBUG] [API-Football] Match not found or API unavailable
+17:09:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:07 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:09 [INFO] [UIQ] stats executed=3773 dropped=0 errors=0 qsize=0
+17:09:09 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:09 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:11 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:11 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:13 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:14 [INFO] [UIQ] stats executed=3788 dropped=0 errors=0 qsize=0
+17:09:15 [DEBUG] Timeout waiting for updates expired
+17:09:15 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:15 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:17 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:17 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:19 [INFO] [UIQ] stats executed=3800 dropped=0 errors=0 qsize=0
+17:09:19 [DEBUG] [BALANCE] _update_balance called...
+17:09:19 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:09:19 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:19 [INFO] [EVENTS] Loaded 259 upcoming events
+17:09:19 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:09:19 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:09:20 [DEBUG] [EXECUTOR] Job #88 DONE: execute
+17:09:20 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:09:21 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:22 [DEBUG] [API-Football] Match not found or API unavailable
+17:09:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:23 [DEBUG] Receiving items from the network...
+17:09:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:24 [INFO] [UIQ] stats executed=3821 dropped=0 errors=0 qsize=0
+17:09:25 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:27 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:27 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:29 [INFO] [UIQ] stats executed=3831 dropped=0 errors=0 qsize=0
+17:09:29 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:29 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:31 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:33 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:34 [INFO] [UIQ] stats executed=3845 dropped=0 errors=0 qsize=0
+17:09:35 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:35 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:37 [DEBUG] [API-Football] Match not found or API unavailable
+17:09:37 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:39 [INFO] [UIQ] stats executed=3856 dropped=0 errors=0 qsize=0
+17:09:39 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:39 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:41 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:41 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:43 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:44 [INFO] [UIQ] stats executed=3871 dropped=0 errors=0 qsize=0
+17:09:45 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:45 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:47 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:47 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:49 [INFO] [UIQ] stats executed=3882 dropped=0 errors=0 qsize=0
+17:09:49 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:09:49 [INFO] [EVENTS] Loaded 260 upcoming events
+17:09:49 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:09:49 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:09:50 [DEBUG] [EXECUTOR] Job #90 DONE: execute
+17:09:50 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:09:51 [DEBUG] Timeout waiting for updates expired
+17:09:51 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:52 [DEBUG] [API-Football] Match not found or API unavailable
+17:09:53 [DEBUG] Waiting for messages to send...
+17:09:53 [DEBUG] Receiving items from the network...
+17:09:53 [DEBUG] [TG] FILTERED: chat -1001413952942 not in monitored list
+17:09:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:53 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:54 [INFO] [UIQ] stats executed=3905 dropped=0 errors=0 qsize=0
+17:09:55 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:57 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:57 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:09:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:09:59 [INFO] [UIQ] stats executed=3915 dropped=0 errors=0 qsize=0
+17:09:59 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:01 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:03 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:04 [INFO] [UIQ] stats executed=3927 dropped=0 errors=0 qsize=0
+17:10:05 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:07 [DEBUG] [API-Football] Match not found or API unavailable
+17:10:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:07 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:09 [INFO] [UIQ] stats executed=3938 dropped=0 errors=0 qsize=0
+17:10:09 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:11 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:13 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:14 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:14 [INFO] [UIQ] stats executed=3951 dropped=0 errors=0 qsize=0
+17:10:16 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:19 [INFO] [UIQ] stats executed=3960 dropped=0 errors=0 qsize=0
+17:10:19 [DEBUG] [BALANCE] _update_balance called...
+17:10:19 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 None
+17:10:19 [INFO] [EVENTS] Loaded 259 upcoming events
+17:10:19 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:10:19 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:10:20 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:20 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:10:22 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:22 [DEBUG] [API-Football] Match not found or API unavailable
+17:10:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:24 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:24 [INFO] [UIQ] stats executed=3979 dropped=0 errors=0 qsize=0
+17:10:26 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:28 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:29 [INFO] [UIQ] stats executed=3988 dropped=0 errors=0 qsize=0
+17:10:30 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:32 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:34 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:34 [INFO] [UIQ] stats executed=4000 dropped=0 errors=0 qsize=0
+17:10:36 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:36 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:37 [DEBUG] [API-Football] Match not found or API unavailable
+17:10:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:38 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:39 [INFO] [UIQ] stats executed=4012 dropped=0 errors=0 qsize=0
+17:10:40 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:40 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:42 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:42 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:44 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:44 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:44 [INFO] [UIQ] stats executed=4027 dropped=0 errors=0 qsize=0
+17:10:46 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:48 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:49 [INFO] [UIQ] stats executed=4036 dropped=0 errors=0 qsize=0
+17:10:49 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:10:49 [INFO] [EVENTS] Loaded 260 upcoming events
+17:10:49 [DEBUG] [EXECUTOR] Job #93 DONE: execute
+17:10:49 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:10:49 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:10:50 [DEBUG] [EXECUTOR] Job #94 DONE: execute
+17:10:50 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:10:50 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:50 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:52 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:52 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:53 [DEBUG] [API-Football] Match not found or API unavailable
+17:10:53 [DEBUG] Waiting for messages to send...
+17:10:53 [DEBUG] Receiving items from the network...
+17:10:53 [DEBUG] [TG] FILTERED: chat -1002493851576 not in monitored list
+17:10:53 [DEBUG] Receiving items from the network...
+17:10:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:54 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:54 [INFO] [UIQ] stats executed=4062 dropped=0 errors=0 qsize=0
+17:10:56 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:56 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:58 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:10:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:10:59 [INFO] [UIQ] stats executed=4072 dropped=0 errors=0 qsize=0
+17:11:00 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:00 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:02 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:02 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:04 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:04 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:04 [INFO] [UIQ] stats executed=4087 dropped=0 errors=0 qsize=0
+17:11:06 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:06 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:08 [DEBUG] [API-Football] Match not found or API unavailable
+17:11:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:08 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:09 [INFO] [UIQ] stats executed=4099 dropped=0 errors=0 qsize=0
+17:11:10 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:10 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:12 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:14 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:14 [INFO] [UIQ] stats executed=4112 dropped=0 errors=0 qsize=0
+17:11:16 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:18 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:19 [INFO] [UIQ] stats executed=4121 dropped=0 errors=0 qsize=0
+17:11:19 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:11:19 [INFO] [EVENTS] Loaded 260 upcoming events
+17:11:19 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:11:19 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:11:20 [DEBUG] [EXECUTOR] Job #96 DONE: execute
+17:11:20 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:11:20 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:22 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:23 [DEBUG] [API-Football] Match not found or API unavailable
+17:11:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:24 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:24 [INFO] [UIQ] stats executed=4140 dropped=0 errors=0 qsize=0
+17:11:26 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:26 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:28 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:29 [INFO] [UIQ] stats executed=4150 dropped=0 errors=0 qsize=0
+17:11:30 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:32 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:34 [INFO] [UIQ] stats executed=4159 dropped=0 errors=0 qsize=0
+17:11:34 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:34 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:36 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:36 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:38 [DEBUG] [API-Football] Match not found or API unavailable
+17:11:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:38 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:39 [INFO] [UIQ] stats executed=4174 dropped=0 errors=0 qsize=0
+17:11:40 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:40 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:42 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:44 [INFO] [UIQ] stats executed=4184 dropped=0 errors=0 qsize=0
+17:11:44 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:44 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:46 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:46 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:48 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:49 [INFO] [UIQ] stats executed=4199 dropped=0 errors=0 qsize=0
+17:11:49 [DEBUG] [BALANCE] _update_balance called...
+17:11:49 [INFO] [EVENTS] Loaded 260 upcoming events
+17:11:49 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:11:50 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:11:50 [DEBUG] [EXECUTOR] Job #98 DONE: execute
+17:11:50 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:11:50 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:50 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:52 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:52 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:53 [DEBUG] Encrypting 1 message(s) in 60 bytes for sending
+17:11:53 [DEBUG] Waiting for messages to send...
+17:11:53 [DEBUG] Receiving items from the network...
+17:11:53 [DEBUG] [TG] FILTERED: chat -1002138791012 not in monitored list
+17:11:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:54 [INFO] [UIQ] stats executed=4220 dropped=0 errors=0 qsize=0
+17:11:54 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:54 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:56 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:56 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:58 [DEBUG] Receiving items from the network...
+17:11:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:11:58 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:11:59 [INFO] [UIQ] stats executed=4236 dropped=0 errors=0 qsize=0
+17:12:00 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:00 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:02 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:02 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:04 [INFO] [UIQ] stats executed=4247 dropped=0 errors=0 qsize=0
+17:12:04 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:04 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:06 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:06 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:08 [DEBUG] [API-Football] Match not found or API unavailable
+17:12:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:09 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:09 [DEBUG] Receiving items from the network...
+17:12:09 [INFO] [UIQ] stats executed=4264 dropped=0 errors=0 qsize=0
+17:12:10 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:11 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:13 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:14 [INFO] [UIQ] stats executed=4275 dropped=0 errors=0 qsize=0
+17:12:15 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:15 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:17 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:17 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:19 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:19 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:19 [DEBUG] [BALANCE] _update_balance called...
+17:12:19 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:12:19 [INFO] [UIQ] stats executed=4292 dropped=0 errors=0 qsize=0
+17:12:19 [INFO] [EVENTS] Loaded 260 upcoming events
+17:12:19 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:12:20 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:12:20 [DEBUG] [EXECUTOR] Job #100 DONE: execute
+17:12:20 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:12:21 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:21 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:23 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:23 [DEBUG] [API-Football] Match not found or API unavailable
+17:12:24 [INFO] [UIQ] stats executed=4309 dropped=0 errors=0 qsize=0
+17:12:25 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:25 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:27 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:27 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:29 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:29 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:29 [INFO] [UIQ] stats executed=4324 dropped=0 errors=0 qsize=0
+17:12:31 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:31 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:33 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:34 [INFO] [UIQ] stats executed=4335 dropped=0 errors=0 qsize=0
+17:12:35 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:35 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:37 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:37 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:38 [DEBUG] [API-Football] Match not found or API unavailable
+17:12:39 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:39 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:39 [INFO] [UIQ] stats executed=4351 dropped=0 errors=0 qsize=0
+17:12:41 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:41 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:43 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:44 [INFO] [UIQ] stats executed=4362 dropped=0 errors=0 qsize=0
+17:12:45 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:45 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:47 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:47 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:49 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:49 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:49 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:12:49 [INFO] [UIQ] stats executed=4378 dropped=0 errors=0 qsize=0
+17:12:49 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 None
+17:12:49 [INFO] [EVENTS] Loaded 260 upcoming events
+17:12:49 [DEBUG] [EXECUTOR] Job #102 START: execute
+17:12:49 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:12:50 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:12:50 [DEBUG] [EXECUTOR] Job #102 DONE: execute
+17:12:50 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:12:50 [DEBUG] Receiving items from the network...
+17:12:50 [DEBUG] Receiving items from the network...
+17:12:51 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:51 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:53 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:53 [DEBUG] Waiting for messages to send...
+17:12:53 [DEBUG] Receiving items from the network...
+17:12:53 [DEBUG] Receiving items from the network...
+17:12:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:53 [DEBUG] [API-Football] Match not found or API unavailable
+17:12:54 [INFO] [UIQ] stats executed=4402 dropped=0 errors=0 qsize=0
+17:12:55 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:55 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:57 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:57 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:12:59 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:12:59 [INFO] [UIQ] stats executed=4416 dropped=0 errors=0 qsize=0
+17:13:01 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:01 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:03 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:04 [INFO] [UIQ] stats executed=4427 dropped=0 errors=0 qsize=0
+17:13:05 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:05 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:07 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:08 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:08 [DEBUG] [API-Football] Match not found or API unavailable
+17:13:09 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:09 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:09 [INFO] [UIQ] stats executed=4443 dropped=0 errors=0 qsize=0
+17:13:11 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:11 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:13 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:13 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:14 [DEBUG] Receiving items from the network...
+17:13:14 [INFO] [UIQ] stats executed=4455 dropped=0 errors=0 qsize=0
+17:13:15 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:15 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:17 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:17 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:18 [DEBUG] Receiving items from the network...
+17:13:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:19 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:19 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:19 [DEBUG] [BALANCE] _update_balance called...
+17:13:19 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:13:19 [INFO] [UIQ] stats executed=4473 dropped=0 errors=0 qsize=0
+17:13:19 [INFO] [EVENTS] Loaded 260 upcoming events
+17:13:20 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:13:20 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:13:20 [DEBUG] [EXECUTOR] Job #104 DONE: execute
+17:13:20 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:13:21 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:21 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:23 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:23 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:24 [DEBUG] [API-Football] Match not found or API unavailable
+17:13:24 [INFO] [UIQ] stats executed=4490 dropped=0 errors=0 qsize=0
+17:13:25 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:25 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:26 [DEBUG] Receiving items from the network...
+17:13:26 [DEBUG] Handling update UpdateShort
+17:13:26 [DEBUG] Receiving items from the network...
+17:13:27 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:27 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:29 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:29 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:29 [INFO] [UIQ] stats executed=4508 dropped=0 errors=0 qsize=0
+17:13:31 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:31 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:33 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:33 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:34 [INFO] [UIQ] stats executed=4519 dropped=0 errors=0 qsize=0
+17:13:35 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:35 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:37 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:37 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:39 [DEBUG] [API-Football] Match not found or API unavailable
+17:13:39 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:39 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:39 [INFO] [UIQ] stats executed=4535 dropped=0 errors=0 qsize=0
+17:13:41 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:41 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:43 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:43 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:44 [INFO] [UIQ] stats executed=4546 dropped=0 errors=0 qsize=0
+17:13:45 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:45 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:47 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:47 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:49 [DEBUG] Handling update Updates
+17:13:49 [DEBUG] Receiving items from the network...
+17:13:49 [DEBUG] [TG] FILTERED: chat -1002138791012 not in monitored list
+17:13:49 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:49 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:49 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:13:49 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 None
+17:13:49 [INFO] [EVENTS] Loaded 260 upcoming events
+17:13:49 [INFO] [UIQ] stats executed=4567 dropped=0 errors=0 qsize=0
+17:13:50 [DEBUG] [EXECUTOR] Job #105 DONE: execute
+17:13:50 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:13:50 [DEBUG] [EVENTS] Sample: Al-Quadisiya (KSA) v Al-Ittihad | Country: SA
+17:13:50 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:13:51 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:51 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:53 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:53 [DEBUG] Waiting for messages to send...
+17:13:53 [DEBUG] Waiting for messages to send...
+17:13:53 [DEBUG] Receiving items from the network...
+17:13:53 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:54 [DEBUG] [API-Football] Match not found or API unavailable
+17:13:54 [INFO] [UIQ] stats executed=4586 dropped=0 errors=0 qsize=0
+17:13:55 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:55 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:57 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:57 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:58 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:59 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:13:59 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:13:59 [INFO] [UIQ] stats executed=4601 dropped=0 errors=0 qsize=0
+17:14:01 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:14:01 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:14:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:14:03 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:14:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:14:04 [INFO] [UIQ] stats executed=4612 dropped=0 errors=0 qsize=0
+17:14:05 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:14:05 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:14:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:14:07 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:14:07 [INFO] [PARSER] parse_signal called with: P.Bet.70/80 OVER SUCCESSIVO  🔊 
+
+🏆Tunisia Ligue Professionelle 1
+🆚randers v real salt lakers
+⚽ 0 - 0...
+17:35:16 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:16 [INFO] [UIQ] stats executed=4628 dropped=0 errors=0 qsize=0
+17:35:16 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:18 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:18 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:18 [DEBUG] [API-Football] Match not found or API unavailable
+17:35:18 [DEBUG] Encrypting 1 message(s) in 44 bytes for sending
+17:35:18 [DEBUG] Waiting for messages to send...
+17:35:18 [DEBUG] Receiving items from the network...
+17:35:20 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:20 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:20 [DEBUG] [EXECUTOR] Starting read: get_football_events
+17:35:20 [INFO] [EVENTS] Loaded 273 upcoming events
+17:35:20 [DEBUG] [EXECUTOR] Job #191 DONE: execute
+17:35:20 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:35:20 [DEBUG] [EVENTS] Sample: PAOK v Betis | Country: None
+17:35:20 [DEBUG] [EXECUTOR] Job #192 DONE: execute
+17:35:20 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:35:21 [INFO] [UIQ] stats executed=4650 dropped=0 errors=0 qsize=0
+17:35:21 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:22 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:24 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:26 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:26 [INFO] [UIQ] stats executed=4662 dropped=0 errors=0 qsize=0
+17:35:26 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:28 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:28 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:30 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:30 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:31 [INFO] [UIQ] stats executed=4673 dropped=0 errors=0 qsize=0
+17:35:31 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:32 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:33 [DEBUG] [API-Football] Match not found or API unavailable
+17:35:34 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:36 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:36 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:36 [INFO] [UIQ] stats executed=4687 dropped=0 errors=0 qsize=0
+17:35:36 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:38 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:40 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:41 [INFO] [UIQ] stats executed=4696 dropped=0 errors=0 qsize=0
+17:35:41 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:42 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:44 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:46 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:46 [INFO] [UIQ] stats executed=4708 dropped=0 errors=0 qsize=0
+17:35:46 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:48 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:48 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:48 [DEBUG] [API-Football] Match not found or API unavailable
+17:35:50 [DEBUG] Resetting dropped connection: api.betfair.com
+17:35:51 [INFO] [EVENTS] Loaded 273 upcoming events
+17:35:51 [DEBUG] [EXECUTOR] Starting read: get_account_funds
+17:35:51 [DEBUG] [EVENTS] Sample: PAOK v Betis | Country: None
+17:35:51 [DEBUG] [EXECUTOR] Job #194 DONE: execute
+17:35:52 [INFO] [BALANCE] Got funds: {'available': 0.44, 'exposure': 0.0, 'total': 0.44}
+17:35:52 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:53 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:55 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:56 [DEBUG] Waiting for messages to send...
+17:35:56 [DEBUG] Receiving items from the network...
+17:35:57 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:57 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:35:59 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:35:59 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:36:01 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:36:02 [INFO] [UIQ] stats executed=4746 dropped=0 errors=0 qsize=0
+17:36:02 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:36:03 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:36:03 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:36:03 [DEBUG] [API-Football] Match not found or API unavailable
+17:36:05 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:36:05 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:36:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+17:36:07 [DEBUG] Cashout: Total matched=0, unmatched=0
+17:36:07 [DEBUG] https://api.betfair.com:443 "POST /exchange/betting/json-rpc/v1 HTTP/11" 200 94
+
