@@ -2196,6 +2196,16 @@ class PickfairApp:
         # Combine real matched with simulated bets (simulated first)
         all_matched = sim_bets + matched
         
+        # Check if data changed to avoid flicker
+        def get_data_hash(data):
+            """Simple hash to detect changes."""
+            return str([(o.get('betId'), o.get('pnl'), o.get('sizeMatched')) for o in data])
+        
+        new_hash = get_data_hash(all_matched) + get_data_hash(pending)
+        if hasattr(self, '_my_bets_hash') and self._my_bets_hash == new_hash:
+            return  # No changes, skip update to prevent flicker
+        self._my_bets_hash = new_hash
+        
         # Store for later use
         self.my_bets_data = {'pending': pending, 'unmatched': unmatched, 'matched': all_matched}
         
