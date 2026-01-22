@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.2"  # Show simulation bets in My Bets + threading fix
+APP_VERSION = "3.82.3"  # Add auto-bet debug logging
 
 # Setup file logging
 def setup_logging():
@@ -13308,6 +13308,9 @@ Evento: {event_name}"""
             live_events = self.client.get_live_events('1')
             all_events = self.client.get_football_events(include_inplay=True)
             
+            logging.info(f"[AUTO-BET] Searching for: {event_name}")
+            logging.info(f"[AUTO-BET] Live events: {len(live_events)}, All events: {len(all_events)}")
+            
             event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ')
             league_lower = league.lower() if league else ''
             
@@ -13335,9 +13338,16 @@ Evento: {event_name}"""
                     if league_country and league_country in competition:
                         match_score += 1
                     
+                    # Log potential matches for debugging
+                    if match_score >= 1:
+                        logging.debug(f"[AUTO-BET] Candidate: {event['name']} | Score: {match_score} | Common: {common}")
+                    
                     if match_score > best_score and match_score >= 2:
                         best_score = match_score
                         best_match = event
+                
+                if best_match:
+                    logging.info(f"[AUTO-BET] Best match: {best_match['name']} (score={best_score})")
                 return best_match
             
             # Search based on event_filter for targeted lookup
