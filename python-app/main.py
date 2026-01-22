@@ -1943,8 +1943,16 @@ class PickfairApp:
             bet_id = order.get('betId')
             market_id = order.get('marketId')
             selection_id = order.get('selectionId')
+            is_simulation = order.get('isSimulation', False)
             
-            if bet_id and market_id and selection_id:
+            if is_simulation:
+                # Simulation bet actions: close (settle) the bet
+                close_btn = ctk.CTkButton(row_frame, text="X", width=22, height=18,
+                                          fg_color='#7b1fa2', hover_color='#6a1b9a',
+                                          font=('Segoe UI', 8, 'bold'),
+                                          command=lambda o=order: self._close_simulation_bet(o))
+                close_btn.pack(side=tk.RIGHT, padx=1)
+            elif bet_id and market_id and selection_id:
                 green_btn = ctk.CTkButton(row_frame, text="G", width=22, height=18,
                                           fg_color='#2e7d32', hover_color='#1b5e20',
                                           font=('Segoe UI', 8, 'bold'),
@@ -2174,7 +2182,7 @@ class PickfairApp:
             for i, order in enumerate(display_matched[:15]):
                 # Use different colors for simulated bets
                 if order.get('isSimulation'):
-                    self._create_bet_row(self.matched_bets_list, order, 'matched', '#2d4a6d', '#90caf9')  # Blue for sim
+                    self._create_bet_row(self.matched_bets_list, order, 'matched', '#4a1a6d', '#e1bee7')  # Purple for sim - more visible
                 else:
                     self._create_bet_row(self.matched_bets_list, order, 'matched', '#205020', '#c8e6c9')
                 if (i + 1) % 5 == 0:
@@ -2354,6 +2362,70 @@ class PickfairApp:
         except:
             pass
         return price
+    
+    def _close_simulation_bet(self, order):
+        """Close/settle a simulation bet at current market price."""
+        if not self.client:
+            self.uiq.post(lambda: messagebox.showwarning("Simulazione", "Connetti prima a Betfair"), 
+                          key="sim_warn", debug_name="sim_close_warn")
+            return
+        
+        market_id = order.get('marketId')
+        selection_id = order.get('selectionId')
+        sim_bet_id = order.get('simBetId') or order.get('betId')
+        
+        if not market_id or not selection_id:
+            logging.warning(f"[SIM] Cannot close bet - missing market/selection ID")
+            return
+        
+        def do_close():
+            try:
+                # Get current market price
+                book = self.client.get_market_book(market_id)
+                if not book or not book.runners:
+                    raise Exception("Market non disponibile")
+                
+                runner = next((r for r in book.runners if str(r.selection_id) == str(selection_id)), None)
+                if not runner:
+                    raise Exception("Runner non trovato")
+                
+                # Get current price based on bet side
+                side = order.get('side', 'BACK')
+                if side == 'BACK':
+                    # To close a BACK, we need the LAY price
+                    current_price = runner.ex.available_to_lay[0].price if runner.ex.available_to_lay else 0
+                else:
+                    # To close a LAY, we need the BACK price
+                    current_price = runner.ex.available_to_back[0].price if runner.ex.available_to_back else 0
+                
+                if current_price <= 0:
+                    raise Exception("Prezzo non disponibile")
+                
+                # Calculate P&L and close the bet
+                original_price = order.get('price', 1.0)
+                stake = order.get('sizeMatched', order.get('size', 0))
+                
+                if side == 'BACK':
+                    # BACK: profit if price dropped (can lay cheaper)
+                    pnl = stake * (original_price - current_price) / current_price
+                else:
+                    # LAY: profit if price rose (can back cheaper)
+                    pnl = stake * (current_price - original_price) / current_price
+                
+                # Update simulation in database
+                self.storage.close_simulation_bet(sim_bet_id, pnl, current_price)
+                
+                self.uiq.post(lambda p=pnl: messagebox.showinfo("Simulazione", 
+                              f"Scommessa chiusa\nP&L: {p:+.2f} EUR"), 
+                              key="sim_closed", debug_name="sim_closed")
+                self.uiq.post(self._refresh_my_bets_panel, key="refresh_bets", debug_name="refresh_bets_sim")
+                
+            except Exception as e:
+                logging.error(f"[SIM] Error closing bet: {e}")
+                self.uiq.post(lambda err=str(e): messagebox.showerror("Errore", f"Impossibile chiudere: {err}"), 
+                              key="sim_error", debug_name="sim_close_error")
+        
+        run_bg(self, "CloseSimBet", do_close)
     
     def _green_up_selection(self, market_id, selection_id, order):
         """Execute green-up (cashout) for a single selection with debounce.

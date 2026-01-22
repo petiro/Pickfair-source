@@ -1214,6 +1214,33 @@ class Database:
         # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
+    def close_simulation_bet(self, bet_id, pnl, close_price):
+        """Close a simulation bet and update balance."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        # Update bet status
+        cursor.execute('''
+            UPDATE simulation_bets 
+            SET status = 'CLOSED', 
+                profit_loss = ?,
+                settled_at = ?,
+                result = ?
+            WHERE id = ?
+        ''', (pnl, datetime.now().isoformat(), 'WIN' if pnl >= 0 else 'LOSS', bet_id))
+        
+        # Update simulation balance
+        cursor.execute('SELECT current_balance FROM simulation_settings')
+        row = cursor.fetchone()
+        if row:
+            new_balance = row['current_balance'] + pnl
+            cursor.execute('''
+                UPDATE simulation_settings SET current_balance = ?
+            ''', (new_balance,))
+        
+        conn.commit()
+        return True
+    
     def get_simulation_stats(self):
         """Get simulation statistics."""
         settings = self.get_simulation_settings()
