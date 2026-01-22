@@ -74,8 +74,22 @@ def normalize_team_name(name: str) -> str:
 
     tokens = name.split()
     tokens = [t for t in tokens if t not in STOPWORDS]
+    
+    # Remove trailing 's' from tokens (common typo: "lakers" -> "lake")
+    # But not for short words or known plurals
+    KEEP_S_WORDS = {"paris", "reims", "lens", "nantes", "rennes", "wolves", 
+                    "spurs", "gunners", "blues", "reds", "whites", "rapids",
+                    "sounders", "timbers", "quakes", "loons", "whitecaps",
+                    "rapids", "earthquakes", "revs", "hammers", "toffees"}
+    normalized_tokens = []
+    for t in tokens:
+        if len(t) > 4 and t.endswith('s') and t not in KEEP_S_WORDS:
+            # Remove trailing 's' but keep the word if it makes sense
+            normalized_tokens.append(t[:-1])  # Add without 's'
+        else:
+            normalized_tokens.append(t)
 
-    return " ".join(tokens).strip()
+    return " ".join(normalized_tokens).strip()
 
 
 SCHEMA_SQL = """
@@ -304,6 +318,49 @@ BUILTIN_ALIASES = {
     "aek athens": ["aek", "aek fc"],
     "paok": ["paok thessaloniki", "paok salonika"],
     "aris": ["aris thessaloniki", "aris salonika"],
+    
+    # USA - MLS
+    "real salt lake": ["salt lake", "real salt lakers", "rsl", "salt lake city"],
+    "la galaxy": ["los angeles galaxy", "galaxy", "lag"],
+    "lafc": ["los angeles fc", "los angeles football club"],
+    "atlanta united": ["atlanta utd", "atl united", "atlutd"],
+    "seattle sounders": ["seattle", "sounders"],
+    "portland timbers": ["portland", "timbers"],
+    "new york red bulls": ["ny red bulls", "nyrb", "red bulls"],
+    "new york city fc": ["nycfc", "ny city fc", "nyc fc"],
+    "inter miami": ["miami", "inter miami cf"],
+    "austin fc": ["austin"],
+    "fc dallas": ["dallas"],
+    "houston dynamo": ["houston", "dynamo"],
+    "sporting kc": ["sporting kansas city", "kansas city", "skc"],
+    "minnesota united": ["minnesota", "loons"],
+    "colorado rapids": ["colorado", "rapids"],
+    "nashville sc": ["nashville"],
+    "columbus crew": ["columbus", "crew"],
+    "chicago fire": ["chicago", "fire fc"],
+    "toronto fc": ["toronto", "tfc"],
+    "vancouver whitecaps": ["vancouver", "whitecaps"],
+    "cf montreal": ["montreal", "montreal impact"],
+    "philadelphia union": ["philadelphia", "philly union"],
+    "dc united": ["washington dc", "dc"],
+    "fc cincinnati": ["cincinnati", "fcc"],
+    "charlotte fc": ["charlotte"],
+    "st louis city sc": ["st louis", "st louis city"],
+    "san jose earthquakes": ["san jose", "earthquakes", "quakes"],
+    "new england revolution": ["new england", "revs", "revolution"],
+    "orlando city": ["orlando", "ocsc"],
+    
+    # DENMARK
+    "randers": ["randers fc"],
+    "copenhagen": ["fc copenhagen", "fc kobenhavn", "fck"],
+    "brondby": ["brondby if"],
+    "midtjylland": ["fc midtjylland"],
+    "nordsjaelland": ["fc nordsjaelland"],
+    "odense": ["odense boldklub", "ob"],
+    "aarhus": ["agf aarhus", "agf"],
+    "aalborg": ["aalborg bk", "aab"],
+    "silkeborg": ["silkeborg if"],
+    "viborg": ["viborg ff"],
     
     # OTHER MAJOR CLUBS
     "celtic": ["celtic glasgow", "celtic fc"],
