@@ -5395,6 +5395,11 @@ class PickfairApp:
                 self.market_status_label.configure(text="APERTO", text_color=COLORS['success'])
             self.dutch_modal_btn.configure(state=tk.NORMAL)
         
+        # Auto-enable streaming for real-time quotes when market is open
+        if self.market_status not in ('SUSPENDED', 'CLOSED') and not self.stream_var.get():
+            self.stream_var.set(True)
+            self._start_streaming()
+        
         # Create runner rows with professional layout
         for row_idx, runner in enumerate(market['runners']):
             selection_id = str(runner['selectionId'])
