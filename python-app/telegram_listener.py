@@ -1555,15 +1555,15 @@ class TelegramListener:
                 if _safe_mode and not _safe_mode.can_auto_bet():
                     logging.warning(f"[SAFE-MODE] Signal blocked (safe mode active): {signal.get('event')} @ {signal.get('odds')}")
                     if _bet_logger:
-                        _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type='BLOCKED_SAFE_MODE')
+                        _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_id=message.id, message_text=text[:500], parsed_data={'status': 'BLOCKED_SAFE_MODE'})
                     return
                 
                 if _bet_logger:
-                    _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_text=text[:500], signal_type=signal.get('market_type', 'UNKNOWN'))
+                    _bet_logger.log_telegram_signal_received(chat_id=chat_id, message_id=message.id, message_text=text[:500], parsed_data=signal)
                 logging.info(f"[LISTENER] Signal parsed from chat {chat_id}: {signal.get('event')} -> {signal.get('market_type')} @ {signal.get('odds')}")
                 self.signal_callback(signal)
                 if _bet_logger:
-                    _bet_logger.log_telegram_signal_processed(chat_id=chat_id, signal_type=signal.get('market_type', 'SIGNAL'), processing_time_ms=int((time.time() - _start_time) * 1000))
+                    _bet_logger.log_telegram_signal_processed(chat_id=chat_id, message_id=message.id, processing_time_ms=int((time.time() - _start_time) * 1000))
         
         # FIX: self.running is already set in start() - don't set here
         # self.running = True  # REMOVED - was causing state inconsistency

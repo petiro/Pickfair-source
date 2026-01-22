@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.0"  # Fix advanced dutching simulation + event name
+APP_VERSION = "3.82.1"  # Fix Telegram signal_type error
 
 # Setup file logging
 def setup_logging():
