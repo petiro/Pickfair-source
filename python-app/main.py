@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.12"  # Improved event matching, fixed signal stats counter
+APP_VERSION = "3.82.13"  # Auto-refresh simulation tab every 5 seconds
 
 # Setup file logging
 def setup_logging():
@@ -797,6 +797,13 @@ class PickfairApp:
         if hasattr(self, 'market_watch_refresh_id') and self.market_watch_refresh_id:
             try:
                 self.root.after_cancel(self.market_watch_refresh_id)
+            except:
+                pass
+        
+        # Stop Simulation refresh timer
+        if hasattr(self, 'sim_refresh_id') and self.sim_refresh_id:
+            try:
+                self.root.after_cancel(self.sim_refresh_id)
             except:
                 pass
         
@@ -1689,9 +1696,11 @@ class PickfairApp:
         # Store order data for operations
         self.my_bets_data = {'pending': [], 'unmatched': [], 'matched': []}
         
-        # Auto-refresh timer
+        # Auto-refresh timers
         self.my_bets_refresh_id = None
+        self.sim_refresh_id = None
         self._start_my_bets_auto_refresh()
+        self._start_simulation_auto_refresh()
     
     def _create_my_bets_section(self, parent):
         """Create My Bets section embedded in Dutching panel."""
@@ -2670,6 +2679,22 @@ class PickfairApp:
         
         # Delay first refresh to allow app to fully initialize
         self.my_bets_refresh_id = self.root.after(10000, refresh_loop)  # Start after 10 seconds
+    
+    def _start_simulation_auto_refresh(self):
+        """Start auto-refresh for Simulation tab."""
+        if hasattr(self, 'sim_refresh_id') and self.sim_refresh_id:
+            self.root.after_cancel(self.sim_refresh_id)
+        
+        def refresh_loop():
+            if self.simulation_mode and hasattr(self, 'sim_bets_frame'):
+                try:
+                    self._refresh_simulation_bets_list()
+                    self._update_simulation_balance_display()
+                except Exception:
+                    pass
+            self.sim_refresh_id = self.root.after(5000, refresh_loop)  # Refresh every 5 seconds
+        
+        self.sim_refresh_id = self.root.after(5000, refresh_loop)
     
     def _update_placed_bets(self):
         """Update placed bets list for current market."""
