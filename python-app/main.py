@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.18"  # Added minimize button to Grafici Quote and Trigger Rules popups
+APP_VERSION = "3.82.19"  # Auto-refresh market prices every 2 seconds (no UI freeze)
 
 # Setup file logging
 def setup_logging():
@@ -1061,6 +1061,18 @@ class PickfairApp:
             text_color=COLORS['text_primary']
         )
         self.stream_check.pack(side=tk.LEFT)
+        
+        # Auto-refresh market prices every 2 seconds
+        self.market_auto_refresh_var = tk.BooleanVar(value=True)  # Enabled by default
+        self.market_auto_refresh_check = ctk.CTkCheckBox(
+            stream_frame,
+            text="Auto 2s",
+            variable=self.market_auto_refresh_var,
+            command=self._toggle_market_auto_refresh,
+            fg_color=COLORS['success'], hover_color='#2e7d32',
+            text_color=COLORS['text_primary']
+        )
+        self.market_auto_refresh_check.pack(side=tk.LEFT, padx=10)
         
         # Dutching modal button
         self.dutch_modal_btn = ctk.CTkButton(
@@ -5080,6 +5092,53 @@ class PickfairApp:
         """Handle auto-refresh interval change."""
         if self.auto_refresh_var.get():
             self._start_auto_refresh()
+
+    def _toggle_market_auto_refresh(self):
+        """Toggle market auto-refresh (2 seconds)."""
+        if self.market_auto_refresh_var.get():
+            self._start_market_auto_refresh()
+        else:
+            self._stop_market_auto_refresh()
+
+    def _start_market_auto_refresh(self):
+        """Start market prices auto-refresh every 2 seconds in background thread."""
+        if not self.client or not hasattr(self, 'current_market') or not self.current_market:
+            return
+        
+        market_id = self.current_market.get('marketId')
+        if not market_id:
+            return
+        
+        def do_market_refresh():
+            if not self.market_auto_refresh_var.get():
+                return
+            if not self.client or not self.current_market:
+                return
+            if self.current_market.get('marketId') != market_id:
+                return  # Market changed, stop this refresh cycle
+            
+            def fetch_and_update():
+                try:
+                    new_market = self.client.get_market_with_prices(market_id)
+                    if new_market and self.current_market and self.current_market.get('marketId') == market_id:
+                        self.uiq.post(lambda: self._display_market(new_market),
+                                     key="market_auto_refresh", priority=UIPriority.NORMAL,
+                                     debug_name="market_auto_refresh")
+                except Exception as e:
+                    logging.debug(f"[AUTO-REFRESH] Market refresh error: {e}")
+            
+            # Run fetch in background thread
+            threading.Thread(target=fetch_and_update, daemon=True).start()
+            
+            # Schedule next refresh
+            self.timers.schedule("market_auto_refresh", 2000, do_market_refresh)
+        
+        # Start the refresh cycle
+        self.timers.schedule("market_auto_refresh", 2000, do_market_refresh)
+
+    def _stop_market_auto_refresh(self):
+        """Stop market prices auto-refresh."""
+        self.timers.cancel("market_auto_refresh")
     
     @ui_guard("refresh_data")
     def _refresh_data(self):
@@ -5417,6 +5476,10 @@ class PickfairApp:
             # Just update existing cells with new prices
             self._update_ladder_prices(market)
             return
+        
+        # New market - start auto-refresh if enabled
+        if hasattr(self, 'market_auto_refresh_var') and self.market_auto_refresh_var.get():
+            self._start_market_auto_refresh()
         
         # New market - clear and recreate UI
         self.runners_tree.delete(*self.runners_tree.get_children())
