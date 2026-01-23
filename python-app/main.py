@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.17"  # Smart word-joining for ALL split words (not just hardcoded)
+APP_VERSION = "3.82.18"  # Added minimize button to Grafici Quote and Trigger Rules popups
 
 # Setup file logging
 def setup_logging():
@@ -6301,8 +6301,20 @@ class PickfairApp:
         dialog = tk.Toplevel(self.root)
         dialog.title(f"Grafici Quote - {runner_name}")
         dialog.geometry("750x500")
-        dialog.transient(self.root)
+        # Don't use transient - allows minimize button
         dialog.configure(bg=COLORS['bg_main'])
+        
+        # Add minimize/close buttons in title bar frame
+        title_frame = ctk.CTkFrame(dialog, fg_color=COLORS['bg_panel'], height=30)
+        title_frame.pack(fill=tk.X, side=tk.TOP)
+        title_frame.pack_propagate(False)
+        
+        ctk.CTkLabel(title_frame, text=runner_name, font=('Segoe UI', 11, 'bold'),
+                    text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=10)
+        
+        ctk.CTkButton(title_frame, text="−", width=30, height=24,
+                     fg_color=COLORS['button_secondary'], hover_color=COLORS['back_hover'],
+                     command=dialog.iconify).pack(side=tk.RIGHT, padx=2, pady=3)
         
         chart_panel = ChartPanel(dialog, tick_storage=self.tick_storage, uiq=self.uiq)
         chart_panel.pack(fill=tk.BOTH, expand=True)
@@ -6367,8 +6379,19 @@ class PickfairApp:
         dialog = tk.Toplevel(self.root)
         dialog.title(f"Trigger Rules - {runner_name}")
         dialog.geometry("500x550")
-        dialog.transient(self.root)
-        dialog.after(10, dialog.grab_set)
+        # Don't use transient - allows minimize button
+        
+        # Add minimize button in title bar frame
+        title_frame = ctk.CTkFrame(dialog, fg_color=COLORS['bg_panel'], height=30)
+        title_frame.pack(fill=tk.X, side=tk.TOP)
+        title_frame.pack_propagate(False)
+        
+        ctk.CTkLabel(title_frame, text=f"Trigger Rules - {runner_name}", font=('Segoe UI', 11, 'bold'),
+                    text_color=COLORS['text_primary']).pack(side=tk.LEFT, padx=10)
+        
+        ctk.CTkButton(title_frame, text="−", width=30, height=24,
+                     fg_color=COLORS['button_secondary'], hover_color=COLORS['back_hover'],
+                     command=dialog.iconify).pack(side=tk.RIGHT, padx=2, pady=3)
         
         frame = ttk.Frame(dialog, padding=20)
         frame.pack(fill=tk.BOTH, expand=True)
