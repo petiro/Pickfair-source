@@ -12,10 +12,47 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-HAS_MATPLOTLIB = False
-# Matplotlib import disabled temporarily for debugging startup crash
-# TODO: Re-enable when issue is resolved
-logger.debug("matplotlib import skipped for debugging")
+# Lazy import - matplotlib loaded only when needed (prevents startup crash)
+_matplotlib_loaded = False
+_plt = None
+_FigureCanvasTkAgg = None
+_Figure = None
+_Rectangle = None
+
+def _lazy_import_matplotlib():
+    """Import matplotlib lazily to avoid startup crashes with PyInstaller."""
+    global _matplotlib_loaded, _plt, _FigureCanvasTkAgg, _Figure, _Rectangle
+    
+    if _matplotlib_loaded:
+        return _matplotlib_loaded
+    
+    try:
+        logger.debug("Lazy loading matplotlib...")
+        import matplotlib
+        matplotlib.use('TkAgg')  # Use TkAgg for Tkinter integration
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+        from matplotlib.figure import Figure
+        from matplotlib.patches import Rectangle
+        
+        _plt = plt
+        _FigureCanvasTkAgg = FigureCanvasTkAgg
+        _Figure = Figure
+        _Rectangle = Rectangle
+        _matplotlib_loaded = True
+        logger.info(f"matplotlib {matplotlib.__version__} loaded successfully (lazy)")
+    except ImportError as ie:
+        logger.warning(f"matplotlib not available: {ie}")
+        _matplotlib_loaded = False
+    except Exception as e:
+        logger.warning(f"matplotlib load error: {e}")
+        _matplotlib_loaded = False
+    
+    return _matplotlib_loaded
+
+def HAS_MATPLOTLIB():
+    """Check if matplotlib is available (loads it lazily on first call)."""
+    return _lazy_import_matplotlib()
 
 
 CHART_COLORS = {
@@ -43,7 +80,7 @@ class QuoteLineChart:
         self._update_job = None
         self._destroyed = False
         
-        if not HAS_MATPLOTLIB:
+        if not HAS_MATPLOTLIB():
             self.frame = tk.Frame(parent, bg=CHART_COLORS['bg'])
             tk.Label(self.frame, text="Grafici non disponibili", 
                      fg='gray', bg=CHART_COLORS['bg']).pack()
@@ -51,12 +88,12 @@ class QuoteLineChart:
         
         self.frame = tk.Frame(parent, bg=CHART_COLORS['bg'])
         
-        self.fig = Figure(figsize=(width/100, height/100), dpi=100, 
+        self.fig = _Figure(figsize=(width/100, height/100), dpi=100, 
                           facecolor=CHART_COLORS['bg'])
         self.ax = self.fig.add_subplot(111)
         self._setup_axes()
         
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
+        self.canvas = _FigureCanvasTkAgg(self.fig, master=self.frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         
         self.back_line, = self.ax.plot([], [], color=CHART_COLORS['back'], 
@@ -80,7 +117,7 @@ class QuoteLineChart:
     def set_selection(self, selection_id: int, name: str = ""):
         self.selection_id = selection_id
         self.selection_name = name
-        if HAS_MATPLOTLIB:
+        if HAS_MATPLOTLIB():
             self.ax.set_title(name[:30] if name else f"Sel {selection_id}", 
                               fontsize=10, color=CHART_COLORS['text'])
     
@@ -117,7 +154,7 @@ class QuoteLineChart:
         threading.Thread(target=thread_func, daemon=True).start()
     
     def _render_data(self, data: Tuple):
-        if self._destroyed or not HAS_MATPLOTLIB:
+        if self._destroyed or not HAS_MATPLOTLIB():
             return
         
         times, backs, lays = data
@@ -165,7 +202,7 @@ class QuoteLineChart:
     def destroy(self):
         self._destroyed = True
         self.stop_auto_update()
-        if HAS_MATPLOTLIB:
+        if HAS_MATPLOTLIB():
             plt.close(self.fig)
     
     def pack(self, **kwargs):
@@ -189,7 +226,7 @@ class CandlestickChart:
         self._destroyed = False
         self.ohlc_interval = 5
         
-        if not HAS_MATPLOTLIB:
+        if not HAS_MATPLOTLIB():
             self.frame = tk.Frame(parent, bg=CHART_COLORS['bg'])
             tk.Label(self.frame, text="Grafici non disponibili", 
                      fg='gray', bg=CHART_COLORS['bg']).pack()
@@ -197,12 +234,12 @@ class CandlestickChart:
         
         self.frame = tk.Frame(parent, bg=CHART_COLORS['bg'])
         
-        self.fig = Figure(figsize=(width/100, height/100), dpi=100, 
+        self.fig = _Figure(figsize=(width/100, height/100), dpi=100, 
                           facecolor=CHART_COLORS['bg'])
         self.ax = self.fig.add_subplot(111)
         self._setup_axes()
         
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
+        self.canvas = _FigureCanvasTkAgg(self.fig, master=self.frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
     
     def _setup_axes(self):
@@ -219,7 +256,7 @@ class CandlestickChart:
     def set_selection(self, selection_id: int, name: str = ""):
         self.selection_id = selection_id
         self.selection_name = name
-        if HAS_MATPLOTLIB:
+        if HAS_MATPLOTLIB():
             self.ax.set_title(f"OHLC {name[:25]}" if name else f"OHLC Sel {selection_id}", 
                               fontsize=10, color=CHART_COLORS['text'])
     
@@ -251,7 +288,7 @@ class CandlestickChart:
         threading.Thread(target=thread_func, daemon=True).start()
     
     def _render_candles(self, candles: List):
-        if self._destroyed or not HAS_MATPLOTLIB or not candles:
+        if self._destroyed or not HAS_MATPLOTLIB() or not candles:
             return
         
         try:
@@ -311,7 +348,7 @@ class CandlestickChart:
     def destroy(self):
         self._destroyed = True
         self.stop_auto_update()
-        if HAS_MATPLOTLIB:
+        if HAS_MATPLOTLIB():
             plt.close(self.fig)
     
     def pack(self, **kwargs):
@@ -334,7 +371,7 @@ class DepthChart:
         self.back_levels = []
         self.lay_levels = []
         
-        if not HAS_MATPLOTLIB:
+        if not HAS_MATPLOTLIB():
             self.frame = tk.Frame(parent, bg=CHART_COLORS['bg'])
             tk.Label(self.frame, text="Grafici non disponibili", 
                      fg='gray', bg=CHART_COLORS['bg']).pack()
@@ -342,12 +379,12 @@ class DepthChart:
         
         self.frame = tk.Frame(parent, bg=CHART_COLORS['bg'])
         
-        self.fig = Figure(figsize=(width/100, height/100), dpi=100, 
+        self.fig = _Figure(figsize=(width/100, height/100), dpi=100, 
                           facecolor=CHART_COLORS['bg'])
         self.ax = self.fig.add_subplot(111)
         self._setup_axes()
         
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
+        self.canvas = _FigureCanvasTkAgg(self.fig, master=self.frame)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
     
     def _setup_axes(self):
@@ -368,7 +405,7 @@ class DepthChart:
         self.lay_levels = lay_levels
     
     def update_sync(self):
-        if self._destroyed or not HAS_MATPLOTLIB:
+        if self._destroyed or not HAS_MATPLOTLIB():
             return
         
         try:
@@ -410,7 +447,7 @@ class DepthChart:
     
     def destroy(self):
         self._destroyed = True
-        if HAS_MATPLOTLIB:
+        if HAS_MATPLOTLIB():
             plt.close(self.fig)
     
     def pack(self, **kwargs):
