@@ -13723,10 +13723,11 @@ Evento: {event_name}"""
             logging.info(f"[AUTO-BET] Searching for: {event_name}")
             logging.info(f"[AUTO-BET] Live events: {len(live_events)}, All events: {len(all_events)}")
             # Log live event names for debugging
-            for ev in live_events[:15]:
-                logging.debug(f"[AUTO-BET] Live event: {ev.get('name', 'N/A')}")
+            for ev in live_events[:20]:
+                logging.info(f"[AUTO-BET] Live event available: {ev.get('name', 'N/A')}")
             
             event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
+            logging.info(f"[AUTO-BET] Signal normalized: '{event_lower}' -> words: {set(event_lower.split())}")
             league_lower = league.lower() if league else ''
             
             league_country = ''
@@ -13755,7 +13756,7 @@ Evento: {event_name}"""
                     
                     # Log potential matches for debugging
                     if match_score >= 1:
-                        logging.debug(f"[AUTO-BET] Candidate: {event['name']} | Score: {match_score} | Common: {common}")
+                        logging.info(f"[AUTO-BET] Candidate: {event['name']} | Score: {match_score} | Common: {common}")
                     
                     if match_score > best_score and match_score >= 2:
                         best_score = match_score
