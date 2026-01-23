@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.13"  # Auto-refresh simulation tab every 5 seconds
+APP_VERSION = "3.82.14"  # Fixed tree state persistence across tab switches, full country names
 
 # Setup file logging
 def setup_logging():
@@ -4899,34 +4899,67 @@ class PickfairApp:
         else:
             self._populate_events_tree()
     
+    def _save_tree_state(self):
+        """Save the current expanded state of the events tree to instance variables."""
+        if not hasattr(self, 'events_tree'):
+            return
+        try:
+            self.saved_expanded_countries = []
+            self.saved_expanded_events = []
+            self.saved_loaded_markets = {}
+            
+            for item in self.events_tree.get_children():
+                if item.startswith('country_'):
+                    if self.events_tree.item(item, 'open'):
+                        self.saved_expanded_countries.append(item)
+                    for child in self.events_tree.get_children(item):
+                        if self.events_tree.item(child, 'open'):
+                            self.saved_expanded_events.append(child)
+                        market_children = self.events_tree.get_children(child)
+                        if market_children and any(str(mc).startswith('market_') for mc in market_children):
+                            self.saved_loaded_markets[child] = []
+                            for mc in market_children:
+                                if str(mc).startswith('market_'):
+                                    self.saved_loaded_markets[child].append({
+                                        'iid': mc,
+                                        'text': self.events_tree.item(mc, 'text'),
+                                        'values': self.events_tree.item(mc, 'values'),
+                                        'tags': self.events_tree.item(mc, 'tags')
+                                    })
+        except Exception:
+            pass
+    
     def _populate_events_tree(self):
         """Populate events tree based on current search filter, preserving selection and loaded markets."""
+        # Save current state to instance variables for persistence across tab switches
+        self._save_tree_state()
+        
         # Save current selection and expanded countries before clearing
         current_selection = self.events_tree.selection()
-        expanded_countries = []
-        expanded_events = []
-        loaded_markets = {}  # {event_id: [(market_iid, values, tags), ...]}
+        expanded_countries = getattr(self, 'saved_expanded_countries', [])
+        expanded_events = getattr(self, 'saved_expanded_events', [])
+        loaded_markets = getattr(self, 'saved_loaded_markets', {})
         
+        # Also check current tree state (in case not yet saved)
         for item in self.events_tree.get_children():
             if item.startswith('country_'):
-                if self.events_tree.item(item, 'open'):
+                if self.events_tree.item(item, 'open') and item not in expanded_countries:
                     expanded_countries.append(item)
-                # Check for expanded events with markets
                 for child in self.events_tree.get_children(item):
-                    if self.events_tree.item(child, 'open'):
+                    if self.events_tree.item(child, 'open') and child not in expanded_events:
                         expanded_events.append(child)
-                    # Save any loaded markets
                     market_children = self.events_tree.get_children(child)
                     if market_children and any(str(mc).startswith('market_') for mc in market_children):
-                        loaded_markets[child] = []
-                        for mc in market_children:
-                            if str(mc).startswith('market_'):
-                                loaded_markets[child].append({
-                                    'iid': mc,
-                                    'text': self.events_tree.item(mc, 'text'),
-                                    'values': self.events_tree.item(mc, 'values'),
-                                    'tags': self.events_tree.item(mc, 'tags')
-                                })
+                        if child not in loaded_markets:
+                            loaded_markets[child] = []
+                            for mc in market_children:
+                                if str(mc).startswith('market_'):
+                                    loaded_markets[child].append({
+                                        'iid': mc,
+                                        'text': self.events_tree.item(mc, 'text'),
+                                        'values': self.events_tree.item(mc, 'values'),
+                                        'tags': self.events_tree.item(mc, 'tags')
+                                    })
         
         self.events_tree.delete(*self.events_tree.get_children())
         search = self.search_var.get().lower()
@@ -14845,18 +14878,21 @@ Evento: {event_name}"""
             
             for country in sorted(countries.keys()):
                 country_id = f"country_{country}"
+                # Restore expanded state from saved state
+                was_open = country_id in getattr(self, 'saved_expanded_countries', [])
                 try:
-                    self.events_tree.insert('', tk.END, iid=country_id, text=country, open=False)
+                    self.events_tree.insert('', tk.END, iid=country_id, text=get_country_name(country), open=was_open)
                 except tk.TclError:
                     continue
                 
                 for event in countries[country]:
                     date_str = self._format_event_date(event)
+                    was_event_open = event['id'] in getattr(self, 'saved_expanded_events', [])
                     try:
                         self.events_tree.insert(country_id, tk.END, iid=event['id'], values=(
                             event['name'],
                             date_str
-                        ))
+                        ), open=was_event_open)
                     except tk.TclError as e:
                         logging.warning(f"[EVENTS] Skipping event {event['id']}: {e}")
     
