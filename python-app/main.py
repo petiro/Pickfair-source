@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.24"  # API-Football optimized: 60s cache, 30s polling, rate limiting
+APP_VERSION = "3.82.25"  # API-Football PRO: TTL cache, dedup, rate limiter, smart polling
 
 # Setup file logging
 def setup_logging():
