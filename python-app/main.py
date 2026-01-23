@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.14"  # Fixed tree state persistence across tab switches, full country names
+APP_VERSION = "3.82.15"  # Fixed context menu commands not working (Grafici Quote, Prenota, Trigger)
 
 # Setup file logging
 def setup_logging():
@@ -5835,8 +5835,8 @@ class PickfairApp:
     
     def _show_ladder_context_menu(self, event, selection_id):
         """Show context menu for ladder row."""
-        # Store selection for context menu actions
-        self._context_selection_id = selection_id
+        # Store selection for context menu actions (use same variable as tree context menu)
+        self._context_menu_selection = str(selection_id)
         self.runner_context_menu.tk_popup(event.x_root, event.y_root)
     
     def _on_runner_select_toggle(self, selection_id):
