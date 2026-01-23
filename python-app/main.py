@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.16"  # Fixed 'New castle'→'Newcastle' matching, context menu commands
+APP_VERSION = "3.82.17"  # Smart word-joining for ALL split words (not just hardcoded)
 
 # Setup file logging
 def setup_logging():
@@ -13786,17 +13786,18 @@ Evento: {event_name}"""
             
             # Normalize event name - join common split words like "New castle" -> "Newcastle"
             event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
-            # Common city/team name fixes
-            event_lower = event_lower.replace('new castle', 'newcastle')
-            event_lower = event_lower.replace('man city', 'manchester city')
-            event_lower = event_lower.replace('man utd', 'manchester united')
-            event_lower = event_lower.replace('man united', 'manchester united')
-            event_lower = event_lower.replace('inter milan', 'inter')
-            event_lower = event_lower.replace('ac milan', 'milan')
-            event_lower = event_lower.replace('real madrid', 'realmadrid')
-            event_lower = event_lower.replace('atletico madrid', 'atleticomadrid')
-            event_lower = ' '.join(event_lower.split())  # Remove double spaces
-            signal_words = set(w for w in event_lower.split() if len(w) > 1)  # Skip single chars like 'v'
+            event_lower = ' '.join(event_lower.split())  # Remove double spaces first
+            
+            # Generate both split words AND joined versions for flexible matching
+            words_list = event_lower.split()
+            signal_words = set(w for w in words_list if len(w) > 1)  # Normal words
+            
+            # Also add joined pairs (e.g., "new" + "castle" -> "newcastle")
+            for i in range(len(words_list) - 1):
+                joined = words_list[i] + words_list[i+1]
+                if len(joined) >= 4:  # Only meaningful joins
+                    signal_words.add(joined)
+            
             logging.info(f"[AUTO-BET] Signal normalized: '{event_lower}' -> words: {signal_words}")
             league_lower = league.lower() if league else ''
             
@@ -13816,19 +13817,18 @@ Evento: {event_name}"""
                 for event in events_list:
                     event_name_raw = event.get('name', '')
                     event_search = event_name_raw.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
-                    # Apply same normalization as signal
-                    event_search = event_search.replace('new castle', 'newcastle')
-                    event_search = event_search.replace('man city', 'manchester city')
-                    event_search = event_search.replace('man utd', 'manchester united')
-                    event_search = event_search.replace('man united', 'manchester united')
-                    event_search = event_search.replace('inter milan', 'inter')
-                    event_search = event_search.replace('ac milan', 'milan')
-                    event_search = event_search.replace('real madrid', 'realmadrid')
-                    event_search = event_search.replace('atletico madrid', 'atleticomadrid')
                     event_search = ' '.join(event_search.split())  # Remove double spaces
                     competition = event.get('competition', {}).get('name', '').lower()
                     
-                    words_event = set(w for w in event_search.split() if len(w) > 1)
+                    # Generate both split words AND joined versions for flexible matching
+                    event_words_list = event_search.split()
+                    words_event = set(w for w in event_words_list if len(w) > 1)
+                    
+                    # Also add joined pairs for Betfair event names
+                    for i in range(len(event_words_list) - 1):
+                        joined = event_words_list[i] + event_words_list[i+1]
+                        if len(joined) >= 4:
+                            words_event.add(joined)
                     common = signal_words & words_event
                     match_score = len(common)
                     
