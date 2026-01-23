@@ -202,8 +202,8 @@ class QuoteLineChart:
     def destroy(self):
         self._destroyed = True
         self.stop_auto_update()
-        if HAS_MATPLOTLIB():
-            plt.close(self.fig)
+        if HAS_MATPLOTLIB() and _plt:
+            _plt.close(self.fig)
     
     def pack(self, **kwargs):
         self.frame.pack(**kwargs)
@@ -348,8 +348,8 @@ class CandlestickChart:
     def destroy(self):
         self._destroyed = True
         self.stop_auto_update()
-        if HAS_MATPLOTLIB():
-            plt.close(self.fig)
+        if HAS_MATPLOTLIB() and _plt:
+            _plt.close(self.fig)
     
     def pack(self, **kwargs):
         self.frame.pack(**kwargs)
@@ -447,8 +447,8 @@ class DepthChart:
     
     def destroy(self):
         self._destroyed = True
-        if HAS_MATPLOTLIB():
-            plt.close(self.fig)
+        if HAS_MATPLOTLIB() and _plt:
+            _plt.close(self.fig)
     
     def pack(self, **kwargs):
         self.frame.pack(**kwargs)

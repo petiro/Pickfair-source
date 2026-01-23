@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.22"  # Lazy import matplotlib - prevents startup crash
+APP_VERSION = "3.82.23"  # Lazy matplotlib + auto-update charts every 1-2 sec
 
 # Setup file logging
 def setup_logging():
