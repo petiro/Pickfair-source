@@ -44,7 +44,8 @@ class APIFootballClient(metaclass=GuardedAPIMeta):
     Features:
     - Timeout corto (4s default)
     - Retry minimo (1)
-    - Cache locale (30s TTL)
+    - Cache locale (60s TTL - extended for efficiency)
+    - Rate limiting giornaliero
     - Thread-safe
     
     All public methods are automatically protected by @assert_not_ui_thread
@@ -54,17 +55,23 @@ class APIFootballClient(metaclass=GuardedAPIMeta):
     BASE_URL = "https://v3.football.api-sports.io"
     DEFAULT_KEY = "9d726ff17ef61ad94aa372ebcaf99cd9"
     
+    # Rate limit config
+    DAILY_LIMIT_FREE = 100
+    DAILY_LIMIT_BASIC = 7500
+    
     def __init__(
         self, 
         api_key: Optional[str] = None,
         timeout: float = 4.0,
         max_retry: int = 1,
-        cache_ttl: int = 30
+        cache_ttl: int = 60,  # Extended from 30s to 60s
+        daily_limit: int = 100  # Free tier default
     ):
         self.api_key = api_key or os.environ.get("API_FOOTBALL_KEY", "") or self.DEFAULT_KEY
         self.timeout = timeout
         self.max_retry = max_retry
         self.cache_ttl = cache_ttl
+        self.daily_limit = daily_limit
         
         self.session = requests.Session()
         self.session.headers.update({
@@ -77,6 +84,11 @@ class APIFootballClient(metaclass=GuardedAPIMeta):
         self._status: str = "INIT"
         self._last_error: Optional[str] = None
         
+        # Rate limiting
+        self._requests_today: int = 0
+        self._requests_date: str = ""
+        self._rate_limited: bool = False
+        
         self.force_timeout: bool = False
         self.forced_delay: int = 0
         
@@ -85,23 +97,65 @@ class APIFootballClient(metaclass=GuardedAPIMeta):
         """Stato corrente: INIT | OK | STALE | UNAVAILABLE"""
         return self._status
         
+    def _check_rate_limit(self) -> bool:
+        """Check and update daily rate limit. Returns True if OK, False if limited."""
+        from datetime import date
+        today = date.today().isoformat()
+        
+        with self._lock:
+            # Reset counter on new day
+            if self._requests_date != today:
+                self._requests_date = today
+                self._requests_today = 0
+                self._rate_limited = False
+                log.debug(f"[API-Football] Rate limit reset for {today}")
+            
+            # Check limit
+            if self._requests_today >= self.daily_limit:
+                if not self._rate_limited:
+                    log.warning(f"[API-Football] Daily limit reached: {self._requests_today}/{self.daily_limit}")
+                    self._rate_limited = True
+                return False
+            
+            return True
+    
+    def _increment_request_count(self):
+        """Increment daily request counter."""
+        with self._lock:
+            self._requests_today += 1
+            if self._requests_today % 10 == 0:
+                log.debug(f"[API-Football] Requests today: {self._requests_today}/{self.daily_limit}")
+    
+    def get_requests_remaining(self) -> int:
+        """Get remaining requests for today."""
+        with self._lock:
+            return max(0, self.daily_limit - self._requests_today)
+    
     def _request(self, endpoint: str, params: dict = None) -> Optional[dict]:
         """
-        Esegue richiesta API con caching e retry.
+        Esegue richiesta API con caching, rate limiting e retry.
         NON blocca per piu' di timeout * (max_retry + 1) secondi.
         """
         if not self.api_key:
             log.warning("API_FOOTBALL_KEY non configurata")
             self._status = "UNAVAILABLE"
             return None
-            
+        
         cache_key = f"{endpoint}:{str(params)}"
         now = time.time()
         
+        # Check cache FIRST (no API call needed)
         with self._lock:
             if cache_key in self._cache:
-                if now - self._cache_time.get(cache_key, 0) < self.cache_ttl:
+                cache_age = now - self._cache_time.get(cache_key, 0)
+                if cache_age < self.cache_ttl:
+                    log.debug(f"[API-Football] Cache hit: {endpoint} (age: {cache_age:.0f}s)")
                     return self._cache[cache_key]
+        
+        # Check rate limit BEFORE making request
+        if not self._check_rate_limit():
+            self._status = "RATE_LIMITED"
+            return self._get_cached(cache_key)  # Return stale cache if available
         
         if self.force_timeout:
             log.warning("[STRESS] Simulated API timeout")
@@ -119,6 +173,9 @@ class APIFootballClient(metaclass=GuardedAPIMeta):
                 url = f"{self.BASE_URL}/{endpoint}"
                 resp = self.session.get(url, params=params, timeout=self.timeout)
                 resp.raise_for_status()
+                
+                # Count this request (successful HTTP call)
+                self._increment_request_count()
                 
                 data = resp.json()
                 
@@ -286,7 +343,7 @@ class APIFootballWorker:
     
     Features:
     - Thread daemon (auto-termina)
-    - Polling configurabile (15s default)
+    - Polling configurabile (30s default - optimized to save API calls)
     - Callbacks thread-safe
     - Stop graceful
     - Zero blocchi UI
@@ -297,7 +354,7 @@ class APIFootballWorker:
     def __init__(
         self, 
         client: Optional[APIFootballClient] = None,
-        poll_interval: int = 15
+        poll_interval: int = 30  # Extended from 15s to 30s to save API calls
     ):
         self.client = client or APIFootballClient()
         self.poll_interval = poll_interval

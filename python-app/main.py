@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.23"  # Lazy matplotlib + auto-update charts every 1-2 sec
+APP_VERSION = "3.82.24"  # API-Football optimized: 60s cache, 30s polling, rate limiting
 
 # Setup file logging
 def setup_logging():
