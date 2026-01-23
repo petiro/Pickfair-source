@@ -15,10 +15,10 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
       with:
-        python-version: '3.8'
-    - run: pip install pyinstaller betfairlightweight telethon customtkinter numpy
+        python-version: '3.11'
+    - run: pip install pyinstaller betfairlightweight telethon customtkinter numpy matplotlib
     - name: Build executable
-      run: pyinstaller --onefile --windowed --name Pickfair main.py --hidden-import=customtkinter
+      run: pyinstaller --onefile --windowed --name Pickfair main.py --hidden-import=customtkinter --hidden-import=matplotlib
     - name: Upload to Pickfair public repo
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
