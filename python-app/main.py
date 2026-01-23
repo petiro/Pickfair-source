@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.11"  # Auto streaming, sim bet P&L, team name matching fix
+APP_VERSION = "3.82.12"  # Improved event matching with detailed logging
 
 # Setup file logging
 def setup_logging():
@@ -13727,7 +13727,9 @@ Evento: {event_name}"""
                 logging.info(f"[AUTO-BET] Live event available: {ev.get('name', 'N/A')}")
             
             event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
-            logging.info(f"[AUTO-BET] Signal normalized: '{event_lower}' -> words: {set(event_lower.split())}")
+            event_lower = ' '.join(event_lower.split())  # Remove double spaces
+            signal_words = set(w for w in event_lower.split() if len(w) > 1)  # Skip single chars like 'v'
+            logging.info(f"[AUTO-BET] Signal normalized: '{event_lower}' -> words: {signal_words}")
             league_lower = league.lower() if league else ''
             
             league_country = ''
@@ -13742,21 +13744,25 @@ Evento: {event_name}"""
             def find_best_match(events_list):
                 best_match = None
                 best_score = 0
+                logging.info(f"[AUTO-BET] Searching in {len(events_list)} events, signal words: {signal_words}")
                 for event in events_list:
-                    event_search = event['name'].lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
+                    event_name_raw = event.get('name', '')
+                    event_search = event_name_raw.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
+                    event_search = ' '.join(event_search.split())  # Remove double spaces
                     competition = event.get('competition', {}).get('name', '').lower()
                     
-                    words_signal = set(event_lower.split())
-                    words_event = set(event_search.split())
-                    common = words_signal & words_event
+                    words_event = set(w for w in event_search.split() if len(w) > 1)
+                    common = signal_words & words_event
                     match_score = len(common)
                     
                     if league_country and league_country in competition:
                         match_score += 1
                     
                     # Log potential matches for debugging
-                    if match_score >= 1:
-                        logging.info(f"[AUTO-BET] Candidate: {event['name']} | Score: {match_score} | Common: {common}")
+                    if match_score >= 2:
+                        logging.info(f"[AUTO-BET] MATCH: {event_name_raw} | Score: {match_score} | Common: {common} | Event words: {words_event}")
+                    elif match_score >= 1:
+                        logging.debug(f"[AUTO-BET] Candidate: {event_name_raw} | Score: {match_score} | Common: {common}")
                     
                     if match_score > best_score and match_score >= 2:
                         best_score = match_score
