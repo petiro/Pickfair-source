@@ -13,20 +13,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 logger = logging.getLogger(__name__)
 
 HAS_MATPLOTLIB = False
-try:
-    import matplotlib
-    # Set non-interactive backend BEFORE importing pyplot
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-    from matplotlib.figure import Figure
-    from matplotlib.patches import Rectangle
-    HAS_MATPLOTLIB = True
-    logger.debug(f"matplotlib {matplotlib.__version__} loaded successfully")
-except ImportError as ie:
-    logger.warning(f"matplotlib not available - charts disabled: {ie}")
-except Exception as e:
-    logger.warning(f"matplotlib initialization error - charts disabled: {e}")
+# Matplotlib import disabled temporarily for debugging startup crash
+# TODO: Re-enable when issue is resolved
+logger.debug("matplotlib import skipped for debugging")
 
 
 CHART_COLORS = {

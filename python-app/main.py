@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.20"  # Fixed startup crash - improved matplotlib import handling
+APP_VERSION = "3.82.21"  # Debug: matplotlib disabled to isolate startup crash
 
 # Setup file logging
 def setup_logging():
