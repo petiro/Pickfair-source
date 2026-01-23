@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.19"  # Auto-refresh market prices every 2 seconds (no UI freeze)
+APP_VERSION = "3.82.20"  # Fixed startup crash - improved matplotlib import handling
 
 # Setup file logging
 def setup_logging():
@@ -104,6 +104,12 @@ try:
     from micro_stake import MicroStakeManager
     logging.debug("Importing trading_charts...")
     from trading_charts import ChartPanel, QuoteLineChart, CandlestickChart, DepthChart
+    logging.debug("trading_charts imported, checking matplotlib...")
+    try:
+        import matplotlib
+        logging.debug(f"matplotlib version: {matplotlib.__version__}")
+    except Exception as me:
+        logging.debug(f"matplotlib check failed: {me}")
     logging.info("All modules imported successfully")
 except Exception as e:
     logging.error(f"Failed to import modules: {e}")
