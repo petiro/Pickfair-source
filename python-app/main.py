@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.15"  # Fixed context menu commands not working (Grafici Quote, Prenota, Trigger)
+APP_VERSION = "3.82.16"  # Fixed 'New castle'→'Newcastle' matching, context menu commands
 
 # Setup file logging
 def setup_logging():
@@ -13784,7 +13784,17 @@ Evento: {event_name}"""
             for ev in live_events[:20]:
                 logging.info(f"[AUTO-BET] Live event available: {ev.get('name', 'N/A')}")
             
+            # Normalize event name - join common split words like "New castle" -> "Newcastle"
             event_lower = event_name.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
+            # Common city/team name fixes
+            event_lower = event_lower.replace('new castle', 'newcastle')
+            event_lower = event_lower.replace('man city', 'manchester city')
+            event_lower = event_lower.replace('man utd', 'manchester united')
+            event_lower = event_lower.replace('man united', 'manchester united')
+            event_lower = event_lower.replace('inter milan', 'inter')
+            event_lower = event_lower.replace('ac milan', 'milan')
+            event_lower = event_lower.replace('real madrid', 'realmadrid')
+            event_lower = event_lower.replace('atletico madrid', 'atleticomadrid')
             event_lower = ' '.join(event_lower.split())  # Remove double spaces
             signal_words = set(w for w in event_lower.split() if len(w) > 1)  # Skip single chars like 'v'
             logging.info(f"[AUTO-BET] Signal normalized: '{event_lower}' -> words: {signal_words}")
@@ -13806,6 +13816,15 @@ Evento: {event_name}"""
                 for event in events_list:
                     event_name_raw = event.get('name', '')
                     event_search = event_name_raw.lower().replace(' v ', ' ').replace(' vs ', ' ').replace('-', ' ')
+                    # Apply same normalization as signal
+                    event_search = event_search.replace('new castle', 'newcastle')
+                    event_search = event_search.replace('man city', 'manchester city')
+                    event_search = event_search.replace('man utd', 'manchester united')
+                    event_search = event_search.replace('man united', 'manchester united')
+                    event_search = event_search.replace('inter milan', 'inter')
+                    event_search = event_search.replace('ac milan', 'milan')
+                    event_search = event_search.replace('real madrid', 'realmadrid')
+                    event_search = event_search.replace('atletico madrid', 'atleticomadrid')
                     event_search = ' '.join(event_search.split())  # Remove double spaces
                     competition = event.get('competition', {}).get('name', '').lower()
                     
