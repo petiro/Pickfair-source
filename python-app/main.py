@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 APP_NAME = "Pickfair"
-APP_VERSION = "3.82.12"  # Improved event matching with detailed logging
+APP_VERSION = "3.82.12"  # Improved event matching, fixed signal stats counter
 
 # Setup file logging
 def setup_logging():
@@ -8554,15 +8554,15 @@ class PickfairApp:
         ctk.CTkLabel(parent, text="Audit Messaggi Telegram", 
                      font=FONTS['title'], text_color=COLORS['text_primary']).pack(anchor=tk.W, pady=(10, 5))
         
-        metrics = self.persistent_storage.get_telegram_metrics()
+        signal_stats = self.db.get_signal_stats()
         
         metrics_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_card'], corner_radius=8)
         metrics_frame.pack(fill=tk.X, pady=10, padx=5)
         
-        info_text = (f"Totale messaggi: {metrics.get('total', 0)} | "
-                    f"Elaborati: {metrics.get('processed', 0)} | "
-                    f"Falliti: {metrics.get('failed', 0)} | "
-                    f"Tempo medio: {metrics.get('avg_processing_time_ms', 0):.0f}ms")
+        info_text = (f"Totale segnali: {signal_stats.get('total', 0)} | "
+                    f"Piazzati: {signal_stats.get('placed', 0)} | "
+                    f"Falliti: {signal_stats.get('failed', 0)} | "
+                    f"In attesa: {signal_stats.get('pending', 0)}")
         ctk.CTkLabel(metrics_frame, text=info_text, font=('Segoe UI', 10), 
                     text_color=COLORS['text_secondary']).pack(pady=10, padx=10)
         

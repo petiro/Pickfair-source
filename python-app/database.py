@@ -1112,6 +1112,22 @@ class Database:
         # conn.close() - using persistent connection
         return [dict(row) for row in rows]
     
+    def get_signal_stats(self):
+        """Get auto-bet signal statistics."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'PROCESSED' THEN 1 ELSE 0 END) as processed,
+                SUM(CASE WHEN status = 'PLACED' THEN 1 ELSE 0 END) as placed,
+                SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed,
+                SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) as pending
+            FROM telegram_signals
+        ''')
+        row = cursor.fetchone()
+        return dict(row) if row else {'total': 0, 'processed': 0, 'placed': 0, 'failed': 0, 'pending': 0}
+    
     # Simulation Mode Methods
     def get_simulation_settings(self):
         """Get simulation settings and balance."""
