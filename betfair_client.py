@@ -9,17 +9,29 @@ import tempfile
 import threading
 import queue
 import time
+import atexit
+import shutil
+import logging
 import betfairlightweight
 from betfairlightweight import filters
 from betfairlightweight.streaming import StreamListener
 from datetime import datetime, timedelta
+
+# --- HEDGE-FUND STABLE FIX ---
+from circuit_breaker import CircuitBreaker
+# -----------------------------
+
+logger = logging.getLogger(__name__)
 
 # Retry configuration
 MAX_RETRIES = 3
 RETRY_DELAY = 1.0  # seconds
 
 def with_retry(func):
-    """Decorator to add retry logic for API calls."""
+    """
+    Decorator to add retry logic for IDEMPOTENT API calls.
+    NOTE: Do NOT use this decorator on non-idempotent operations like place_orders or replace_orders!
+    """
     def wrapper(*args, **kwargs):
         last_error = None
         for attempt in range(MAX_RETRIES):
@@ -137,6 +149,13 @@ class BetfairClient:
         self.stream_thread = None
         self.streaming_active = False
         self.price_callbacks = {}
+        
+        # --- HEDGE-FUND STABLE FIX ---
+        self._cb = CircuitBreaker(max_failures=3, reset_timeout=30)
+        # -----------------------------
+        
+        # Ensure certs are cleaned up if process exits unexpectedly
+        atexit.register(self._cleanup_temp_files)
     
     @staticmethod
     def _clean_string(value):
@@ -149,14 +168,8 @@ class BetfairClient:
         return ''.join(value.split())
     
     def _create_temp_cert_files(self):
-        """Create temporary certificate directory for betfairlightweight.
-        
-        betfairlightweight expects a directory containing:
-        - client-2048.crt (or .pem)
-        - client-2048.key (or .pem)
-        """
-        import shutil
-        
+        """Create temporary certificate directory for betfairlightweight."""
+        self._cleanup_temp_files()  # Clean any existing first
         self.temp_certs_dir = tempfile.mkdtemp(prefix='betfair_certs_')
         
         cert_file_path = os.path.join(self.temp_certs_dir, 'client-2048.crt')
@@ -170,13 +183,14 @@ class BetfairClient:
         return self.temp_certs_dir
     
     def _cleanup_temp_files(self):
-        """Clean up temporary certificate directory."""
-        import shutil
-        try:
-            if self.temp_certs_dir and os.path.exists(self.temp_certs_dir):
+        """Clean up temporary certificate directory securely."""
+        if self.temp_certs_dir and os.path.exists(self.temp_certs_dir):
+            try:
                 shutil.rmtree(self.temp_certs_dir)
-        except:
-            pass
+            except Exception as e:
+                logger.error(f"Failed to cleanup temp certs: {e}")
+            finally:
+                self.temp_certs_dir = None
     
     def login(self, password):
         """
@@ -325,19 +339,20 @@ class BetfairClient:
             max_results=100
         )
         
-        # Get in-play status for these markets
         market_ids = [m.market_id for m in markets]
         in_play_status = {}
         
+        # FIX: API Limit is usually 40/50 per call. We must chunk.
         if market_ids:
             try:
-                market_books = self.client.betting.list_market_book(
-                    market_ids=market_ids[:50]  # API limit
-                )
-                for book in market_books:
-                    in_play_status[book.market_id] = book.inplay if hasattr(book, 'inplay') else False
-            except:
-                pass
+                chunk_size = 40
+                for i in range(0, len(market_ids), chunk_size):
+                    chunk = market_ids[i:i + chunk_size]
+                    market_books = self.client.betting.list_market_book(market_ids=chunk)
+                    for book in market_books:
+                        in_play_status[book.market_id] = book.inplay if hasattr(book, 'inplay') else False
+            except Exception as e:
+                logger.error(f"Error fetching market_books in-play status: {e}")
         
         result = []
         for market in markets:
@@ -496,10 +511,6 @@ class BetfairClient:
     def start_streaming(self, market_ids, price_callback):
         """
         Start streaming price updates for specified markets.
-        
-        Args:
-            market_ids: List of market IDs to stream
-            price_callback: Function(market_id, runners_data) called on price updates
         """
         if not self.client:
             raise Exception("Non connesso a Betfair")
@@ -563,11 +574,7 @@ class BetfairClient:
         return self.streaming_active and self.stream is not None
     
     def place_bet(self, market_id, selection_id, side, price, size, persistence_type='LAPSE'):
-        """
-        Place a single bet on Betfair.
-        
-        Convenience wrapper around place_bets for single bet placement.
-        """
+        """Place a single bet on Betfair."""
         instructions = [{
             'selectionId': selection_id,
             'side': side,
@@ -578,20 +585,10 @@ class BetfairClient:
     
     def place_bets(self, market_id, instructions):
         """
-        Place bets on Betfair.
-        
-        instructions: list of {
-            'selectionId': int,
-            'side': 'BACK' or 'LAY',
-            'price': float,
-            'size': float
-        }
+        Place bets on Betfair. Protected by Circuit Breaker.
         """
         if not self.client:
             raise Exception("Non connesso a Betfair")
-        
-        # Note: In dutching, individual selection stakes can be below €1
-        # Betfair Italy allows stakes as low as €0.10 per selection in multi-bet scenarios
         
         limit_orders = []
         for inst in instructions:
@@ -614,12 +611,14 @@ class BetfairClient:
                 )
             )
         
-        result = self.client.betting.place_orders(
+        # --- HEDGE-FUND STABLE FIX ---
+        result = self._cb.call(
+            self.client.betting.place_orders,
             market_id=market_id,
             instructions=place_instructions
         )
+        # -----------------------------
         
-        # Handle different response structures from betfairlightweight
         instruction_reports = getattr(result, 'instruction_reports', None) or getattr(result, 'instructionReports', None) or []
         
         reports = []
@@ -638,6 +637,7 @@ class BetfairClient:
             'instructionReports': reports
         }
     
+    @with_retry
     def get_current_orders(self, market_ids=None):
         """Get current unmatched and partially matched orders."""
         if not self.client:
@@ -691,12 +691,14 @@ class BetfairClient:
                     betfairlightweight.filters.cancel_instruction(bet_id=bet_id)
                 )
         
-        result = self.client.betting.cancel_orders(
+        # --- HEDGE-FUND STABLE FIX ---
+        result = self._cb.call(
+            self.client.betting.cancel_orders,
             market_id=market_id,
             instructions=instructions if instructions else None
         )
+        # -----------------------------
         
-        # Handle different response structures
         instruction_reports = getattr(result, 'instruction_reports', None) or getattr(result, 'instructionReports', None) or []
         
         reports = []
@@ -716,11 +718,9 @@ class BetfairClient:
         return self.get_available_markets(event_id)
     
     def place_back_bet(self, market_id, selection_id, price, size):
-        """Place a BACK bet (puntata)."""
         return self.place_bet(market_id, selection_id, 'BACK', price, size)
     
     def place_lay_bet(self, market_id, selection_id, price, size):
-        """Place a LAY bet (bancata)."""
         return self.place_bet(market_id, selection_id, 'LAY', price, size)
     
     def replace_orders(self, market_id, bet_id, new_price):
@@ -735,10 +735,13 @@ class BetfairClient:
             )
         ]
         
-        result = self.client.betting.replace_orders(
+        # --- HEDGE-FUND STABLE FIX ---
+        result = self._cb.call(
+            self.client.betting.replace_orders,
             market_id=market_id,
             instructions=instructions
         )
+        # -----------------------------
         
         instruction_reports = getattr(result, 'instruction_reports', None) or getattr(result, 'instructionReports', None) or []
         
@@ -756,25 +759,10 @@ class BetfairClient:
         }
     
     def cashout(self, market_id, selection_id, side, price, size):
-        """
-        Execute a cashout by placing an opposite bet.
-        
-        For a BACK position, place a LAY bet to cashout.
-        For a LAY position, place a BACK bet to cashout.
-        """
         opposite_side = 'LAY' if side == 'BACK' else 'BACK'
         return self.place_bet(market_id, selection_id, opposite_side, price, size)
     
     def calculate_cashout(self, original_stake, original_odds, current_odds, side='BACK'):
-        """
-        Calculate cashout stake and profit/loss.
-        
-        Returns dict with:
-            - cashout_stake: amount to bet for full cashout
-            - profit_if_win: profit if original selection wins
-            - profit_if_lose: profit if original selection loses  
-            - guaranteed_profit: locked-in profit (if positive)
-        """
         if side == 'BACK':
             potential_profit = original_stake * (original_odds - 1)
             cashout_stake = potential_profit / (current_odds - 1)
@@ -803,7 +791,6 @@ class BetfairClient:
             }
     
     def get_position(self, market_id, selection_id):
-        """Get current position on a selection including P&L."""
         if not self.client:
             raise Exception("Non connesso a Betfair")
         
@@ -840,8 +827,8 @@ class BetfairClient:
         
         return position
     
+    @with_retry
     def get_settled_bets(self, days=7):
-        """Get settled (cleared) bets from Betfair for the last N days."""
         if not self.client:
             raise Exception("Non connesso a Betfair")
         
@@ -878,8 +865,8 @@ class BetfairClient:
         
         return bets
     
+    @with_retry
     def get_market_profit_and_loss(self, market_ids):
-        """Get profit/loss for markets (for cashout calculation)."""
         if not self.client:
             raise Exception("Non connesso a Betfair")
         
@@ -902,114 +889,7 @@ class BetfairClient:
         
         return market_pnl
     
-    def calculate_cashout(self, market_id, selection_id, side, matched_stake, matched_price):
-        """
-        Calculate cashout stake and potential P/L.
-        
-        Cashout works by placing an opposite bet to lock in profit/loss.
-        - If original bet was BACK, cashout is LAY
-        - If original bet was LAY, cashout is BACK
-        
-        For green-up (equal profit all outcomes):
-        - BACK position: LAY stake = (back_stake * back_price) / lay_price
-        - LAY position: BACK stake = (lay_stake * lay_price) / back_price
-        
-        Returns dict with cashout_stake, green_up, profit_if_win, profit_if_lose
-        """
-        if not self.client:
-            raise Exception("Non connesso a Betfair")
-        
-        # Get current prices
-        price_data = self.client.betting.list_market_book(
-            market_ids=[market_id],
-            price_projection=filters.price_projection(
-                price_data=['EX_BEST_OFFERS']
-            )
-        )
-        
-        if not price_data:
-            raise Exception("Quote non disponibili")
-        
-        current_price = None
-        for runner in price_data[0].runners:
-            if runner.selection_id == selection_id:
-                if side == 'BACK':
-                    # For BACK cashout, we need LAY price
-                    if runner.ex and runner.ex.available_to_lay:
-                        current_price = runner.ex.available_to_lay[0].price
-                else:
-                    # For LAY cashout, we need BACK price
-                    if runner.ex and runner.ex.available_to_back:
-                        current_price = runner.ex.available_to_back[0].price
-                break
-        
-        if not current_price:
-            raise Exception("Prezzo corrente non disponibile")
-        
-        # Calculate cashout stake using correct hedge formulas
-        if side == 'BACK':
-            # Original BACK bet: hedge by LAYing
-            # LAY stake = (back_stake * back_price) / lay_price
-            # This ensures equal profit on all outcomes
-            cashout_stake = (matched_stake * matched_price) / current_price
-            
-            # Green-up profit calculation:
-            # If wins: back_profit - lay_liability = stake*(back_price-1) - cashout_stake*(lay_price-1)
-            # If loses: -back_stake + lay_stake = -stake + cashout_stake
-            profit_if_win = matched_stake * (matched_price - 1) - cashout_stake * (current_price - 1)
-            profit_if_lose = -matched_stake + cashout_stake
-            
-        else:
-            # Original LAY bet: hedge by BACKing
-            # BACK stake = (lay_stake * lay_price) / back_price
-            cashout_stake = (matched_stake * matched_price) / current_price
-            
-            # Original LAY liability
-            original_liability = matched_stake * (matched_price - 1)
-            
-            # If wins: -lay_liability + back_profit = -liability + cashout_stake*(back_price-1)
-            # If loses: +lay_stake - back_stake = matched_stake - cashout_stake
-            profit_if_win = -original_liability + cashout_stake * (current_price - 1)
-            profit_if_lose = matched_stake - cashout_stake
-        
-        # Round stake to 2 decimal places, enforce €1 minimum for Italy
-        cashout_stake = round(cashout_stake, 2)
-        cashout_stake = max(1.0, cashout_stake)
-        
-        # Recalculate P/L with adjusted stake
-        if side == 'BACK':
-            profit_if_win = matched_stake * (matched_price - 1) - cashout_stake * (current_price - 1)
-            profit_if_lose = -matched_stake + cashout_stake
-        else:
-            original_liability = matched_stake * (matched_price - 1)
-            profit_if_win = -original_liability + cashout_stake * (current_price - 1)
-            profit_if_lose = matched_stake - cashout_stake
-        
-        # Green-up is the guaranteed profit (average of both outcomes with proper hedge)
-        # With perfect hedge, profit_if_win should equal profit_if_lose
-        green_up = (profit_if_win + profit_if_lose) / 2
-        
-        return {
-            'cashout_stake': cashout_stake,
-            'current_price': current_price,
-            'profit_if_win': round(profit_if_win, 2),
-            'profit_if_lose': round(profit_if_lose, 2),
-            'green_up': round(green_up, 2),
-            'cashout_side': 'LAY' if side == 'BACK' else 'BACK'
-        }
-    
     def _get_fresh_price(self, market_id, selection_id, side):
-        """
-        Get fresh price for a selection.
-        
-        Args:
-            market_id: Market ID
-            selection_id: Selection ID
-            side: 'BACK' or 'LAY' - the side we want to place
-        
-        Returns:
-            Best available price or None
-        """
         try:
             price_data = self.client.betting.list_market_book(
                 market_ids=[market_id],
@@ -1035,22 +915,6 @@ class BetfairClient:
             return None
     
     def _adjust_price_with_slippage(self, price, side, slippage_ticks=1):
-        """
-        Adjust price to accept slightly worse odds (slippage).
-        
-        Betfair uses specific price increments (ticks).
-        - For BACK: we accept lower price (worse for us)
-        - For LAY: we accept higher price (worse for us)
-        
-        Args:
-            price: Original price
-            side: 'BACK' or 'LAY'
-            slippage_ticks: Number of ticks to adjust (default 1)
-        
-        Returns:
-            Adjusted price
-        """
-        # Betfair price ladder increments
         if price < 2:
             increment = 0.01
         elif price < 3:
@@ -1072,13 +936,6 @@ class BetfairClient:
         else:
             increment = 10.0
         
-        # Betfair order matching:
-        # - BACK at price X matches LAY orders at X or HIGHER
-        # - LAY at price X matches BACK orders at X or LOWER
-        #
-        # To increase fill probability with slippage:
-        # - BACK: DECREASE price (willing to accept lower odds = worse for backer)
-        # - LAY: INCREASE price (offering higher odds = worse for layer, attracts backers)
         if side == 'BACK':
             adjusted = price - (increment * slippage_ticks)
             return max(1.01, round(adjusted, 2))
@@ -1088,31 +945,9 @@ class BetfairClient:
     
     def execute_cashout(self, market_id, selection_id, cashout_side, cashout_stake, cashout_price, 
                         max_retries=3, slippage_ticks=1, use_fresh_price=True):
-        """
-        Execute cashout by placing opposite bet with improved reliability.
-        
-        Features:
-        - Fetches fresh price just before placing order
-        - Automatic retry with updated price on failure
-        - Slippage option to accept slightly worse prices
-        
-        Args:
-            market_id: Market ID
-            selection_id: Selection ID
-            cashout_side: 'BACK' or 'LAY'
-            cashout_stake: Stake amount
-            cashout_price: Original calculated price (used as reference)
-            max_retries: Number of retry attempts (default 3)
-            slippage_ticks: Price ticks to accept as slippage (default 1)
-            use_fresh_price: Whether to fetch fresh price before placing (default True)
-        
-        Returns:
-            Placement result dict
-        """
         if not self.client:
             raise Exception("Non connesso a Betfair")
         
-        # Round stake to 2 decimal places, minimum €1 for Italy
         stake = max(1.0, round(cashout_stake, 2))
         
         last_error = None
@@ -1120,7 +955,6 @@ class BetfairClient:
         
         for attempt in range(max_retries):
             try:
-                # Get fresh price if enabled
                 if use_fresh_price:
                     fresh_price = self._get_fresh_price(market_id, selection_id, cashout_side)
                     if fresh_price:
@@ -1130,7 +964,6 @@ class BetfairClient:
                 else:
                     price_to_use = cashout_price
                 
-                # Apply slippage on retry attempts
                 if attempt > 0 and slippage_ticks > 0:
                     price_to_use = self._adjust_price_with_slippage(
                         price_to_use, 
@@ -1151,33 +984,31 @@ class BetfairClient:
                     )
                 ]
                 
-                result = self.client.betting.place_orders(
+                # --- HEDGE-FUND STABLE FIX ---
+                result = self._cb.call(
+                    self.client.betting.place_orders,
                     market_id=market_id,
                     instructions=instructions
                 )
+                # -----------------------------
                 
-                # Parse result
                 parsed = self._parse_cashout_result(result)
                 
-                # Success - return immediately
                 if parsed.get('status') == 'SUCCESS':
                     parsed['price_used'] = price_to_use
                     parsed['attempts'] = attempt + 1
                     return parsed
                 
-                # Check if we should retry
                 last_status = parsed.get('status')
                 error_code = parsed.get('error_code', '')
                 
-                # Don't retry on permanent errors
                 permanent_errors = ['MARKET_SUSPENDED', 'MARKET_NOT_OPEN_FOR_BETTING', 
                                    'INSUFFICIENT_FUNDS', 'INVALID_ACCOUNT_STATE']
                 if error_code in permanent_errors:
                     return parsed
                 
-                # Retry on transient errors or unmatched
                 if attempt < max_retries - 1:
-                    time.sleep(0.5 * (attempt + 1))  # Increasing delay
+                    time.sleep(0.5 * (attempt + 1))
                     continue
                 
                 return parsed
@@ -1188,7 +1019,6 @@ class BetfairClient:
                     time.sleep(0.5 * (attempt + 1))
                     continue
         
-        # All retries failed
         return {
             'status': 'ERROR',
             'error': last_error or f'Fallito dopo {max_retries} tentativi. Ultimo stato: {last_status}',
@@ -1199,12 +1029,10 @@ class BetfairClient:
         }
     
     def _parse_cashout_result(self, result):
-        """Parse cashout placement result into consistent format."""
         try:
             if isinstance(result, list) and len(result) > 0:
                 result = result[0]
             
-            # Try to get instruction_reports from various attribute names
             instruction_reports = None
             for attr_name in ['instruction_reports', 'instructionReports']:
                 try:
@@ -1214,7 +1042,6 @@ class BetfairClient:
                 except:
                     pass
             
-            # If still None, try dict-style access
             if not instruction_reports and hasattr(result, '__getitem__'):
                 try:
                     instruction_reports = result.get('instructionReports') or result.get('instruction_reports')
@@ -1228,7 +1055,6 @@ class BetfairClient:
             error_msg = None
             status = getattr(result, 'status', None) or 'UNKNOWN'
             
-            # Try to get error code from result level
             for ec_attr in ['error_code', 'errorCode']:
                 error_code = getattr(result, ec_attr, None)
                 if error_code:
@@ -1236,7 +1062,6 @@ class BetfairClient:
             
             if instruction_reports and len(instruction_reports) > 0:
                 ir = instruction_reports[0]
-                # Try multiple attribute patterns
                 for bid_attr in ['bet_id', 'betId']:
                     bet_id = getattr(ir, bid_attr, None)
                     if bet_id:
@@ -1250,7 +1075,6 @@ class BetfairClient:
                     if avg_price:
                         break
                 
-                # Try to get instruction-level error code
                 if not error_code:
                     for ec_attr in ['error_code', 'errorCode']:
                         error_code = getattr(ir, ec_attr, None)
@@ -1266,7 +1090,6 @@ class BetfairClient:
                 'error': error_msg
             }
         except Exception as e:
-            # Return error info but don't crash
             return {
                 'status': 'ERROR',
                 'error': str(e),
@@ -1276,8 +1099,8 @@ class BetfairClient:
                 'averagePriceMatched': None
             }
     
+    @with_retry
     def get_live_events(self, event_type_id='1'):
-        """Get in-play events for a specific event type."""
         if not self.client:
             raise Exception("Non connesso a Betfair")
         
@@ -1302,11 +1125,10 @@ class BetfairClient:
         return result
     
     def get_live_events_only(self):
-        """Get only in-play football events."""
         return self.get_live_events(FOOTBALL_ID)
     
+    @with_retry
     def get_live_markets(self, event_id=None):
-        """Get all in-play markets, optionally filtered by event."""
         if not self.client:
             raise Exception("Non connesso a Betfair")
         
