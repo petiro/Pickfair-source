@@ -1,10 +1,3 @@
-Ecco il file main.py completamente riscritto e ottimizzato con l'architettura "Hedge-Fund Stable".
-Tutte le vulnerabilità di concorrenza sui thread (root.after bloccanti) sono state instradate in modo sicuro tramite la nuova UIQueue. Abbiamo agganciato il GoalEnginePro in avvio per monitorare automaticamente le partite e l'handler di chiusura (ShutdownManager) garantirà che file WAL, Socket e thread non rimangano appesi distruggendo il DB.
-Puoi copiare per intero questo codice e sostituirlo al tuo attuale main.py:
-
-Python
-
-
 """
 Betfair Dutching - Tutti i Mercati
 Main application with CustomTkinter GUI for Windows desktop.
@@ -32,6 +25,7 @@ from ui_queue import UIQueue
 from executor_manager import SafeExecutor
 from shutdown_manager import ShutdownManager
 from goal_engine_pro import APIFootballClient, GoalEnginePro
+from tree_manager import TreeManager
 # -----------------------------
 
 APP_NAME = "Pickfair"
@@ -98,6 +92,10 @@ class PickfairApp:
         self.simulation_mode = False  # Simulation mode flag
         
         # --- HEDGE-FUND STABLE FIX ---
+        self._buffer_lock = threading.Lock()
+        self._market_update_buffer = {}
+        self._pending_tree_update = False
+        
         # 1. Start UI Queue to process threaded UI updates safely
         self.uiq = UIQueue(self.root, fps=30)
         self.uiq.start()
@@ -133,25 +131,42 @@ class PickfairApp:
         
         self._create_menu()
         self._create_main_layout()
+        
+        # --- HEDGE-FUND STABLE FIX: TREE MANAGERS ---
+        self.tm_events = TreeManager(self.events_tree)
+        self.tm_runners = TreeManager(self.runners_tree)
+        self.tm_placed_bets = TreeManager(self.placed_bets_tree)
+        self.tm_cashout = TreeManager(self.market_cashout_tree)
+        
+        # Schedule order cleanup
+        self.root.after(3600000, self._schedule_order_cleanup)
+        # --------------------------------------------
+        
         self._load_settings()
         self._configure_styles()
         self._start_booking_monitor()
         self._start_auto_cashout_monitor()
         self._check_for_updates_on_startup()
 
-    # --- HEDGE-FUND STABLE FIX: GOAL ENGINE CALLBACKS ---
+    # --- HEDGE-FUND STABLE FIX: SCHEDULER & CALLBACKS ---
+    def _schedule_order_cleanup(self):
+        try:
+            if hasattr(self, "order_manager") and self.order_manager:
+                self.order_manager.cleanup_old(max_age_seconds=3600)
+        except:
+            pass
+        self.root.after(3600000, self._schedule_order_cleanup)
+
     def _on_goal_hedge(self, match_id):
         import logging
         logging.getLogger("PickfairApp").info(f"HEDGE START match={match_id}")
         if hasattr(self, 'trading_engine'):
-            # self.trading_engine.smart_cashout_all(match_id)
             pass
 
     def _on_goal_reopen(self, match_id):
         import logging
         logging.getLogger("PickfairApp").info(f"REOPEN positions match={match_id}")
         if hasattr(self, 'trading_engine'):
-            # self.trading_engine.reopen_positions(match_id)
             pass
     # ----------------------------------------------------
     
@@ -207,16 +222,12 @@ class PickfairApp:
         """Handle window close - with graceful shutdown logic."""
         self._stop_auto_refresh()
         
-        # --- HEDGE-FUND STABLE FIX ---
         try:
             if self.telegram_listener:
                 self.telegram_listener.stop()
-            
-            # Shuts down UIQueue, GoalEngine and Database cleanly preventing SQLite locks
             self.shutdown_mgr.shutdown()
         except:
             pass
-        # -----------------------------
         
         if self.client:
             try: self.client.logout()
@@ -321,7 +332,6 @@ class PickfairApp:
         events_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8)
         events_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
         
-        # Title label (replaces LabelFrame text)
         ctk.CTkLabel(events_frame, text="Partite", font=FONTS['heading'], 
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
@@ -335,11 +345,10 @@ class PickfairApp:
                                     fg_color=COLORS['bg_card'], border_color=COLORS['border'])
         search_entry.pack(fill=tk.X)
         
-        # Auto-refresh controls (in seconds for faster updates)
         auto_refresh_frame = ctk.CTkFrame(events_frame, fg_color='transparent')
         auto_refresh_frame.pack(fill=tk.X, padx=10, pady=(5, 5))
         
-        self.auto_refresh_var = tk.BooleanVar(value=True)  # Enabled by default
+        self.auto_refresh_var = tk.BooleanVar(value=True)
         self.auto_refresh_check = ctk.CTkCheckBox(
             auto_refresh_frame,
             text="Auto-refresh ogni",
@@ -350,7 +359,7 @@ class PickfairApp:
         )
         self.auto_refresh_check.pack(side=tk.LEFT)
         
-        self.auto_refresh_interval_var = tk.StringVar(value="30")  # 30 seconds default
+        self.auto_refresh_interval_var = tk.StringVar(value="30")
         self.auto_refresh_interval = ctk.CTkOptionMenu(
             auto_refresh_frame,
             variable=self.auto_refresh_interval_var,
@@ -367,7 +376,6 @@ class PickfairApp:
         self.auto_refresh_status = ctk.CTkLabel(auto_refresh_frame, text="", text_color=COLORS['success'])
         self.auto_refresh_status.pack(side=tk.LEFT, padx=10)
         
-        # Hierarchical tree: Country -> Matches (Treeview remains ttk)
         tree_container = ctk.CTkFrame(events_frame, fg_color='transparent')
         tree_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
         
@@ -396,7 +404,6 @@ class PickfairApp:
         market_frame = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8)
         market_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
         
-        # Title
         ctk.CTkLabel(market_frame, text="Mercato", font=FONTS['heading'],
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
@@ -438,7 +445,6 @@ class PickfairApp:
         )
         self.stream_check.pack(side=tk.LEFT)
         
-        # Dutching modal button
         self.dutch_modal_btn = ctk.CTkButton(
             stream_frame, 
             text="Dutching Avanzato", 
@@ -449,7 +455,6 @@ class PickfairApp:
         )
         self.dutch_modal_btn.pack(side=tk.LEFT, padx=5)
         
-        # Market status indicator
         self.market_status_label = ctk.CTkLabel(
             stream_frame,
             text="",
@@ -457,7 +462,6 @@ class PickfairApp:
         )
         self.market_status_label.pack(side=tk.RIGHT, padx=10)
         
-        # Runners tree container
         runners_container = ctk.CTkFrame(market_frame, fg_color='transparent')
         runners_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
         
@@ -476,7 +480,6 @@ class PickfairApp:
         self.runners_tree.column('lay', width=60)
         self.runners_tree.column('lay_size', width=60)
         
-        # Configure row tags for FairBot-style coloring
         self.runners_tree.tag_configure('runner_row', background=COLORS['bg_card'])
         
         scrollbar = ttk.Scrollbar(runners_container, orient=tk.VERTICAL, command=self.runners_tree.yview)
@@ -486,13 +489,11 @@ class PickfairApp:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         self.runners_tree.bind('<ButtonRelease-1>', self._on_runner_clicked)
-        self.runners_tree.bind('<Button-3>', self._show_runner_context_menu)  # Right-click
+        self.runners_tree.bind('<Button-3>', self._show_runner_context_menu)
         
-        # Style for odds cells to show they're clickable
         self.runners_tree.tag_configure('clickable_back', foreground=COLORS['clickable_back'])
         self.runners_tree.tag_configure('clickable_lay', foreground=COLORS['clickable_lay'])
         
-        # Context menu for runners
         self.runner_context_menu = tk.Menu(self.root, tearoff=0)
         self.runner_context_menu.add_command(label="Prenota Scommessa", command=self._book_selected_runner)
         self.runner_context_menu.add_separator()
@@ -503,30 +504,24 @@ class PickfairApp:
         dutch_outer = ctk.CTkFrame(parent, fg_color=COLORS['bg_panel'], corner_radius=8)
         dutch_outer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
         
-        # Title
         ctk.CTkLabel(dutch_outer, text="Calcolo Dutching", font=FONTS['heading'],
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 5))
         
-        # Create scrollable canvas
         canvas = tk.Canvas(dutch_outer, highlightthickness=0, bg=COLORS['bg_panel'])
         scrollbar = ttk.Scrollbar(dutch_outer, orient=tk.VERTICAL, command=canvas.yview)
         dutch_frame = ctk.CTkFrame(canvas, fg_color='transparent')
         
-        # Configure canvas scrolling
         def configure_scroll(event):
             canvas.configure(scrollregion=canvas.bbox("all"))
         
         dutch_frame.bind('<Configure>', configure_scroll)
         canvas_window = canvas.create_window((0, 0), window=dutch_frame, anchor='nw')
         
-        # Make canvas resize with window
         def configure_canvas(event):
             canvas.itemconfig(canvas_window, width=event.width)
         canvas.bind('<Configure>', configure_canvas)
-        
         canvas.configure(yscrollcommand=scrollbar.set)
         
-        # Enable mousewheel scrolling only when mouse is over this panel
         def on_mousewheel(event):
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         
@@ -550,14 +545,12 @@ class PickfairApp:
         ctk.CTkLabel(type_frame, text="Tipo:", text_color=COLORS['text_secondary']).pack(side=tk.LEFT)
         self.bet_type_var = tk.StringVar(value='BACK')
         
-        # Blue button for BACK
         self.back_btn = ctk.CTkButton(type_frame, text="Back", 
                                       fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                                       corner_radius=6, width=80,
                                       command=lambda: self._set_bet_type('BACK'))
         self.back_btn.pack(side=tk.LEFT, padx=5)
         
-        # Pink button for LAY (banca)
         self.lay_btn = ctk.CTkButton(type_frame, text="Lay", 
                                      fg_color=COLORS['lay'], hover_color=COLORS['lay_hover'],
                                      corner_radius=6, width=80,
@@ -574,11 +567,9 @@ class PickfairApp:
                                    fg_color=COLORS['bg_card'], border_color=COLORS['border'])
         stake_entry.pack(side=tk.LEFT, padx=5)
         
-        # Note about minimum stake
         ctk.CTkLabel(stake_frame, text="(min. 1 EUR per selezione)", 
                      font=('Segoe UI', 8), text_color=COLORS['text_tertiary']).pack(side=tk.LEFT, padx=5)
         
-        # Best price option
         options_frame = ctk.CTkFrame(dutch_frame, fg_color='transparent')
         options_frame.pack(fill=tk.X, padx=10, pady=5)
         
@@ -600,7 +591,6 @@ class PickfairApp:
         self.selections_text.pack(fill=tk.BOTH, expand=True, padx=10)
         self.selections_text.configure(state=tk.DISABLED)
         
-        # Placed bets for current market
         ctk.CTkLabel(dutch_frame, text="Scommesse Piazzate:", font=('Segoe UI', 11, 'bold'),
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(10, 2))
         
@@ -649,15 +639,12 @@ class PickfairApp:
                                        corner_radius=6)
         self.place_btn.pack(side=tk.RIGHT)
         
-        # Separator before cashout section
         separator = ctk.CTkFrame(dutch_frame, fg_color=COLORS['border'], height=2)
         separator.pack(fill=tk.X, padx=10, pady=10)
         
-        # Cashout section in main panel
         ctk.CTkLabel(dutch_frame, text="Cashout", font=('Segoe UI', 11, 'bold'),
                      text_color=COLORS['text_primary']).pack(anchor=tk.W, padx=10, pady=(5, 2))
         
-        # Cashout positions list
         cashout_cols = ('sel', 'tipo', 'p/l')
         self.market_cashout_tree = ttk.Treeview(dutch_frame, columns=cashout_cols, show='headings', height=4)
         self.market_cashout_tree.heading('sel', text='Selezione')
@@ -672,7 +659,6 @@ class PickfairApp:
         
         self.market_cashout_tree.pack(fill=tk.X, padx=10, pady=2)
         
-        # Cashout buttons
         cashout_btn_frame = ctk.CTkFrame(dutch_frame, fg_color='transparent')
         cashout_btn_frame.pack(fill=tk.X, padx=10, pady=5)
         
@@ -683,13 +669,12 @@ class PickfairApp:
                                                 command=self._do_market_cashout)
         self.market_cashout_btn.pack(side=tk.LEFT, padx=2)
         
-        # Auto-confirm checkbox (skip confirmation dialog)
         self.auto_cashout_var = tk.BooleanVar(value=False)
         ctk.CTkCheckBox(cashout_btn_frame, text="Auto", variable=self.auto_cashout_var,
                         fg_color=COLORS['back'], hover_color=COLORS['back_hover'],
                         text_color=COLORS['text_primary'], width=60).pack(side=tk.LEFT, padx=5)
         
-        self.market_live_tracking_var = tk.BooleanVar(value=True)  # Auto-enabled by default
+        self.market_live_tracking_var = tk.BooleanVar(value=True)
         ctk.CTkCheckBox(cashout_btn_frame, text="Live", variable=self.market_live_tracking_var,
                         command=self._toggle_market_live_tracking,
                         fg_color=COLORS['success'], hover_color='#4caf50',
@@ -704,21 +689,15 @@ class PickfairApp:
                       fg_color=COLORS['button_secondary'], hover_color=COLORS['bg_hover'],
                       corner_radius=6, width=80).pack(side=tk.RIGHT, padx=2)
         
-        # Bind double-click on cashout tree to cashout single position
         self.market_cashout_tree.bind('<Double-1>', self._do_single_cashout)
         
-        # Store live tracking timer ID and fetch state
         self.market_live_tracking_id = None
         self.market_cashout_fetch_in_progress = False
-        self.market_cashout_fetch_cancelled = False  # Cancellation flag
+        self.market_cashout_fetch_cancelled = False
         self.market_cashout_positions = {}
     
     def _update_placed_bets(self):
         """Update placed bets list for current market."""
-        # Clear existing
-        for item in self.placed_bets_tree.get_children():
-            self.placed_bets_tree.delete(item)
-        
         if not self.client or not self.current_market:
             return
         
@@ -726,7 +705,6 @@ class PickfairApp:
         if not market_id:
             return
         
-        # Build runner name lookup
         runner_names = {}
         for runner in self.current_market.get('runners', []):
             runner_names[runner['selectionId']] = runner['runnerName']
@@ -735,11 +713,7 @@ class PickfairApp:
             try:
                 orders = self.client.get_current_orders()
                 matched = orders.get('matched', [])
-                
-                # Filter orders for current market
                 market_orders = [o for o in matched if o.get('marketId') == market_id]
-                
-                # Update UI safely
                 self.uiq.post(self._display_placed_bets, market_orders, runner_names)
             except Exception as e:
                 print(f"Error fetching placed bets: {e}")
@@ -747,15 +721,14 @@ class PickfairApp:
         self.executor.submit("fetch_placed_bets", fetch_bets)
     
     def _display_placed_bets(self, orders, runner_names):
-        """Display placed bets in treeview."""
-        for item in self.placed_bets_tree.get_children():
-            self.placed_bets_tree.delete(item)
-        
+        """Display placed bets in treeview using TreeManager."""
+        bets_data = []
         for order in orders:
             selection_id = order.get('selectionId')
             side = order.get('side', 'BACK')
             price = order.get('price', 0)
             stake = order.get('sizeMatched', 0)
+            bet_id = order.get('betId')
             
             runner_name = runner_names.get(selection_id, f"ID:{selection_id}")
             if len(runner_name) > 15:
@@ -763,16 +736,21 @@ class PickfairApp:
             
             tag = 'back' if side == 'BACK' else 'lay'
             
-            self.placed_bets_tree.insert('', tk.END, values=(
-                runner_name,
-                side[:1],  # B or L
-                f"{price:.2f}",
-                f"{stake:.2f}"
-            ), tags=(tag,))
+            bets_data.append({
+                'id': bet_id,
+                'values': (runner_name, side[:1], f"{price:.2f}", f"{stake:.2f}"),
+                'tags': (tag,)
+            })
+            
+        self.tm_placed_bets.update_flat(
+            data=bets_data,
+            id_getter=lambda b: str(b['id']),
+            values_getter=lambda b: b['values'],
+            tags_getter=lambda b: b['tags']
+        )
     
     def _update_market_cashout_positions(self):
         """Update cashout positions for current market."""
-        # Prevent spawning multiple fetch threads
         if self.market_cashout_fetch_in_progress:
             return
         
@@ -857,24 +835,29 @@ class PickfairApp:
         self.executor.submit("fetch_cashout", fetch_positions)
     
     def _display_market_cashout_positions(self, positions):
-        """Display cashout positions in market view."""
-        for item in self.market_cashout_tree.get_children():
-            self.market_cashout_tree.delete(item)
-        
+        """Display cashout positions in market view using TreeManager."""
         self.market_cashout_positions = {}
+        cashout_data = []
         
         for pos in positions:
             bet_id = pos['bet_id']
             green_up = pos['green_up']
             pl_tag = 'profit' if green_up > 0 else 'loss'
             
-            self.market_cashout_tree.insert('', tk.END, iid=str(bet_id), values=(
-                pos['runner_name'],
-                pos['side'],
-                f"{green_up:+.2f}"
-            ), tags=(pl_tag,))
-            
             self.market_cashout_positions[str(bet_id)] = pos
+            
+            cashout_data.append({
+                'id': bet_id,
+                'values': (pos['runner_name'], pos['side'], f"{green_up:+.2f}"),
+                'tags': (pl_tag,)
+            })
+            
+        self.tm_cashout.update_flat(
+            data=cashout_data,
+            id_getter=lambda c: str(c['id']),
+            values_getter=lambda c: c['values'],
+            tags_getter=lambda c: c['tags']
+        )
         
         if positions:
             self.market_cashout_btn.configure(state=tk.NORMAL)
@@ -1250,41 +1233,29 @@ class PickfairApp:
         self.executor.submit("fetch_events", fetch)
     
     def _display_events(self, events):
-        """Display events in treeview grouped by country."""
+        """Display events in treeview grouped by country using TreeManager."""
         self.all_events = events
         self._populate_events_tree()
     
     def _populate_events_tree(self):
-        """Populate events tree based on current search filter."""
-        self.events_tree.delete(*self.events_tree.get_children())
+        """Populate events tree based on current search filter using TreeManager."""
         search = self.search_var.get().lower()
         
+        filtered_events = []
         if search:
             for event in self.all_events:
                 if search in event['name'].lower():
-                    date_str = self._format_event_date(event)
-                    self.events_tree.insert('', tk.END, iid=event['id'], text=event.get('countryCode', ''), values=(
-                        event['name'],
-                        date_str
-                    ))
+                    filtered_events.append(event)
         else:
-            countries = {}
-            for event in self.all_events:
-                country = event.get('countryCode', 'XX') or 'XX'
-                if country not in countries:
-                    countries[country] = []
-                countries[country].append(event)
-            
-            for country in sorted(countries.keys()):
-                country_id = f"country_{country}"
-                self.events_tree.insert('', tk.END, iid=country_id, text=country, open=False)
-                
-                for event in countries[country]:
-                    date_str = self._format_event_date(event)
-                    self.events_tree.insert(country_id, tk.END, iid=event['id'], values=(
-                        event['name'],
-                        date_str
-                    ))
+            filtered_events = self.all_events
+
+        self.tm_events.update_hierarchical(
+            data=filtered_events,
+            parent_getter=lambda e: f"country_{e.get('countryCode', 'XX') or 'XX'}",
+            id_getter=lambda e: e['id'],
+            text_getter=lambda e: e.get('countryCode', 'XX') or 'XX',
+            values_getter=lambda e: (e['name'], self._format_event_date(e))
+        )
     
     def _format_event_date(self, event):
         """Format event date for display, with LIVE indicator for in-play events."""
@@ -1435,9 +1406,8 @@ class PickfairApp:
         self.executor.submit("fetch_market_prices", fetch)
     
     def _display_market(self, market):
-        """Display market runners."""
+        """Display market runners using TreeManager."""
         self.current_market = market
-        self.runners_tree.delete(*self.runners_tree.get_children())
         
         self.market_status = market.get('status', 'OPEN')
         is_inplay = market.get('inPlay', False)
@@ -1457,20 +1427,27 @@ class PickfairApp:
                 self.market_status_label.configure(text="APERTO", text_color=COLORS['success'])
             self.dutch_modal_btn.configure(state=tk.NORMAL)
         
+        runners_data = []
         for runner in market['runners']:
             back_price = f"{runner['backPrice']:.2f}" if runner.get('backPrice') else "-"
             lay_price = f"{runner['layPrice']:.2f}" if runner.get('layPrice') else "-"
             back_size = f"{runner['backSize']:.0f}" if runner.get('backSize') else "-"
             lay_size = f"{runner['laySize']:.0f}" if runner.get('laySize') else "-"
             
-            self.runners_tree.insert('', tk.END, iid=str(runner['selectionId']), values=(
-                '',
-                runner['runnerName'],
-                back_price,
-                back_size,
-                lay_price,
-                lay_size
-            ), tags=('runner_row',))
+            sel_indicator = 'X' if str(runner['selectionId']) in self.selected_runners else ''
+            
+            runners_data.append({
+                'id': runner['selectionId'],
+                'values': (sel_indicator, runner['runnerName'], back_price, back_size, lay_price, lay_size),
+                'tags': ('runner_row',)
+            })
+
+        self.tm_runners.update_flat(
+            data=runners_data,
+            id_getter=lambda r: str(r['id']),
+            values_getter=lambda r: r['values'],
+            tags_getter=lambda r: r['tags']
+        )
         
         if self.market_status not in ('SUSPENDED', 'CLOSED'):
             self.stream_var.set(True)
@@ -1521,21 +1498,40 @@ class PickfairApp:
         self.stream_label.configure(text="")
     
     def _on_price_update(self, market_id, runners_data):
-        """Handle streaming price update."""
+        """Handle streaming price update with throttling lock."""
         if not self.current_market or market_id != self.current_market['marketId']:
             return
         
+        with self._buffer_lock:
+            self._market_update_buffer[market_id] = runners_data
+            if not getattr(self, '_pending_tree_update', False):
+                self._pending_tree_update = True
+                self.root.after(200, self._throttled_refresh)
+
+    def _throttled_refresh(self):
+        """Process buffered streaming updates at safe intervals."""
+        with self._buffer_lock:
+            snapshot = dict(self._market_update_buffer)
+            self._market_update_buffer.clear()
+            self._pending_tree_update = False
+            
+        if not self.current_market:
+            return
+            
+        market_id = self.current_market['marketId']
+        runners_data = snapshot.get(market_id)
+        if not runners_data:
+            return
+            
         def update_ui():
             for runner_update in runners_data:
                 selection_id = str(runner_update['selectionId'])
-                
                 try:
                     item = self.runners_tree.item(selection_id)
                     if not item:
                         continue
-                    
+                        
                     current_values = list(item['values'])
-                    
                     back_prices = runner_update.get('backPrices', [])
                     lay_prices = runner_update.get('layPrices', [])
                     
@@ -4284,5 +4280,121 @@ Ultimo errore: {plugin.last_error or 'Nessuno'}"""
                 except:
                     pass
                 live_tracking_id[0] = parent.after(5000, update_pl)
-
-
+            
+            live_tracking_id[0] = parent.after(5000, update_pl)
+            live_status_label.config(text="LIVE", foreground='#28a745')
+        
+        def stop_live_tracking():
+            if live_tracking_id[0]:
+                parent.after_cancel(live_tracking_id[0])
+                live_tracking_id[0] = None
+            live_status_label.config(text="", foreground='gray')
+        
+        ttk.Checkbutton(btn_frame, text="Live Tracking", variable=live_tracking_var,
+                        command=toggle_live_tracking).pack(side=tk.LEFT, padx=15)
+        
+        live_status_label = ttk.Label(btn_frame, text="", font=('Segoe UI', 9, 'bold'))
+        live_status_label.pack(side=tk.LEFT)
+        
+        def on_close():
+            stop_live_tracking()
+            dialog.destroy()
+        
+        dialog.protocol("WM_DELETE_WINDOW", on_close)
+        
+        auto_frame = ttk.LabelFrame(parent, text="Auto-Cashout", padding=10)
+        auto_frame.pack(fill=tk.X, pady=10)
+        
+        ttk.Label(auto_frame, text="Target Profitto:").grid(row=0, column=0, padx=5)
+        profit_target = ttk.Entry(auto_frame, width=10)
+        profit_target.insert(0, "10.00")
+        profit_target.grid(row=0, column=1, padx=5)
+        
+        ttk.Label(auto_frame, text="Limite Perdita:").grid(row=0, column=2, padx=5)
+        loss_limit = ttk.Entry(auto_frame, width=10)
+        loss_limit.insert(0, "-5.00")
+        loss_limit.grid(row=0, column=3, padx=5)
+        
+        def set_auto_cashout():
+            selected = tree.selection()
+            if not selected:
+                messagebox.showwarning("Attenzione", "Seleziona una posizione")
+                return
+            
+            try:
+                target = float(profit_target.get())
+                limit = float(loss_limit.get())
+            except:
+                messagebox.showerror("Errore", "Valori non validi")
+                return
+            
+            for item_id in selected:
+                pos = positions_data.get(item_id)
+                if pos:
+                    self.db.save_auto_cashout_rule(
+                        pos['market_id'],
+                        item_id,
+                        target,
+                        limit
+                    )
+            
+            messagebox.showinfo("Info", "Auto-cashout impostato")
+        
+        ttk.Button(auto_frame, text="Imposta Auto-Cashout", command=set_auto_cashout).grid(row=0, column=4, padx=10)
+        
+        ttk.Label(parent, text="Auto-cashout esegue automaticamente quando P/L raggiunge target o limite",
+                  font=('Segoe UI', 8)).pack(anchor=tk.W)
+        
+        load_positions()
+        start_live_tracking()
+    
+    def _show_multi_market_monitor(self):
+        """Show multi-market monitor window."""
+        if not self.client:
+            messagebox.showwarning("Attenzione", "Connettiti prima a Betfair")
+            return
+        
+        monitor = tk.Toplevel(self.root)
+        monitor.title("Multi-Market Monitor")
+        monitor.geometry("1000x600")
+        monitor.transient(self.root)
+        
+        if not hasattr(self, 'watchlist'):
+            self.watchlist = []
+        
+        main_frame = ttk.Frame(monitor, padding=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        control_frame = ttk.Frame(main_frame)
+        control_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(control_frame, text="Aggiungi mercato corrente alla watchlist:").pack(side=tk.LEFT)
+        
+        def add_current_market():
+            if self.current_market and self.current_event:
+                market_info = {
+                    'event_id': self.current_event['id'],
+                    'event_name': self.current_event['name'],
+                    'market_id': self.current_market['marketId'],
+                    'market_name': self.current_market.get('marketName', 'N/A'),
+                    'runners': self.current_market.get('runners', [])
+                }
+                for m in self.watchlist:
+                    if m['market_id'] == market_info['market_id']:
+                        messagebox.showinfo("Info", "Mercato già nella watchlist")
+                        return
+                self.watchlist.append(market_info)
+                refresh_watchlist()
+                messagebox.showinfo("Aggiunto", f"Aggiunto: {market_info['event_name']}")
+            else:
+                messagebox.showwarning("Attenzione", "Seleziona prima un mercato")
+        
+        ttk.Button(control_frame, text="+ Aggiungi Corrente", command=add_current_market).pack(side=tk.LEFT, padx=10)
+        
+        monitor_refresh_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(control_frame, text="Auto-refresh (30s)", variable=monitor_refresh_var).pack(side=tk.LEFT, padx=10)
+        
+        def remove_selected():
+            selection = watchlist_tree.selection()
+            if selection:
+                idx = watchlist_tree.index(selection[0])
