@@ -1,6 +1,6 @@
 """
 Pickfair Plugin Manager
-Sistema di plugin con protezioni di sicurezza
+Sistema di plugin con protezioni di sicurezza e thread isolation
 """
 
 import os
@@ -14,6 +14,10 @@ import traceback
 from typing import Dict, List, Callable, Optional, Any
 from dataclasses import dataclass, field
 from pathlib import Path
+
+# --- HEDGE-FUND STABLE FIX ---
+from plugin_runner import PluginRunner
+# -----------------------------
 
 @dataclass
 class PluginInfo:
@@ -80,6 +84,10 @@ class PluginManager:
         self.hooks: Dict[str, List[Callable]] = {}
         self._lock = threading.Lock()
         
+        # --- HEDGE-FUND STABLE FIX ---
+        self.plugin_runner = PluginRunner(timeout=self.MAX_EXECUTION_TIME)
+        # -----------------------------
+        
         # Setup plugins directory
         if plugins_dir:
             self.plugins_dir = Path(plugins_dir)
@@ -92,11 +100,11 @@ class PluginManager:
         
         self.plugins_dir.mkdir(parents=True, exist_ok=True)
         
-        # Allowed paths for file access
+        # Allowed paths for file access (store as Path objects for safe comparison)
         self.allowed_paths = [
-            str(self.plugins_dir),
-            str(self.plugins_dir.parent / 'data'),
-            str(self.plugins_dir.parent / 'logs'),
+            self.plugins_dir.resolve(),
+            (self.plugins_dir.parent / 'data').resolve(),
+            (self.plugins_dir.parent / 'logs').resolve(),
         ]
         
         # Create data directory for plugins
@@ -194,16 +202,15 @@ class PluginManager:
             return False, f"Errore lettura file: {e}"
     
     def safe_file_access(self, filepath: str, mode: str = 'r') -> bool:
-        """Check if file access is allowed (sandbox).
-        
-        Returns:
-            True if access is allowed
-        """
-        abs_path = os.path.abspath(filepath)
-        for allowed in self.allowed_paths:
-            if abs_path.startswith(allowed):
-                return True
-        return False
+        """Check if file access is allowed (sandbox) securely preventing path traversal."""
+        try:
+            target_path = Path(filepath).resolve()
+            for allowed in self.allowed_paths:
+                if target_path.is_relative_to(allowed):
+                    return True
+            return False
+        except Exception:
+            return False
     
     def install_requirements(self, plugin_path: str) -> tuple:
         """Install plugin requirements from requirements.txt.
@@ -377,41 +384,9 @@ class PluginManager:
             
             return True, "Plugin disabilitato"
     
-    def _run_plugin_safe(self, func: Callable, plugin_name: str, timeout: float = None) -> Any:
-        """Run plugin function with timeout and error handling.
-        
-        Returns:
-            Function result or None if error/timeout
-        """
-        timeout = timeout or self.MAX_EXECUTION_TIME
-        result = [None]
-        error = [None]
-        
-        def wrapper():
-            try:
-                result[0] = func()
-            except Exception as e:
-                error[0] = e
-        
-        thread = threading.Thread(target=wrapper, daemon=True)
-        thread.start()
-        thread.join(timeout=timeout)
-        
-        if thread.is_alive():
-            # Thread is still running - timeout
-            if plugin_name in self.plugins:
-                self.plugins[plugin_name].last_error = "Timeout esecuzione"
-            raise PluginTimeoutError(f"Plugin {plugin_name} timeout")
-        
-        if error[0]:
-            if plugin_name in self.plugins:
-                self.plugins[plugin_name].last_error = str(error[0])
-            raise error[0]
-        
-        if plugin_name in self.plugins:
-            self.plugins[plugin_name].execution_count += 1
-        
-        return result[0]
+    def _run_plugin_safe(self, func: Callable, plugin_name: str, *args, **kwargs) -> Any:
+        """Execute a plugin function safely via ThreadPoolExecutor."""
+        return self.plugin_runner.run(plugin_name, func, *args, **kwargs)
     
     def register_hook(self, hook_name: str, callback: Callable, plugin_name: str = None):
         """Register a hook callback from a plugin."""
@@ -437,10 +412,10 @@ class PluginManager:
             try:
                 result = self._run_plugin_safe(
                     lambda: callback(*args, **kwargs),
-                    plugin_name,
-                    timeout=5
+                    plugin_name
                 )
-                results.append(result)
+                if result is not None:
+                    results.append(result)
             except Exception as e:
                 print(f"[Plugin Hook Error] {plugin_name}: {e}")
         
